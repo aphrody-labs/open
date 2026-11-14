@@ -1,0 +1,63 @@
+{
+  "name": "@hey-api/shared",
+  "version": "0.5.0",
+  "description": "Temporary home for cross-package utilities. Contents will migrate to proper packages as architecture stabilizes.",
+  "homepage": "https://heyapi.dev/",
+  "bugs": {
+    "url": "https://github.com/hey-api/hey-api/issues"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Hey API",
+    "email": "lubos@heyapi.dev",
+    "url": "https://heyapi.dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hey-api/hey-api.git",
+    "directory": "packages/shared"
+  },
+  "funding": [
+    "https://heyapi.dev/sponsors",
+    "https://github.com/sponsors/hey-api"
+  ],
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "prepublishOnly": "pnpm build",
+    "typecheck": "tsgo --noEmit"
+  },
+  "dependencies": {
+    "@hey-api/codegen-core": "workspace:*",
+    "@hey-api/json-schema-ref-parser": "workspace:*",
+    "@hey-api/spec-types": "workspace:*",
+    "@hey-api/types": "workspace:*",
+    "open": "11.0.0",
+    "tinyexec": "1.2.4",
+    "verkit": "0.3.0"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.14",
+    "@types/js-yaml": "4.0.9",
+    "js-yaml": "5.3.0",
+    "typescript": "6.0.3"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  }
+}

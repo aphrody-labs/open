@@ -1,0 +1,88 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd web && pnpm build && cp -r .vercel/output ../.vercel/output",
+  "cleanUrls": true,
+  "devCommand": "cd web && pnpm dev",
+  "installCommand": "cd web && pnpm install",
+  "headers": [
+    {
+      "source": "/",
+      "headers": [
+        {
+          "key": "Link",
+          "value": "</docs>; rel=\"service-doc\""
+        }
+      ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/docs",
+      "destination": "/docs/openapi/typescript/get-started",
+      "permanent": false
+    },
+    {
+      "source": "/docs/openapi",
+      "destination": "/docs/openapi/typescript/get-started",
+      "permanent": false
+    },
+    {
+      "source": "/docs/openapi/typescript",
+      "destination": "/docs/openapi/typescript/get-started",
+      "permanent": false
+    },
+    {
+      "source": "/openapi-ts/custom-plugin",
+      "destination": "/docs/openapi/typescript/plugins/custom",
+      "permanent": true
+    },
+    {
+      "source": "/openapi-ts/plugins",
+      "destination": "/docs/openapi/typescript/core",
+      "permanent": true
+    },
+    {
+      "source": "/openapi-ts/output/json-schema",
+      "destination": "/docs/openapi/typescript/plugins/schemas",
+      "permanent": true
+    },
+    {
+      "source": "/openapi-ts/output/sdk",
+      "destination": "/docs/openapi/typescript/plugins/sdk",
+      "permanent": true
+    },
+    {
+      "source": "/openapi-ts/output/typescript",
+      "destination": "/docs/openapi/typescript/plugins/typescript",
+      "permanent": true
+    },
+    {
+      "source": "/openapi-ts/transformers",
+      "destination": "/docs/openapi/typescript/plugins/transformers",
+      "permanent": true
+    },
+    {
+      "source": "/openapi-ts",
+      "destination": "/docs/openapi/typescript/get-started",
+      "permanent": true
+    },
+    {
+      "source": "/openapi-ts/:path*",
+      "destination": "/docs/openapi/typescript/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "header", "key": "accept", "value": "(.*)text/markdown(.*)" }],
+      "destination": "/index.md",
+      "permanent": false
+    },
+    {
+      "source": "/:slug((?!.*\\.md$).+)",
+      "has": [{ "type": "header", "key": "accept", "value": "(.*)text/markdown(.*)" }],
+      "destination": "/:slug.md",
+      "permanent": false
+    }
+  ],
+  "trailingSlash": false
+}

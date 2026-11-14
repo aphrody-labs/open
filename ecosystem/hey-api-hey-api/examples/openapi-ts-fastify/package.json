@@ -1,0 +1,22 @@
+{
+  "name": "@example/openapi-ts-fastify",
+  "version": "0.1.16",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "openapi-ts": "openapi-ts",
+    "test": "vitest",
+    "typecheck": "tsgo --noEmit"
+  },
+  "dependencies": {
+    "fastify": "5.7.4",
+    "fastify-openapi-glue": "4.8.0"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "workspace:*",
+    "oxfmt": "0.57.0",
+    "typescript": "6.0.3",
+    "vite": "8.1.3",
+    "vitest": "4.1.9"
+  }
+}
