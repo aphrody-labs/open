@@ -1,0 +1,74 @@
+name: Deploy terminal catalog
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/deploy-catalog.yml"
+      - "bun.lock"
+      - "package.json"
+      - "packages/drive/**"
+      - "apps/catalog/**"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-terminal-catalog-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: github.repository == 'anomalyco/opencode-drive' && github.ref_name == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: catalog-dev
+      url: https://dev.opencode.ai/lab/catalog
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      CLOUDFLARE_ACCOUNT_ID: d8e944f537ceef3f06a5bd3aec1d7a53
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: arn:aws:iam::604439173067:role/github/opencode-drive-catalog-dev
+          role-session-name: opencode-drive-catalog-${{ github.run_id }}
+          aws-region: us-east-1
+
+      - name: Cloudflare token
+        id: cloudflare-token
+        run: bash .github/release/cloudflare-token.sh
+        env:
+          CLOUDFLARE_TOKEN_URL: ${{ vars.CLOUDFLARE_TOKEN_URL }}
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+
+      - run: sudo apt-get update && sudo apt-get install --yes ffmpeg
+      - run: bun install --frozen-lockfile
+
+      - name: Validate
+        run: |
+          bun run --cwd packages/drive check
+          bun run --cwd packages/drive test
+          bun run --cwd apps/catalog check
+
+      - name: Build
+        working-directory: apps/catalog
+        run: bun run build
+
+      - name: Deploy
+        working-directory: apps/catalog
+        run: bunx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ steps.cloudflare-token.outputs.token }}
+
+      - name: Verify deployment
+        run: curl --fail --retry 5 --retry-all-errors --retry-delay 2 --silent --show-error --output /dev/null https://dev.opencode.ai/lab/catalog

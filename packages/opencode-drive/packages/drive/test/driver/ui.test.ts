@@ -1,0 +1,927 @@
+import { describe, expect, it } from "@effect/vitest"
+import { Effect, type Types } from "effect"
+import { createCanvas, loadImage } from "@napi-rs/canvas"
+import { mkdtemp, rm, writeFile } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import * as OpenCodeUi from "../../src/driver/ui.js"
+import * as SimulationConnector from "../../src/simulation/connector.js"
+import { sendError, sendResult, startTransportPeer } from "../simulation/transport-peer.js"
+import { loadRecentKeypresses } from "../../src/recording/keypresses.js"
+
+const editor = {
+  id: "prompt",
+  num: 3,
+  x: 2,
+  y: 4,
+  width: 20,
+  height: 6,
+  focusable: true,
+  focused: true,
+  clickable: true,
+  editor: true,
+}
+
+const state = {
+  focused: { renderable: 3, editor: true },
+  elements: [editor],
+}
+
+const snapshot = {
+  format: "opencode-ui-snapshot-v1",
+  nodes: [
+    {
+      id: "session.permission",
+      instance: "permission-1",
+      role: "dialog",
+      label: "Permission required: Edit fixture.txt",
+      element: 2,
+      expanded: false,
+    },
+    {
+      id: "session.permission.action.once",
+      instance: "permission-1",
+      parent: "session.permission",
+      role: "option",
+      label: "Allow once",
+      element: 3,
+      focused: true,
+      selected: true,
+      disabled: false,
+    },
+  ],
+}
+
+const frame = {
+  cols: 2,
+  rows: 1,
+  cursor: [0, 0] as const,
+  lines: [{ spans: [{ text: "ok", fg: [255, 255, 255, 255] as const, bg: [0, 0, 0, 255] as const, attributes: 0, width: 2 }] }],
+}
+
+type ScreenshotFailure = Effect.Effect.Error<ReturnType<OpenCodeUi.Ui["screenshot"]>>
+const operationErrorExcludesScreenshotError: Types.Equals<
+  Extract<OpenCodeUi.OperationError, OpenCodeUi.UiScreenshotError>,
+  never
+> = true
+const screenshotErrorIsSpecific: Types.Equals<ScreenshotFailure, OpenCodeUi.ScreenshotError> = true
+void operationErrorExcludesScreenshotError
+void screenshotErrorIsSpecific
+
+describe("OpenCodeUi", () => {
+  it.live("dispatches real mouse params unchanged and keeps transforms around mouse operations", () => Effect.gen(function* () {
+    const peer = startTransportPeer(({ request, socket }) => sendResult(socket, request, state))
+    yield* Effect.addFinalizer(() => Effect.promise(() => peer.stop()))
+    const connection = yield* SimulationConnector.ui(peer.url)
+    const operations: string[] = []
+    const ui = OpenCodeUi.transform(OpenCodeUi.make(connection), (effect) => effect.pipe(
+      Effect.tap(() => Effect.sync(() => { operations.push("mouse") })),
+    ))
+    const params = { action: "move", x: 23, y: 11, modifiers: { shift: true } } as const
+    expect(yield* ui.mouse(params)).toEqual(state)
+    expect(peer.received[0]?.request).toMatchObject({ method: "ui.mouse", params })
+    expect(operations).toEqual(["mouse"])
+  }))
+
+  it.live("keeps older endpoints usable and rejects unsupported mouse before sending input", () => Effect.gen(function* () {
+    const peer = startTransportPeer(({ request, socket }) => sendResult(socket, request, state), {
+      capabilities: (capabilities) => capabilities.filter((capability) => capability !== "ui.mouse"),
+    })
+    yield* Effect.addFinalizer(() => Effect.promise(() => peer.stop()))
+    const connection = yield* SimulationConnector.ui(peer.url)
+    const ui = OpenCodeUi.make(connection)
+    expect(yield* ui.mouse({ action: "move", x: 1, y: 2 }).pipe(Effect.flip)).toMatchObject({
+      _tag: "UiCapabilityError", capability: "ui.mouse",
+    })
+    expect(peer.received).toEqual([])
+    expect(yield* ui.state()).toEqual(state)
+  }))
+  it.live("captures a normalized terminal frame", () => {
+    const peer = startTransportPeer(({ request, socket }) => sendResult(socket, request, frame))
+
+    return Effect.gen(function* () {
+      yield* Effect.addFinalizer(() => Effect.promise(() => peer.stop()))
+      const connection = yield* SimulationConnector.ui(peer.url)
+      expect(yield* OpenCodeUi.make(connection).capture()).toEqual(frame)
+      expect(peer.received.map(({ request }) => request)).toEqual([
+        { jsonrpc: "2.0", id: 1, method: "ui.capture" },
+      ])
+    })
+  })
+
+  it.live("wraps generated UI RPCs with user-level operations", () => {
+    let matchCalls = 0
+    const peer = startTransportPeer(({ request, socket }) => {
+      if (request.method === "ui.matches") {
+        matchCalls++
+        sendResult(socket, request, matchCalls > 1)
+        return
+      }
+      sendResult(socket, request, state)
+    })
+
+    return Effect.gen(function* () {
+      yield* Effect.addFinalizer(() => Effect.promise(() => peer.stop()))
+      const connection = yield* SimulationConnector.ui(peer.url)
+      const ui = OpenCodeUi.make(connection)
+
+      expect(yield* ui.submit("hello")).toEqual(state)
+      expect(yield* ui.press("escape", { ctrl: true })).toEqual(state)
+      expect(yield* ui.click(3)).toEqual(state)
+      expect(yield* ui.waitFor("ready", { timeout: 1_000, interval: 1 })).toEqual(state)
+      expect(yield* ui.getElement({ editor: true })).toEqual(editor)
+
+      expect(peer.received.map(({ request }) => request)).toEqual([
+        {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "ui.type",
+          params: { text: "hello" },
+        },
+        { jsonrpc: "2.0", id: 2, method: "ui.enter" },
+        {
+          jsonrpc: "2.0",
+          id: 3,
+          method: "ui.press",
+          params: { key: "escape", modifiers: { ctrl: true } },
+        },
+        { jsonrpc: "2.0", id: 4, method: "ui.state" },
+        {
+          jsonrpc: "2.0",
+          id: 5,
+          method: "ui.click",
+          params: { target: 3, x: 10, y: 3 },
+        },
+        {
+          jsonrpc: "2.0",
+          id: 6,
+          method: "ui.matches",
+          params: { text: "ready" },
+        },
+        {
+          jsonrpc: "2.0",
+          id: 7,
+          method: "ui.matches",
+          params: { text: "ready" },
+        },
+        { jsonrpc: "2.0", id: 8, method: "ui.state" },
+        { jsonrpc: "2.0", id: 9, method: "ui.state" },
+      ])
+    })
+  })
+
+  it.live("rejects chord-shaped press keys before sending input", () => Effect.gen(function* () {
+    const peer = startTransportPeer(({ request, socket }) => sendResult(socket, request, state))
+    yield* Effect.addFinalizer(() => Effect.promise(() => peer.stop()))
+    const connection = yield* SimulationConnector.ui(peer.url)
+
+    expect(yield* OpenCodeUi.make(connection).press("ctrl+u").pipe(Effect.flip)).toMatchObject({
+      _tag: "UiPressError",
+      key: "ctrl+u",
+    })
+    expect(peer.received).toEqual([])
+  }))
+
+  it.live("records successful semantic key presses for overlays", () => {
+    const peer = startTransportPeer(({ request, socket }) =>
+      sendResult(socket, request, state)
+    )
+
+    return Effect.gen(function* () {
+      yield* Effect.addFinalizer(() => Effect.promise(() => peer.stop()))
+      const directory = yield* Effect.promise(() =>
+        mkdtemp(join(tmpdir(), "opencode-drive-keypress-ui-")),
+      )
+      yield* Effect.addFinalizer(() =>
+        Effect.promise(() => rm(directory, { recursive: true, force: true })),
+      )
+      const timeline = join(directory, "recording.jsonl")
+      yield* Effect.promise(() => writeFile(timeline, ""))
+      const connection = yield* SimulationConnector.ui(peer.url)
+      const ui = OpenCodeUi.make(connection, { keypressTimeline: timeline })
+
+      yield* ui.press("p", { ctrl: true })
+      yield* ui.arrow("down")
+      yield* ui.enter()
+
+      expect(yield* Effect.promise(() => loadRecentKeypresses(timeline))).toEqual([
+        "Ctrl + P",
+        "↓",
+        "Enter",
+      ])
+    })
+  })
+
+  it.live("renders negotiated screenshots from captured frames inside Drive", () => {
+    const peer = startTransportPeer(({ request, socket }) => sendResult(socket, request, frame))
+
+    return Effect.gen(function* () {
+      yield* Effect.addFinalizer(() => Effect.promise(() => peer.stop()))
+      const directory = yield* Effect.promise(() => mkdtemp(join(tmpdir(), "opencode-drive-screenshot-")))
+      yield* Effect.addFinalizer(() => Effect.promise(() => rm(directory, { recursive: true, force: true })))
+      const connection = yield* SimulationConnector.ui(peer.url)
+      const path = yield* OpenCodeUi.make(connection, { screenshotDirectory: directory }).screenshot("home")
+
+      expect(path).toBe(join(directory, "home.png"))
+      const bytes = yield* Effect.promise(() => Bun.file(path).arrayBuffer())
+      expect(Buffer.from(bytes).subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+      expect(peer.received.map(({ request }) => request)).toEqual([
+        { jsonrpc: "2.0", id: 1, method: "ui.capture" },
+      ])
+    })
+  })
+
+  it.live("composites captured terminal images into screenshots", () => {
+    const imageFrame = {
+      ...frame,
+      images: [{
+        x: 0,
+        y: 0,
+        width: 1,
+        height: 1,
+        pixelWidth: 1,
+        pixelHeight: 1,
+        rgba: "/wAA/w==",
+      }],
+    }
+    const peer = startTransportPeer(({ request, socket }) => sendResult(socket, request, imageFrame))
+
+    return Effect.gen(function* () {
+      yield* Effect.addFinalizer(() => Effect.promise(() => peer.stop()))
+      const directory = yield* Effect.promise(() => mkdtemp(join(tmpdir(), "opencode-drive-image-screenshot-")))
+      yield* Effect.addFinalizer(() => Effect.promise(() => rm(directory, { recursive: true, force: true })))
+      const connection = yield* SimulationConnector.ui(peer.url)
+      const path = yield* OpenCodeUi.make(connection, { screenshotDirectory: directory }).screenshot("image")
+      const screenshot = yield* Effect.promise(() => loadImage(path))
+      const canvas = createCanvas(screenshot.width, screenshot.height)
+      const context = canvas.getContext("2d")
+      context.drawImage(screenshot, 0, 0)
+
+      expect([...context.getImageData(4, 9, 1, 1).data]).toEqual([255, 0, 0, 255])
+    })
+  })
+
+  it.live("preserves transparent foreground and background colors in screenshots", () => {
+    const transparent = {
+      cols: 2,
+      rows: 1,
+      cursor: [0, 0] as const,
+      lines: [
+        {
+          spans: [
+            { text: "█", fg: [0, 255, 0, 0] as const, bg: [255, 0, 0, 255] as const, attributes: 0, width: 1 },
+            { text: " ", fg: [255, 255, 255, 255] as const, bg: [0, 0, 255, 0] as const, attributes: 0, width: 1 },
+          ],
+        },
+      ],
+    }
+    const peer = startTransportPeer(({ request, socket }) => sendResult(socket, request, transparent))
+    return Effect.gen(function* () {
+      yield* Effect.addFinalizer(() => Effect.promise(() => peer.stop()))
+      const directory = yield* Effect.promise(() => mkdtemp(join(tmpdir(), "opencode-drive-alpha-")))
+      yield* Effect.addFinalizer(() => Effect.promise(() => rm(directory, { recursive: true, force: true })))
+      const connection = yield* SimulationConnector.ui(peer.url)
+      const path = yield* OpenCodeUi.make(connection, { screenshotDirectory: directory }).screenshot("alpha")
+      const image = yield* Effect.promise(() => loadImage(path))
+      const canvas = createCanvas(image.width, image.height)
+      const context = canvas.getContext("2d")
+      context.drawImage(image, 0, 0)
+
+      expect(Array.from(context.getImageData(5, 10, 1, 1).data)).toEqual([255, 0, 0, 255])
+      expect(Array.from(context.getImageData(15, 10, 1, 1).data)).toEqual([8, 8, 8, 255])
+    })
+  })
+
+  it.live("reports local screenshot failures without widening other UI errors", () => {
+    const peer = startTransportPeer(({ request, socket }) => sendResult(socket, request, frame))
+
+    return Effect.gen(function* () {
+      yield* Effect.addFinalizer(() => Effect.promise(() => peer.stop()))
+      const error = yield* OpenCodeUi.make(
+        yield* SimulationConnector.ui(peer.url),
+      ).screenshot("../outside").pipe(Effect.flip)
+
+      expect(error).toBeInstanceOf(OpenCodeUi.UiScreenshotError)
+      expect(error.message).toContain("must not contain a path or extension")
+    })
+  })
+
+  it.live("selects and clicks semantic UI nodes", () => {
+    let snapshotCalls = 0
+    const peer = startTransportPeer(({ request, socket }) => {
+      if (request.method === "ui.snapshot") {
+        snapshotCalls++
+        sendResult(
+          socket,
+          request,
+          snapshotCalls === 2
+            ? { format: "opencode-ui-snapshot-v1", nodes: [] }
+            : snapshot,
+        )
+        return
+      }
+      sendResult(socket, request, state)
+    })
+
+    return Effect.gen(function* () {
+      yield* Effect.addFinalizer(() => Effect.promise(() => peer.stop()))
+      const connection = yield* SimulationConnector.ui(peer.url)
+      const ui = OpenCodeUi.make(connection)
+
+      expect(yield* ui.snapshot()).toEqual(snapshot)
+      const option = yield* ui.getNode({
+        instance: "permission-1",
+        role: "option",
+        selected: true,
+        disabled: false,
+      }, { interval: 1 })
+      expect(option).toEqual(snapshot.nodes[1])
+      expect(yield* ui.click(option)).toEqual(state)
+      expect(peer.received.map(({ request }) => request)).toEqual([
+        { jsonrpc: "2.0", id: 1, method: "ui.snapshot" },
+        { jsonrpc: "2.0", id: 2, method: "ui.snapshot" },
+        { jsonrpc: "2.0", id: 3, method: "ui.snapshot" },
+        { jsonrpc: "2.0", id: 4, method: "ui.state" },
+        {
+          jsonrpc: "2.0",
+          id: 5,
+          method: "ui.click",
+          params: {
+            target: 3,
+            x: 10,
+            y: 3,
+            semantic: {
+              id: "session.permission.action.once",
+              instance: "permission-1",
+              element: 3,
+            },
+          },
+        },
+      ])
+    })
+  })
+
+  it.live("sends stale semantic handles to the endpoint without polling", () => {
+    const peer = startTransportPeer(({ request, socket }) => {
+      if (request.method === "ui.state") {
+        sendResult(socket, request, { ...state, elements: [] })
+        return
+      }
+      sendError(socket, request, "target is stale")
+    })
+
+    return Effect.gen(function* () {
+      yield* Effect.addFinalizer(() => Effect.promise(() => peer.stop()))
+      const connection = yield* SimulationConnector.ui(peer.url)
+      const error = yield* OpenCodeUi.make(connection)
+        .click(snapshot.nodes[1]!)
+        .pipe(Effect.flip)
+
+      expect(error).toMatchObject({
+        _tag: "SimulationRequestError",
+        method: "ui.click",
+        message: "target is stale",
+      })
+      expect(peer.received.map(({ request }) => request)).toEqual([
+        { jsonrpc: "2.0", id: 1, method: "ui.state" },
+        {
+          jsonrpc: "2.0",
+          id: 2,
+          method: "ui.click",
+          params: {
+            target: 3,
+            x: 0,
+            y: 0,
+            semantic: {
+              id: "session.permission.action.once",
+              instance: "permission-1",
+              element: 3,
+            },
+          },
+        },
+      ])
+    })
+  })
+
+  it.live("reports unavailable semantic snapshots without breaking older endpoints", () => {
+    const peer = startTransportPeer(({ request, socket }) => {
+      if (request.method === "simulation.handshake") {
+        const params = request.params as {
+          readonly requiredCapabilities: ReadonlyArray<string>
+        }
+        sendResult(socket, request, {
+          protocolVersion: 1,
+          role: "ui",
+          server: { name: "opencode", version: "older" },
+          capabilities: params.requiredCapabilities,
+        })
+        return
+      }
+      sendResult(socket, request, state)
+    }, { handshake: false })
+
+    return Effect.gen(function* () {
+      yield* Effect.addFinalizer(() => Effect.promise(() => peer.stop()))
+      const connection = yield* SimulationConnector.ui(peer.url)
+      const ui = OpenCodeUi.make(connection)
+
+      expect(yield* ui.state()).toEqual(state)
+      const error = yield* ui.snapshot().pipe(Effect.flip)
+      expect(error).toBeInstanceOf(OpenCodeUi.UiCapabilityError)
+      expect(error).toMatchObject({
+        capability: "ui.snapshot",
+        message: "ui.snapshot is not available on this OpenCode endpoint",
+      })
+      const clickError = yield* ui.click(snapshot.nodes[1]!).pipe(Effect.flip)
+      expect(clickError).toMatchObject({
+        capability: "ui.click.semantic",
+        message: "semantic ui.click is not available on this OpenCode endpoint",
+      })
+      expect(peer.received.map(({ request }) => request.method)).toEqual([
+        "simulation.handshake",
+        "ui.state",
+      ])
+    })
+  })
+
+  it.live("reports ambiguous semantic nodes as typed UI failures", () => {
+    const peer = startTransportPeer(({ request, socket }) =>
+      sendResult(socket, request, {
+        ...snapshot,
+        nodes: [
+          snapshot.nodes[0],
+          snapshot.nodes[1],
+          {
+            ...snapshot.nodes[1],
+            id: "session.permission.action.always",
+            element: 4,
+          },
+        ],
+      }),
+    )
+
+    return Effect.gen(function* () {
+      yield* Effect.addFinalizer(() => Effect.promise(() => peer.stop()))
+      const connection = yield* SimulationConnector.ui(peer.url)
+      const error = yield* OpenCodeUi.make(connection)
+        .getNode({ role: "option" })
+        .pipe(Effect.flip)
+      expect(error).toBeInstanceOf(OpenCodeUi.UiNodeAmbiguousError)
+      expect(error).toMatchObject({
+        count: 2,
+        message: "ui.getNode matched 2 semantic nodes",
+      })
+    })
+  })
+
+  it.live("reports ambiguous elements as typed UI failures", () => {
+    const peer = startTransportPeer(({ request, socket }) =>
+      sendResult(socket, request, {
+        ...state,
+        elements: [editor, { ...editor, num: 4 }],
+      }),
+    )
+
+    return Effect.gen(function* () {
+      yield* Effect.addFinalizer(() => Effect.promise(() => peer.stop()))
+      const connection = yield* SimulationConnector.ui(peer.url)
+      const error = yield* OpenCodeUi.make(connection).getElement({ editor: true }).pipe(Effect.flip)
+      expect(error).toBeInstanceOf(OpenCodeUi.UiElementAmbiguousError)
+      expect(error).toMatchObject({
+        count: 2,
+        message: "ui.getElement matched 2 elements",
+      })
+    })
+  })
+
+  it.live("rejects non-boolean Effect predicate values", () => {
+    const peer = startTransportPeer(({ request, socket }) =>
+      sendResult(socket, request, state),
+    )
+
+    return Effect.gen(function* () {
+      yield* Effect.addFinalizer(() => Effect.promise(() => peer.stop()))
+      const connection = yield* SimulationConnector.ui(peer.url)
+      const predicate = (() => Effect.succeed("not boolean")) as unknown as
+        OpenCodeUi.EffectPredicate<never>
+      const error = yield* OpenCodeUi.make(connection)
+        .waitFor(predicate)
+        .pipe(Effect.flip)
+
+      expect(error).toBeInstanceOf(OpenCodeUi.UiPredicateError)
+      expect(error).toMatchObject({
+        message: "ui.waitFor predicate must return a boolean or Effect",
+      })
+    })
+  })
+
+  it.live("interrupts timed-out polling and remains usable", () => {
+    const peer = startTransportPeer(({ request, socket }) => {
+      if (request.method === "ui.matches") return
+      if (request.method === "ui.capture") {
+        sendResult(socket, request, frame)
+        return
+      }
+      sendResult(socket, request, state)
+    })
+
+    return Effect.gen(function* () {
+      yield* Effect.addFinalizer(() => Effect.promise(() => peer.stop()))
+      const connection = yield* SimulationConnector.ui(peer.url)
+      const ui = OpenCodeUi.make(connection)
+      const error = yield* ui.waitFor("never", { timeout: 20, interval: 100 }).pipe(Effect.flip)
+
+      expect(error).toBeInstanceOf(OpenCodeUi.UiWaitTimeoutError)
+      expect(error).toMatchObject({
+        operation: "waitFor",
+        milliseconds: 20,
+        frame,
+      })
+      expect(yield* ui.state()).toEqual(state)
+      expect(peer.received.map(({ request }) => request)).toEqual([
+        {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "ui.matches",
+          params: { text: "never" },
+        },
+        { jsonrpc: "2.0", id: 2, method: "ui.capture" },
+        { jsonrpc: "2.0", id: 3, method: "ui.state" },
+      ])
+    })
+  })
+
+  it.live("retries a polling attempt whose reply never arrives", () => {
+    const calls = new Map<string, number>()
+    const peer = startTransportPeer(({ request, socket }) => {
+      const call = (calls.get(request.method) ?? 0) + 1
+      calls.set(request.method, call)
+      if (call === 1 && request.method !== "simulation.handshake") return
+      if (request.method === "ui.matches") {
+        sendResult(socket, request, true)
+        return
+      }
+      if (request.method === "ui.snapshot") {
+        sendResult(socket, request, snapshot)
+        return
+      }
+      sendResult(socket, request, state)
+    })
+
+    return Effect.gen(function* () {
+      yield* Effect.addFinalizer(() => Effect.promise(() => peer.stop()))
+      const connection = yield* SimulationConnector.ui(peer.url)
+      const ui = OpenCodeUi.make(connection, { requestTimeout: 200 })
+      const wait = { timeout: 2_000, interval: 1 }
+
+      expect(yield* ui.waitFor("ready", wait)).toEqual(state)
+      expect(yield* ui.getNode("session.permission.action.once", wait)).toMatchObject({
+        id: "session.permission.action.once",
+      })
+      calls.delete("ui.state")
+      expect(yield* ui.getElement({ editor: true }, wait)).toEqual(editor)
+      expect(peer.received.map(({ request }) => request.method)).toEqual([
+        "ui.matches",
+        "ui.matches",
+        "ui.state",
+        "ui.matches",
+        "ui.state",
+        "ui.snapshot",
+        "ui.snapshot",
+        "ui.state",
+        "ui.state",
+      ])
+    })
+  })
+
+  it.live("fails unanswered RPCs with UiTimeoutError, not the wait error", () => {
+    const peer = startTransportPeer(() => {})
+
+    return Effect.gen(function* () {
+      yield* Effect.addFinalizer(() => Effect.promise(() => peer.stop()))
+      const connection = yield* SimulationConnector.ui(peer.url)
+      const ui = OpenCodeUi.make(connection, { requestTimeout: 20 })
+      const error = yield* ui.state().pipe(Effect.flip)
+
+      expect(error).toBeInstanceOf(OpenCodeUi.UiTimeoutError)
+      expect(error).not.toBeInstanceOf(OpenCodeUi.UiWaitTimeoutError)
+      expect(error).toMatchObject({
+        operation: "state",
+        milliseconds: 20,
+      })
+    })
+  })
+
+  it.live("preserves the polling timeout when evidence capture fails", () => {
+    const peer = startTransportPeer(({ request, socket }) => {
+      if (request.method === "ui.matches") return
+      sendError(socket, request, "capture failed")
+    })
+
+    return Effect.gen(function* () {
+      yield* Effect.addFinalizer(() => Effect.promise(() => peer.stop()))
+      const connection = yield* SimulationConnector.ui(peer.url)
+      const error = yield* OpenCodeUi.make(connection)
+        .waitFor("never", { timeout: 20, interval: 100 })
+        .pipe(Effect.flip)
+
+      expect(error).toBeInstanceOf(OpenCodeUi.UiWaitTimeoutError)
+      expect(error).toMatchObject({
+        operation: "waitFor",
+        milliseconds: 20,
+        message: 'timed out waiting for the UI to match "never"',
+      })
+      expect(error).not.toHaveProperty("frame")
+      expect(peer.received.map(({ request }) => request)).toEqual([
+        {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "ui.matches",
+          params: { text: "never" },
+        },
+        { jsonrpc: "2.0", id: 2, method: "ui.capture" },
+      ])
+    })
+  })
+
+  it.live("does not retry RPC failures while polling", () => {
+    const peer = startTransportPeer(({ request, socket }) => sendError(socket, request, "match failed"))
+
+    return Effect.gen(function* () {
+      yield* Effect.addFinalizer(() => Effect.promise(() => peer.stop()))
+      const connection = yield* SimulationConnector.ui(peer.url)
+      const error = yield* OpenCodeUi.make(connection)
+        .waitFor("ready", { timeout: 1_000, interval: 1 })
+        .pipe(Effect.flip)
+      expect(error).toMatchObject({
+        _tag: "SimulationRequestError",
+        method: "ui.matches",
+        message: "match failed",
+      })
+      expect(peer.received).toHaveLength(1)
+    })
+  })
+
+  it.live("fails waitFor with fatal UiTimeoutError when the peer stays frozen past requestTimeout", () => {
+    const peer = startTransportPeer(() => {})
+
+    return Effect.gen(function* () {
+      yield* Effect.addFinalizer(() => Effect.promise(() => peer.stop()))
+      const connection = yield* SimulationConnector.ui(peer.url)
+      const ui = OpenCodeUi.make(connection, { requestTimeout: 100 })
+      const startedAt = performance.now()
+      const error = yield* ui.waitFor("ready", { timeout: 500 }).pipe(Effect.flip)
+      const elapsed = performance.now() - startedAt
+
+      expect(error).toBeInstanceOf(OpenCodeUi.UiTimeoutError)
+      expect(error).not.toBeInstanceOf(OpenCodeUi.UiWaitTimeoutError)
+      expect(error).toMatchObject({
+        operation: "matches",
+        milliseconds: 100,
+        message: "ui.matches timed out after 100ms",
+      })
+      expect(elapsed).toBeGreaterThanOrEqual(85)
+      expect(elapsed).toBeLessThan(350)
+
+      const zero = OpenCodeUi.make(connection, { requestTimeout: 0 })
+      const immediate = yield* zero.waitFor("ready", { timeout: 500 }).pipe(Effect.flip)
+      expect(immediate).toBeInstanceOf(OpenCodeUi.UiTimeoutError)
+      expect(immediate).toMatchObject({
+        operation: "matches",
+        milliseconds: 0,
+      })
+    })
+  })
+
+  it.live("resets unanswered tracking when the peer replies so non-matching waits still fail with UiWaitTimeoutError", () => {
+    let calls = 0
+    const peer = startTransportPeer(({ request, socket }) => {
+      if (request.method === "ui.capture") {
+        sendResult(socket, request, frame)
+        return
+      }
+      calls++
+      // Drop every odd attempt, answer every even attempt with false so consecutive
+      // unanswered time never reaches requestTimeout.
+      if (calls % 2 === 1) return
+      sendResult(socket, request, false)
+    })
+
+    return Effect.gen(function* () {
+      yield* Effect.addFinalizer(() => Effect.promise(() => peer.stop()))
+      const connection = yield* SimulationConnector.ui(peer.url)
+      const ui = OpenCodeUi.make(connection, { requestTimeout: 120 })
+      const error = yield* ui.waitFor("never", { timeout: 260, interval: 1 }).pipe(Effect.flip)
+
+      expect(error).toBeInstanceOf(OpenCodeUi.UiWaitTimeoutError)
+      expect(error).not.toBeInstanceOf(OpenCodeUi.UiTimeoutError)
+    })
+  })
+
+  it.live("succeeds when a stalled peer replies after 1,150ms within a 2,500ms wait", () => {
+    const timers: Array<ReturnType<typeof setTimeout>> = []
+    let readyAt: number | undefined
+    const peer = startTransportPeer(({ request, socket }) => {
+      readyAt ??= Date.now() + 1_150
+      const delay = Math.max(0, readyAt - Date.now())
+      const reply = () =>
+        sendResult(socket, request, request.method === "ui.matches" ? true : state)
+      if (delay === 0) {
+        reply()
+        return
+      }
+      timers.push(setTimeout(reply, delay))
+    })
+
+    return Effect.gen(function* () {
+      yield* Effect.addFinalizer(() =>
+        Effect.promise(async () => {
+          for (const timer of timers) clearTimeout(timer)
+          await peer.stop()
+        }),
+      )
+      const connection = yield* SimulationConnector.ui(peer.url)
+      const ui = OpenCodeUi.make(connection)
+
+      expect(yield* ui.waitFor("ready", { timeout: 2_500 })).toEqual(state)
+    })
+  })
+
+  it.live("backs off per-attempt timeouts past 1s so a slow 1,150ms RPC does not livelock", () => {
+    const timers: Array<ReturnType<typeof setTimeout>> = []
+    const peer = startTransportPeer(({ request, socket }) => {
+      if (request.method === "ui.matches") {
+        timers.push(setTimeout(() => sendResult(socket, request, true), 1_150))
+        return
+      }
+      sendResult(socket, request, state)
+    })
+
+    return Effect.gen(function* () {
+      yield* Effect.addFinalizer(() =>
+        Effect.promise(async () => {
+          for (const timer of timers) clearTimeout(timer)
+          await peer.stop()
+        }),
+      )
+      const connection = yield* SimulationConnector.ui(peer.url)
+      const ui = OpenCodeUi.make(connection)
+
+      expect(yield* ui.waitFor("ready", { timeout: 4_000 })).toEqual(state)
+      expect(
+        peer.received.filter(({ request }) => request.method === "ui.matches"),
+      ).toHaveLength(4)
+    })
+  })
+
+  it.live("retries a dropped ui.matches reply within a sub-second 800ms wait", () => {
+    let matchesCalls = 0
+    const peer = startTransportPeer(({ request, socket }) => {
+      if (request.method === "ui.matches") {
+        matchesCalls++
+        if (matchesCalls === 1) return
+        sendResult(socket, request, true)
+        return
+      }
+      sendResult(socket, request, state)
+    })
+
+    return Effect.gen(function* () {
+      yield* Effect.addFinalizer(() => Effect.promise(() => peer.stop()))
+      const connection = yield* SimulationConnector.ui(peer.url)
+      const ui = OpenCodeUi.make(connection)
+
+      expect(yield* ui.waitFor("ready", { timeout: 800 })).toEqual(state)
+      expect(peer.received.map(({ request }) => request.method)).toEqual([
+        "ui.matches",
+        "ui.matches",
+        "ui.state",
+      ])
+    })
+  })
+
+  it.live("bounds and retries read-only RPCs inside an EffectPredicate without bounding user Effects", () => {
+    let matchesCalls = 0
+    let snapshotCalls = 0
+    const peer = startTransportPeer(({ request, socket }) => {
+      if (request.method === "ui.matches") {
+        matchesCalls++
+        if (matchesCalls === 1) return
+        sendResult(socket, request, false)
+        return
+      }
+      if (request.method === "ui.snapshot") {
+        snapshotCalls++
+        if (snapshotCalls === 1) return
+        sendResult(socket, request, snapshot)
+        return
+      }
+      sendResult(socket, request, state)
+    })
+
+    return Effect.gen(function* () {
+      yield* Effect.addFinalizer(() => Effect.promise(() => peer.stop()))
+      const connection = yield* SimulationConnector.ui(peer.url)
+      const fatalTimeouts: OpenCodeUi.UiTimeoutError[] = []
+      const ui = OpenCodeUi.transform(OpenCodeUi.make(connection), (effect) =>
+        effect.pipe(
+          Effect.tapError((cause) =>
+            Effect.sync(() => {
+              if (cause instanceof OpenCodeUi.UiTimeoutError) fatalTimeouts.push(cause)
+            }),
+          ),
+        ),
+      )
+
+      expect(
+        yield* ui.waitFor(
+          () => ui.matches("Refreshing").pipe(Effect.map((visible) => !visible)),
+          { timeout: 1_500 },
+        ),
+      ).toEqual(state)
+      expect(fatalTimeouts).toEqual([])
+      expect(peer.received.map(({ request }) => request.method)).toEqual([
+        "ui.state",
+        "ui.matches",
+        "ui.matches",
+      ])
+
+      peer.received.length = 0
+      expect(
+        yield* ui.waitFor(
+          () => ui.snapshot().pipe(Effect.map((current) => current.nodes.length === 2)),
+          { timeout: 1_500 },
+        ),
+      ).toEqual(state)
+      expect(peer.received.map(({ request }) => request.method)).toEqual([
+        "ui.state",
+        "ui.snapshot",
+        "ui.snapshot",
+      ])
+
+      let userEffectRuns = 0
+      expect(
+        yield* ui.waitFor(
+          () =>
+            Effect.gen(function* () {
+              userEffectRuns++
+              yield* Effect.sleep(320)
+              return true
+            }),
+          { timeout: 1_500 },
+        ),
+      ).toEqual(state)
+      expect(userEffectRuns).toBe(1)
+    })
+  })
+
+  it.live("never retries unanswered mutating RPCs outside or inside a poll", () => {
+    const peer = startTransportPeer(({ request, socket }) => {
+      if (request.method === "ui.state") {
+        sendResult(socket, request, state)
+      }
+    })
+
+    return Effect.gen(function* () {
+      yield* Effect.addFinalizer(() => Effect.promise(() => peer.stop()))
+      const connection = yield* SimulationConnector.ui(peer.url)
+      const ui = OpenCodeUi.make(connection, { requestTimeout: 80 })
+
+      for (const expected of [
+        { run: () => ui.type("hello"), method: "ui.type", operation: "type" },
+        { run: () => ui.press("escape"), method: "ui.press", operation: "press" },
+        { run: () => ui.enter(), method: "ui.enter", operation: "enter" },
+        { run: () => ui.click(editor), method: "ui.click", operation: "click" },
+        { run: () => ui.submit("hello"), method: "ui.type", operation: "type" },
+      ]) {
+        peer.received.length = 0
+        const error = yield* expected.run().pipe(Effect.flip)
+        expect(error).toBeInstanceOf(OpenCodeUi.UiTimeoutError)
+        expect(error).toMatchObject({
+          operation: expected.operation,
+          milliseconds: 80,
+        })
+        expect(peer.received.map(({ request }) => request.method)).toEqual([
+          expected.method,
+        ])
+      }
+
+      peer.received.length = 0
+      const inPredicateError = yield* ui
+        .waitFor(
+          () => ui.type("inside").pipe(Effect.as(true)),
+          { timeout: 500 },
+        )
+        .pipe(Effect.flip)
+      expect(inPredicateError).toBeInstanceOf(OpenCodeUi.UiTimeoutError)
+      expect(inPredicateError).toMatchObject({
+        operation: "type",
+        milliseconds: 80,
+      })
+      expect(peer.received.map(({ request }) => request.method)).toEqual([
+        "ui.state",
+        "ui.type",
+      ])
+    })
+  })
+})

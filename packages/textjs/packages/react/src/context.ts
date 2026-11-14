@@ -1,0 +1,78 @@
+import { createContext, useContext, type Context } from "react";
+import { txError, type ConsoleRenderer, type InputEngine, type SceneNode } from "@textjs/core";
+import type { ConsoleContainer } from "./reconciler";
+import type { FocusManager } from "./focus";
+import type { InputManager } from "./input-manager";
+import type { StatsStore, ViewportStore } from "./stores";
+import type { TextTheme } from "./theme";
+
+/** A focus / input scope. Trapping scopes (open modals) confine Tab order and `useInput`. */
+export interface Scope {
+  readonly id: number;
+  readonly parent: Scope | null;
+  readonly trap: boolean;
+}
+
+/**
+ * One instance per realm, keyed on `globalThis` by `Symbol.for(key)`. Contexts
+ * are identity-compared, so a second copy of a Text.js module (a bundled CLI,
+ * mixed `src`/`dist` resolution) must reuse the first copy's context instead
+ * of creating one its providers never reach.
+ * @internal
+ */
+export function shared<T>(key: string, create: () => T): T {
+  const slot = Symbol.for(`textjs.${key}`);
+  const g = globalThis as Record<symbol, unknown>;
+  if (!(slot in g)) g[slot] = create();
+  return g[slot] as T;
+}
+
+/** {@link shared} for React contexts. @internal */
+export function sharedContext<T>(key: string, defaultValue: T, displayName: string): Context<T> {
+  return shared(key, () => {
+    const ctx = createContext<T>(defaultValue);
+    ctx.displayName = displayName;
+    return ctx;
+  });
+}
+
+export const ROOT_SCOPE: Scope = shared("rootScope", () => Object.freeze({ id: 0, parent: null, trap: false }));
+
+const scopeIds = shared("scopeIds", () => ({ next: 1 }));
+
+export function createScope(parent: Scope, trap: boolean): Scope {
+  return Object.freeze({ id: scopeIds.next++, parent, trap });
+}
+
+export const ScopeContext = sharedContext<Scope>("scopeContext", ROOT_SCOPE, "TextScopeContext");
+
+/** Everything hooks need from the mounted console root. */
+/** The root's theme, shared by the root shell, the App Router and the focus hint. */
+export interface RootThemeStore {
+  get(): TextTheme;
+  set(theme: TextTheme): void;
+  subscribe(listener: () => void): () => void;
+}
+
+export interface RootRuntime {
+  readonly renderer: ConsoleRenderer;
+  readonly engine: InputEngine;
+  readonly container: ConsoleContainer;
+  readonly rootNode: SceneNode;
+  readonly input: InputManager;
+  readonly focus: FocusManager;
+  readonly viewport: ViewportStore;
+  readonly stats: StatsStore;
+  readonly theme: RootThemeStore;
+  exit(error?: unknown): void;
+}
+
+export const RuntimeContext = sharedContext<RootRuntime | null>("runtimeContext", null, "TextRuntimeContext");
+
+export function useRuntime(): RootRuntime {
+  const rt = useContext(RuntimeContext);
+  if (rt === null) {
+    throw txError("TX002");
+  }
+  return rt;
+}

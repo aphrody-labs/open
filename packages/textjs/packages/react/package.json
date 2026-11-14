@@ -1,0 +1,80 @@
+{
+  "name": "@textjs/react",
+  "version": "1.6.1",
+  "description": "React 19 renderer for Text.js, with a custom reconciler, cell utility classes, hooks and components.",
+  "type": "module",
+  "license": "MIT",
+  "homepage": "https://textjs.org/docs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anomalyco/textjs.git",
+    "directory": "packages/react"
+  },
+  "bugs": "https://github.com/anomalyco/textjs/issues",
+  "keywords": ["textjs", "react", "reconciler", "console", "devtools", "tui", "components"],
+  "sideEffects": false,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./dom": "./src/dom/index.ts",
+    "./testing": "./src/testing.tsx",
+    "./terminal": "./src/terminal.tsx",
+    "./experimental": "./src/experimental.ts",
+    "./devtools-hook": "./src/devtools-hook.ts",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./dom": {
+        "types": "./dist/dom/index.d.ts",
+        "default": "./dist/dom/index.js"
+      },
+      "./testing": {
+        "types": "./dist/testing.d.ts",
+        "default": "./dist/testing.js"
+      },
+      "./terminal": {
+        "types": "./dist/terminal.d.ts",
+        "default": "./dist/terminal.js"
+      },
+      "./experimental": {
+        "types": "./dist/experimental.d.ts",
+        "default": "./dist/experimental.js"
+      },
+      "./devtools-hook": {
+        "types": "./dist/devtools-hook.d.ts",
+        "default": "./dist/devtools-hook.js"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -b tsconfig.json && bun ../../scripts/esm-specifiers.ts ../core/dist dist",
+    "typecheck": "tsc -p tsconfig.typecheck.json",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@textjs/core": "workspace:*",
+    "react-reconciler": "^0.34.0",
+    "scheduler": "^0.27.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react-dom": {
+      "optional": true
+    }
+  }
+}

@@ -1,0 +1,37 @@
+/* How sending limits work (docs and Overview's explainer): the limit table, the warning lines and what each step does. */
+.limits-guide { display: flex; flex-direction: column; gap: var(--space-24); font-size: var(--text-sm); line-height: var(--leading-sm); }
+.limits-guide > section { display: flex; flex-direction: column; gap: var(--space-12); }
+.limits-guide :is(h2, h3) { margin: 0; font-size: var(--text-md); line-height: var(--leading-sm); font-weight: var(--font-weight-bold); }
+.limits-guide p { max-width: 72ch; margin: 0; text-wrap: pretty; }
+.limits-table-scroll { overflow-x: auto; }
+.limits-table { width: 100%; border-collapse: collapse; font-size: var(--text-xs); line-height: var(--leading-xs); font-variant-numeric: tabular-nums; }
+.limits-table :is(th, td) { height: 32px; padding: 0 var(--space-12) 0 0; border-top: 1px solid var(--color-border-muted); text-align: left; white-space: nowrap; }
+.limits-table th { color: var(--color-muted); font-family: var(--font-mono); font-size: 10px; font-weight: 400; letter-spacing: .1em; text-transform: uppercase; }
+.limits-table :is(th, td):nth-child(n + 3) { text-align: right; }
+.limits-table__part { display: inline-block; white-space: nowrap; }
+.limits-table :is(th, td):last-child { padding-right: 0; }
+.limits-notes { display: flex; flex-direction: column; gap: var(--space-4); margin: 0; padding-inline-start: var(--space-20); color: var(--color-muted); }
+.limits-notes--plain { color: var(--color-text); }
+/* The warning lines: a signal per row, a step per column; cells wrap and read top-down. */
+.limits-table--lines { table-layout: fixed; }
+.limits-table--lines :is(th, td) { height: auto; padding-block: var(--space-6); white-space: normal; vertical-align: top; text-align: left; text-wrap: pretty; }
+.limits-table--lines :is(th, td):nth-child(n + 3) { text-align: left; }
+.limits-table--lines tbody th { color: var(--color-text); font-family: inherit; font-size: inherit; letter-spacing: 0; text-transform: none; }
+.limits-table--lines :is(th, td):first-child { width: 22%; }
+.limits-ladder { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.limits-ladder > li { display: flex; flex-direction: column; gap: var(--space-6); padding: var(--space-12) 0; border-top: 1px solid var(--color-border-muted); }
+.limits-ladder__head { display: flex; align-items: center; gap: var(--space-8); }
+.limits-ladder__mark { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--tone-bg); box-shadow: inset 0 0 0 1px var(--tone-border); color: var(--tone-ink); font-family: var(--font-mono); font-size: 10px; line-height: 1; }
+.limits-ladder > li > ul { display: flex; flex-direction: column; gap: 2px; margin: 0; padding-inline-start: var(--space-20); font-size: var(--text-xs); line-height: var(--leading-xs); font-variant-numeric: tabular-nums; }
+/* In Overview's explainer dialog: wide enough for the table. */
+.ui-dialog.limits-dialog:not(.ui-dialog--sheet) { width: min(640px, calc(100vw - 32px)); }
+.limits-dialog__docs { display: inline-block; margin-top: var(--space-16); font-size: var(--text-sm); }
+/* Phone: four columns must fit without sideways scrolling, so cells wrap and the first column gives way. */
+@media (max-width: 640px) {
+  .limits-table :is(th, td) { height: auto; padding: var(--space-6) var(--space-8) var(--space-6) 0; white-space: normal; vertical-align: top; }
+  .limits-table th { padding-block: var(--space-8); font-size: 9px; letter-spacing: .06em; }
+  .limits-table :is(th, td):nth-child(2) { white-space: nowrap; }
+  .limits-table :is(th, td):nth-child(n + 3) { white-space: nowrap; }
+  .limits-table td:nth-child(3):has(> *), .limits-table td:nth-child(3) { text-wrap: balance; }
+  .limits-table--lines :is(th, td):nth-child(n) { white-space: normal; text-wrap: pretty; }
+}

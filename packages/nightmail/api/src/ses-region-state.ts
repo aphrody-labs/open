@@ -1,0 +1,148 @@
+import { and, eq, inArray, sql } from 'drizzle-orm';
+import { ApiError, digest, id, lazyModule, type Config, type Database, type DbExecutor, type Runtime } from './core.js';
+import { sesRegions, sesSettings } from './db/ses-regions.js';
+import { mailboxRegions } from './db/mailbox.js';
+import { campaigns, emails } from './db/sending.js';
+import { jobs } from './db/core.js';
+import { CAMPAIGN_ACTIVE } from './states.js';
+
+export const discoveryTarget = (config: Config) => JSON.stringify([config.publicUrl, config.sesFeedbackUrl ?? `${config.publicUrl.replace(/\/$/, '')}/v1/events/ses`]);
+
+export const regionPattern = /^[a-z]{2}(?:-[a-z]+)+-\d$/;
+export const DISCOVERY_TTL = 15 * 60 * 1000;
+const settingWhere = (workspaceId: string) => eq(sesSettings.workspaceId, workspaceId);
+export const regionWhere = (workspaceId: string, region: string) => and(eq(sesRegions.workspaceId, workspaceId), eq(sesRegions.region, region));
+export async function credentialFingerprint(config: Config) {
+  // The AWS SDK annotates credential objects with internal metadata during real requests.
+  // Only actual credential fields identify the connection, never those mutable annotations.
+  return digest(JSON.stringify(config.aws ? [config.aws.accessKeyId, config.aws.secretAccessKey, config.aws.sessionToken ?? null] : null));
+}
+// Called by the explicit migration command, never an AWS discovery request.
+export async function ensureRegionSettings(db: Database, config: Pick<Config, 'workspaceId' | 'regions'>) {
+  if ((await db.select().from(sesSettings).where(settingWhere(config.workspaceId)).limit(1)).length) return;
+  const used = await db.execute<{ region: string }>(sql`SELECT region FROM sending_emails WHERE workspace_id=${config.workspaceId}
+    UNION SELECT draft->>'region' FROM sending_campaigns WHERE workspace_id=${config.workspaceId}
+    UNION SELECT region FROM operation_domains WHERE workspace_id=${config.workspaceId}`);
+  const enabledRegions = [...new Set([...config.regions, ...used.rows.map(row => row.region)])];
+  if (!enabledRegions.length || enabledRegions.length > 40 || enabledRegions.some(region => !regionPattern.test(region))) throw new ApiError(503, 'REGION_MIGRATION_REQUIRED', 'Existing region data requires an explicit migration plan.');
+  await db.insert(sesSettings).values({ workspaceId: config.workspaceId, installationId: id('install'), defaultRegion: config.regions[0]!, enabledRegions }).onConflictDoNothing();
+}
+export async function getRegionSettings(db: DbExecutor, workspaceId: string, lock: 'share' | 'update' | undefined = undefined) {
+  const query = db.select().from(sesSettings).where(settingWhere(workspaceId)).limit(1);
+  const [settings] = await (lock ? query.for(lock) : query);
+  if (!settings) throw new ApiError(503, 'REGION_SETTINGS_NOT_INITIALIZED', 'Run database migrations to initialize SES region settings.');
+  return settings;
+}
+export async function assertRegionEnabled(db: DbExecutor, workspaceId: string, region?: string) {
+  const settings = await getRegionSettings(db, workspaceId, 'share');
+  const selected = region ?? settings.defaultRegion;
+  if (!settings.enabledRegions.includes(selected)) throw new ApiError(422, 'REGION_NOT_CONFIGURED', 'The requested SES region is not enabled.', 'region');
+  return selected;
+}
+const orderedRegions = (settings: typeof sesSettings.$inferSelect) => [settings.defaultRegion, ...settings.enabledRegions.filter(region => region !== settings.defaultRegion)];
+// API routes validating a region don't need either set of SNS topic bindings.
+export async function withRegionSettings(runtime: Runtime, workspaceId: string): Promise<Runtime> {
+  if (runtime.config.multiTenant && runtime.config.regionalSending) {
+    // These regions address settings, drafts and historical logs, not permission to send.
+    const row=(await runtime.db.execute<{regions:string[]}>(sql`SELECT array_prepend(s.default_region,ARRAY(SELECT region FROM (
+        SELECT jsonb_array_elements_text(s.enabled_regions) AS region UNION SELECT r.region FROM provider_connections c JOIN provider_connection_regions r ON r.connection_id=c.id
+          WHERE c.workspace_id=s.workspace_id AND r.sending_state IN ('ready','disabled')) known WHERE region<>s.default_region ORDER BY region)) AS regions
+      FROM ses_installation_settings s WHERE s.workspace_id=${workspaceId}`)).rows[0];
+    if (!row) throw new ApiError(503,'REGION_SETTINGS_NOT_INITIALIZED','Run database migrations to initialize SES region settings.');
+    return {...runtime,config:{...runtime.config,workspaceId,regions:row.regions}};
+  }
+  const settings = await getRegionSettings(runtime.db, workspaceId);
+  return { ...runtime, config: { ...runtime.config, workspaceId, regions: orderedRegions(settings) } };
+}
+export async function assertLiveRegionReady(runtime: Runtime, db: DbExecutor, region: string, stream: 'transactional' | 'marketing', retryable = false, workspaceId = runtime.config.workspaceId) {
+  if (runtime.config.multiTenant) {
+    if (!(await db.execute(sql`SELECT 1 FROM regional_sending_connections WHERE workspace_id=${workspaceId} AND region=${region}`)).rowCount) throw new ApiError(409, 'CONNECTION_REQUIRED', 'Set up a sending connection for this workspace and region.', 'region', retryable);
+    return;
+  }
+  const [row] = await db.select().from(sesRegions).where(regionWhere(workspaceId, region)).limit(1);
+  if (!row?.report?.provisioned || row.report.account?.sendingEnabled !== true || row.credentialsFingerprint !== await credentialFingerprint(runtime.config) || row.publicUrl !== discoveryTarget(runtime.config) || row.trustedAccountId !== row.report.account?.id || row.trustedTopicArn !== row.report.resources.topic.arn || row.report.resources[stream].sendingEnabled !== true) {
+    throw new ApiError(409, 'SES_SETUP_REQUIRED', 'Run discovery and complete provisioning for this region before live sending.', 'region', retryable);
+  }
+}
+const regionRows = (runtime: Runtime, workspaceId: string) => Promise.all([
+  getRegionSettings(runtime.db, workspaceId),
+  runtime.db.select({ region: sesRegions.region, account: sesRegions.trustedAccountId, arn: sesRegions.trustedTopicArn }).from(sesRegions).where(eq(sesRegions.workspaceId, workspaceId)),
+  runtime.db.select({ region: mailboxRegions.region, account: mailboxRegions.accountId, arn: mailboxRegions.topicArn }).from(mailboxRegions).where(eq(mailboxRegions.workspaceId, workspaceId)),
+]);
+// Per-isolate cache for the SES callback route only (one POST per SES event, ~23/s mid-send, 3 queries each).
+// Callers must treat a cached miss as unknown and re-resolve fresh before rejecting (see the SNS route).
+const regionCache = new Map<string, { expires: number; rows: ReturnType<typeof regionRows> }>();
+const loadSesSetup = lazyModule(() => import('./ses-setup.js'));
+export async function resolveRegionRuntime(runtime: Runtime, options: { cacheMs?: number; workspaceId?: string } = {}): Promise<Runtime> {
+  const workspaceId = options.workspaceId ?? runtime.config.workspaceId;
+  let rows: ReturnType<typeof regionRows>;
+  const cached = options.cacheMs ? regionCache.get(workspaceId) : undefined;
+  if (cached && cached.expires > Date.now()) rows = cached.rows;
+  else {
+    rows = regionRows(runtime, workspaceId);
+    if (options.cacheMs) {
+      const entry = { expires: Date.now() + options.cacheMs, rows };
+      regionCache.set(workspaceId, entry);
+      rows.catch(() => { if (regionCache.get(workspaceId) === entry) regionCache.delete(workspaceId); });
+    }
+  }
+  const [settings, trusted, inbound] = await rows;
+  const { setupResources } = await loadSesSetup();
+  const resources = setupResources(settings.installationId);
+  const valid = trusted.filter(row => row.account && /^\d{12}$/.test(row.account) && row.arn === `arn:aws:sns:${row.region}:${row.account}:${resources.topicName}`);
+  const accounts = new Set(valid.map(row => row.account!));
+  // Mailbox receipt topics are trusted only in the same single AWS account as the feedback topics.
+  const inboundName = resources.topicName.replace(/-feedback$/, '-inbound');
+  const inboundTopics = accounts.size === 1 ? inbound.filter(row => row.account === valid[0]!.account && row.arn === `arn:aws:sns:${row.region}:${row.account}:${inboundName}`).map(row => row.arn!) : [];
+  return { ...runtime, config: { ...runtime.config,
+    regions: orderedRegions(settings),
+    configurationSets: { transactional: resources.transactional, marketing: resources.marketing },
+    // A disabled sending region retains its authenticated feedback channel for historical mail.
+    snsTopicArns: accounts.size === 1 ? [...valid.map(row => row.arn!), ...inboundTopics] : [],
+    inboundTopicArns: inboundTopics,
+    awsAccountId: accounts.size === 1 ? valid[0]!.account! : undefined,
+  } };
+}
+export async function regionCatalog(runtime: Runtime, workspaceId: string) {
+  const fingerprint = await credentialFingerprint(runtime.config);
+  const target = discoveryTarget(runtime.config);
+  const rows = await runtime.db.select({ defaultRegion: sesSettings.defaultRegion, enabledRegions: sesSettings.enabledRegions,
+    region: sesRegions.region, status: sql<string | null>`${sesRegions.report}->>'status'`,
+    lastDiscoveredAt: sesRegions.lastDiscoveredAt, fingerprint: sesRegions.credentialsFingerprint, publicUrl: sesRegions.publicUrl,
+    provisionJobId: sesRegions.provisionJobId, provisionStatus: jobs.status, provisionError: jobs.lastError,
+    active: sql<string[]>`ARRAY(SELECT payload->>'region' FROM jobs WHERE workspace_id = ${workspaceId} AND type = 'ses.discover'
+      AND status IN ('pending', 'running') AND payload->>'credentialsFingerprint' = ${fingerprint} AND payload->>'publicUrl' = ${target})`,
+  }).from(sesSettings).leftJoin(sesRegions, eq(sesRegions.workspaceId, sesSettings.workspaceId))
+    .leftJoin(jobs, and(eq(jobs.id, sesRegions.provisionJobId), eq(jobs.workspaceId, sesRegions.workspaceId))).where(settingWhere(workspaceId));
+  const settings = rows[0];
+  if (!settings) throw new ApiError(503, 'REGION_SETTINGS_NOT_INITIALIZED', 'Run database migrations to initialize SES region settings.');
+  const regions = [...new Set([...settings.enabledRegions, ...rows.flatMap(row => row.region ? [row.region] : [])])].sort();
+  return { defaultRegion: settings.defaultRegion, data: regions.map(region => {
+    const row = rows.find(value => value.region === region);
+    const stale = row?.lastDiscoveredAt && (row.fingerprint !== fingerprint || row.publicUrl !== target || Date.now() - Date.parse(row.lastDiscoveredAt) >= DISCOVERY_TTL);
+    const discovering = settings.active.includes(region);
+    const discoveryStatus = discovering ? 'discovering' : !row?.lastDiscoveredAt ? 'not_discovered' : stale ? 'stale' : row.status ?? 'not_discovered';
+    return { region, enabled: settings.enabledRegions.includes(region), isDefault: region === settings.defaultRegion,
+      discoveryStatus, lastDiscoveredAt: row?.lastDiscoveredAt ?? null, provisionJobId: row?.provisionJobId ?? null,
+      provisionStatus: row?.provisionStatus ?? null, provisionError: row?.provisionError ?? null };
+  }) };
+}
+export async function configureRegion(runtime: Runtime, workspaceId: string, region: string, input: { enabled?: boolean; makeDefault?: boolean }) {
+  await runtime.db.transaction(async tx => {
+    const settings = await getRegionSettings(tx, workspaceId, 'update');
+    let enabled = settings.enabledRegions;
+    if (input.enabled === false) {
+      if (settings.defaultRegion === region || input.makeDefault) throw new ApiError(409, 'REGION_DEFAULT_REQUIRED', 'Choose another default region before disabling this one.');
+      const pending = await tx.select({ id: emails.id }).from(emails).where(and(eq(emails.workspaceId, workspaceId), eq(emails.region, region), inArray(emails.status, ['queued', 'attempting', 'acceptance_unknown']))).limit(1);
+      const scheduled = await tx.select({ id: campaigns.id }).from(campaigns).where(and(eq(campaigns.workspaceId, workspaceId), sql`${campaigns.draft}->>'region'=${region}`, inArray(campaigns.state, [...CAMPAIGN_ACTIVE]))).limit(1);
+      const provisioning = await tx.select({ id: jobs.id }).from(jobs).where(and(eq(jobs.workspaceId, workspaceId), eq(jobs.type, 'ses.provision'), sql`${jobs.payload}->>'region'=${region}`, inArray(jobs.status, ['pending', 'running']))).limit(1);
+      if (pending.length || scheduled.length || provisioning.length) throw new ApiError(409, 'REGION_IN_USE', 'This region has queued, in-flight, or uncertain work. Resolve it before disabling the region.');
+      enabled = enabled.filter(value => value !== region);
+    } else if (input.enabled === true || input.makeDefault) enabled = [...new Set([...enabled, region])];
+    const existing = await tx.select({ region: sesRegions.region }).from(sesRegions).where(eq(sesRegions.workspaceId, workspaceId));
+    if (new Set([...enabled, ...existing.map(row => row.region), region]).size > 40) throw new ApiError(422, 'REGION_LIMIT_EXCEEDED', 'At most 40 SES regions may be configured.');
+    await tx.insert(sesRegions).values({ workspaceId, region }).onConflictDoNothing();
+    await tx.update(sesSettings).set({ enabledRegions: enabled, defaultRegion: input.makeDefault ? region : settings.defaultRegion }).where(settingWhere(workspaceId));
+  });
+  return regionCatalog(runtime, workspaceId);
+}

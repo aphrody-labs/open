@@ -1,0 +1,33 @@
+{
+  "name": "@textjs/devtools-extension",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Chrome DevTools panel for Text.js apps, with a component tree, frame inspector and timeline.",
+  "type": "module",
+  "license": "MIT",
+  "homepage": "https://textjs.org/docs/devtools-extension",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anomalyco/textjs.git",
+    "directory": "packages/devtools-extension"
+  },
+  "bugs": "https://github.com/anomalyco/textjs/issues",
+  "keywords": ["textjs", "chrome-extension", "devtools", "react", "console"],
+  "scripts": {
+    "build": "bun scripts/build.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "bun test",
+    "e2e": "bun e2e/extension.e2e.ts",
+    "harness": "bun scripts/harness.ts",
+    "probe": "bun e2e/probe-devtools.ts",
+    "store": "bun scripts/store.ts"
+  },
+  "dependencies": {
+    "@textjs/react": "workspace:*"
+  },
+  "devDependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "playwright-core": "1.62.1"
+  }
+}

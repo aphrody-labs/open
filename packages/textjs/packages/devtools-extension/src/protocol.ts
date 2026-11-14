@@ -1,0 +1,90 @@
+/**
+ * Messages between the four extension contexts:
+ *
+ *   page (MAIN world)  ⇄ window.postMessage ⇄  content script
+ *   content script     ⇄ runtime port       ⇄  service worker
+ *   service worker     ⇄ runtime port       ⇄  DevTools panel
+ *
+ * The service worker only routes by tab. Requests and events are opaque to it.
+ */
+
+import type {
+  DevToolsFrameRecord,
+  DevToolsFrameSnapshot,
+  DevToolsRootInfo,
+  DevToolsTreeNode,
+  DevToolsTreeSnapshot,
+} from "@textjs/react/devtools-hook";
+
+export type { DevToolsFrameRecord, DevToolsFrameSnapshot, DevToolsRootInfo, DevToolsTreeNode, DevToolsTreeSnapshot };
+
+export const PAGE_SOURCE = "textjs-devtools-page";
+export const CONTENT_SOURCE = "textjs-devtools-content";
+export const CONTENT_PORT = "textjs-content";
+export const PANEL_PORT = "textjs-panel";
+
+/** Chrome tab ids are positive integers (`TAB_ID_NONE` is -1). */
+export const isTabId = (v: unknown): v is number => typeof v === "number" && Number.isSafeInteger(v) && v > 0;
+
+export interface RequestMap {
+  roots: { args: []; result: DevToolsRootInfo[] };
+  tree: { args: []; result: DevToolsTreeSnapshot };
+  frame: { args: []; result: DevToolsFrameSnapshot };
+  highlight: { args: [sceneId: number | null]; result: boolean };
+  setWireframe: { args: [enabled: boolean]; result: DevToolsRootInfo };
+  pause: { args: []; result: DevToolsRootInfo };
+  resume: { args: []; result: DevToolsRootInfo };
+  resize: { args: [cols: number, rows: number]; result: DevToolsRootInfo };
+  fit: { args: []; result: DevToolsRootInfo };
+  copyText: { args: []; result: string };
+}
+
+export type Method = keyof RequestMap;
+
+export interface RequestMessage {
+  kind: "request";
+  id: number;
+  method: Method;
+  root: number | null;
+  args: unknown[];
+}
+
+export interface ResponseMessage {
+  kind: "response";
+  id: number;
+  ok: boolean;
+  result?: unknown;
+  error?: string;
+}
+
+export type PageEvent =
+  | { kind: "event"; event: "roots"; roots: DevToolsRootInfo[] }
+  | { kind: "event"; event: "root-changed"; root: DevToolsRootInfo }
+  /** Batched frame records for every root; `commits` on each record says which roots committed. */
+  | { kind: "event"; event: "frames"; records: DevToolsFrameRecord[] };
+
+/** Lifecycle control from the service worker to the page. */
+export type ControlMessage = { kind: "attach" } | { kind: "detach" };
+
+/** The page announces it has (or no longer has) console roots. */
+export type HelloMessage = { kind: "hello"; roots: number; protocol: number };
+
+export type PageToPanel = ResponseMessage | PageEvent;
+export type PanelToPage = RequestMessage;
+
+/** Service worker → panel status. */
+export type StatusMessage = { kind: "status"; page: "connected" | "disconnected" };
+
+/** Panel → service worker. */
+export type PanelInit = { kind: "init"; tabId: number } | { kind: "ping" };
+
+/** DevTools page → service worker (`runtime.sendMessage`): does this tab have console roots? */
+export type DetectQuery = { kind: "detect"; tabId: number };
+/** Service worker → DevTools pages: the reply to `DetectQuery`, and a broadcast when a tab gains roots. */
+export type DetectResult = { kind: "detected"; tabId: number; roots: boolean };
+
+/** Dispatched on the panel's window by the DevTools page when the panel is shown or hidden (`detail: boolean`). */
+export const PANEL_VISIBILITY_EVENT = "textjs-devtools-visibility";
+
+export type PageWire = (HelloMessage | PageToPanel) & { source: typeof PAGE_SOURCE };
+export type ContentWire = (ControlMessage | PanelToPage) & { source: typeof CONTENT_SOURCE };

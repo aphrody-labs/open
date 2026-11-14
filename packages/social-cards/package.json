@@ -1,0 +1,45 @@
+{
+  "name": "social-cards",
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=16 <22"
+  },
+  "scripts": {
+    "test": "sst test",
+    "start": "sst start",
+    "build": "sst build",
+    "deploy": "sst deploy",
+    "remove": "sst remove",
+    "prettier": "prettier --write **/*.{js,ts,json,md}"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "SST",
+    "url": "https://social-cards.sst.dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sst/social-cards.git"
+  },
+  "devDependencies": {
+    "lint-staged": "^10.5.3",
+    "prettier": "^2.3.1"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "2.124.0",
+    "aws-sdk": "^2.932.0",
+    "puppeteer-core": "20.1.2",
+    "@sparticuz/chromium": "113.0.1",
+    "sst": "2.40.1"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{js,ts,css,json,md}": [
+      "prettier --write"
+    ]
+  }
+}

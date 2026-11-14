@@ -1,0 +1,25 @@
+{
+  "name": "@textjs/opencode-console",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "text dev --port 3001",
+    "build": "text build",
+    "start": "text start --port 3001",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test --parallel"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2"
+  },
+  "dependencies": {
+    "@textjs/app": "workspace:*",
+    "@textjs/core": "workspace:*",
+    "@textjs/opencode": "workspace:*",
+    "@textjs/react": "workspace:*",
+    "fuzzysort": "3.1.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  }
+}

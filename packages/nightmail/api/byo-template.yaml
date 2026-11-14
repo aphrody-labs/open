@@ -1,0 +1,307 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Bane BYO v5. Install once in a commercial region. Creates only a global IAM role; no identities, feedback resources, mailboxes or callbacks at install time.
+Parameters:
+  PlatformAccount:
+    Type: String
+    Default: '009882681002'
+    AllowedValues: ['009882681002']
+  ExternalId:
+    Type: String
+    NoEcho: true
+    AllowedPattern: '[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}'
+  ConnectionId:
+    Type: String
+    AllowedPattern: 'conn_[0-9a-f]{32}'
+  WorkspaceId:
+    Type: String
+    AllowedPattern: 'ws_[0-9a-f]{32}'
+  ResourcePrefix:
+    Description: bane- followed by the first 20 hex characters of SHA256(ConnectionId).
+    Type: String
+    AllowedPattern: 'bane-[0-9a-f]{20}'
+  ReceiveMail:
+    Description: Allow mailbox provisioning. Classic SES cannot restrict receipt-rule writes to a rule name; leave off unless you approve this risk.
+    Type: String
+    Default: 'false'
+    AllowedValues: ['false', 'true']
+  ReceivingRegions:
+    Description: Only these regions may receive mail when ReceiveMail is enabled.
+    Type: CommaDelimitedList
+    Default: us-east-2
+    AllowedValues: [us-east-1, us-east-2, us-west-1, us-west-2, af-south-1, ap-southeast-3, ap-south-1, ap-northeast-3, ap-northeast-2, ap-southeast-1, ap-southeast-2, ap-northeast-1, ca-central-1, eu-central-1, eu-west-1, eu-west-2, eu-south-1, eu-west-3, eu-north-1, il-central-1, me-south-1, sa-east-1]
+  EnableAccountRequests:
+    Description: Allow SES production-access and sending quota/rate requests. PutAccountDetails can ALSO disable production access in the selected regions. IAM cannot enforce enable-only. Leave off to use the AWS console instead.
+    Type: String
+    Default: 'false'
+    AllowedValues: ['false', 'true']
+  AccountRequestRegions:
+    Type: CommaDelimitedList
+    Default: us-east-2
+    AllowedValues: [us-east-1, us-east-2, us-west-1, us-west-2, af-south-1, ap-south-1, ap-south-2, ap-southeast-1, ap-southeast-2, ap-southeast-3, ap-southeast-4, ap-southeast-5, ap-southeast-6, ap-southeast-7, ap-northeast-1, ap-northeast-2, ap-northeast-3, ca-central-1, ca-west-1, eu-central-1, eu-central-2, eu-west-1, eu-west-2, eu-west-3, eu-south-1, eu-south-2, eu-north-1, il-central-1, mx-central-1, me-south-1, me-central-1, sa-east-1]
+Rules:
+  NotPlatform:
+    Assertions:
+      - Assert: !Not [!Equals [!Ref 'AWS::AccountId', !Ref PlatformAccount]]
+        AssertDescription: The Hosted platform account cannot be used as a BYO account.
+Conditions:
+  Receiving: !Equals [!Ref ReceiveMail, 'true']
+  AccountRequests: !Equals [!Ref EnableAccountRequests, 'true']
+Resources:
+  BaneRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref AWS::StackName
+      Tags:
+        - {Key: 'bane:owner', Value: bane}
+        - {Key: 'bane:installation-id', Value: !Ref ConnectionId}
+        - {Key: 'bane:purpose', Value: byo-role}
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {AWS: !Sub 'arn:aws:iam::${PlatformAccount}:user/bane-runtime'}
+            Action: sts:AssumeRole
+            Condition: {StringEquals: {'sts:ExternalId': !Ref ExternalId, 'sts:RoleSessionName': Bane}}
+      Policies:
+        - PolicyName: Sending
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Deny
+                Action: '*'
+                Resource: '*'
+                Condition:
+                  StringNotEquals:
+                    'aws:RequestedRegion': [us-east-1, us-east-2, us-west-1, us-west-2, af-south-1, ap-south-1, ap-south-2, ap-southeast-1, ap-southeast-2, ap-southeast-3, ap-southeast-4, ap-southeast-5, ap-southeast-6, ap-southeast-7, ap-northeast-1, ap-northeast-2, ap-northeast-3, ca-central-1, ca-west-1, eu-central-1, eu-central-2, eu-west-1, eu-west-2, eu-west-3, eu-south-1, eu-south-2, eu-north-1, il-central-1, mx-central-1, me-south-1, me-central-1, sa-east-1]
+              - Effect: Deny
+                Action: 'ses:*'
+                Resource: !Sub 'arn:aws:ses:*:${AWS::AccountId}:identity/*@*'
+              - Effect: Allow
+                Action: ['ses:GetAccount', 'ses:ListEmailIdentities', 'ses:ListConfigurationSets', 'ses:DescribeActiveReceiptRuleSet']
+                Resource: '*'
+              - Effect: Allow
+                Action: ses:GetEmailIdentity
+                Resource: !Sub 'arn:aws:ses:*:${AWS::AccountId}:identity/?*.??*'
+              - Effect: Allow
+                Action: ses:GetConfigurationSet
+                Resource:
+                  - !Sub 'arn:aws:ses:*:${AWS::AccountId}:configuration-set/bane-*'
+                  - !Sub 'arn:aws:ses:*:${AWS::AccountId}:configuration-set/${ResourcePrefix}-transactional'
+                  - !Sub 'arn:aws:ses:*:${AWS::AccountId}:configuration-set/${ResourcePrefix}-marketing'
+              # Imported identities are never tagged, so the tags are IfExists: an identity Bane tagged
+              # for another owner or installation in this account cannot be sent from through this role.
+              - Effect: Allow
+                Action: ses:SendEmail
+                Resource: !Sub 'arn:aws:ses:*:${AWS::AccountId}:identity/?*.??*'
+                Condition:
+                  StringEquals: {'ses:ApiVersion': '2'}
+                  StringEqualsIfExists: {'aws:ResourceTag/bane:owner': bane, 'aws:ResourceTag/bane:installation-id': !Ref ConnectionId, 'aws:ResourceTag/bane:purpose': domain-identity}
+                  'Null': {'ses:TenantName': 'true', 'ses:MultiRegionEndpointId': 'true'}
+              - Effect: Allow
+                Action: ses:SendEmail
+                Resource:
+                  - !Sub 'arn:aws:ses:*:${AWS::AccountId}:configuration-set/${ResourcePrefix}-transactional'
+                  - !Sub 'arn:aws:ses:*:${AWS::AccountId}:configuration-set/${ResourcePrefix}-marketing'
+                Condition: {StringEquals: {'ses:ApiVersion': '2'}, 'Null': {'ses:TenantName': 'true', 'ses:MultiRegionEndpointId': 'true'}}
+              - Effect: Allow
+                Action: ses:ApplyTrackingConfigurationOverrides
+                Resource: '*'
+                Condition: {StringEquals: {'ses:OpenTrackingEnabled': '${ses:ClickTrackingEnabled}'}}
+              - Effect: Allow
+                Action: ['ses:GetEmailTemplate', 'ses:TestRenderEmailTemplate']
+                Resource: !Sub 'arn:aws:ses:*:${AWS::AccountId}:template/bane-*'
+              - Effect: Allow
+                Action: ses:CreateEmailIdentity
+                Resource: !Sub 'arn:aws:ses:*:${AWS::AccountId}:identity/?*.??*'
+                Condition:
+                  StringEquals: {'aws:RequestTag/bane:owner': bane, 'aws:RequestTag/bane:installation-id': !Ref ConnectionId, 'aws:RequestTag/bane:purpose': domain-identity}
+                  StringLike: {'aws:RequestTag/bane:domain-claim': '????????-????-4???-????-????????????'}
+                  'ForAllValues:StringEquals': {'aws:TagKeys': ['bane:owner', 'bane:installation-id', 'bane:purpose', 'bane:domain-claim']}
+              - Effect: Allow
+                Action: ses:TagResource
+                Resource: !Sub 'arn:aws:ses:*:${AWS::AccountId}:identity/?*.??*'
+                Condition:
+                  StringEquals: {'aws:ResourceTag/bane:owner': bane, 'aws:ResourceTag/bane:installation-id': !Ref ConnectionId, 'aws:ResourceTag/bane:purpose': domain-identity, 'aws:RequestTag/bane:owner': bane, 'aws:RequestTag/bane:installation-id': !Ref ConnectionId, 'aws:RequestTag/bane:purpose': domain-identity, 'aws:RequestTag/bane:domain-claim': '${aws:ResourceTag/bane:domain-claim}'}
+                  StringLike: {'aws:ResourceTag/bane:domain-claim': '????????-????-4???-????-????????????'}
+                  'ForAllValues:StringEquals': {'aws:TagKeys': ['bane:owner', 'bane:installation-id', 'bane:purpose', 'bane:domain-claim']}
+              - Effect: Allow
+                Action: ['ses:PutEmailIdentityMailFromAttributes', 'ses:DeleteEmailIdentity']
+                Resource: !Sub 'arn:aws:ses:*:${AWS::AccountId}:identity/?*.??*'
+                Condition:
+                  StringEquals: {'aws:ResourceTag/bane:owner': bane, 'aws:ResourceTag/bane:installation-id': !Ref ConnectionId, 'aws:ResourceTag/bane:purpose': domain-identity}
+                  StringLike: {'aws:ResourceTag/bane:domain-claim': '????????-????-4???-????-????????????'}
+              - Effect: Allow
+                Action: ['ses:CreateConfigurationSet', 'sns:CreateTopic']
+                Resource:
+                  - !Sub 'arn:aws:ses:*:${AWS::AccountId}:configuration-set/${ResourcePrefix}-transactional'
+                  - !Sub 'arn:aws:ses:*:${AWS::AccountId}:configuration-set/${ResourcePrefix}-marketing'
+                  - !Sub 'arn:aws:sns:*:${AWS::AccountId}:${ResourcePrefix}-feedback'
+                Condition:
+                  StringEquals: {'aws:RequestTag/bane:owner': bane, 'aws:RequestTag/bane:installation-id': !Ref ConnectionId, 'aws:RequestTag/bane:purpose': ses-feedback}
+                  'ForAllValues:StringEquals': {'aws:TagKeys': ['bane:owner', 'bane:installation-id', 'bane:purpose']}
+              - Effect: Allow
+                Action: ['ses:TagResource', 'sns:TagResource']
+                Resource:
+                  - !Sub 'arn:aws:ses:*:${AWS::AccountId}:configuration-set/${ResourcePrefix}-transactional'
+                  - !Sub 'arn:aws:ses:*:${AWS::AccountId}:configuration-set/${ResourcePrefix}-marketing'
+                  - !Sub 'arn:aws:sns:*:${AWS::AccountId}:${ResourcePrefix}-feedback'
+                Condition:
+                  StringEquals: {'aws:ResourceTag/bane:owner': bane, 'aws:ResourceTag/bane:installation-id': !Ref ConnectionId, 'aws:ResourceTag/bane:purpose': ses-feedback, 'aws:RequestTag/bane:owner': bane, 'aws:RequestTag/bane:installation-id': !Ref ConnectionId, 'aws:RequestTag/bane:purpose': ses-feedback}
+                  'ForAllValues:StringEquals': {'aws:TagKeys': ['bane:owner', 'bane:installation-id', 'bane:purpose']}
+              - Effect: Allow
+                Action: ['sns:GetTopicAttributes', 'sns:ListTagsForResource', 'sns:GetSubscriptionAttributes', 'sns:ListSubscriptionsByTopic']
+                Resource: !Sub 'arn:aws:sns:*:${AWS::AccountId}:${ResourcePrefix}-feedback'
+              - Effect: Allow
+                Action: ['ses:GetConfigurationSetEventDestinations', 'ses:PutConfigurationSetSuppressionOptions', 'ses:CreateConfigurationSetEventDestination', 'ses:UpdateConfigurationSetEventDestination', 'ses:DeleteConfigurationSet', 'sns:SetTopicAttributes', 'sns:DeleteTopic']
+                Resource:
+                  - !Sub 'arn:aws:ses:*:${AWS::AccountId}:configuration-set/${ResourcePrefix}-transactional'
+                  - !Sub 'arn:aws:ses:*:${AWS::AccountId}:configuration-set/${ResourcePrefix}-marketing'
+                  - !Sub 'arn:aws:sns:*:${AWS::AccountId}:${ResourcePrefix}-feedback'
+                Condition:
+                  StringEquals: {'aws:ResourceTag/bane:owner': bane, 'aws:ResourceTag/bane:installation-id': !Ref ConnectionId, 'aws:ResourceTag/bane:purpose': ses-feedback}
+              - Effect: Allow
+                Action: sns:Subscribe
+                Resource: !Sub 'arn:aws:sns:*:${AWS::AccountId}:${ResourcePrefix}-feedback'
+                Condition:
+                  StringEquals: {'aws:ResourceTag/bane:owner': bane, 'aws:ResourceTag/bane:installation-id': !Ref ConnectionId, 'aws:ResourceTag/bane:purpose': ses-feedback, 'sns:Protocol': https, 'sns:Endpoint': 'https://bane.mx/v1/events/ses'}
+        - !If
+          - AccountRequests
+          - PolicyName: AccountRequests
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action: ses:PutAccountDetails
+                  Resource: '*'
+                  Condition: {StringEquals: {'aws:RequestedRegion': !Ref AccountRequestRegions}}
+                - Effect: Allow
+                  Action: ['servicequotas:GetServiceQuota', 'servicequotas:RequestServiceQuotaIncrease', 'servicequotas:ListRequestedServiceQuotaChangeHistoryByQuota']
+                  Resource:
+                    - !Sub 'arn:aws:servicequotas:*:${AWS::AccountId}:ses/L-804C8AE8'
+                    - !Sub 'arn:aws:servicequotas:*:${AWS::AccountId}:ses/L-CDEF9B6B'
+                  Condition: {StringEquals: {'aws:RequestedRegion': !Ref AccountRequestRegions, 'servicequotas:service': ses}}
+          - !Ref AWS::NoValue
+  # Separate only when enabled: inline role policies have a combined 10,240-character quota.
+  ReceivingPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Condition: Receiving
+    Properties:
+      Roles: [!Ref BaneRole]
+      PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Deny
+                  Action: ['s3:*', 'ses:CreateReceiptRule', 'ses:DeleteReceiptRule', 'ses:DescribeReceiptRuleSet']
+                  Resource: '*'
+                  Condition: {StringNotEquals: {'aws:RequestedRegion': !Ref ReceivingRegions}}
+                - Effect: Deny
+                  Action: 'sns:*'
+                  Resource: !Sub 'arn:aws:sns:*:${AWS::AccountId}:${ResourcePrefix}-inbound'
+                  Condition: {StringNotEquals: {'aws:RequestedRegion': !Ref ReceivingRegions}}
+                - Effect: Allow
+                  Action: ['ses:DescribeReceiptRuleSet', 'ses:CreateReceiptRule', 'ses:DeleteReceiptRule']
+                  Resource: '*'
+                - Effect: Allow
+                  Action: sns:CreateTopic
+                  Resource: !Sub 'arn:aws:sns:*:${AWS::AccountId}:${ResourcePrefix}-inbound'
+                  Condition:
+                    StringEquals: {'aws:RequestTag/bane:owner': bane, 'aws:RequestTag/bane:installation-id': !Ref ConnectionId, 'aws:RequestTag/bane:purpose': mailbox-inbound}
+                    'ForAllValues:StringEquals': {'aws:TagKeys': ['bane:owner', 'bane:installation-id', 'bane:purpose']}
+                - Effect: Allow
+                  Action: sns:TagResource
+                  Resource: !Sub 'arn:aws:sns:*:${AWS::AccountId}:${ResourcePrefix}-inbound'
+                  Condition:
+                    StringEquals: {'aws:ResourceTag/bane:owner': bane, 'aws:ResourceTag/bane:installation-id': !Ref ConnectionId, 'aws:ResourceTag/bane:purpose': mailbox-inbound, 'aws:RequestTag/bane:owner': bane, 'aws:RequestTag/bane:installation-id': !Ref ConnectionId, 'aws:RequestTag/bane:purpose': mailbox-inbound}
+                    'ForAllValues:StringEquals': {'aws:TagKeys': ['bane:owner', 'bane:installation-id', 'bane:purpose']}
+                - Effect: Allow
+                  Action: ['sns:ListTagsForResource', 'sns:ListSubscriptionsByTopic', 'sns:GetTopicAttributes', 'sns:GetSubscriptionAttributes']
+                  Resource: !Sub 'arn:aws:sns:*:${AWS::AccountId}:${ResourcePrefix}-inbound'
+                - Effect: Allow
+                  Action: ['sns:SetTopicAttributes', 'sns:DeleteTopic']
+                  Resource: !Sub 'arn:aws:sns:*:${AWS::AccountId}:${ResourcePrefix}-inbound'
+                  Condition: {StringEquals: {'aws:ResourceTag/bane:owner': bane, 'aws:ResourceTag/bane:installation-id': !Ref ConnectionId, 'aws:ResourceTag/bane:purpose': mailbox-inbound}}
+                - Effect: Allow
+                  Action: sns:Subscribe
+                  Resource: !Sub 'arn:aws:sns:*:${AWS::AccountId}:${ResourcePrefix}-inbound'
+                  Condition: {StringEquals: {'aws:ResourceTag/bane:owner': bane, 'aws:ResourceTag/bane:installation-id': !Ref ConnectionId, 'aws:ResourceTag/bane:purpose': mailbox-inbound, 'sns:Protocol': https, 'sns:Endpoint': 'https://bane.mx/v1/events/ses'}}
+                - Effect: Allow
+                  Action: s3:CreateBucket
+                  Resource: !Sub 'arn:aws:s3:::${ResourcePrefix}-mail-${!aws:RequestedRegion}'
+                  Condition: {StringEquals: {'s3:LocationConstraint': '${aws:RequestedRegion}'}, StringNotEquals: {'aws:RequestedRegion': us-east-1}, StringEqualsIfExists: {'s3:x-amz-object-ownership': BucketOwnerEnforced}}
+                - Effect: Allow
+                  Action: s3:CreateBucket
+                  Resource: !Sub 'arn:aws:s3:::${ResourcePrefix}-mail-us-east-1'
+                  Condition: {StringEquals: {'aws:RequestedRegion': us-east-1}, 'Null': {'s3:LocationConstraint': 'true'}, StringEqualsIfExists: {'s3:x-amz-object-ownership': BucketOwnerEnforced}}
+                - Effect: Allow
+                  Action: s3:ListBucket
+                  Resource: !Sub 'arn:aws:s3:::${ResourcePrefix}-mail-us-east-1'
+                  Condition: {StringEquals: {'aws:RequestedRegion': us-east-1}, StringEqualsIfExists: {'s3:ResourceAccount': !Ref 'AWS::AccountId'}, 'Null': {'s3:prefix': 'true'}}
+                - Effect: Allow
+                  Action: s3:ListBucket
+                  Resource: !Sub 'arn:aws:s3:::${ResourcePrefix}-mail-${!aws:RequestedRegion}'
+                  Condition: {StringEquals: {'s3:ResourceAccount': !Ref 'AWS::AccountId', 's3:prefix': 'staging/'}}
+                - Effect: Allow
+                  Action: s3:PutObject
+                  Resource: !Sub 'arn:aws:s3:::${ResourcePrefix}-mail-${!aws:RequestedRegion}/quarantine/?*'
+                  Condition: {StringEquals: {'s3:ResourceAccount': !Ref 'AWS::AccountId'}}
+                - Effect: Allow
+                  Action: ['s3:GetBucketTagging', 's3:PutBucketTagging', 's3:PutBucketPublicAccessBlock', 's3:PutBucketPolicy', 's3:PutLifecycleConfiguration']
+                  Resource: !Sub 'arn:aws:s3:::${ResourcePrefix}-mail-${!aws:RequestedRegion}'
+                  Condition: {StringEquals: {'s3:ResourceAccount': !Ref 'AWS::AccountId'}}
+                - Effect: Allow
+                  Action: s3:GetObject
+                  Resource:
+                    - !Sub 'arn:aws:s3:::${ResourcePrefix}-mail-${!aws:RequestedRegion}/staging/?*'
+                    - !Sub 'arn:aws:s3:::${ResourcePrefix}-mail-${!aws:RequestedRegion}/workspaces/${WorkspaceId}/raw/?*.eml'
+                  Condition: {StringEquals: {'s3:ResourceAccount': !Ref 'AWS::AccountId'}}
+                # Received attachments: workspaces/<ws>/att/<msg>/<64-hex ingest batch>/<matt>. Sent copies
+                # and files stored before the batch segment use workspaces/<ws>/att/<msg>/<matt>.
+                - Effect: Allow
+                  Action: ['s3:GetObject', 's3:PutObject']
+                  Resource:
+                    - !Sub 'arn:aws:s3:::${ResourcePrefix}-mail-${!aws:RequestedRegion}/workspaces/${WorkspaceId}/att/msg_????????????????????????????????/matt_????????????????????????????????'
+                    - !Sub 'arn:aws:s3:::${ResourcePrefix}-mail-${!aws:RequestedRegion}/workspaces/${WorkspaceId}/att/msg_????????????????????????????????/????????????????????????????????????????????????????????????????/matt_????????????????????????????????'
+                  Condition: {StringEquals: {'s3:ResourceAccount': !Ref 'AWS::AccountId'}}
+                - Effect: Allow
+                  # Unreferenced received uploads are only ever tagged for expiry, never deleted.
+                  Action: s3:PutObjectTagging
+                  Resource: !Sub 'arn:aws:s3:::${ResourcePrefix}-mail-${!aws:RequestedRegion}/workspaces/${WorkspaceId}/att/msg_????????????????????????????????/????????????????????????????????????????????????????????????????/matt_????????????????????????????????'
+                  Condition:
+                    StringEquals: {'s3:ResourceAccount': !Ref 'AWS::AccountId', 's3:RequestObjectTag/bane-kind': orphan}
+                    'ForAllValues:StringEquals': {'s3:RequestObjectTagKeys': bane-kind}
+                - Effect: Allow
+                  # Only initiation carries tags; UploadPart/Copy and Complete are authorized as PutObject without tags.
+                  Action: ['s3:PutObject', 's3:PutObjectTagging', 's3:AbortMultipartUpload']
+                  Resource: !Sub 'arn:aws:s3:::${ResourcePrefix}-mail-${!aws:RequestedRegion}/workspaces/${WorkspaceId}/raw/?*.eml'
+                  Condition:
+                    StringEquals: {'s3:ResourceAccount': !Ref 'AWS::AccountId'}
+                    StringEqualsIfExists: {'s3:RequestObjectTag/bane-kind': raw}
+                    'ForAllValues:StringEquals': {'s3:RequestObjectTagKeys': bane-kind}
+  # Revision kept-v1. Keep ordinary raw's expiry/tag policy unchanged. Separate
+  # managed policy so the existing receiving policy stays below its IAM size cap.
+  KeptReceivingV1:
+    Type: AWS::IAM::ManagedPolicy
+    Condition: Receiving
+    Properties:
+      Roles: [!Ref BaneRole]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: ['s3:PutObject', 's3:PutObjectTagging']
+            Resource: !Sub 'arn:aws:s3:::${ResourcePrefix}-mail-${!aws:RequestedRegion}/workspaces/${WorkspaceId}/raw/kept/msg_????????????????????????????????.eml'
+            Condition:
+              StringEquals: {'s3:ResourceAccount': !Ref 'AWS::AccountId', 's3:RequestObjectTag/bane-kind': kept}
+              'ForAllValues:StringEquals': {'s3:RequestObjectTagKeys': bane-kind}
+          - Effect: Allow
+            Action: s3:PutObjectTagging
+            Resource: !Sub 'arn:aws:s3:::${ResourcePrefix}-mail-${!aws:RequestedRegion}/workspaces/${WorkspaceId}/raw/kept/msg_????????????????????????????????.eml'
+            Condition:
+              StringEquals: {'s3:ResourceAccount': !Ref 'AWS::AccountId', 's3:RequestObjectTag/bane-kind': orphan}
+              'ForAllValues:StringEquals': {'s3:RequestObjectTagKeys': bane-kind}
+Outputs:
+  KeptReceivingPolicy:
+    Condition: Receiving
+    Value: !Sub 'kept-v1:${WorkspaceId}'
+  AccountId: {Value: !Ref 'AWS::AccountId'}
+  RoleArn: {Value: !GetAtt BaneRole.Arn}

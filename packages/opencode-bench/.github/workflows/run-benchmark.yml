@@ -1,0 +1,154 @@
+name: Run Benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      agent:
+        description: "Agent to use"
+        required: true
+        type: string
+      model:
+        description: "Model to use"
+        required: true
+        type: string
+      tasks:
+        description: "Comma-separated list of tasks"
+        required: true
+        type: string
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      tasks: ${{ steps.split.outputs.tasks }}
+      model_safe: ${{ steps.sanitize.outputs.model_safe }}
+    steps:
+      - name: Split tasks into matrix
+        id: split
+        run: |
+          TASKS_JSON=$(echo "${{ inputs.tasks }}" | tr ',' '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "tasks=$TASKS_JSON" >> $GITHUB_OUTPUT
+
+      - name: Sanitize model name for artifacts
+        id: sanitize
+        run: |
+          MODEL_SAFE=$(echo "${{ inputs.model }}" | sed 's/\//-/g')
+          echo "model_safe=${MODEL_SAFE}" >> $GITHUB_OUTPUT
+
+  benchmark:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        task: ${{ fromJson(needs.prepare.outputs.tasks) }}
+        run: [1, 2, 3]
+    environment: production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: 1.2.21
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Install OpenCode CLI
+        run: bun add -g opencode-ai
+
+      - name: Run benchmark
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          DEBUG: true
+          TASK: ${{ matrix.task }}
+          MODEL: ${{ inputs.model }}
+          AGENT: ${{ inputs.agent }}
+          RESULT_PATH: result-${{ inputs.agent }}-${{ needs.prepare.outputs.model_safe }}-${{ matrix.task }}-run${{ matrix.run }}.json
+          OPENCODE_ENABLE_EXPERIMENTAL_MODELS: true
+        run: bun github/run.ts
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: result-${{ inputs.agent }}-${{ needs.prepare.outputs.model_safe }}-${{ matrix.task }}-run${{ matrix.run }}
+          path: result-${{ inputs.agent }}-${{ needs.prepare.outputs.model_safe }}-${{ matrix.task }}-run${{ matrix.run }}.json
+
+  summarize-runs:
+    needs: [prepare, benchmark]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        task: ${{ fromJson(needs.prepare.outputs.tasks) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: 1.2.21
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Download all run results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: result-${{ inputs.agent }}-${{ needs.prepare.outputs.model_safe }}-${{ matrix.task }}-run*
+          path: results
+
+      - name: Summarize runs
+        run: |
+          RESULT_PATHS=$(find results -name 'result-*.json' | sort | tr '\n' ',' | sed 's/,$//')
+          export RESULT_PATHS
+          export RUNS_SUMMARY_PATH=runs-summary-${{ inputs.agent }}-${{ needs.prepare.outputs.model_safe }}-${{ matrix.task }}.json
+          bun github/summarize-runs.ts
+
+      - name: Upload runs summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: runs-summary-${{ inputs.agent }}-${{ needs.prepare.outputs.model_safe }}-${{ matrix.task }}
+          path: runs-summary-${{ inputs.agent }}-${{ needs.prepare.outputs.model_safe }}-${{ matrix.task }}.json
+
+  summarize-tasks:
+    needs: summarize-runs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: 1.2.21
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Download all runs summaries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: runs-summary-*
+          path: runs-summaries
+
+      - name: Summarize tasks
+        run: |
+          RUNS_SUMMARY_PATHS_COMMA=$(find runs-summaries -name 'runs-summary-*.json' | tr '\n' ',' | sed 's/,$//')
+          export RUNS_SUMMARY_PATHS="$RUNS_SUMMARY_PATHS_COMMA"
+          export TASKS_SUMMARY_PATH=tasks-summary.json
+          bun github/summarize-tasks.ts
+
+      - name: Upload tasks summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: tasks-summary
+          path: tasks-summary.json
+
+      - name: Submit results
+        env:
+          AGENT: ${{ inputs.agent }}
+          MODEL: ${{ inputs.model }}
+          TASKS_SUMMARY_PATH: tasks-summary.json
+        run: bun github/submit-results.ts

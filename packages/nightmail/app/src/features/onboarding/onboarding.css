@@ -1,0 +1,232 @@
+/* Shell */
+.onboarding-shell { display: flex; flex-direction: column; height: 100dvh; background: var(--color-deep); }
+.onboarding-header { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: var(--space-16); min-height: 48px; padding: var(--space-8) var(--space-12) var(--space-8) var(--space-16); }
+.onboarding-header .wordmark, .onboarding-header .theme-toggle { position: static; }
+.onboarding-signout > svg { display: none; }
+.onboarding-header-actions { display: flex; align-items: center; gap: var(--space-8); min-width: 0; }
+.onboarding-workspace { width: 240px; min-width: 0; }
+.page-surface.onboarding-surface { flex: 1; height: auto; margin: 0 var(--page-inset) var(--page-inset); padding: var(--space-40) var(--space-32) 0; }
+.onboarding-notice { width: 100%; max-width: 920px; margin: 0 auto var(--space-24); }
+
+/* Onboarding-only scale: a step above the dashboard, same tokens. */
+.onboarding-surface .ui-button { transition: background var(--motion-duration), color var(--motion-duration), opacity var(--motion-duration), transform 160ms var(--ease-out-strong); }
+.onboarding-surface .ui-button:active:not(:disabled) { transform: scale(.97); }
+.onboarding-surface .ui-button--md { height: 32px; padding-inline: var(--space-12); }
+.onboarding-surface .copy-action.ui-button--sm:not(.copy-action--compact) { height: 26px; padding-left: 9px; }
+.onboarding-surface .ui-input { height: 36px; padding-inline: var(--space-12); font-size: var(--text-md); }
+.onboarding-surface .ui-field__label { line-height: var(--leading-sm); font-weight: var(--font-weight-bold); }
+.onboarding-surface .ui-field__hint { line-height: 18px; }
+/* Loading keeps the button's width: the label stays laid out (invisible) and the spinner sits on top. */
+.onboarding-surface .ui-button[aria-busy='true'] { position: relative; color: transparent; text-shadow: none; }
+.onboarding-surface .ui-button[aria-busy='true'] > .ui-spinner { position: absolute; top: calc(50% - 7px); left: calc(50% - 7px); color: var(--color-text); }
+.onboarding-surface .ui-button--primary[aria-busy='true'] > .ui-spinner { color: var(--color-on-contrast); }
+
+/* Reserved space: slots stack every state in one cell; hidden things keep their box. */
+.onboarding-slot { display: grid; min-width: 0; }
+.onboarding-slot > * { grid-area: 1 / 1; min-width: 0; }
+.onboarding-slot > :not([data-active]) { visibility: hidden; }
+.onboarding-reserve[data-hidden] { visibility: hidden; }
+.onboarding-error { color: var(--color-danger); }
+
+/* Progress: persists across steps, so the line draws and the next mark lights as setup moves on. */
+.onboarding-progress { display: flex; align-items: center; width: 100%; max-width: 640px; margin: 0 auto var(--space-40); padding: 0; list-style: none; }
+.onboarding-progress li { display: flex; align-items: center; gap: var(--space-8); flex: 0 0 auto; min-width: 0; }
+.onboarding-progress li + li { flex: 1 1 auto; }
+.onboarding-progress-line { position: relative; flex: 1; min-width: 20px; height: 2px; margin: 0 var(--space-6) 0 var(--space-4); border-radius: 1px; background: var(--color-border); overflow: hidden; }
+.onboarding-progress-line::after { content: ''; position: absolute; inset: 0; background: var(--color-contrast); transform: scaleX(0); transform-origin: left; transition: transform 200ms var(--ease-in-out-strong); }
+.onboarding-progress li:is([data-state='done'], [data-state='current']) .onboarding-progress-line::after { transform: scaleX(1); }
+.onboarding-progress-mark { display: inline-grid; place-items: center; width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; box-shadow: inset 0 0 0 1px var(--color-border-strong); color: var(--color-muted); font-size: var(--text-xs); font-weight: var(--font-weight-bold); font-variant-numeric: tabular-nums; transition: background-color 200ms ease 160ms, color 200ms ease 160ms, box-shadow 200ms ease 160ms; }
+.onboarding-progress-mark > * { grid-area: 1 / 1; transition: opacity 180ms ease-out 160ms, transform 200ms var(--ease-out-strong) 160ms; }
+.onboarding-progress-mark > svg { width: 12px; height: 12px; opacity: 0; transform: scale(.4); }
+.onboarding-progress li:is([data-state='done'], [data-state='current']) .onboarding-progress-mark { background: var(--color-contrast); color: var(--color-on-contrast); box-shadow: 0 0 0 4px var(--color-layer-2); }
+.onboarding-progress li[data-state='done'] .onboarding-progress-mark { box-shadow: 0 0 0 0 var(--color-layer-2); }
+.onboarding-progress li[data-state='done'] .onboarding-progress-mark > span { opacity: 0; transform: scale(.4); }
+.onboarding-progress li[data-state='done'] .onboarding-progress-mark > svg { opacity: 1; transform: none; }
+/* The bold copy below the label reserves the current step's width, so nothing moves when weight changes. */
+.onboarding-progress-label { display: inline-flex; flex-direction: column; color: var(--color-muted); font-size: var(--text-sm); line-height: var(--leading-sm); white-space: nowrap; transition: color 200ms ease 160ms; }
+.onboarding-progress-label::after { content: attr(data-label); content: attr(data-label) / ''; height: 0; overflow: hidden; visibility: hidden; font-weight: var(--font-weight-bold); pointer-events: none; user-select: none; }
+.onboarding-progress li:is([data-state='done'], [data-state='current']) .onboarding-progress-label { color: var(--color-text); }
+.onboarding-progress li[data-state='current'] .onboarding-progress-label { font-weight: var(--font-weight-bold); }
+.onboarding-progress li.onboarding-progress-caption { display: none; }
+
+/* Step frame: a step fades in and its parts rise in order of importance; nothing slides sideways. */
+.onboarding-step { display: flex; flex-direction: column; width: 100%; padding-bottom: var(--space-40); }
+.onboarding-step[data-motion] { animation: onboarding-fade 200ms ease-out both; }
+.onboarding-step[data-motion] .onb-rise { animation: onboarding-rise 200ms var(--ease-out-strong) both; animation-delay: calc(var(--i, 0) * 40ms); }
+.onboarding-step[data-motion] .dns-row { animation: onboarding-rise 200ms var(--ease-out-strong) both; animation-delay: calc(80ms + var(--i, 0) * 40ms); }
+@keyframes onboarding-fade { from { opacity: 0; } }
+@keyframes onboarding-rise { from { opacity: 0; transform: translateY(6px); } }
+
+/* Columns and type */
+.onboarding { display: flex; flex-direction: column; gap: var(--space-28); width: 100%; max-width: 720px; margin-inline: auto; }
+.onboarding--narrow { max-width: 520px; }
+.onboarding--choice { max-width: 800px; }
+.onboarding--wide { max-width: 920px; }
+.onboarding--agent { max-width: 760px; }
+.onboarding--center { align-items: center; text-align: center; }
+.onboarding-intro { display: flex; flex-direction: column; gap: var(--space-8); }
+.onboarding-intro--center { align-items: center; text-align: center; }
+.onboarding-title { font-size: 28px; line-height: 34px; font-weight: var(--font-weight-bold); letter-spacing: -.5px; text-wrap: balance; }
+.onboarding-lead { max-width: 60ch; color: var(--color-muted); font-size: var(--text-md); line-height: 22px; text-wrap: pretty; }
+.onboarding-preview { display: inline-block; max-width: calc(100% - 7em); padding: 0 var(--space-4); overflow: hidden; border-radius: 4px; background: var(--color-layer-2); color: var(--color-text); line-height: 18px; white-space: nowrap; text-overflow: ellipsis; vertical-align: top; }
+
+/* Sending choice: two substantial cards that lift on hover and press in on click. */
+.onboarding-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-16); }
+.onboarding-option { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-6); min-width: 0; min-height: 216px; padding: var(--space-24); border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface); box-shadow: 0 1px 2px var(--color-shadow); color: var(--color-text); font: inherit; text-align: left; cursor: pointer; transition: border-color 100ms ease-out, box-shadow 180ms var(--ease-out-strong), transform 180ms var(--ease-out-strong); }
+.onboarding-option:focus-visible { outline-offset: 3px; }
+.onboarding-option:active { transform: scale(.985); transition-duration: 100ms; }
+.onboarding-option-icon { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; margin-bottom: var(--space-12); border-radius: 8px; background: var(--color-layer-2); color: var(--color-text); transition: background-color 100ms ease-out, color 100ms ease-out; }
+.onboarding-option-icon > svg { width: 16px; height: 16px; }
+.onboarding-option-icon--aws > svg { width: 24px; height: 24px; }
+.onboarding-option-title { font-size: var(--text-md); line-height: 22px; font-weight: var(--font-weight-bold); letter-spacing: -.1px; }
+.onboarding-option-body { color: var(--color-muted); font-size: var(--text-sm); line-height: var(--leading-sm); text-wrap: pretty; }
+.onboarding-option-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-12); align-self: stretch; margin-top: auto; padding-top: var(--space-12); border-top: 1px solid var(--color-border-muted); font-size: var(--text-sm); line-height: var(--leading-sm); }
+.onboarding-option-price { font-weight: var(--font-weight-bold); }
+.onboarding-option-go { display: inline-flex; align-items: center; gap: var(--space-6); color: var(--color-muted); white-space: nowrap; transition: color 100ms ease-out; }
+.onboarding-option-go svg { width: 14px; height: 14px; transition: transform 180ms var(--ease-out-strong); }
+@media (hover: hover) and (pointer: fine) {
+  .onboarding-option:hover { border-color: var(--color-border-strong); box-shadow: var(--shadow-popover); transform: translateY(-2px); transition-duration: 0ms, 180ms, 180ms; }
+  .onboarding-option:hover:active { transform: translateY(-1px) scale(.985); }
+  .onboarding-option:hover .onboarding-option-icon { background: var(--color-contrast); color: var(--color-on-contrast); transition-duration: 0ms; }
+  .onboarding-option:hover .onboarding-option-go { color: var(--color-text); transition-duration: 0ms; }
+  .onboarding-option:hover .onboarding-option-go svg { transform: translateX(3px); }
+}
+
+/* Domain form and the account ID form share one inline layout. */
+.onboarding-inline-form { display: flex; align-items: flex-start; gap: var(--space-12); }
+.onboarding-field { flex: 1; min-width: 0; }
+/* The hint line is reserved: a hint, a queued note or an error replace each other in it. */
+.onboarding-field .ui-field__hint { overflow-wrap: anywhere; }
+.onboarding-field--domain .ui-field__hint { min-height: 18px; }
+.onboarding-field--aws .ui-field__hint { min-height: 36px; }
+/* Line up with the input, below its label. */
+.onboarding-inline-form > .ui-button { height: 36px; margin-top: calc(var(--leading-sm) + var(--space-8)); }
+.onboarding-skip { min-height: 32px; padding: 0 var(--space-4); border: 0; background: none; color: var(--color-muted); font-size: var(--text-sm); text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 4px; transition: color 100ms ease-out, text-decoration-color 100ms ease-out; }
+@media (hover: hover) and (pointer: fine) { .onboarding-skip:hover:not(:disabled) { color: var(--color-text); text-decoration-color: currentColor; transition-duration: 0ms; } }
+
+/* Connect AWS (BYO step 2): one task, a live status, and clear ways out. */
+.onboarding-back { display: inline-flex; align-items: center; gap: var(--space-4); align-self: flex-start; min-height: 24px; margin: 0 0 var(--space-4) calc(-1 * var(--space-4)); padding: 0 var(--space-4); border: 0; border-radius: 4px; background: none; color: var(--color-muted); font-size: var(--text-sm); transition: color 100ms ease-out; }
+@media (hover: hover) and (pointer: fine) { .onboarding-back:hover:not(:disabled) { color: var(--color-text); transition-duration: 0ms; } }
+.onboarding-connect-actions { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-8); }
+.onboarding-connect-status { display: flex; align-items: flex-start; gap: var(--space-12); padding: 14px var(--space-16); border-radius: 8px; box-shadow: inset 0 0 0 1px var(--color-border); font-size: var(--text-sm); line-height: var(--leading-sm); transition: background-color 240ms ease, box-shadow 240ms ease, color 240ms ease; }
+.onboarding-connect-status p { display: grid; }
+.onboarding-connect-status strong { font-weight: var(--font-weight-bold); }
+.onboarding-connect-status span:not(.onboarding-connect-mark, .onboarding-connect-dot) { color: var(--color-muted); transition: color 240ms ease; }
+.onboarding-connect-status[data-state='ready'] { background: var(--color-success-bg); box-shadow: inset 0 0 0 1px var(--color-success-border); color: var(--color-success); }
+.onboarding-connect-status[data-state='ready'] span:not(.onboarding-connect-mark, .onboarding-connect-dot) { color: var(--color-success); }
+.onboarding-connect-status[data-state='failed'] { box-shadow: inset 0 0 0 1px var(--color-danger-border); color: var(--color-danger); }
+/* Dot while waiting, a check once connected, a cross on failure: one 20px mark that morphs. */
+.onboarding-connect-mark { --mark: var(--color-faint); display: inline-grid; place-items: center; width: 20px; height: 20px; flex-shrink: 0; border-radius: 50%; transition: background-color 240ms ease; }
+.onboarding-connect-status[data-state='awaiting_role'] .onboarding-connect-mark { --mark: var(--color-warning-marker); }
+.onboarding-connect-status[data-state='provisioning'] .onboarding-connect-mark { --mark: var(--color-info-marker); }
+.onboarding-connect-status[data-state='ready'] .onboarding-connect-mark { background: var(--color-success-marker); }
+.onboarding-connect-status[data-state='failed'] .onboarding-connect-mark { background: var(--color-danger-marker); }
+.onboarding-connect-mark > * { grid-area: 1 / 1; transition: opacity 180ms ease-out, transform 260ms var(--ease-out-strong); }
+.onboarding-connect-mark > svg { color: var(--color-surface); opacity: 0; transform: scale(.4) rotate(-20deg); }
+.onboarding-connect-dot { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--mark); transition: background-color 240ms ease, opacity 180ms ease-out, transform 260ms var(--ease-out-strong); }
+.onboarding-connect-status:is([data-state='awaiting_role'], [data-state='provisioning']) .onboarding-connect-dot::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: inherit; animation: live-status-ping 1.8s var(--ease-out-strong) infinite; }
+.onboarding-connect-status:is([data-state='ready'], [data-state='failed']) .onboarding-connect-dot { opacity: 0; transform: scale(.4); }
+.onboarding-connect-status[data-state='ready'] .onboarding-connect-mark > svg:first-of-type,
+.onboarding-connect-status[data-state='failed'] .onboarding-connect-mark > svg:last-of-type { opacity: 1; transform: none; }
+/* The disclosure sits last, so opening it never moves anything above. */
+.onboarding-disclosure { display: inline-flex; align-items: center; gap: var(--space-6); min-height: 28px; margin-left: calc(-1 * var(--space-4)); padding: 0 var(--space-4); border: 0; border-radius: 4px; background: none; color: var(--color-muted); font-size: var(--text-sm); transition: color 100ms ease-out; }
+.onboarding-disclosure svg { transition: transform 160ms var(--ease-out-strong); }
+.onboarding-disclosure[aria-expanded='true'] svg { transform: rotate(90deg); }
+@media (hover: hover) and (pointer: fine) { .onboarding-disclosure:hover { color: var(--color-text); transition-duration: 0ms; } }
+.onboarding-trouble-body { margin-top: var(--space-12); animation: onboarding-rise 220ms var(--ease-out-strong) both; }
+
+/* Imported domains: plain hairline rows, like the DNS records. */
+.onboarding-imported { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--color-border-muted); }
+.onboarding-imported li { display: flex; align-items: center; justify-content: space-between; gap: var(--space-16); padding-block: 10px; border-bottom: 1px solid var(--color-border-muted); }
+.onboarding-imported code { min-width: 0; font-size: var(--text-sm); line-height: var(--leading-sm); overflow-wrap: anywhere; }
+
+/* DNS step */
+.onboarding-domain-title { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-8) var(--space-12); }
+.onboarding-domain-title > span:first-child { overflow-wrap: anywhere; }
+.onboarding-domain-title .live-status { min-height: 24px; padding: 1px var(--space-8); font-size: var(--text-xs); line-height: var(--leading-sm); letter-spacing: normal; font-weight: var(--font-weight-regular); }
+.onboarding-verified { position: relative; display: flex; align-items: center; gap: var(--space-12); padding: 10px var(--space-12); overflow: hidden; border: 1px solid var(--color-success-border); border-radius: 8px; background: var(--color-success-bg); color: var(--color-success); }
+.onboarding-verified strong { font-weight: var(--font-weight-bold); }
+.onboarding-verified p { font-size: var(--text-sm); line-height: var(--leading-sm); }
+.onboarding-verified-icon { display: grid; place-items: center; width: 24px; height: 24px; flex-shrink: 0; border-radius: 50%; background: var(--color-success-marker); color: var(--color-surface); }
+.onboarding-verified-icon svg { width: 14px; height: 14px; }
+.onboarding-verified-icon path { fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 22; }
+/* Shows how long until the flow moves on by itself. */
+.onboarding-verified-timer { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--color-success-marker); transform-origin: left; }
+.onboarding-verified[data-active] { animation: onboarding-pop 320ms var(--ease-out-strong) both; }
+.onboarding-verified[data-active] .onboarding-verified-icon { animation: onboarding-pop-icon 360ms var(--ease-out-strong) 60ms both; }
+.onboarding-verified[data-active] .onboarding-verified-icon path { animation: onboarding-draw 320ms var(--ease-out-strong) 180ms both; }
+.onboarding-verified[data-active] .onboarding-verified-timer { animation: onboarding-timer 2500ms linear both; }
+@keyframes onboarding-pop { from { opacity: 0; transform: translateY(-4px) scale(.98); } }
+@keyframes onboarding-pop-icon { from { transform: scale(.6); } }
+@keyframes onboarding-draw { from { stroke-dashoffset: 22; } }
+@keyframes onboarding-timer { to { transform: scaleX(0); } }
+.onboarding-intro > .onboarding-slot { margin-top: var(--space-4); }
+
+/* Sticky action bar: content fades out beneath it instead of being cropped. */
+.onboarding-actions { position: sticky; bottom: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: var(--space-16); margin-top: calc(-1 * var(--space-8)); padding: 14px 0 18px; background: var(--color-surface); }
+.onboarding-actions::before { content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: 24px; background: linear-gradient(to bottom, transparent, var(--color-surface)); pointer-events: none; }
+.onboarding-actions p { font-size: var(--text-sm); line-height: var(--leading-sm); }
+.onboarding-step:has(.onboarding-actions) { padding-bottom: var(--space-8); }
+
+/* Agent step: plain sections divided by hairlines, no cards. */
+.onboarding-agent-steps { display: flex; flex-direction: column; }
+.onboarding-agent-steps .developer-section { max-width: none; margin: 0; padding-block: var(--space-24); gap: var(--space-12); }
+.onboarding-agent-steps > :first-child .developer-section, .onboarding-agent-steps > .developer-section:first-child { padding-top: 0; }
+.onboarding-agent-steps > * + * { border-top: 1px solid var(--color-border-muted); }
+.onboarding-agent-steps .ui-section-header { margin-bottom: 0; min-height: 24px; }
+.onboarding-agent-steps .ui-section-header h2 { font-size: var(--text-md); line-height: var(--leading-sm); }
+.onboarding-agent-steps .developer-copy { font-size: var(--text-sm); }
+/* Two lines reserved, so a wrapped error replaces the copy without moving the button. */
+.onboarding-key-copy { min-height: 20px; }
+.onboarding-key { min-height: 32px; align-items: center; }
+.onboarding-key > * { align-self: center; }
+.onboarding-key code { font-size: var(--text-sm); }
+/* The key is longer than the column on small screens: it scrolls and fades at the edge instead of being cropped. */
+.onboarding-key code { mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); }
+@media (min-width: 900px) { .onboarding-key code { mask-image: none; } }
+.onboarding-reveal[data-active] { animation: onboarding-rise 260ms var(--ease-out-strong) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .onboarding-verified-timer { display: none; }
+}
+
+@media (max-width: 850px) {
+  .page-surface.onboarding-surface { padding: var(--space-28) var(--space-16) 0; }
+}
+@media (max-width: 640px) {
+  /* A 44 px tap target for each control; the workspace name gets the room Sign out's label gave up. */
+  /* Wordmark, theme and Sign out share the first row; the workspace picker takes the second in full, so a long name fits. */
+  .onboarding-header { flex-wrap: wrap; row-gap: 0; column-gap: var(--space-4); }
+  .onboarding-header-actions { display: contents; }
+  .onboarding-header .wordmark { margin-right: auto; }
+  .onboarding-workspace { order: 1; flex: 1 0 100%; width: auto; max-width: none; padding-bottom: var(--space-4); }
+  .onboarding-header .theme-toggle, .onboarding-header .onboarding-signout { width: 44px; height: 44px; padding: 0; }
+  .onboarding-signout > svg { display: block; }
+  .onboarding-signout-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
+  .onboarding-surface .ui-button--md { height: 44px; }
+  .onboarding-back, .onboarding-disclosure, .onboarding-skip { position: relative; }
+  .onboarding-back::after { content: ''; position: absolute; inset: -10px -8px; }
+  .onboarding-disclosure::after { content: ''; position: absolute; inset: -8px 0; }
+  .onboarding-skip::after { content: ''; position: absolute; inset: -6px 0; }
+  .onboarding-progress { flex-wrap: wrap; margin-bottom: var(--space-28); }
+  .onboarding-progress-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
+  .onboarding-progress li.onboarding-progress-caption { display: block; flex: 0 0 100%; margin-top: var(--space-12); color: var(--color-muted); font-size: var(--text-xs); line-height: 18px; }
+  .onboarding { gap: var(--space-20); }
+  .onboarding-title { font-size: 24px; line-height: 30px; letter-spacing: -.4px; }
+  .onboarding-options { grid-template-columns: 1fr; gap: var(--space-12); }
+  .onboarding-option { min-height: 0; padding: 18px; }
+  .onboarding-option-icon { margin-bottom: var(--space-6); }
+  .onboarding-inline-form { flex-direction: column; align-items: stretch; }
+  .onboarding-inline-form > .ui-button { margin-top: 0; height: 44px; }
+  .onboarding-surface .ui-input { height: 44px; font-size: 16px; }
+  .onboarding-field--domain .ui-field__hint { min-height: 36px; }
+  .onboarding-field--aws .ui-field__hint { min-height: 54px; }
+  .onboarding-connect-actions { flex-direction: column; align-items: stretch; }
+  .onboarding-preview { max-width: 100%; }
+  .onboarding-key-copy { min-height: 40px; }
+  .onboarding-actions p { display: none; }
+  .onboarding-actions .ui-button { flex: 1; }
+}
+
+.onboarding-key-scope { display: flex; flex-direction: column; gap: var(--space-8); }
+.onboarding-key-scope[inert] { opacity: .6; }

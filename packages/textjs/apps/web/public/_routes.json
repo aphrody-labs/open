@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "description": "Only / (terminal clients get an ANSI frame), the Terminal sign in, the API proxy and crash reports run as Functions; everything else is static.",
+  "include": [
+    "/",
+    "/api/errors",
+    "/api/terminal",
+    "/api/terminal/*",
+    "/terminal/callback"
+  ],
+  "exclude": []
+}

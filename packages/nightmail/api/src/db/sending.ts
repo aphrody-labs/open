@@ -1,0 +1,114 @@
+import { sql } from 'drizzle-orm';
+import type { CampaignState } from '../states.js';
+import type { SendingBinding } from '../domain-claims.js';
+import { boolean, doublePrecision, index, integer, jsonb, pgTable, primaryKey, smallint, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+
+export type EmailStatus = 'queued' | 'attempting' | 'accepted' | 'sent' | 'delivered' | 'bounced' | 'complained' | 'rejected' | 'rendering_failed' | 'delayed' | 'suppressed' | 'canceled' | 'acceptance_unknown' | 'simulated';
+export type CampaignEditor = { format: 'react-email'; version: 1; document: Record<string, unknown> };
+export type EmailSnapshot = {
+  /** Null: known non-test send. A campaign ID: test of that campaign. Missing: legacy/unknown. */
+  testCampaignId?: string | null;
+  binding?: SendingBinding;
+  from: string; fromName?: string; previewText?: string; to: string[]; cc: string[]; bcc: string[]; replyTo: string[]; region: string;
+  kind: 'transactional' | 'marketing'; subject: string; html?: string; text?: string;
+  attachments: string[]; tracking: boolean; raw?: string;
+  template?: { name: string; data: Record<string, unknown>; source: { Subject?: string; Html?: string; Text?: string }; render: 'ses' | 'simulated' };
+  headers: { Name: string; Value: string }[];
+  deferredCampaign?: boolean;
+  /** Server-side bulk evidence on a message its caller labelled transactional (hosted-sending.ts bulkFlags): held like marketing. */
+  bulk?: true;
+  /** Present only on mailbox replies; recipients who actually wrote to this mailbox in this thread. */
+  replyAuthors?: string[];
+  /** Immutable content provenance. Missing on legacy snapshots; never infer trust from missing mailbox history. */
+  untrustedContent?: boolean;
+  /** Live transactional only: ask the content classifier (Jev) before dispatch. */
+  screen?: boolean;
+  /** Sent campaign emails keep only their unsubscribe URL; the body is re-rendered from the frozen review on read. */
+  unsubscribeUrl?: string;
+  /** Bane-authored notice with a recipient-only capability; reads withhold it. */
+  sealed?: boolean;
+  /** Sent from a receiving address or inbox: a reply, a new conversation, a forward or a mail-client submission. Reading it needs mailbox access. */
+  mailbox?: boolean;
+};
+export type CampaignDraft = {
+  regionPinned?: boolean;
+  /** Only stored in the internal, immutable launch review. */
+  binding?: SendingBinding;
+  name: string; from: string; fromName?: string; previewText?: string; replyTo?: string[]; region: string; subject: string; html?: string;
+  attachments: string[]; tracking: boolean;
+  audience: { listId?: string; segmentId?: string; excludeListIds?: string[]; excludeSegmentIds?: string[] };
+  defaults: Record<string, string | number | boolean | null>;
+};
+export type ReviewedRecipient = { id: string; email: string; name?: string; properties: Record<string, unknown> };
+const scope = () => ({ workspaceId: text('workspace_id').notNull() });
+const time = (name: string) => timestamp(name, { withTimezone: true, mode: 'string' });
+export const emails = pgTable('sending_emails', {
+  id: text('id').primaryKey(), ...scope(), region: text('region').notNull(), actorKeyId: text('actor_key_id').notNull(),
+  reviewId: text('review_id'), reviewOrdinal: integer('review_ordinal'),
+  campaignId: text('campaign_id'), from: text('from_address').notNull(), to: jsonb('to_addresses').$type<string[]>().notNull(), cc: jsonb('cc_addresses').$type<string[]>().notNull(), bcc: jsonb('bcc_addresses').$type<string[]>().notNull(),
+  subject: text('subject').notNull(), status: text('status').$type<EmailStatus>().notNull().default('queued'), providerId: text('provider_id'),
+  snapshot: jsonb('snapshot').$type<EmailSnapshot>().notNull(), simulated: boolean('simulated').notNull(),
+  attemptStartedAt: time('attempt_started_at'), errorCode: text('error_code'), suppressionReason: text('suppression_reason'), scheduledAt: time('scheduled_at'), dispatchVersion: integer('dispatch_version').notNull().default(0),
+  leaseUntil: time('lease_until'), accountPauseStartedAt: time('account_pause_started_at'),
+  // Union of public event outcomes as bit flags (migration 031 trigger); see OUTCOME in operations.ts.
+  eventOutcomes: smallint('event_outcomes').notNull().default(0),
+  createdAt: time('created_at').notNull().defaultNow(), updatedAt: time('updated_at').notNull().defaultNow(),
+}, t => [index('sending_emails_page').on(t.workspaceId, t.id), index('sending_emails_created_page').on(t.workspaceId, t.createdAt.desc(), t.id.desc()), index('sending_emails_kind_created').on(t.workspaceId, sql`(${t.snapshot}->>'kind')`, t.createdAt), index('sending_emails_campaign_status').on(t.workspaceId, t.campaignId, t.status), uniqueIndex('sending_emails_provider').on(t.workspaceId, t.region, t.providerId), uniqueIndex('sending_emails_review_recipient').on(t.reviewId, t.reviewOrdinal)]);
+export const emailEvents = pgTable('sending_email_events', {
+  id: text('id').primaryKey(), ...scope(), emailId: text('email_id').notNull(), type: text('type').notNull(), providerId: text('provider_id'),
+  externalId: text('external_id'), data: jsonb('data').$type<Record<string, unknown>>().notNull().default({}), simulated: boolean('simulated').notNull(), createdAt: time('created_at').notNull().defaultNow(),
+}, t => [index('sending_events_page').on(t.workspaceId, t.emailId, t.id), uniqueIndex('sending_events_external').on(t.workspaceId, t.externalId), index('sending_email_events_retention').on(t.workspaceId, t.createdAt)]);
+export const attachments = pgTable('sending_attachments', {
+  uploadedBy: text('uploaded_by'),
+  id: text('id').primaryKey(), ...scope(), filename: text('filename').notNull(), contentType: text('content_type').notNull(), size: integer('size').notNull(),
+  disposition: text('disposition').$type<'attachment' | 'inline'>().notNull(), contentId: text('content_id'), storageKey: text('storage_key').notNull(), checksum: text('checksum').notNull(), sourceTemplateAssetId: text('source_template_asset_id'),
+  createdAt: time('created_at').notNull().defaultNow(),
+}, t => [index('sending_attachments_page').on(t.workspaceId, t.id)]);
+export const attachmentLinks = pgTable('sending_attachment_links', {
+  ...scope(), attachmentId: text('attachment_id').notNull().references(() => attachments.id), ownerType: text('owner_type').$type<'email' | 'campaign' | 'review'|'mailbox'>().notNull(), ownerId: text('owner_id').notNull(),
+}, t => [primaryKey({ columns: [t.workspaceId, t.attachmentId, t.ownerType, t.ownerId] }), index('sending_attachment_owner').on(t.workspaceId, t.ownerType, t.ownerId)]);
+export type CampaignFailure = { code: string; message: string };
+// One state (src/states.ts) plus the delivery cursors and settings of the current launch; `review_id` is the frozen
+// snapshot that launch took (sending_campaign_reviews + sending_review_recipients), and NULL for an unlaunched draft.
+export const campaigns = pgTable('sending_campaigns', {
+  id: text('id').primaryKey(), ...scope(), revision: integer('revision').notNull().default(1), draft: jsonb('draft').$type<CampaignDraft>().notNull(),
+  sourceTemplateId: text('source_template_id'), sourceTemplateRevision: integer('source_template_revision'),
+  state: text('state').$type<CampaignState>().notNull().default('draft'), reviewId: text('review_id'), scheduledAt: time('scheduled_at'), archivedAt: time('archived_at'),
+  actorKeyId: text('actor_key_id'), simulated: boolean('simulated').notNull().default(false), requestId: text('request_id'),
+  total: integer('total').notNull().default(0), prepared: integer('prepared').notNull().default(0), expanded: integer('expanded').notNull().default(0), canceled: integer('canceled').notNull().default(0),
+  error: jsonb('error').$type<CampaignFailure>(),
+  // Paced delivery: optional cap per rolling 24-hour window, share of the send rate, pause and why releasing waits.
+  pacePerDay: integer('pace_per_day'), autoPause: boolean('auto_pause').notNull().default(true), rateShare: doublePrecision('rate_share'),
+  windowStartedAt: time('window_started_at'), windowExpanded: integer('window_expanded').notNull().default(0),
+  pausedAt: time('paused_at'), pauseReason: jsonb('pause_reason').$type<CampaignFailure>(), healthCheckedAt: time('health_checked_at'),
+  waitingReason: text('waiting_reason').$type<'pacing_window' | 'ses_daily_quota' | 'hosted_daily_quota' | 'list_probe'>(), waitingUntil: time('waiting_until'),
+  // Hosted list probe (migration 231): when release may continue after the probe, when it was cleared, and how many quarantines this launch had.
+  probeWaitUntil: time('probe_wait_until'), probeClearedAt: time('probe_cleared_at'), quarantines: smallint('quarantines').notNull().default(0),
+  // After an owner resumed a failed list probe: the rest is released only to contacts the workspace delivered to before.
+  deliveredOnly: boolean('delivered_only').notNull().default(false),
+  createdAt: time('created_at').notNull().defaultNow(), updatedAt: time('updated_at').notNull().defaultNow(),
+}, t => [index('sending_campaigns_page').on(t.workspaceId, t.id), index('sending_campaigns_created_page').on(t.workspaceId, t.createdAt.desc(), t.id.desc()), index('sending_campaigns_archive_page').on(t.workspaceId, t.archivedAt, t.createdAt.desc(), t.id.desc())]);
+// The frozen snapshot a launch sends from: the draft and rendered base every recipient is interpolated into, and the
+// recipient list (sending_review_recipients). It has no status; the campaign's state and cursors describe its use.
+export const campaignReviews = pgTable('sending_campaign_reviews', {
+  id: text('id').primaryKey(), ...scope(), campaignId: text('campaign_id').notNull(), revision: integer('revision').notNull(), draft: jsonb('draft').$type<CampaignDraft>().notNull(),
+  contentHash: text('content_hash').notNull(), createdAt: time('created_at').notNull().defaultNow(),
+  // Version of the per-recipient renderer (interpolation, preheader, footer) that must reproduce this review's emails.
+  rendererVersion: integer('renderer_version').notNull().default(1),
+  rendered: jsonb('rendered').$type<{ html?: string; text?: string }>(),
+}, t => [index('sending_review_campaign').on(t.workspaceId, t.campaignId)]);
+// Recipient values are copied once from one database snapshot; no live contact joins during preparation or expansion.
+export const reviewRecipients = pgTable('sending_review_recipients', {
+  // No foreign key (migration 026): a statement-level trigger on reviews cascades deletes without a per-row insert check.
+  reviewId: text('review_id').notNull(),
+  ordinal: integer('ordinal').notNull(), recipient: jsonb('recipient').$type<ReviewedRecipient>().notNull(),
+  recipientBytes: integer('recipient_bytes').notNull(), contentHash: text('content_hash'), subject: text('subject'), snapshotBytes: integer('snapshot_bytes'),
+}, t => [primaryKey({ columns: [t.reviewId, t.ordinal] })]);
+export const regionalLimits = pgTable('sending_region_limits', {
+  ...scope(), region: text('region').notNull(), maxSendRate: doublePrecision('max_send_rate').notNull().default(0), max24HourSend: doublePrecision('max_24_hour_send').notNull().default(0), sentLast24Hours: doublePrecision('sent_last_24_hours').notNull().default(0), reserved: integer('reserved').notNull().default(0),
+  checkedAt: time('checked_at'), nextAllowedAt: time('next_allowed_at'),
+}, t => [primaryKey({ columns: [t.workspaceId, t.region] })]);
+export const sendingIdempotency = pgTable('sending_idempotency', {
+  ...scope(), actorKeyId: text('actor_key_id').notNull(), path: text('path').notNull(), requestKey: text('request_key').notNull(), requestHash: text('request_hash').notNull(),
+  result: jsonb('result').$type<Record<string, unknown>>(), createdAt: time('created_at').notNull().defaultNow(),
+}, t => [primaryKey({ columns: [t.workspaceId, t.actorKeyId, t.path, t.requestKey] })]);

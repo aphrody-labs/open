@@ -1,0 +1,409 @@
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { TurbologLockup } from "../site/brand-marks";
+import { Inline } from "../site/Markdown";
+import { useInView } from "../site/useInView";
+import { useConsoleLogDown } from "../console-health";
+import { rich } from "../i18n/rich";
+import { formatDate, formatNumber, plural, t } from "../i18n/t";
+import { A } from "../router";
+import type { BenchResult, Summary } from "./status-bench";
+import { COMPONENTS, LAUNCH, type Component, type Tone } from "./status-components";
+import history from "./status-history.json";
+import { INCIDENTS, incidentDays, type Incident, type IncidentStatus } from "./status-incidents";
+import "./resources.css";
+
+const DAYS = 90;
+
+function dayList(end: string): string[] {
+  const out: string[] = [];
+  const t = Date.parse(`${end}T00:00:00Z`);
+  for (let i = DAYS - 1; i >= 0; i--) out.push(new Date(t - i * 86_400_000).toISOString().slice(0, 10));
+  return out;
+}
+
+const DAY_LIST = dayList(history.measuredAt);
+const LIVE_DAYS = DAY_LIST.filter((d) => d >= LAUNCH).length;
+
+const TODAY = DAY_LIST[DAY_LIST.length - 1];
+
+const IMPACT_DAY = { none: t("Operational"), minor: t("Degraded performance"), major: t("Partial outage") } as const;
+
+/** `today` overrides the last bar (a `console.log` reassigned in this tab). */
+function UptimeBars({ name, tone, status, today }: { name: string; tone: Tone; status: string; today?: { tone: string; status: string } }): ReactNode {
+  const incidents = incidentDays(name);
+  let affected = 0;
+  for (const d of DAY_LIST) if (incidents.has(d) && !(today && d === TODAY)) affected++;
+  const parts = [t("{name}: {status} on {up} of the last {days} days", { name, status, up: LIVE_DAYS - affected - (today ? 1 : 0), days: DAYS })];
+  if (affected > 0) parts.push(plural(affected, { one: "{count} day with incidents", other: "{count} days with incidents" }));
+  if (today) parts.push(t("{status} today", { status: today.status }));
+  if (LIVE_DAYS < DAYS) parts.push(t("no data before launch"));
+  return (
+    <div className="st-bars" dir="ltr" role="img" aria-label={parts.join(t(", "))}>
+      {DAY_LIST.map((d) => {
+        const incident = incidents.get(d);
+        let day: { tone: string; status: string } | null = null;
+        if (today && d === TODAY) day = today;
+        else if (incident) day = { tone: incident.impact, status: `${IMPACT_DAY[incident.impact]}: ${incident.name}` };
+        else if (d >= LAUNCH) day = { tone, status };
+        return <span key={d} className={day ? `st-bar st-bar-${day.tone}` : "st-bar"} title={`${formatDate(d)} · ${day ? day.status : t("No data")}`} />;
+      })}
+    </div>
+  );
+}
+
+const OUTAGE = { tone: "outage", status: t("Major outage") } as const;
+const OUTAGE_DETAIL = t("console.log was reassigned in this tab. Reload to restore.");
+
+function ComponentRow({ c, down }: { c: Component; down: boolean }): ReactNode {
+  const out = down && c.name === "console.log";
+  return (
+    <div className="st-component">
+      <div className="st-component-head">
+        <code className="st-name">{c.name}</code>
+        <span className={`st-state st-state-${out ? OUTAGE.tone : c.tone}`}>{out ? OUTAGE.status : c.status}</span>
+      </div>
+      <UptimeBars name={c.name} tone={c.tone} status={c.status} today={out ? OUTAGE : undefined} />
+      <div className="st-axis" dir="ltr">
+        <span>{t("{days} days ago", { days: DAYS })}</span>
+        <span className="st-axis-mid">{out ? OUTAGE_DETAIL : c.detail}</span>
+        <span>{t("Today")}</span>
+      </div>
+    </div>
+  );
+}
+
+const fmtMs = (ms: number, digits = 3): string => `${ms.toFixed(digits)}ms`;
+
+type BenchState = { phase: "idle" } | { phase: "running"; progress: number } | { phase: "done"; result: BenchResult } | { phase: "error"; message: string };
+
+function LiveBenchmark(): ReactNode {
+  const [state, setState] = useState<BenchState>({ phase: "idle" });
+  const running = useRef(false);
+  const autoStarted = useRef(false);
+  const [cardRef, near] = useInView<HTMLElement>("200px");
+
+  const run = (): void => {
+    if (running.current) return;
+    running.current = true;
+    autoStarted.current = true;
+    setState({ phase: "running", progress: 0 });
+    void import("./status-bench")
+      .then((m) => m.runPipelineBench((progress) => setState({ phase: "running", progress })))
+      .then((result) => setState({ phase: "done", result }))
+      .catch((err: unknown) => setState({ phase: "error", message: err instanceof Error ? err.message : String(err) }))
+      .finally(() => {
+        running.current = false;
+      });
+  };
+
+  useEffect(() => {
+    if (!near || autoStarted.current) return;
+    let timerId: number | null = null;
+    let idleId: number | null = null;
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
+    const schedule = (): void => {
+      timerId = window.setTimeout(() => {
+        if (w.requestIdleCallback) idleId = w.requestIdleCallback(run);
+        else run();
+      }, 600);
+    };
+    if (document.readyState === "complete") schedule();
+    else window.addEventListener("load", schedule, { once: true });
+    return () => {
+      window.removeEventListener("load", schedule);
+      if (timerId !== null) window.clearTimeout(timerId);
+      if (idleId !== null) window.cancelIdleCallback?.(idleId);
+    };
+  }, [near]);
+
+  const result = state.phase === "done" ? state.result : null;
+  const progress = state.phase === "running" ? state.progress : state.phase === "done" ? 1 : 0;
+  const dash = "—";
+  const cell = (s: Summary | undefined): string => (s ? fmtMs(s.p50) : dash);
+  const metrics: ReadonlyArray<{ label: string; value: string; sub: string }> = [
+    { label: t("Full frame"), value: cell(result?.fullFrame), sub: result ? t("mean {mean} · p95 {p95}", { mean: fmtMs(result.fullFrame.mean), p95: fmtMs(result.fullFrame.p95) }) : t("layout + paint + encode") },
+    { label: t("Typing"), value: cell(result?.typing), sub: result ? t("mean {mean} · p95 {p95}", { mean: fmtMs(result.typing.mean), p95: fmtMs(result.typing.p95) }) : t("one-row edit") },
+    { label: t("Idle frame"), value: cell(result?.idle), sub: result ? t("{calls} console calls", { calls: result.idleConsoleCalls }) : t("nothing changed") },
+    { label: t("%c spans"), value: result ? String(result.spans) : dash, sub: t("{cells} cells", { cells: formatNumber(3200) }) },
+  ];
+
+  return (
+    <section ref={cardRef} className="st-card st-live" aria-labelledby="st-live-title">
+      <div className="st-card-head">
+        <div>
+          <h2 id="st-live-title">{t("Live benchmark")}</h2>
+          <p>{rich("The <c>@textjs/core</c> pipeline runs in this tab on a 100×32 dashboard and writes frames to an in-memory console.", code)}</p>
+        </div>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={run} disabled={state.phase === "running"}>
+          {state.phase === "running" ? t("Running…") : state.phase === "idle" ? t("Run") : t("Run again")}
+        </button>
+      </div>
+      <div className="st-progress" aria-hidden="true">
+        <span style={{ transform: `scaleX(${progress})` }} />
+      </div>
+      <dl className="st-metrics" aria-live="polite">
+        {metrics.map((m) => (
+          <div key={m.label}>
+            <dt>{m.label}</dt>
+            <dd>{m.value}</dd>
+            <dd className="st-sub">{m.sub}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="st-foot">
+        {state.phase === "error"
+          ? t("The benchmark could not run: {message}", { message: state.message })
+          : result
+            ? t("{frames} frames in batches of 10, measured on this device. Medians shown.", { frames: formatNumber(result.frames) })
+            : t("Starts automatically once the page is idle.")}
+      </p>
+    </section>
+  );
+}
+
+const RUNS = history.pipeline.runs;
+
+/** `2025-03-25` → `Mar 2025`. */
+function formatMonth(date: string): string {
+  return formatDate(date, "shortMonth");
+}
+const MAX_TYPING = Math.max(...RUNS.map((r) => r.typingMs));
+
+function PerfHistory(): ReactNode {
+  return (
+    <section className="st-card" aria-labelledby="st-history-title">
+      <div className="st-card-head">
+        <div>
+          <h2 id="st-history-title">{t("Performance history")}</h2>
+          <p>{rich("<c>packages/core/test/perf.test.ts</c> at each milestone, same machine ({machine}). Mean of 1,000 frames.", code, { machine: history.machine })}</p>
+        </div>
+      </div>
+      <div className="st-table-wrap">
+        <table className="st-table">
+          <thead>
+            <tr>
+              <th scope="col">{t("Release")}</th>
+              <th scope="col">{t("Full frame")}</th>
+              <th scope="col">{t("Typing")}</th>
+              <th scope="col">{t("Idle")}</th>
+              <th scope="col">{t("%c spans")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {RUNS.map((r) => (
+              <tr key={r.commit}>
+                <th scope="row">
+                  <span className="st-ver">{r.milestone}</span>
+                  <span className="st-commit">
+                    {formatMonth(r.released)} · {r.label} · <code>{r.commit}</code>
+                  </span>
+                </th>
+                <td>{fmtMs(r.fullFrameMs)}</td>
+                <td>
+                  <span className="st-meter">
+                    <span style={{ width: `${(r.typingMs / MAX_TYPING) * 100}%` }} />
+                  </span>
+                  {fmtMs(r.typingMs)}
+                </td>
+                <td>{fmtMs(r.idleMs)}</td>
+                <td>{r.spans}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function DevToolsHistory(): ReactNode {
+  return (
+    <section className="st-card" aria-labelledby="st-dt-title">
+      <div className="st-card-head">
+        <div>
+          <h2 id="st-dt-title">{t("DevTools frontend")}</h2>
+          <p>{rich("<c>bench/devtools</c> in Chrome for Testing: blank paints, delivered frames and display lag, 5s per run. <link>How we measure</link>.", { ...code, link: (c) => <A href="/blog/turbolog-eliminating-the-flash">{c}</A> })}</p>
+        </div>
+      </div>
+      <div className="st-table-wrap">
+        <table className="st-table">
+          <thead>
+            <tr>
+              <th scope="col">{t("Driver")}</th>
+              <th scope="col">FPS</th>
+              <th scope="col">{t("Blank paints")}</th>
+              <th scope="col">{t("Painted / emitted")}</th>
+              <th scope="col">{t("Lag p50")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {history.devtools.runs.map((r) => (
+              <tr key={`${r.strategy}-${r.fps}`} className={r.strategy === "append" && r.fps === 15 ? "st-ship" : undefined}>
+                <th scope="row">{r.strategy === "append" ? (r.fps === 15 ? t("Append (shipping)") : t("Append, unpaced")) : t("Clear per frame")}</th>
+                <td>{r.fps}</td>
+                <td>{r.blankPct.toFixed(1)}%</td>
+                <td>
+                  {r.painted} / {r.emitted}
+                </td>
+                <td>{r.lagP50Ms.toFixed(1)}ms</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+const STATUS_LABEL: Record<IncidentStatus, string> = { investigating: t("Investigating"), identified: t("Identified"), monitoring: t("Monitoring"), resolved: t("Resolved") };
+
+const code = { c: (c: ReactNode) => <code>{c}</code> };
+
+/** `2026-10-27T15:42:00Z` → `Oct 27, 2026 · 15:42 UTC`. */
+function formatUpdateTime(iso: string): string {
+  const d = new Date(iso);
+  const date = formatDate(iso, "short");
+  return `${date} · ${iso.slice(11, 16)} UTC`;
+}
+
+function shortDay(iso: string, year: boolean): string {
+  return formatDate(iso, year ? "short" : "shortDay");
+}
+
+/** `Oct 27, 2026` or `Oct 27 – Oct 28, 2026`. */
+function incidentSpan(i: Incident): string {
+  const first = i.updates[0]!.at;
+  const last = i.updates[i.updates.length - 1]!.at;
+  if (first.slice(0, 10) === last.slice(0, 10)) return shortDay(first, true);
+  return `${shortDay(first, first.slice(0, 4) !== last.slice(0, 4))} – ${shortDay(last, true)}`;
+}
+
+function monthOf(i: Incident): string {
+  return formatDate(i.updates[0]!.at, "month");
+}
+
+function IncidentItem({ incident: i }: { incident: Incident }): ReactNode {
+  return (
+    <li id={i.id} className="st-incident">
+      <details>
+        <summary>
+          <span className={`st-incident-name st-impact-${i.impact}`}>{i.name}</span>
+          <span className="st-incident-when">{t("{when} · Resolved", { when: incidentSpan(i) })}</span>
+        </summary>
+        <div className="st-incident-body">
+          <ol className="st-updates">
+            {[...i.updates].reverse().map((u) => (
+              <li key={u.at}>
+                <strong>{STATUS_LABEL[u.status]}</strong>
+                <p>
+                  <Inline text={u.body} />
+                </p>
+                <time dateTime={u.at}>{formatUpdateTime(u.at)}</time>
+              </li>
+            ))}
+          </ol>
+          {i.components.length > 0 ? <p className="st-affected">{t("This incident affected: {components}.", { components: i.components.join(", ") })}</p> : null}
+          <div className="st-postmortem">
+            <h4>{t("Postmortem")}</h4>
+            <p>
+              <Inline text={i.postmortem} />
+            </p>
+            <p className="st-fix">
+              {i.commits.length > 0 ? (
+                <>
+                  {i.commits.length === 1 ? t("Fix:") : t("Fixes:")}{" "}
+                  {i.commits.map((c, n) => (
+                    <span key={c}>
+                      {n > 0 ? ", " : null}
+                      <code>{c}</code>
+                    </span>
+                  ))}
+                </>
+              ) : null}
+              {i.links.map((l, n) => (
+                <span key={l.href}>
+                  {i.commits.length > 0 || n > 0 ? " · " : null}
+                  <A href={l.href}>{l.label}</A>
+                </span>
+              ))}
+            </p>
+          </div>
+        </div>
+      </details>
+    </li>
+  );
+}
+
+function PastIncidents(): ReactNode {
+  const months: Array<{ month: string; incidents: Incident[] }> = [];
+  for (const i of INCIDENTS) {
+    const month = monthOf(i);
+    const last = months[months.length - 1];
+    if (last?.month === month) last.incidents.push(i);
+    else months.push({ month, incidents: [i] });
+  }
+  // `/status#<id>` (the incidents API's shortlinks) opens that incident.
+  useEffect(() => {
+    const open = (): void => {
+      const id = decodeURIComponent(location.hash.slice(1));
+      const details = id ? document.getElementById(id)?.querySelector("details") : null;
+      if (!details) return;
+      details.open = true;
+      details.scrollIntoView({ block: "start" });
+    };
+    open();
+    window.addEventListener("hashchange", open);
+    return () => window.removeEventListener("hashchange", open);
+  }, []);
+  return (
+    <section className="st-card" aria-labelledby="st-incidents-title">
+      <div className="st-card-head">
+        <div>
+          <h2 id="st-incidents-title">{t("Past incidents")}</h2>
+          <p>{t("Newest first. Times are in UTC.")}</p>
+        </div>
+      </div>
+      {months.map((m) => (
+        <div key={m.month} className="st-month">
+          <h3>{m.month}</h3>
+          <ul className="st-incidents">
+            {m.incidents.map((i) => (
+              <IncidentItem key={i.id} incident={i} />
+            ))}
+          </ul>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+export function StatusPage(): ReactNode {
+  const down = useConsoleLogDown();
+  return (
+    <div className="container st">
+      <header className="rs-head">
+        <TurbologLockup className="st-lockup" />
+        <h1>{t("Status")}</h1>
+      </header>
+
+      <div className={`st-banner${down ? " st-banner-outage" : ""}`} role="status">
+        <span className={`dot${down ? " dot-red" : ""}`} />
+        <strong>{down ? t("Major outage") : t("All systems operational")}</strong>
+        <span className="st-updated">{t("Updated {date}", { date: formatDate(history.measuredAt) })}</span>
+      </div>
+
+      <section className="st-card st-components" aria-label={t("Components")}>
+        {COMPONENTS.map((c) => (
+          <ComponentRow key={c.name} c={c} down={down} />
+        ))}
+      </section>
+
+      <LiveBenchmark />
+      <PerfHistory />
+      <DevToolsHistory />
+
+      <PastIncidents />
+    </div>
+  );
+}
+

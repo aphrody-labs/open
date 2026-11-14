@@ -1,0 +1,861 @@
+import { createHash } from 'node:crypto';
+import { isIP } from 'node:net';
+import { setTimeout as delay } from 'node:timers/promises';
+import { z } from '@hono/zod-openapi';
+import type { SESv2Client, Tenant } from '@aws-sdk/client-sesv2';
+import type { Subscription } from '@aws-sdk/client-sns';
+import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
+import { ApiError, assertSesConfigured, lazyModule, logError, ModuleLoadError } from './core.js';
+import type { Config, Runtime } from './core.js';
+import { claimNameAllowed, domainName } from './domain-claims.js';
+import type { IdentityFacts } from './states.js';
+import { FEEDBACK_EVENTS, feedbackPolicy, poolEventDestination, poolSuppression } from './mail-controls.js';
+import { hasTags, ownerTag, tagKey, TAG_PREFIX } from './resource-tags.js';
+
+type SetupSdk = {
+  sesv2: typeof import('@aws-sdk/client-sesv2');
+  ses: typeof import('@aws-sdk/client-ses');
+  sns: typeof import('@aws-sdk/client-sns');
+  sts: typeof import('@aws-sdk/client-sts');
+  cw: typeof import('@aws-sdk/client-cloudwatch');
+  FetchHttpHandler: typeof import('@smithy/fetch-http-handler').FetchHttpHandler;
+};
+export const loadSetupSdk = lazyModule((): Promise<SetupSdk> => Promise.all([
+  import('@aws-sdk/client-sesv2'),
+  import('@aws-sdk/client-ses'),
+  import('@aws-sdk/client-sns'),
+  import('@aws-sdk/client-sts'),
+  import('@aws-sdk/client-cloudwatch'),
+  import('@smithy/fetch-http-handler'),
+]).then(([sesv2, ses, sns, sts, cw, { FetchHttpHandler }]) => ({ sesv2, ses, sns, sts, cw, FetchHttpHandler })));
+const loadCloudWatch = lazyModule(() => import('@aws-sdk/client-cloudwatch'));
+
+const flag = z.boolean().nullable();
+const issue = z.object({ code: z.string(), message: z.string() });
+export const AutoValidationModeSchema = z.enum(['inherit', 'off', 'managed', 'medium', 'high', 'unknown']);
+export type AutoValidationMode = z.infer<typeof AutoValidationModeSchema>;
+const setSchema = z.object({ name: z.string(), exists: flag, owned: flag, sendingEnabled: flag, eventDestinationExists: flag, eventWired: flag, autoValidation: AutoValidationModeSchema.nullable().default(null) });
+export const SesDiscoverySchema = z.object({
+  region: z.string(), checkedAt: z.string(),
+  account: z.object({ id: z.string(), productionAccess: flag, sendingEnabled: flag, enforcementStatus: z.string().nullable(), quota: z.object({ max24HourSend: z.number().nullable(), maxSendRate: z.number().nullable(), sentLast24Hours: z.number().nullable() }) }).nullable(),
+  domains: z.array(z.object({ name: z.string(), verificationStatus: z.string().nullable(), sendingEnabled: flag })),
+  identitiesTruncated: z.boolean(),
+  resources: z.object({
+    transactional: setSchema, marketing: setSchema, eventDestinationName: z.string(),
+    topic: z.object({ name: z.string(), arn: z.string().nullable(), exists: flag, owned: flag, policyReady: flag, subscription: z.enum(['unknown', 'missing', 'pending', 'confirmed']), rawMessageDelivery: flag, subscriptionsTruncated: z.boolean(), staleSubscriptions: z.number().int() }),
+  }),
+  feedbackUrl: z.string().nullable(), status: z.enum(['ready', 'needs_provisioning', 'blocked']), provisioned: z.boolean(),
+  blockers: z.array(issue), warnings: z.array(issue),
+  reputation: z.object({
+    available: z.boolean(), reason: z.string().nullable(),
+    bounceRate: z.number().nullable(), complaintRate: z.number().nullable(),
+    series: z.array(z.object({ at: z.string(), bounceRate: z.number().nullable(), complaintRate: z.number().nullable() })),
+  }).nullable().default(null).describe('Account-level SES reputation from CloudWatch AWS/SES Reputation.BounceRate and Reputation.ComplaintRate, as fractions (0.05 = 5%). Latest hourly value plus 14 days of 6-hour averages. Null in reports cached before this field existed. Requires cloudwatch:GetMetricData; unavailable does not block readiness.'),
+}).openapi('SesDiscovery');
+export type SesDiscovery = z.infer<typeof SesDiscoverySchema>;
+export type MxNamespace = 'trusted'|'probation'|'byo';
+export type SesSetupOptions = { region: string; installationId: string; namespace?:MxNamespace; connectionSetup?: boolean; verifiedPoolPrincipal?:{account:string;arn:string} };
+export type SesProvisionOptions = SesSetupOptions & { registerTopic: (accountId: string, topicArn: string) => Promise<void> };
+
+// OPEN/CLICK destinations support tracking-enabled sends; per-message tracking overrides
+// in sending.ts still disable instrumentation when tracking:false. Consent stays in Nightmail.
+// SEND is intentionally absent: provider acceptance is already recorded from the SendEmail response,
+// and the callback would double feedback volume at the full send rate.
+const EVENTS = FEEDBACK_EVENTS;
+const OWNER_TAG = tagKey('installation-id');
+const PURPOSE_TAG = tagKey('purpose');
+const PURPOSE = 'ses-feedback';
+const LIMIT = 1000;
+const DEFAULT_AUTO_VALIDATION = { transactional: 'off', marketing: 'managed' } as const;
+
+function autoValidationMode(options: { ValidationOptions?: { ConditionThreshold?: { ConditionThresholdEnabled?: string; OverallConfidenceThreshold?: { ConfidenceVerdictThreshold?: string } } } } | undefined): AutoValidationMode {
+  const condition = options?.ValidationOptions?.ConditionThreshold;
+  if (!condition) return 'inherit';
+  if (condition.ConditionThresholdEnabled === 'DISABLED') return 'off';
+  const threshold = condition.OverallConfidenceThreshold?.ConfidenceVerdictThreshold?.toLowerCase();
+  return condition.ConditionThresholdEnabled === 'ENABLED' && ['managed', 'medium', 'high'].includes(threshold ?? '') ? threshold as AutoValidationMode : 'unknown';
+}
+
+function validationInput(sdk: SetupSdk, name: string, mode: Exclude<AutoValidationMode, 'inherit' | 'unknown'>, pooled = false) {
+  return new sdk.sesv2.PutConfigurationSetSuppressionOptionsCommand({ ConfigurationSetName: name, SuppressionScope: pooled ? 'TENANT' : 'ACCOUNT', SuppressedReasons: ['BOUNCE', 'COMPLAINT'], ValidationOptions: { ConditionThreshold: mode === 'off' ? { ConditionThresholdEnabled: 'DISABLED' } : { ConditionThresholdEnabled: 'ENABLED', OverallConfidenceThreshold: { ConfidenceVerdictThreshold: mode.toUpperCase() as 'MANAGED' | 'MEDIUM' | 'HIGH' } } } });
+}
+
+export const POOL_INSTALLATION = `${TAG_PREFIX}:pool`;
+export const mxOwnerTag = ownerTag;
+export function mxResourceName(suffix:string) {
+  if (!/^[a-zA-Z0-9_-]+$/.test(suffix)) throw new Error('Invalid MX resource suffix');
+  return `bane-${suffix}`;
+}
+/** The SES tenant a Hosted claim's identity joins: the connection's persisted pool tenant, else the workspace's own. */
+export const claimTenantName = (connection:{pool_tenant_name?:string|null},wid:string) => connection.pool_tenant_name ?? mxResourceName(wid);
+export function poolTenantName(wid:string,tier:'trusted'|'probation') {
+  if (!/^ws_[0-9a-f]{32}$/.test(wid)) throw new ApiError(409,'INVALID_TENANT_NAME','Expected an exact Hosted workspace ID.');
+  return `${TAG_PREFIX}-${tier}-${wid}`;
+}
+/** A BYO connection's CloudFormation stack and IAM role: Bane-<id> from before the rename, Nightmail-<id> after
+ * (provider_connections.stack_name, set when the connection is made). */
+export const byoStackName = (prefix: 'Bane' | 'Nightmail' | undefined, connectionId: string) => `${prefix ?? 'Bane'}-${connectionId.slice(-20)}`;
+export function setupResources(installationId: string, namespace?:MxNamespace): { transactional: string; marketing: string; topicName: string; eventDestinationName: string } {
+  if (!installationId) throw new ApiError(503, 'INSTALLATION_ID_REQUIRED', 'The persisted installation ID is missing.');
+  const hash=createHash('sha256').update(installationId).digest('hex').slice(0,20);
+  const prefix = installationId === POOL_INSTALLATION && namespace !== 'byo' ? (namespace ? `${TAG_PREFIX}-${namespace}` : TAG_PREFIX) : namespace ? mxResourceName(namespace==='byo'?hash:namespace) : `bane-${hash}`;
+  return { transactional: `${prefix}-transactional`, marketing: `${prefix}-marketing`, topicName: `${prefix}-feedback`, eventDestinationName: `${prefix}-events` };
+}
+
+// Raw configured identity for persisted discovery caches and queued-job target fencing.
+export function feedbackTarget(config: Pick<Config, 'publicUrl' | 'sesFeedbackUrl'>): string {
+  return config.sesFeedbackUrl ?? `${config.publicUrl.replace(/\/$/, '')}/v1/events/ses`;
+}
+
+// Deliberately no DNS requests: URL validation is not proof of endpoint reachability.
+export function feedbackUrl(config: Pick<Config, 'publicUrl' | 'sesFeedbackUrl'>): string {
+  const field = config.sesFeedbackUrl !== undefined ? 'SES_FEEDBACK_URL' : 'PUBLIC_URL';
+  const fail = () => new ApiError(422, 'PUBLIC_URL_REQUIRED', 'Configure SES_FEEDBACK_URL as a public HTTPS URL ending in /v1/events/ses, or PUBLIC_URL as a public HTTPS origin, before provisioning SNS feedback.', field);
+  let url: URL;
+  try { url = new URL(feedbackTarget(config)); } catch { throw fail(); }
+  const host = url.hostname.toLowerCase().replace(/\.$/, '');
+  if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash || url.pathname !== '/v1/events/ses') throw fail();
+  // Hostnames reserved for development, local networks, documentation and metadata are not public origins.
+  if (!host.includes('.') || /(?:^|\.)(?:localhost|local|internal|lan|home|test|invalid|example|onion|arpa)$/.test(host) || /(?:^|\.)example\.(?:com|net|org)$/.test(host) || host === 'metadata.google.internal') throw fail();
+  if (isIP(host) === 4) {
+    const [a, b, c] = host.split('.').map(Number);
+    if (a === 0 || a === 10 || a === 127 || a! >= 224 || (a === 100 && b! >= 64 && b! <= 127) || (a === 169 && b === 254) || (a === 172 && b! >= 16 && b! <= 31) || (a === 192 && (b === 168 || b === 0 || (b === 88 && c === 99))) || (a === 198 && (b === 18 || b === 19 || (b === 51 && c === 100))) || (a === 203 && b === 0 && c === 113)) throw fail();
+  }
+  // Literal IPv6 is intentionally unsupported, including encoded/mapped private IPv4.
+  if (host.includes(':') || host.startsWith('[')) throw fail();
+  return `${url.origin}/v1/events/ses`;
+}
+
+function errorName(error: unknown): string { return error instanceof Error ? error.name : ''; }
+function missing(error: unknown): boolean { return ['NotFoundException', 'NotFound', 'ResourceNotFoundException'].includes(errorName(error)); }
+function collision(error: unknown): boolean { return ['AlreadyExistsException', 'AlreadyExists'].includes(errorName(error)); }
+export function awsError(error: unknown): ApiError {
+  if (error instanceof ModuleLoadError) throw error;
+  if (error instanceof ApiError) return error;
+  const name = errorName(error);
+  if (/Abort|Timeout/.test(name)) return new ApiError(503, 'AWS_SETUP_TIMEOUT', 'AWS setup timed out. Retry later.', undefined, true);
+  if (/AccessDenied|AuthorizationError|Unauthorized/.test(name)) return new ApiError(403, 'AWS_ACCESS_DENIED', 'AWS denied a required SES, SNS or STS permission. Check the setup IAM policy.');
+  if (/InvalidClientTokenId|UnrecognizedClient|ExpiredToken|SignatureDoesNotMatch|CredentialsProviderError|InvalidAccessKeyId/.test(name)) return new ApiError(503, 'AWS_CREDENTIALS_INVALID', 'AWS credentials are invalid or expired.');
+  if (/Throttl|TooManyRequests|LimitExceeded/.test(name)) return new ApiError(503, 'AWS_THROTTLED', 'AWS rate-limited setup. Retry later.', undefined, true);
+  logError(error, { code: 'AWS_SETUP_FAILED' });
+  return new ApiError(503, 'AWS_SETUP_FAILED', 'AWS setup could not complete. Check regional service availability, network connectivity and the setup IAM policy.', undefined, true);
+}
+type SetupContext = { signal: AbortSignal; lastSesFinished: number; queue: Promise<void> };
+function setupContext(timeoutMs = 90_000): SetupContext { return { signal: AbortSignal.timeout(timeoutMs), lastSesFinished: -Infinity, queue: Promise.resolve() }; }
+
+// SES control-plane APIs are limited to one request per second. Keep this gate local
+// to the complete operation, including its nested discoveries and replacement clients.
+function sesSend<T>(context: SetupContext, send: () => Promise<T>): Promise<T> {
+  const run = context.queue.then(async () => {
+    for (let attempt = 0; ; attempt++) {
+      context.signal.throwIfAborted();
+      let remaining: number;
+      while ((remaining = 1000 - (performance.now() - context.lastSesFinished)) > 0) await delay(Math.ceil(remaining), undefined, { signal: context.signal });
+      context.signal.throwIfAborted();
+      try {
+        try { return await send(); }
+        finally { context.lastSesFinished = performance.now(); }
+      } catch (error) {
+        if (error instanceof ModuleLoadError) throw error;
+        // Retry only explicit throttling, not arbitrary errors or ambiguous mutations.
+        if (attempt >= 2 || !/Throttl|TooManyRequests/.test(errorName(error))) throw error;
+        await delay(1000 * 2 ** attempt + Math.floor(Math.random() * 250), undefined, { signal: context.signal });
+      }
+    }
+  });
+  context.queue = run.then(() => undefined, () => undefined);
+  return run;
+}
+
+export function paceSetupSes(client:SESv2Client,context=setupContext(300_000)) {
+  const paced = <Input extends object, Output>(next: (args: { input: Input }) => Promise<Output>) => (args: { input: Input }) => sesSend(context, () => next(args));
+  client.middlewareStack.add(paced, { step: 'initialize', priority: 'high', name: 'baneSesPacing' });
+}
+async function clients(runtime: Runtime, region: string, context: SetupContext) {
+  const deadlineSignal = context.signal;
+  assertSesConfigured(runtime);
+  if (!/^[a-z]{2}(?:-[a-z]+)+-\d$/.test(region)) throw new ApiError(422, 'INVALID_REGION', 'Use a valid AWS region.', 'region');
+  const sdk = await loadSetupSdk();
+  const config = { region, credentials: runtime.config.aws, ignoreConfiguredEndpointUrls: true, maxAttempts: 1, requestHandler: new sdk.FetchHttpHandler({ requestTimeout: 10000 }) };
+  const result = { ses: new sdk.sesv2.SESv2Client(config), sns: new sdk.sns.SNSClient(config), sts: new sdk.sts.STSClient(config), cw: new sdk.cw.CloudWatchClient(config), sdk };
+  const deadline = <Input extends object, Output>(next: (args: { input: Input }) => Promise<Output>) => async (args: { input: Input }) => {
+    if (deadlineSignal.aborted) throw new ApiError(503, 'AWS_SETUP_TIMEOUT', 'The AWS setup time budget was exceeded. Retry later.', undefined, true);
+    return next(args);
+  };
+  paceSetupSes(result.ses,context);
+  result.ses.middlewareStack.add(deadline, { step: 'initialize', name: 'baneSetupDeadline' });
+  result.sns.middlewareStack.add(deadline, { step: 'initialize', name: 'baneSetupDeadline' });
+  result.sts.middlewareStack.add(deadline, { step: 'initialize', name: 'baneSetupDeadline' });
+  result.cw.middlewareStack.add(deadline, { step: 'initialize', name: 'baneSetupDeadline' });
+  return result;
+}
+type Clients = Awaited<ReturnType<typeof clients>>;
+function tags(options: SesSetupOptions) { return [{ Key: OWNER_TAG, Value: options.installationId }, { Key: PURPOSE_TAG, Value: PURPOSE },...(options.namespace?[mxOwnerTag]:[])]; }
+function owned(values: { Key?: string; Value?: string }[] | undefined, options: SesSetupOptions) { return hasTags(values, tags(options)); }
+function arns(account: string, region: string, names: ReturnType<typeof setupResources>) {
+  return { topic: `arn:aws:sns:${region}:${account}:${names.topicName}`, sets: [names.transactional, names.marketing].map(name => `arn:aws:ses:${region}:${account}:configuration-set/${name}`) };
+}
+function topicPolicy(account: string, region: string, names: ReturnType<typeof setupResources>) {
+  return feedbackPolicy(account, arns(account, region, names));
+}
+export function canonical(value: unknown): string {
+  if (Array.isArray(value)) return JSON.stringify(value.map(canonical).sort());
+  if (value !== null && typeof value === 'object') return JSON.stringify(Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([key, v]) => [key, canonical(v)])));
+  return JSON.stringify(value);
+}
+function policyObject(value: unknown): value is Record<string, unknown> { return value !== null && typeof value === 'object' && !Array.isArray(value); }
+function policyValues(value: unknown): unknown { return typeof value === 'string' ? [value] : value; }
+function normalizedPolicy(value: unknown): unknown {
+  if (!policyObject(value)) return value;
+  const policy = { ...value };
+  delete policy.Id; // Policy/statement identifiers do not grant or restrict permissions.
+  const statements = policyObject(policy.Statement) ? [policy.Statement] : policy.Statement;
+  if (Array.isArray(statements)) policy.Statement = statements.map(value => {
+    if (!policyObject(value)) return value;
+    const statement = { ...value };
+    delete statement.Sid;
+    for (const key of ['Action', 'Resource']) if (key in statement) statement[key] = policyValues(statement[key]);
+    if (policyObject(statement.Principal)) {
+      const principal = { ...statement.Principal };
+      for (const key of ['AWS', 'Service']) if (key in principal) principal[key] = policyValues(principal[key]);
+      if (Array.isArray(principal.AWS)) principal.AWS = principal.AWS.map(value => typeof value === 'string' && /^\d{12}$/.test(value) ? `arn:aws:iam::${value}:root` : value);
+      statement.Principal = principal;
+    }
+    if (policyObject(statement.Condition)) statement.Condition = Object.fromEntries(Object.entries(statement.Condition).map(([operator, values]) => [operator,
+      policyObject(values) ? Object.fromEntries(Object.entries(values).map(([key, value]) => [key, policyValues(value)])) : values,
+    ]));
+    return statement;
+  });
+  return policy;
+}
+export function policyReady(policy: string | undefined, expected: unknown): boolean {
+  // Normalize only IAM representation equivalences, never drop statements, principals,
+  // actions, resources, operators or condition keys/values (including unexpected ones).
+  try { return !!policy && canonical(normalizedPolicy(JSON.parse(policy))) === canonical(normalizedPolicy(expected)); } catch { return false; }
+}
+const poolSendingDrift = (resource:string) => new ApiError(409,'POOL_SENDING_DRIFT',`${resource} is missing or differs from the hosted configuration. An operator must run Pulumi provisioning.`);
+// N7: the runtime key cannot create pool sets, change their suppression or write event destinations.
+// An operator creates the sets and Pulumi owns the destinations; this only reads and compares them.
+type PoolSet = { Tags?: { Key?: string; Value?: string }[]; SendingOptions?: { SendingEnabled?: boolean }; SuppressionOptions?: NonNullable<Parameters<typeof autoValidationMode>[0]> & { SuppressionScope?: string; SuppressedReasons?: string[] } };
+type PoolDestination = { Name?: string; Enabled?: boolean; MatchingEventTypes?: string[]; SnsDestination?: { TopicArn?: string }; CloudWatchDestination?: unknown; KinesisFirehoseDestination?: unknown; EventBridgeDestination?: unknown; PinpointDestination?: unknown };
+function assertPoolSet(set: PoolSet, destinations: PoolDestination[] | undefined, stream: 'transactional' | 'marketing', arn: string, topicArn: string, options: SesSetupOptions, publish = true) {
+  const want = poolSuppression(stream), have = set.SuppressionOptions;
+  if (!owned(set.Tags, options) || set.SendingOptions?.SendingEnabled !== true || have?.SuppressionScope !== want.SuppressionScope
+    || canonical(have.SuppressedReasons ?? []) !== canonical(want.SuppressedReasons) || autoValidationMode(have) !== DEFAULT_AUTO_VALIDATION[stream]) throw poolSendingDrift(`${arn} SuppressionOptions`);
+  const expected = poolEventDestination(options.namespace === 'trusted' ? `${TAG_PREFIX}-trusted` : TAG_PREFIX, topicArn), list = destinations ?? [];
+  // Any other destination (a disabled, redirected or extra copy) is drift for the pool, not a warning.
+  const wired = (d: PoolDestination) => d.Name === expected.Name && d.Enabled === true && d.SnsDestination?.TopicArn === topicArn && canonical(d.MatchingEventTypes ?? []) === canonical(expected.MatchingEventTypes)
+    && !d.CloudWatchDestination && !d.KinesisFirehoseDestination && !d.EventBridgeDestination && !d.PinpointDestination;
+  if (publish ? list.length !== 1 || !wired(list[0]!) : list.length !== 0) throw poolSendingDrift(`${arn} event destinations`);
+}
+function add(report: SesDiscovery, code: string, message: string, warning = false) { (warning ? report.warnings : report.blockers).push({ code, message }); }
+function pending(subscription: Subscription): boolean { return subscription.SubscriptionArn === 'PendingConfirmation' || subscription.SubscriptionArn === 'pending confirmation'; }
+function subscriptionArn(subscription: Subscription, topicArn: string): string | null {
+  return subscription.SubscriptionArn?.startsWith(`${topicArn}:`) ? subscription.SubscriptionArn : null;
+}
+
+async function inspect(runtime: Runtime, options: SesSetupOptions, context: SetupContext = setupContext()): Promise<{ report: SesDiscovery; subscriptions: Subscription[] }> {
+  const deadlineSignal = context.signal;
+  const names = setupResources(options.installationId,options.namespace);
+  const blankSet = (name: string) => ({ name, exists: null, owned: null, sendingEnabled: null, eventDestinationExists: null, eventWired: null, autoValidation: null });
+  const report: SesDiscovery = {
+    region: options.region, checkedAt: new Date().toISOString(), account: null, domains: [], identitiesTruncated: false,
+    resources: { transactional: blankSet(names.transactional), marketing: blankSet(names.marketing), eventDestinationName: names.eventDestinationName, topic: { name: names.topicName, arn: null, exists: null, owned: null, policyReady: null, subscription: 'unknown', rawMessageDelivery: null, subscriptionsTruncated: false, staleSubscriptions: 0 } },
+    feedbackUrl: null, status: 'blocked', provisioned: false, blockers: [], warnings: [], reputation: null,
+  };
+  try { report.feedbackUrl = feedbackUrl(runtime.config); } catch (error) { const e = awsError(error); add(report, e.code, e.message); }
+  const subscriptions: Subscription[] = [];
+  let c: Clients;
+  try { c = await clients(runtime, options.region, context); } catch (error) { if (error instanceof ModuleLoadError) throw error; const e = awsError(error); add(report, e.code, e.message); return { report, subscriptions }; }
+  const { GetAccountCommand, ListEmailIdentitiesCommand, GetConfigurationSetCommand, GetConfigurationSetEventDestinationsCommand } = c.sdk.sesv2;
+  const { GetTopicAttributesCommand, ListTagsForResourceCommand, ListSubscriptionsByTopicCommand, GetSubscriptionAttributesCommand } = c.sdk.sns;
+  const { GetCallerIdentityCommand } = c.sdk.sts;
+  const attempt = async (operation: () => Promise<void>) => {
+    try { await operation(); } catch (error) { if (error instanceof ModuleLoadError) throw error; const e = awsError(error); add(report, e.code, e.message); }
+  };
+  try {
+    // Only scheduled pool preparation supplies the STS identity it already checked for this platform key.
+    const principal=options.installationId===POOL_INSTALLATION ? options.verifiedPoolPrincipal : undefined;
+    const identity = principal ? {Account:principal.account,Arn:principal.arn} : await c.sts.send(new GetCallerIdentityCommand({}), { abortSignal: deadlineSignal });
+    if (!identity.Arn?.startsWith('arn:aws:')) { add(report, 'AWS_PARTITION_UNSUPPORTED', 'Only the commercial AWS partition is supported; China and GovCloud are not supported.'); return { report, subscriptions }; }
+    if (!identity.Account || !/^\d{12}$/.test(identity.Account)) { add(report, 'AWS_ACCOUNT_UNKNOWN', 'STS did not return a valid AWS account identity.'); return { report, subscriptions }; }
+    if (identity.Arn === `arn:aws:iam::${identity.Account}:root`) { add(report, 'AWS_ROOT_CREDENTIALS_UNSUPPORTED', 'Use a least-privilege IAM principal, not AWS root credentials.'); return { report, subscriptions }; }
+    const accountId = identity.Account;
+    report.account = { id: accountId, productionAccess: null, sendingEnabled: null, enforcementStatus: null, quota: { max24HourSend: null, maxSendRate: null, sentLast24Hours: null } };
+    const topic = report.resources.topic;
+    topic.arn = arns(accountId, options.region, names).topic;
+    await Promise.all([
+      attempt(async () => {
+        const account = await c.ses.send(new GetAccountCommand({}), { abortSignal: deadlineSignal });
+        report.account = { id: accountId, productionAccess: account.ProductionAccessEnabled ?? null, sendingEnabled: account.SendingEnabled ?? null, enforcementStatus: account.EnforcementStatus ?? null, quota: { max24HourSend: account.SendQuota?.Max24HourSend ?? null, maxSendRate: account.SendQuota?.MaxSendRate ?? null, sentLast24Hours: account.SendQuota?.SentLast24Hours ?? null } };
+        if (account.ProductionAccessEnabled === undefined || account.SendingEnabled === undefined || !account.EnforcementStatus) add(report, 'AWS_STATE_UNKNOWN', 'SES returned incomplete account readiness information.');
+        if (account.ProductionAccessEnabled === false) add(report, 'SES_SANDBOX', 'SES production access is not enabled in this region; sandbox recipient restrictions apply.');
+        if (account.SendingEnabled === false) add(report, 'SES_SENDING_DISABLED', 'SES account sending is disabled.');
+        if (account.EnforcementStatus && account.EnforcementStatus !== 'HEALTHY') add(report, 'SES_ACCOUNT_ENFORCEMENT', 'SES account enforcement status is not healthy.');
+      }),
+      attempt(async () => {
+        if (options.connectionSetup) return; // Onboarding precedes domain setup; never enumerate pooled identities.
+        let token: string | undefined; let count = 0; const seen = new Set<string>();
+        do {
+          const page = await c.ses.send(new ListEmailIdentitiesCommand({ PageSize: Math.min(100, LIMIT - count), NextToken: token }), { abortSignal: deadlineSignal });
+          const identities = page.EmailIdentities ?? [];
+          count += identities.length;
+          for (const identity of identities.slice(0, Math.max(0, LIMIT - (count - identities.length)))) {
+            if (identity.IdentityType === 'DOMAIN' && identity.IdentityName) report.domains.push({ name: identity.IdentityName, verificationStatus: identity.VerificationStatus ?? null, sendingEnabled: identity.SendingEnabled ?? null });
+          }
+          token = page.NextToken;
+          if (token && (count >= LIMIT || seen.has(token) || seen.size >= 10)) { report.identitiesTruncated = true; add(report, 'SES_IDENTITIES_TRUNCATED', 'Identity discovery reached its pagination limit; readiness is uncertain.'); break; }
+          if (token) seen.add(token);
+        } while (token);
+        if (!report.domains.some(d => d.verificationStatus === 'SUCCESS' && d.sendingEnabled === true)) add(report, 'SES_DOMAIN_REQUIRED', 'No verified, sending-enabled SES domain was discovered in this region.');
+      }),
+      ...(['transactional', 'marketing'] as const).map(kind => attempt(async () => {
+        const set = report.resources[kind];
+        let existing;
+        try { existing = await c.ses.send(new GetConfigurationSetCommand({ ConfigurationSetName: set.name }), { abortSignal: deadlineSignal }); }
+        catch (error) { if (!missing(error)) throw error; set.exists = false; set.owned = false; set.eventDestinationExists = false; set.eventWired = false; return; }
+        set.exists = true; set.owned = owned(existing.Tags, options); set.sendingEnabled = existing.SendingOptions?.SendingEnabled ?? null; set.autoValidation = autoValidationMode(existing.SuppressionOptions);
+        if (options.namespace==='trusted' && existing.SuppressionOptions && (existing.SuppressionOptions.SuppressionScope!=='TENANT' || canonical(existing.SuppressionOptions.SuppressedReasons)!==canonical(['BOUNCE','COMPLAINT']))) add(report,'SUPPRESSION_DRIFT','The trusted configuration set no longer uses tenant bounce and complaint suppression.');
+        if (!set.owned) { add(report, 'RESOURCE_OWNERSHIP_CONFLICT', 'An expected SES configuration-set name belongs to another installation or has no ownership tags.'); return; }
+        if (set.sendingEnabled === null) add(report, 'AWS_STATE_UNKNOWN', 'SES did not return the configuration set sending state.');
+        if (set.sendingEnabled === false) add(report, 'SES_CONFIGURATION_SET_DISABLED', 'An installation configuration set has sending disabled; setup will not override that control.');
+        const events = await c.ses.send(new GetConfigurationSetEventDestinationsCommand({ ConfigurationSetName: set.name }), { abortSignal: deadlineSignal });
+        const destination = events.EventDestinations?.find(d => d.Name === names.eventDestinationName);
+        set.eventDestinationExists = !!destination;
+        set.eventWired = !!destination && destination.Enabled === true && destination.SnsDestination?.TopicArn === topic.arn && canonical(destination.MatchingEventTypes ?? []) === canonical(EVENTS) && !destination.CloudWatchDestination && !destination.KinesisFirehoseDestination && !destination.EventBridgeDestination && !destination.PinpointDestination;
+        if (events.EventDestinations?.some(d => d.Name !== names.eventDestinationName)) add(report, 'OTHER_EVENT_DESTINATIONS', 'Other event destinations exist and are left unchanged, including their tracking settings.', true);
+      })),
+      attempt(async () => {
+        let attributes;
+        try { attributes = (await c.sns.send(new GetTopicAttributesCommand({ TopicArn: topic.arn! }), { abortSignal: deadlineSignal })).Attributes; }
+        catch (error) { if (!missing(error)) throw error; topic.exists = false; topic.owned = false; topic.policyReady = false; topic.subscription = 'missing'; return; }
+        topic.exists = true;
+        if (attributes?.TopicArn !== topic.arn || attributes.Owner !== accountId) throw new ApiError(409, 'RESOURCE_OWNERSHIP_CONFLICT', 'SNS returned a topic outside the expected account or ARN.');
+        topic.owned = owned((await c.sns.send(new ListTagsForResourceCommand({ ResourceArn: topic.arn! }), { abortSignal: deadlineSignal })).Tags, options);
+        if (!topic.owned) { add(report, 'RESOURCE_OWNERSHIP_CONFLICT', 'The expected SNS topic name belongs to another installation or has no ownership tags.'); return; }
+        if (attributes.FifoTopic === 'true' || attributes.KmsMasterKeyId) { add(report, 'SNS_TOPIC_UNSUPPORTED', 'The feedback topic must be Standard and unencrypted by a customer-configured KMS key; setup will not modify these settings.'); return; }
+        topic.policyReady = policyReady(attributes.Policy, topicPolicy(accountId, options.region, names));
+        let token: string | undefined; const seen = new Set<string>();
+        do {
+          const page = await c.sns.send(new ListSubscriptionsByTopicCommand({ TopicArn: topic.arn!, NextToken: token }), { abortSignal: deadlineSignal });
+          subscriptions.push(...(page.Subscriptions ?? []).slice(0, LIMIT - subscriptions.length));
+          token = page.NextToken;
+          if (token && (subscriptions.length >= LIMIT || seen.has(token) || seen.size >= 10)) { topic.subscriptionsTruncated = true; add(report, 'SNS_SUBSCRIPTIONS_TRUNCATED', 'SNS subscription discovery reached its pagination limit; provisioning cannot safely add another subscription.'); break; }
+          if (token) seen.add(token);
+        } while (token);
+        const matching = subscriptions.filter(s => s.Protocol === 'https' && s.Endpoint === report.feedbackUrl && s.TopicArn === topic.arn);
+        topic.staleSubscriptions = subscriptions.filter(s => s.Protocol === 'https' && s.Endpoint !== report.feedbackUrl).length;
+        if (topic.staleSubscriptions) add(report, 'STALE_FEEDBACK_SUBSCRIPTIONS', `The feedback topic has ${topic.staleSubscriptions} additional HTTPS subscription${topic.staleSubscriptions === 1 ? '' : 's'}.`, true);
+        topic.subscription = topic.subscriptionsTruncated ? 'unknown' : 'missing';
+        const rawStates: (boolean | null)[] = [];
+        for (const sub of matching) {
+          if (pending(sub)) { if (topic.subscription !== 'confirmed') topic.subscription = 'pending'; continue; }
+          const arn = subscriptionArn(sub, topic.arn!);
+          if (!arn) throw new ApiError(503, 'SNS_SUBSCRIPTION_UNKNOWN', 'SNS returned an unrecognized subscription state.');
+          const attrs = (await c.sns.send(new GetSubscriptionAttributesCommand({ SubscriptionArn: arn }), { abortSignal: deadlineSignal })).Attributes;
+          if (attrs?.TopicArn !== topic.arn || attrs.Endpoint !== report.feedbackUrl || attrs.Protocol !== 'https' || attrs.Owner !== accountId) throw new ApiError(409, 'SNS_SUBSCRIPTION_OWNERSHIP_CONFLICT', 'The feedback subscription attributes do not match the expected account, topic or endpoint.');
+          if (attrs.PendingConfirmation === 'true') { if (topic.subscription !== 'confirmed') topic.subscription = 'pending'; continue; }
+          if (attrs.PendingConfirmation !== 'false') throw new ApiError(503, 'SNS_SUBSCRIPTION_UNKNOWN', 'SNS subscription confirmation could not be verified.');
+          topic.subscription = 'confirmed';
+          rawStates.push(attrs.RawMessageDelivery === 'true' ? true : attrs.RawMessageDelivery === 'false' ? false : null);
+          if (attrs.FilterPolicy && attrs.FilterPolicy !== '{}') add(report, 'SNS_SUBSCRIPTION_FILTERED', 'The feedback subscription has a filter policy that may omit SES events; setup does not alter filters.');
+        }
+        topic.rawMessageDelivery = rawStates.includes(true) ? true : rawStates.length && rawStates.every(v => v === false) ? false : null;
+        if (topic.subscription === 'pending') add(report, 'SNS_CONFIRMATION_PENDING', 'SNS is awaiting the signed HTTPS subscription confirmation. Check that the public feedback endpoint is reachable, then select the pending subscription in the SNS console and choose Request confirmation to resend.');
+      }),
+      options.connectionSetup ? undefined : readReputation(c.cw, deadlineSignal).then(value => { report.reputation = value; }),
+    ]);
+    report.provisioned = report.resources.transactional.owned === true && report.resources.transactional.eventWired === true && report.resources.marketing.owned === true && report.resources.marketing.eventWired === true && topic.owned === true && topic.policyReady === true && topic.subscription === 'confirmed' && topic.rawMessageDelivery === false && !topic.subscriptionsTruncated && !report.blockers.some(b => b.code === 'SNS_SUBSCRIPTION_FILTERED' || b.code.startsWith('AWS_') || b.code === 'SNS_SUBSCRIPTION_UNKNOWN' || b.code === 'SNS_SUBSCRIPTION_OWNERSHIP_CONFLICT');
+    report.status = report.blockers.length ? 'blocked' : report.provisioned ? 'ready' : 'needs_provisioning';
+  } catch (error) { if (error instanceof ModuleLoadError) throw error; const e = awsError(error); add(report, e.code, e.message); }
+  finally { c.ses.destroy(); c.sns.destroy(); c.sts.destroy(); c.cw.destroy(); }
+  return { report, subscriptions };
+}
+
+// Reputation is informational: failures (usually a missing cloudwatch:GetMetricData grant)
+// are reported on the reputation object and never become readiness blockers.
+export async function readReputation(cw: CloudWatchClient, signal: AbortSignal): Promise<NonNullable<SesDiscovery['reputation']>> {
+  const { GetMetricDataCommand: MetricDataCmd } = await loadCloudWatch();
+  const end = new Date(), start = new Date(end.getTime() - 14 * 86400_000);
+  const metric = (id: string, name: string, period: number) => ({ Id: id, ReturnData: true, MetricStat: { Metric: { Namespace: 'AWS/SES', MetricName: name }, Period: period, Stat: 'Average' } });
+  try {
+    const result = await cw.send(new MetricDataCmd({ StartTime: start, EndTime: end, ScanBy: 'TimestampDescending', MetricDataQueries: [
+      metric('bounceLatest', 'Reputation.BounceRate', 3600), metric('complaintLatest', 'Reputation.ComplaintRate', 3600),
+      metric('bounceSeries', 'Reputation.BounceRate', 21600), metric('complaintSeries', 'Reputation.ComplaintRate', 21600),
+    ] }), { abortSignal: signal });
+    const byId = new Map((result.MetricDataResults ?? []).map(entry => [entry.Id, entry]));
+    const latest = (id: string) => { const value = byId.get(id)?.Values?.[0]; return typeof value === 'number' && Number.isFinite(value) ? value : null; };
+    const points = new Map<string, { at: string; bounceRate: number | null; complaintRate: number | null }>();
+    for (const [id, key] of [['bounceSeries', 'bounceRate'], ['complaintSeries', 'complaintRate']] as const) {
+      const entry = byId.get(id);
+      entry?.Timestamps?.forEach((at, index) => {
+        const iso = at.toISOString(), value = entry.Values?.[index];
+        const point = points.get(iso) ?? { at: iso, bounceRate: null, complaintRate: null };
+        point[key] = typeof value === 'number' && Number.isFinite(value) ? value : null;
+        points.set(iso, point);
+      });
+    }
+    return { available: true, reason: null, bounceRate: latest('bounceLatest'), complaintRate: latest('complaintLatest'), series: [...points.values()].sort((a, b) => a.at.localeCompare(b.at)) };
+  } catch (error) {
+    if (error instanceof ModuleLoadError) throw error;
+    const name = errorName(error);
+    const reason = /AccessDenied|AuthorizationError|Unauthorized/.test(name) ? 'Add cloudwatch:GetMetricData to the AWS credentials to show reputation rates.' : awsError(error).message;
+    return { available: false, reason, bounceRate: null, complaintRate: null, series: [] };
+  }
+}
+
+/** AWS reads only. A resource is missing only after AWS explicitly reports NotFound. */
+export async function discoverSes(runtime: Runtime, options: SesSetupOptions): Promise<SesDiscovery> { return (await inspect(runtime, options)).report; }
+
+// A scan turn is bounded even when an account has thousands of identities/sets. The
+// job checkpoints its page before continuing; nothing here registers a topic or a claim.
+export type ScanStage = 'account'|'receipt'|'sets'|'domains';
+export type CandidateIdentity = IdentityFacts['ses'] & { ConfigurationSetName?:string };
+export type Inventory = { production?:boolean; sendingEnabled?:boolean; max24HourSend?:number; maxSendRate?:number; sentLast24Hours?:number;
+  configurationSets?:Record<string,{installation:boolean|null}>; receiving?:{supported:boolean;set:string|null;rules:{name:string;enabled:boolean;recipients:string[];actions:string[]}[]} };
+export type ScanPage = { facts:Inventory; domains:{name:string;identity:CandidateIdentity}[]; next?:{stage:ScanStage;token?:string} };
+const receivingRegions = new Set('us-east-1 us-east-2 us-west-1 us-west-2 af-south-1 ap-southeast-3 ap-south-1 ap-northeast-3 ap-northeast-2 ap-southeast-1 ap-southeast-2 ap-northeast-1 ca-central-1 eu-central-1 eu-west-1 eu-west-2 eu-south-1 eu-west-3 eu-north-1 il-central-1 me-south-1 sa-east-1'.split(' '));
+const unknownInventory = () => new ApiError(503,'AWS_STATE_UNKNOWN','AWS returned an incomplete regional inventory. Refresh the scan.');
+function identityDefaults(v:CandidateIdentity):CandidateIdentity {
+  const {VerificationStatus,VerifiedForSendingStatus,DkimAttributes,MailFromAttributes,ConfigurationSetName}=v;
+  if (!VerificationStatus || VerifiedForSendingStatus===undefined) throw unknownInventory();
+  return {VerificationStatus,VerifiedForSendingStatus,DkimAttributes,MailFromAttributes,ConfigurationSetName};
+}
+export async function scanRegionPage(runtime:Runtime,region:string,installation:string,stage:ScanStage,token?:string):Promise<ScanPage> {
+  const ctx=setupContext(), c=await clients(runtime,region,ctx), opts={abortSignal:ctx.signal};
+  const { GetAccountCommand, ListConfigurationSetsCommand, GetConfigurationSetCommand, ListEmailIdentitiesCommand, GetEmailIdentityCommand } = c.sdk.sesv2;
+  const { SESClient, DescribeActiveReceiptRuleSetCommand } = c.sdk.ses;
+  const { FetchHttpHandler } = c.sdk;
+  const page:ScanPage={facts:{},domains:[]};
+  try {
+    if (stage==='account') {
+      const a=await c.ses.send(new GetAccountCommand({}),opts), q=a.SendQuota;
+      if (a.ProductionAccessEnabled===undefined || a.SendingEnabled===undefined || q?.Max24HourSend===undefined || q.MaxSendRate===undefined || q.SentLast24Hours===undefined) throw unknownInventory();
+      page.facts={production:a.ProductionAccessEnabled,sendingEnabled:a.SendingEnabled,max24HourSend:q.Max24HourSend,maxSendRate:q.MaxSendRate,sentLast24Hours:q.SentLast24Hours};
+      page.next={stage:'receipt'};
+    } else if (stage==='receipt') {
+      const supported=receivingRegions.has(region);
+      const receiving:NonNullable<Inventory['receiving']>={supported,set:null,rules:[]};
+      if (supported) {
+        const classic=new SESClient({region,credentials:runtime.config.aws,ignoreConfiguredEndpointUrls:true,maxAttempts:1,requestHandler:new FetchHttpHandler({requestTimeout:10000})});
+        try {
+          const r=await classic.send(new DescribeActiveReceiptRuleSetCommand({}),opts);
+          if (r.Metadata && (!r.Metadata.Name || !Array.isArray(r.Rules))) throw unknownInventory();
+          receiving.set=r.Metadata?.Name??null;
+          receiving.rules=(r.Rules??[]).map(rule=>({name:rule.Name!,enabled:rule.Enabled===true,recipients:rule.Recipients??[],actions:(rule.Actions??[]).flatMap(a=>Object.keys(a))}));
+        } catch(e) { if (errorName(e)!=='RuleSetDoesNotExist') throw e; } finally { classic.destroy(); }
+      }
+      page.facts.receiving=receiving; page.next={stage:'sets'};
+    } else if (stage==='sets') {
+      const p=await c.ses.send(new ListConfigurationSetsCommand({NextToken:token,PageSize:10}),opts), names=setupResources(installation,'byo');
+      if (!Array.isArray(p.ConfigurationSets)) throw unknownInventory();
+      const sets:NonNullable<Inventory['configurationSets']>=Object.create(null);
+      for (const name of p.ConfigurationSets) {
+        let tagged:boolean|null=null;
+        if (name.startsWith('bane-') || name===names.transactional || name===names.marketing) {
+          const s=await c.ses.send(new GetConfigurationSetCommand({ConfigurationSetName:name}),opts);
+          tagged=!!s.Tags?.some(t=>!!t.Value && hasTags([t],[{Key:OWNER_TAG,Value:t.Value}]));
+        }
+        sets[name]={installation:tagged};
+      }
+      page.facts.configurationSets=sets;page.next=p.NextToken?{stage,token:p.NextToken}:{stage:'domains'};
+    } else {
+      const p=await c.ses.send(new ListEmailIdentitiesCommand({NextToken:token,PageSize:10}),opts);
+      if (!Array.isArray(p.EmailIdentities)) throw unknownInventory();
+      for (const v of p.EmailIdentities) {
+        const n=domainName.safeParse(v.IdentityName);
+        if (v.IdentityType!=='DOMAIN' || !n.success || !await claimNameAllowed(n.data,runtime.config)) continue;
+        try { page.domains.push({name:n.data,identity:identityDefaults(await c.ses.send(new GetEmailIdentityCommand({EmailIdentity:n.data}),opts))}); }
+        catch(e) { if (!missing(e)) throw e; }
+      }
+      if (p.NextToken) page.next={stage,token:p.NextToken};
+    }
+    return page;
+  } finally { c.ses.destroy();c.sns.destroy();c.sts.destroy();c.cw.destroy(); }
+}
+
+export async function readSelectedDomains(runtime:Runtime,region:string,names:string[],onRevoked?:(name:string)=>Promise<void>) {
+  const ctx=setupContext(155_000), c=await clients(runtime,region,ctx), values=new Map<string,CandidateIdentity>();
+  const { GetEmailIdentityCommand } = c.sdk.sesv2;
+  try {
+    for (const name of names) {
+      let value:CandidateIdentity|undefined;
+      try { value=identityDefaults(await c.ses.send(new GetEmailIdentityCommand({EmailIdentity:name}),{abortSignal:ctx.signal})); } catch(e) { if (!missing(e)) throw e; }
+      if (!value?.VerifiedForSendingStatus || value.VerificationStatus!=='SUCCESS') {
+        if (!onRevoked) throw new ApiError(409,'CANDIDATE_NO_LONGER_VERIFIED','A selected SES identity is no longer verified. Refresh the domain list.');
+        await onRevoked(name);continue;
+      }
+      values.set(name,value);
+    }
+    return values;
+  } finally { c.ses.destroy();c.sns.destroy();c.sts.destroy();c.cw.destroy(); }
+}
+
+/** One durable page at a time, using the assumed role and the normal regional control-plane pace.
+ * No discovery limit: an account with many identities continues at the next token in a fresh job turn. */
+export async function verifiedByoDomains(runtime: Runtime, region: string, cursor?: string) {
+  const context = setupContext(), c = await clients(runtime, region, context), opts = { abortSignal: context.signal };
+  const { ListEmailIdentitiesCommand, GetEmailIdentityCommand } = c.sdk.sesv2;
+  const domains: {name: string; ses: IdentityFacts['ses']}[] = [];
+  try {
+    const page = await c.ses.send(new ListEmailIdentitiesCommand({ PageSize: 10, NextToken: cursor }), opts);
+    for (const identity of page.EmailIdentities ?? []) {
+      const name = domainName.safeParse(identity.IdentityName);
+      if (identity.IdentityType !== 'DOMAIN' || identity.VerificationStatus !== 'SUCCESS' || !name.success || !await claimNameAllowed(name.data,runtime.config)) continue;
+      try {
+        const { VerificationStatus, VerifiedForSendingStatus, DkimAttributes, MailFromAttributes } = await c.ses.send(new GetEmailIdentityCommand({ EmailIdentity: name.data }), opts);
+        if (VerificationStatus === 'SUCCESS' && VerifiedForSendingStatus) domains.push({ name: name.data, ses: { VerificationStatus, VerifiedForSendingStatus, DkimAttributes, MailFromAttributes } });
+      } catch (e) { if (!missing(e)) throw e; } // Deleted between listing and reading.
+    }
+    if (cursor && page.NextToken === cursor) throw new ApiError(503, 'SES_PAGINATION_STALLED', 'SES did not advance the identity listing.', undefined, true);
+    return { domains, next: page.NextToken };
+  } finally { c.ses.destroy(); c.sns.destroy(); c.sts.destroy(); c.cw.destroy(); }
+}
+
+export function assertProvisionable(runtime: Runtime): void {
+  feedbackUrl(runtime.config);
+  assertSesConfigured(runtime);
+}
+
+export type JournalEntry={kind:'set'|'topic'|'destination'|'subscription'|'identity';resource:string;target?:string;state?:'creating'|'created';requestedAt?:number};
+// One destructive command per durable checkpoint. Re-read the full regional
+// feedback topology on every turn (including after an ambiguous delete). Only
+// explicit NotFound is evidence of absence; a denied read never prunes a journal.
+export async function removeByoFeedbackResource(runtime:Runtime,region:string,installationId:string,journal:JournalEntry[],registered:string|null) {
+  const endpoint=feedbackUrl(runtime.config);
+  const account=runtime.config.awsAccountId!,names=setupResources(installationId,'byo'),arn=arns(account,region,names);
+  const opts={installationId,region,namespace:'byo' as const}, drift=()=>new ApiError(409,'BYO_CLEANUP_DRIFT','The regional resources no longer match the ownership journal. Review the cleanup manifest before retrying.');
+  const entries=journal.filter(e=>e.kind!=='identity'), destName=names.eventDestinationName;
+  if (registered!==null && (registered!==arn.topic || !entries.some(e=>e.kind==='topic'))) throw drift();
+  for (const e of entries) {
+    if (entries.filter(v=>v.kind===e.kind && v.resource===e.resource).length!==1) throw drift();
+    if (e.kind==='set' && arn.sets.includes(e.resource) || e.kind==='topic' && e.resource===arn.topic) continue;
+    if (e.kind==='destination' && e.target===arn.topic && arn.sets.some(a=>e.resource===a+'/'+destName && entries.some(v=>v.kind==='set' && v.resource===a))) continue;
+    if (e.kind==='subscription' && e.resource===arn.topic && registered===arn.topic && e.target===endpoint && entries.some(v=>v.kind==='topic')) continue;
+    throw drift();
+  }
+  const context=setupContext(45_000),c=await clients(runtime,region,context),request={abortSignal:context.signal};
+  const { GetConfigurationSetCommand, GetConfigurationSetEventDestinationsCommand, DeleteConfigurationSetCommand } = c.sdk.sesv2;
+  const { GetTopicAttributesCommand, ListTagsForResourceCommand, ListSubscriptionsByTopicCommand, GetSubscriptionAttributesCommand, DeleteTopicCommand } = c.sdk.sns;
+  const { GetCallerIdentityCommand } = c.sdk.sts;
+  const present=async<T>(read:()=>Promise<T>)=>{try{return await read();}catch(e){if (!missing(e)) throw e;return null;}};
+  try {
+    const role=await c.sts.send(new GetCallerIdentityCommand({}),request);
+    if (role.Account!==account || !(['Nightmail','Bane'] as const).some(prefix => role.Arn===`arn:aws:sts::${account}:assumed-role/${byoStackName(prefix,installationId)}/Bane`)) throw drift();
+    const topic=entries.find(e=>e.kind==='topic'),sub=entries.find(e=>e.kind==='subscription');
+    const attrs=await present(()=>c.sns.send(new GetTopicAttributesCommand({TopicArn:arn.topic}),request));
+    if (attrs) {
+      const a=attrs.Attributes;
+      if (topic?.state!=='created' || a?.TopicArn!==arn.topic || a.Owner!==account || a.FifoTopic==='true' || a.KmsMasterKeyId || !policyReady(a.Policy,topicPolicy(account,region,names))) throw drift();
+      if (!owned((await c.sns.send(new ListTagsForResourceCommand({ResourceArn:arn.topic}),request)).Tags,opts)) throw drift();
+      let next:string|undefined, count=0;const seen=new Set<string>();
+      do {
+        const page=await c.sns.send(new ListSubscriptionsByTopicCommand({TopicArn:arn.topic,NextToken:next}),request);
+        if (!page.Subscriptions) throw drift();
+        for (const s of page.Subscriptions) {
+          if (++count>1 || !sub || s.TopicArn!==arn.topic || s.Owner!==account || s.Protocol!=='https' || s.Endpoint!==endpoint) throw drift();
+          // SNS can list our exact journaled endpoint before it exposes a usable
+          // subscription ARN. DeleteTopic removes it; no confirmation or repair is needed.
+          if (pending(s)) continue;
+          const subscription=subscriptionArn(s,arn.topic);
+          if (!subscription) throw drift();
+          const v=(await c.sns.send(new GetSubscriptionAttributesCommand({SubscriptionArn:subscription}),request)).Attributes;
+          if (v?.TopicArn!==arn.topic || v.Owner!==account || v.Protocol!=='https' || v.Endpoint!==endpoint) throw drift();
+          const isPending=v.PendingConfirmation==='true';
+          if ((!isPending && v.PendingConfirmation!=='false') || (v.RawMessageDelivery!=='false' && !(isPending && v.RawMessageDelivery===undefined)) || v.FilterPolicy && v.FilterPolicy!=='{}' || v.RedrivePolicy || v.DeliveryPolicy) throw drift();
+        }
+        next=page.NextToken;if (next && (seen.has(next)||seen.size>=10)) throw drift();if (next) seen.add(next);
+      } while(next);
+      if (sub && count!==1) throw drift();
+    }
+    let chosen:{resource:string;name:string;exists:boolean}|undefined;
+    for (const [i,name] of [names.transactional,names.marketing].entries()) {
+      const resource=arn.sets[i]!,entry=entries.find(e=>e.kind==='set' && e.resource===resource),destination=entries.find(e=>e.kind==='destination' && e.resource===resource+'/'+destName);
+      const s=await present(()=>c.ses.send(new GetConfigurationSetCommand({ConfigurationSetName:name}),request));
+      if (s) {
+        if (entry?.state!=='created' || s.ConfigurationSetName!==name || !owned(s.Tags,opts)) throw drift();
+        const ds=(await c.ses.send(new GetConfigurationSetEventDestinationsCommand({ConfigurationSetName:name}),request)).EventDestinations??[];
+        if (ds.length!==(destination?1:0)) throw drift();
+        if (destination && (destination.state!=='created' || canonical(ds[0])!==canonical({Name:destName,Enabled:true,MatchingEventTypes:EVENTS,SnsDestination:{TopicArn:arn.topic}}))) throw drift();
+      }
+      if (entry && !chosen) chosen={resource,name,exists:!!s};
+    }
+    if (chosen) {
+      if (chosen.exists) await c.ses.send(new DeleteConfigurationSetCommand({ConfigurationSetName:chosen.name}),request);
+      return journal.filter(e=>!(e.kind==='set' && e.resource===chosen.resource || e.kind==='destination' && e.resource===chosen.resource+'/'+destName));
+    }
+    if (!topic) throw drift();
+    if (attrs) await c.sns.send(new DeleteTopicCommand({TopicArn:arn.topic}),request);
+    return journal.filter(e=>e.kind!=='topic' && e.kind!=='subscription');
+  } finally {c.ses.destroy();c.sns.destroy();c.sts.destroy();c.cw.destroy();}
+}
+// Unlike self-hosted setup, this is create-only. Never adopt even a tagged resource
+// without its journal, repair a drifted destination, or rewrite an existing topic policy.
+// If a create's acknowledgement was lost, stop for review rather than assume ownership.
+export async function provisionJournaledFeedback(runtime:Runtime,region:string,installationId:string,journal:JournalEntry[],
+  fence:()=>Promise<void>, record:(entry:JournalEntry)=>Promise<void>,register:(arn:string)=>Promise<void>,signedPool?:()=>Promise<boolean>) {
+  const namespace=signedPool?'trusted':'byo';
+  const endpoint=feedbackUrl(runtime.config);
+  const options:SesSetupOptions={region,installationId,namespace,connectionSetup:true};
+  const account=runtime.config.awsAccountId!, names=setupResources(installationId,namespace), a=arns(account,region,names);
+  const ctx=setupContext(), {report,subscriptions}=await inspect(runtime,options,ctx);
+  const drift=()=>new ApiError(409,signedPool?'POOL_RESOURCE_DRIFT':'BYO_RESOURCE_DRIFT','Regional feedback resources differ from the ownership journal. Nothing will be repaired automatically.');
+  const check=(kind:JournalEntry['kind'],resource:string,exists:boolean,target?:string)=>{
+    const entry=journal.find(e=>e.kind===kind && e.resource===resource && e.target===target);
+    // The journal must retain ambiguous creates for manual review. Retry a proven
+    // absence; do not adopt an existing AWS resource after an ambiguous result.
+    if (entry?.state==='creating' ? exists : !!entry!==exists) throw drift();
+  };
+  const blocker=report.blockers.find(b=>b.code!=='SNS_CONFIRMATION_PENDING' && (b.code!=='SES_SANDBOX' || (namespace==='trusted' && !runtime.config.allowSesSandbox)));
+  if (blocker) throw new ApiError(409,blocker.code,blocker.message,undefined,['AWS_THROTTLED','AWS_SETUP_TIMEOUT','AWS_SETUP_FAILED','AWS_STATE_UNKNOWN','SNS_SUBSCRIPTION_UNKNOWN'].includes(blocker.code));
+  if (report.account?.id!==account || report.feedbackUrl!==endpoint) throw drift();
+  const topic=report.resources.topic;
+  if (signedPool) {
+    if (!topic.exists || !topic.owned) throw poolSendingDrift(a.topic);
+  } else {
+    check('topic',a.topic,topic.exists===true);
+    if (topic.exists && (!topic.owned || !topic.policyReady)) throw drift();
+  }
+  const subscription=journal.find(e=>e.kind==='subscription');
+  if (subscription ? subscription.resource!==a.topic || subscription.target!==endpoint || (!subscriptions.length && subscription.state!=='creating') : subscriptions.length>0) throw drift();
+  if (subscriptions.length>1 || subscriptions.some(s=>s.Owner!==account || s.Endpoint!==endpoint || s.Protocol!=='https' || s.TopicArn!==a.topic) || topic.subscriptionsTruncated || topic.subscription==='confirmed' && topic.rawMessageDelivery!==false) throw drift();
+  const streams=['transactional','marketing'] as const;
+  for (const [i,stream] of streams.entries()) {
+    const s=report.resources[stream];
+    // N7: an operator creates the trusted sets and Pulumi their destinations; nothing here is journaled.
+    if (signedPool) { if (s.exists!==true) throw poolSendingDrift(a.sets[i]!); continue; }
+    check('set',a.sets[i]!,s.exists===true);check('destination',a.sets[i]!+'/'+names.eventDestinationName,s.eventDestinationExists===true,a.topic);
+    if (s.exists && (!s.owned || s.autoValidation!=='inherit' && s.autoValidation!==DEFAULT_AUTO_VALIDATION[stream]) || s.eventDestinationExists && !s.eventWired || report.warnings.some(w=>w.code==='OTHER_EVENT_DESTINATIONS')) throw drift();
+  }
+  const c=await clients(runtime,region,ctx), opts={abortSignal:ctx.signal};
+  const { CreateConfigurationSetCommand, GetConfigurationSetCommand, GetConfigurationSetEventDestinationsCommand, CreateConfigurationSetEventDestinationCommand } = c.sdk.sesv2;
+  const { GetTopicAttributesCommand, CreateTopicCommand, ListTagsForResourceCommand, ListSubscriptionsByTopicCommand, SetTopicAttributesCommand, SubscribeCommand } = c.sdk.sns;
+  try {
+    const finalPolicy=topicPolicy(account,region,names),initialPolicy={...finalPolicy,Statement:finalPolicy.Statement.slice(0,1)};
+    const publish=!signedPool || (topic.subscription==='confirmed' && await signedPool());
+    // Virginia stays owner-only until signed confirmation. Pulumi, not the key,
+    // opens the narrowly scoped SES grant for the second provisioning pass.
+    if (signedPool && !policyReady((await c.sns.send(new GetTopicAttributesCommand({TopicArn:a.topic}),opts)).Attributes?.Policy,publish?finalPolicy:initialPolicy)) throw poolSendingDrift(`${a.topic} Policy`);
+    if (signedPool) for (const [i,stream] of streams.entries()) {
+      // Before signed confirmation the sets must have no destination; after it, exactly Pulumi's.
+      const set=await c.ses.send(new GetConfigurationSetCommand({ConfigurationSetName:names[stream]}),opts), dest=await c.ses.send(new GetConfigurationSetEventDestinationsCommand({ConfigurationSetName:names[stream]}),opts);
+      assertPoolSet(set,dest.EventDestinations,stream,a.sets[i]!,a.topic,options,publish);
+    }
+    else if (!publish && streams.some(s=>report.resources[s].eventDestinationExists)) throw drift();
+    for (const [i,stream] of signedPool ? [] : streams.entries()) {
+      if (!report.resources[stream].exists) {
+        await record({kind:'set',resource:a.sets[i]!,state:'creating'});
+        await fence();await c.ses.send(new CreateConfigurationSetCommand({ConfigurationSetName:names[stream],Tags:tags(options),SendingOptions:{SendingEnabled:true}}),opts);
+        await record({kind:'set',resource:a.sets[i]!,state:'created'});
+      }
+      if (!report.resources[stream].exists || report.resources[stream].autoValidation==='inherit') {
+        const s=await c.ses.send(new GetConfigurationSetCommand({ConfigurationSetName:names[stream]}),opts);
+        if (!owned(s.Tags,options)) throw drift();
+        await fence();await c.ses.send(validationInput(c.sdk,names[stream],DEFAULT_AUTO_VALIDATION[stream],namespace==='trusted'),opts);
+      } else if (report.resources[stream].autoValidation!==DEFAULT_AUTO_VALIDATION[stream]) throw drift();
+    }
+    if (!signedPool && !topic.exists) {
+      // Bootstrap private: only add SES publish after positive checks of account,
+      // tags, the initial owner-only policy and an empty subscriber inventory.
+      await record({kind:'topic',resource:a.topic,state:'creating'});
+      await fence();const result=await c.sns.send(new CreateTopicCommand({Name:names.topicName,Tags:tags(options),Attributes:{Policy:JSON.stringify(initialPolicy)}}),opts);
+      if (result.TopicArn!==a.topic) throw drift();
+      const attr=(await c.sns.send(new GetTopicAttributesCommand({TopicArn:a.topic}),opts)).Attributes;
+      if (attr?.Owner!==account || attr.TopicArn!==a.topic || !policyReady(attr.Policy,initialPolicy) || !owned((await c.sns.send(new ListTagsForResourceCommand({ResourceArn:a.topic}),opts)).Tags,options)) throw drift();
+      const empty=await c.sns.send(new ListSubscriptionsByTopicCommand({TopicArn:a.topic}),opts);
+      if (empty.NextToken || empty.Subscriptions?.length!==0) throw drift();
+      if (publish) {await fence();await c.sns.send(new SetTopicAttributesCommand({TopicArn:a.topic,AttributeName:'Policy',AttributeValue:JSON.stringify(finalPolicy)}),opts);}
+      await record({kind:'topic',resource:a.topic,state:'created'});
+    }
+    for (const [i,stream] of streams.entries()) if (!signedPool && publish && !report.resources[stream].eventWired) {
+      const set=await c.ses.send(new GetConfigurationSetCommand({ConfigurationSetName:names[stream]}),opts), dest=await c.ses.send(new GetConfigurationSetEventDestinationsCommand({ConfigurationSetName:names[stream]}),opts);
+      // SES omits EventDestinations entirely when a configuration set has none.
+      if (!owned(set.Tags,options) || (dest.EventDestinations?.length??0)!==0) throw drift();
+      await record({kind:'destination',resource:a.sets[i]!+'/'+names.eventDestinationName,target:a.topic,state:'creating'});
+      await fence();await c.ses.send(new CreateConfigurationSetEventDestinationCommand({ConfigurationSetName:names[stream],EventDestinationName:names.eventDestinationName,EventDestination:{Enabled:true,MatchingEventTypes:[...EVENTS],SnsDestination:{TopicArn:a.topic}}}),opts);
+      await record({kind:'destination',resource:a.sets[i]!+'/'+names.eventDestinationName,target:a.topic,state:'created'});
+    }
+    await register(a.topic);
+    // Subscribe is idempotent for this exact topic/protocol/endpoint. A timeout can
+    // leave it pending (or not yet visible); retry that tuple, never create another.
+    // Leave a delivery window before re-requesting so normal polls don't churn tokens.
+    if (!subscription || ((topic.subscription==='pending' || !subscriptions.length) && Date.now()-(subscription.requestedAt??0)>=300_000)) {
+      const page=await c.sns.send(new ListSubscriptionsByTopicCommand({TopicArn:a.topic}),opts);
+      if (page.NextToken || page.Subscriptions?.length!==subscriptions.length || page.Subscriptions.some(s=>s.Owner!==account || s.Protocol!=='https' || s.Endpoint!==endpoint || s.TopicArn!==a.topic)) throw drift();
+      const intent={kind:'subscription' as const,resource:a.topic,target:endpoint,requestedAt:Date.now()};
+      await record({...intent,state:'creating'}); // The signed callback may beat the Subscribe response.
+      await fence();await c.sns.send(new SubscribeCommand({TopicArn:a.topic,Protocol:'https',Endpoint:endpoint,ReturnSubscriptionArn:true,Attributes:{RawMessageDelivery:'false'}}),opts);
+      await record({...intent,state:'created'});
+    } else if (subscription.state==='creating' && topic.subscription==='confirmed') {
+      await record({...subscription,state:'created'});
+    }
+    return {topic:a.topic,verified:report.provisioned};
+  } finally { c.ses.destroy();c.sns.destroy();c.sts.destroy();c.cw.destroy(); }
+}
+
+/** Explicit provisioning; caller persists the job and the topic trust before SNS Subscribe. */
+export async function provisionSes(runtime: Runtime, options: SesProvisionOptions): Promise<SesDiscovery> {
+  assertProvisionable(runtime); // Before any AWS mutation, including CreateTopic.
+  const endpoint = feedbackUrl(runtime.config);
+  const context = setupContext();
+  const deadlineSignal = context.signal;
+  const { report } = await inspect(runtime, options, context);
+  const unsafe = report.blockers.find(b => !['SES_SANDBOX', 'SES_SENDING_DISABLED', 'SES_ACCOUNT_ENFORCEMENT', 'SES_DOMAIN_REQUIRED', 'SES_CONFIGURATION_SET_DISABLED', 'SNS_CONFIRMATION_PENDING'].includes(b.code));
+  if (unsafe) throw new ApiError(unsafe.code === 'AWS_ACCESS_DENIED' ? 403 : unsafe.code.startsWith('AWS_') ? 503 : 409, unsafe.code, unsafe.message, undefined, ['AWS_THROTTLED', 'AWS_SETUP_TIMEOUT', 'AWS_SETUP_FAILED'].includes(unsafe.code));
+  if (!report.account) throw new ApiError(503, 'AWS_ACCOUNT_UNKNOWN', 'AWS account identity must be verified before provisioning.');
+  if (runtime.config.awsAccountId && runtime.config.awsAccountId !== report.account.id) throw new ApiError(409, 'AWS_ACCOUNT_MISMATCH', 'This installation is already provisioned for another AWS account. Use matching credentials or a separate installation.');
+  const names = setupResources(options.installationId,options.namespace);
+  const accountId = report.account.id;
+  const expected = arns(accountId, options.region, names);
+  const hosted = runtime.config.multiTenant && options.installationId === POOL_INSTALLATION;
+  if (hosted && !report.resources.topic.policyReady) throw poolSendingDrift(`${expected.topic} Policy`);
+  const c = await clients(runtime, options.region, context);
+  const { GetConfigurationSetCommand, CreateConfigurationSetCommand, GetConfigurationSetEventDestinationsCommand, UpdateConfigurationSetEventDestinationCommand, CreateConfigurationSetEventDestinationCommand } = c.sdk.sesv2;
+  const { GetTopicAttributesCommand, ListTagsForResourceCommand, CreateTopicCommand, SetTopicAttributesCommand, SubscribeCommand, GetSubscriptionAttributesCommand, SetSubscriptionAttributesCommand } = c.sdk.sns;
+  const assertSetOwned = async (name: string) => {
+    const set = await c.ses.send(new GetConfigurationSetCommand({ ConfigurationSetName: name }), { abortSignal: deadlineSignal });
+    if (!owned(set.Tags, options)) throw new ApiError(409, 'RESOURCE_OWNERSHIP_CONFLICT', 'Refusing to update an SES configuration set without this installation’s ownership tags.');
+    return set;
+  };
+  const assertTopicOwned = async () => {
+    const attrs = (await c.sns.send(new GetTopicAttributesCommand({ TopicArn: expected.topic }), { abortSignal: deadlineSignal })).Attributes;
+    if (attrs?.TopicArn !== expected.topic || attrs.Owner !== accountId || !owned((await c.sns.send(new ListTagsForResourceCommand({ ResourceArn: expected.topic }), { abortSignal: deadlineSignal })).Tags, options)) throw new ApiError(409, 'RESOURCE_OWNERSHIP_CONFLICT', 'Refusing to update an SNS topic without the expected ARN, account and installation ownership tags.');
+    if (attrs.FifoTopic === 'true' || attrs.KmsMasterKeyId) throw new ApiError(409, 'SNS_TOPIC_UNSUPPORTED', 'The owned SNS topic has unsupported FIFO or KMS settings.');
+    if (hosted && !policyReady(attrs.Policy,topicPolicy(accountId, options.region, names))) throw poolSendingDrift(`${expected.topic} Policy`);
+  };
+  try {
+    for (const [index, kind] of (['transactional', 'marketing'] as const).entries()) {
+      if (hosted) { // Verify only (N7): never create the pool set, rewrite its suppression or its destinations.
+        if (report.resources[kind].exists !== true) throw poolSendingDrift(expected.sets[index]!);
+        const set = await assertSetOwned(names[kind]);
+        const { EventDestinations } = await c.ses.send(new GetConfigurationSetEventDestinationsCommand({ ConfigurationSetName: names[kind] }), { abortSignal: deadlineSignal });
+        assertPoolSet(set, EventDestinations, kind, expected.sets[index]!, expected.topic, options);
+        continue;
+      }
+      if (report.resources[kind].exists === false) {
+        try { await c.ses.send(new CreateConfigurationSetCommand({ ConfigurationSetName: names[kind], Tags: tags(options), SendingOptions: { SendingEnabled: true }, ...(options.installationId === POOL_INSTALLATION ? { SuppressionOptions: { SuppressionScope: 'TENANT', SuppressedReasons: ['BOUNCE', 'COMPLAINT'] } } : {}) }), { abortSignal: deadlineSignal }); }
+        catch (error) { if (!collision(error)) throw error; }
+      }
+      const set = await assertSetOwned(names[kind]); // Recheck after create/AlreadyExists races; never adopt by name.
+      const pooled = options.installationId === POOL_INSTALLATION;
+      if (!set.SuppressionOptions?.ValidationOptions || (pooled && set.SuppressionOptions.SuppressionScope !== 'TENANT')) await c.ses.send(validationInput(c.sdk, names[kind], DEFAULT_AUTO_VALIDATION[kind], pooled), { abortSignal: deadlineSignal });
+    }
+    if (!hosted && report.resources.topic.exists === false) {
+      // SNS CreateTopic is idempotent, so its success alone is not ownership evidence.
+      const created = await c.sns.send(new CreateTopicCommand({ Name: names.topicName, Tags: tags(options) }), { abortSignal: deadlineSignal });
+      if (created.TopicArn !== expected.topic) throw new ApiError(409, 'RESOURCE_OWNERSHIP_CONFLICT', 'SNS did not return the expected regional topic ARN.');
+    }
+    await assertTopicOwned();
+    // Exact policy replacement is limited to this installation's dedicated topic.
+    // Unrelated topics, event destinations and subscriptions are never overwritten.
+    if (!hosted && report.resources.topic.policyReady !== true) await c.sns.send(new SetTopicAttributesCommand({ TopicArn: expected.topic, AttributeName: 'Policy', AttributeValue: JSON.stringify(topicPolicy(accountId, options.region, names)) }), { abortSignal: deadlineSignal });
+    for (const name of hosted ? [] : [names.transactional, names.marketing]) {
+      await assertSetOwned(name);
+      const destinations = await c.ses.send(new GetConfigurationSetEventDestinationsCommand({ ConfigurationSetName: name }), { abortSignal: deadlineSignal });
+      const input = { ConfigurationSetName: name, EventDestinationName: names.eventDestinationName, EventDestination: { Enabled: true, MatchingEventTypes: [...EVENTS], SnsDestination: { TopicArn: expected.topic } } };
+      if (destinations.EventDestinations?.some(d => d.Name === names.eventDestinationName)) await c.ses.send(new UpdateConfigurationSetEventDestinationCommand(input), { abortSignal: deadlineSignal });
+      else {
+        try { await c.ses.send(new CreateConfigurationSetEventDestinationCommand(input), { abortSignal: deadlineSignal }); }
+        catch (error) { if (!collision(error)) throw error; await assertSetOwned(name); await c.ses.send(new UpdateConfigurationSetEventDestinationCommand(input), { abortSignal: deadlineSignal }); }
+      }
+    }
+    // Read again rather than relying on the earlier list after mutations or concurrent runs.
+    const refreshed = await inspect(runtime, options, context);
+    const subscriptionBlocker = refreshed.report.blockers.find(b => b.code.startsWith('AWS_') || b.code.startsWith('RESOURCE_') || b.code.startsWith('SNS_') && b.code !== 'SNS_CONFIRMATION_PENDING');
+    if (subscriptionBlocker) throw new ApiError(subscriptionBlocker.code === 'AWS_ACCESS_DENIED' ? 403 : subscriptionBlocker.code.startsWith('AWS_') ? 503 : 409, subscriptionBlocker.code, subscriptionBlocker.message, undefined, ['AWS_THROTTLED', 'AWS_SETUP_TIMEOUT', 'AWS_SETUP_FAILED'].includes(subscriptionBlocker.code));
+    await assertTopicOwned();
+    await options.registerTopic(accountId, expected.topic);
+    const matching = refreshed.subscriptions.filter(s => s.TopicArn === expected.topic && s.Protocol === 'https' && s.Endpoint === endpoint);
+    if (!matching.length) await c.sns.send(new SubscribeCommand({ TopicArn: expected.topic, Protocol: 'https', Endpoint: endpoint, ReturnSubscriptionArn: true, Attributes: { RawMessageDelivery: 'false' } }), { abortSignal: deadlineSignal });
+    else for (const sub of matching) {
+      if (pending(sub)) continue; // Never create duplicate pending subscriptions on a rerun.
+      const arn = subscriptionArn(sub, expected.topic);
+      if (!arn) throw new ApiError(503, 'SNS_SUBSCRIPTION_UNKNOWN', 'SNS returned an unrecognized subscription state.');
+      const attrs = (await c.sns.send(new GetSubscriptionAttributesCommand({ SubscriptionArn: arn }), { abortSignal: deadlineSignal })).Attributes;
+      if (attrs?.TopicArn !== expected.topic || attrs.Endpoint !== endpoint || attrs.Protocol !== 'https' || attrs.Owner !== accountId) throw new ApiError(409, 'SNS_SUBSCRIPTION_OWNERSHIP_CONFLICT', 'Refusing to modify an SNS subscription outside the expected account, topic and endpoint.');
+      if (attrs.PendingConfirmation === 'false' && attrs.RawMessageDelivery !== 'false') {
+        if (hosted) throw poolSendingDrift(`${arn} RawMessageDelivery`);
+        await c.sns.send(new SetSubscriptionAttributesCommand({ SubscriptionArn: arn, AttributeName: 'RawMessageDelivery', AttributeValue: 'false' }), { abortSignal: deadlineSignal });
+      }
+    }
+  } catch (error) { if (error instanceof ModuleLoadError) throw error; throw awsError(error); }
+  finally { c.ses.destroy(); c.sns.destroy(); c.sts.destroy(); c.cw.destroy(); }
+  return (await inspect(runtime, options, context)).report;
+}
+
+export async function setAutoValidation(runtime: Runtime, options: SesSetupOptions, stream: 'transactional' | 'marketing', mode: 'off' | 'managed' | 'medium' | 'high'): Promise<void> {
+  if (options.installationId === POOL_INSTALLATION || options.namespace) throw new ApiError(409, 'POOL_SENDING_MANAGED', 'Hosted pool configuration sets are managed by the operator.');
+  const context = setupContext();
+  const c = await clients(runtime, options.region, context);
+  const { GetConfigurationSetCommand } = c.sdk.sesv2;
+  const name = setupResources(options.installationId,options.namespace)[stream];
+  try {
+    const set = await c.ses.send(new GetConfigurationSetCommand({ ConfigurationSetName: name }), { abortSignal: context.signal });
+    if (!owned(set.Tags, options)) throw new ApiError(409, 'RESOURCE_OWNERSHIP_CONFLICT', 'Refusing to update an SES configuration set without this installation’s ownership tags.');
+    await c.ses.send(validationInput(c.sdk, name, mode, options.installationId === POOL_INSTALLATION), { abortSignal: context.signal });
+  } catch (error) { if (error instanceof ModuleLoadError) throw error; throw awsError(error); }
+  finally { c.ses.destroy(); c.sns.destroy(); c.sts.destroy(); c.cw.destroy(); }
+}
+
+/** Nightmail's own switch on a workspace tenant (customer-managed status), set by a pause or resume as a backstop to the
+ *  database hold. It is separate from AWS's own status: ENABLED never lifts a pause AWS applied. Returns the ARN. */
+export async function setTenantSendingStatus(runtime: Runtime, region: string, tenantName: string, arn: string | null, status: 'ENABLED' | 'DISABLED') {
+  const context = setupContext(20_000), c = await clients(runtime, region, context), opts = { abortSignal: context.signal };
+  const { GetTenantCommand, UpdateReputationEntityCustomerManagedStatusCommand } = c.sdk.sesv2;
+  try {
+    const tenantArn = arn ?? (await c.ses.send(new GetTenantCommand({ TenantName: tenantName }), opts)).Tenant?.TenantArn;
+    if (!tenantArn?.startsWith(`arn:aws:ses:${region}:`)) throw new ApiError(409, 'TENANT_MISMATCH', 'SES did not return the expected tenant.');
+    await c.ses.send(new UpdateReputationEntityCustomerManagedStatusCommand({ ReputationEntityType: 'RESOURCE', ReputationEntityReference: tenantArn, SendingStatus: status }), opts);
+    return tenantArn;
+  } catch (error) { if (error instanceof ModuleLoadError) throw error; throw awsError(error); }
+  finally { c.ses.destroy(); c.sns.destroy(); c.sts.destroy(); c.cw.destroy(); }
+}
+
+/** Never use the cause or effective status in an SNS payload to make a standing decision. */
+export async function readTenantStatus(runtime: Runtime, region: string, arn: string, origin: 'AWS_SES' | 'CUSTOMER_MANAGED') {
+  const context = setupContext(20_000), c = await clients(runtime, region, context);
+  try {
+    const { ReputationEntity: entity } = await c.ses.send(new c.sdk.sesv2.GetReputationEntityCommand({ ReputationEntityType: 'RESOURCE', ReputationEntityReference: arn }), { abortSignal: context.signal });
+    const record = origin === 'AWS_SES' ? entity?.AwsSesManagedStatus : entity?.CustomerManagedStatus;
+    if (entity?.ReputationEntityReference !== arn || entity.ReputationEntityType !== 'RESOURCE' || !record?.Status || !entity.SendingStatusAggregate)
+      throw new ApiError(503, 'SES_TENANT_STATUS_UNCONFIRMED', 'SES did not confirm the requested tenant status.', undefined, true);
+    return { status: record.Status, cause: record.Cause?.slice(0, 300) ?? null, aggregate: entity.SendingStatusAggregate };
+  } finally { c.ses.destroy(); c.sns.destroy(); c.sts.destroy(); c.cw.destroy(); }
+}
+
+export async function provisionTenant(runtime: Runtime, region: string, account: string, workspaceId: string, managed=false,namespace?:'trusted'|'probation',persistedName?:string|null,
+  journal?:{arn:string|null;created:(arn:string)=>Promise<void>;fence:()=>Promise<void>}) {
+  const context = setupContext(20_000), c = await clients(runtime, region, context), opts = { abortSignal: context.signal };
+  const { GetTenantCommand, CreateTenantCommand, PutTenantSuppressionAttributesCommand, UpdateReputationEntityPolicyCommand, CreateTenantResourceAssociationCommand } = c.sdk.sesv2;
+  const TenantName=persistedName??(managed?mxResourceName(workspaceId):`bane-${workspaceId}`);
+  if (persistedName && persistedName!==poolTenantName(workspaceId,region==='us-east-1'?'trusted':'probation')) throw new ApiError(409,'TENANT_MISMATCH','Incorrect regional tenant name.');
+  const Tags=persistedName?[mxOwnerTag,{Key:OWNER_TAG,Value:POOL_INSTALLATION},{Key:PURPOSE_TAG,Value:'workspace-tenant'}]:managed?[mxOwnerTag,{Key:OWNER_TAG,Value:workspaceId},{Key:PURPOSE_TAG,Value:'tenant'}]:undefined;
+  if (!/^[a-zA-Z0-9_-]{1,64}$/.test(TenantName)) throw new ApiError(409, 'INVALID_TENANT_NAME', 'This workspace ID is not a valid SES tenant name.');
+  const suppression = { SuppressionScope: 'TENANT' as const, SuppressedReasons: ['BOUNCE', 'COMPLAINT'] as ('BOUNCE' | 'COMPLAINT')[] };
+  try {
+    let tenant:Tenant|undefined,repair=false;
+    try {
+      if (journal?.arn || runtime.config.trustedPool && !managed) tenant=(await c.ses.send(new GetTenantCommand({TenantName}),opts)).Tenant;
+      else { await journal?.fence();tenant = await c.ses.send(new CreateTenantCommand({ TenantName, SuppressionAttributes: suppression, Tags }), opts); }
+      repair=!!journal?.arn || !!runtime.config.trustedPool && !managed;
+    }
+    catch (error) {
+      if (!collision(error)) throw error;
+      if (journal) throw new ApiError(409,'RESOURCE_OWNERSHIP_CONFLICT','Unjournaled tenant exists; review the original create before retrying.');
+      tenant = (await c.ses.send(new GetTenantCommand({ TenantName }), opts)).Tenant;
+      repair=true;
+    }
+    if (tenant?.TenantName !== TenantName || !tenant.TenantArn?.startsWith(`arn:aws:ses:${region}:${account}:tenant/${TenantName}/`)) throw new ApiError(409, 'TENANT_MISMATCH', 'SES did not return the expected tenant.');
+    if (repair && Tags && !hasTags(tenant?.Tags,Tags) || journal?.arn && journal.arn!==tenant.TenantArn) throw new ApiError(409,'RESOURCE_OWNERSHIP_CONFLICT','The existing SES tenant differs from its recorded owner.');
+    if (journal && !journal.arn) await journal.created(tenant.TenantArn);
+    if (repair) {await journal?.fence();await c.ses.send(new PutTenantSuppressionAttributesCommand({ TenantName, ...suppression }), opts);}
+    await journal?.fence();
+    await c.ses.send(new UpdateReputationEntityPolicyCommand({ ReputationEntityType: 'RESOURCE', ReputationEntityReference: tenant.TenantArn, ReputationEntityPolicy: `arn:aws:ses:${region}:aws:reputation-policy/strict` }), opts);
+    for (const ResourceArn of arns(account, region, setupResources(POOL_INSTALLATION,namespace)).sets) {
+      await journal?.fence();
+      try { await c.ses.send(new CreateTenantResourceAssociationCommand({ TenantName, ResourceArn }), opts); }
+      catch (error) { if (!collision(error)) throw error; }
+    }
+  } catch (error) { if (error instanceof ModuleLoadError) throw error; throw awsError(error); }
+  finally { c.ses.destroy(); c.sns.destroy(); c.sts.destroy(); c.cw.destroy(); }
+}

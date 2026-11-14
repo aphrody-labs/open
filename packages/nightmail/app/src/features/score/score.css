@@ -1,0 +1,129 @@
+/* Sender score. Flat instrument styling on the surface; the only texture is faint grain and a tick ruler.
+   Every block has a fixed height in every state (loading, calibrating, graded), so loading never shifts layout. */
+[data-grade='aplus'] { --grade-fill: var(--grade-aplus); }
+[data-grade='a'] { --grade-fill: var(--grade-a); }
+[data-grade='b'] { --grade-fill: var(--grade-b); }
+[data-grade='c'] { --grade-fill: var(--grade-c); }
+[data-grade='d'] { --grade-fill: var(--grade-d); }
+[data-grade='f'] { --grade-fill: var(--grade-f); }
+
+.gauge-card {
+  /* Grain: fractal noise turned into an alpha mask, tinted with the text colour, so it follows the theme. */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .7 .7 .7 0 -.62'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  /* Ruler: a minor tick every 4px and a major tick every 24px. */
+  --ruler: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='8'%3E%3Cpath d='M.5 0v8M4.5 5v3M8.5 5v3M12.5 3v5M16.5 5v3M20.5 5v3' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E");
+  position: relative; isolation: isolate; display: block; overflow: hidden; border-radius: var(--radius-sm); background: var(--color-surface); box-shadow: inset 0 0 0 1px var(--color-border); color: var(--color-text); text-decoration: none; font-variant-numeric: tabular-nums;
+}
+.gauge-card > :not(.gauge-grain, .gauge-ruler) { position: relative; z-index: 1; }
+/* Every score view is a button that opens the explainer. */
+button.gauge-card { width: 100%; border: 0; font: inherit; text-align: left; cursor: pointer; }
+button.gauge-card:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.gauge-grain { position: absolute; inset: 0; background: var(--color-text); -webkit-mask: var(--grain) 0 0 / 140px 140px; mask: var(--grain) 0 0 / 140px 140px; opacity: .05; pointer-events: none; }
+:root[data-theme='dark'] .gauge-grain { opacity: .07; }
+.gauge-ruler { position: absolute; inset: auto 0 0; height: 8px; background: var(--color-border-strong); -webkit-mask: var(--ruler) 0 100% / 24px 8px repeat-x; mask: var(--ruler) 0 100% / 24px 8px repeat-x; opacity: .7; pointer-events: none; }
+.gauge-skeleton { position: absolute; inset: 0; border-radius: inherit; background: var(--color-layer-1); animation: ui-pulse 1.2s ease-in-out infinite alternate; }
+
+.gauge-dial { display: block; overflow: visible; }
+.gauge-band { fill: none; stroke: var(--grade-fill); opacity: .26; transition: opacity 240ms var(--ease-out-strong); }
+.gauge-band[data-on] { opacity: 1; }
+.gauge-band[data-grade='none'] { stroke: var(--color-layer-3); opacity: 1; }
+.gauge-progress { fill: none; stroke: var(--color-text); }
+/* The needle sweeps in once and eases between scores; transform only. */
+.gauge-needle { transform-box: view-box; transform-origin: var(--hub); transform: rotate(var(--turn)); transition: transform 600ms var(--ease-out-strong); animation: gauge-sweep 900ms var(--ease-out-strong) both; }
+.gauge-needle line { stroke: var(--color-text); stroke-width: 2; stroke-linecap: round; }
+.gauge-needle circle { fill: var(--color-text); }
+.gauge-needle[data-rest] { opacity: .4; animation: none; }
+@keyframes gauge-sweep { from { transform: rotate(0deg); } }
+
+.gauge-eyebrow, .gauge-head { color: var(--color-muted); font-family: var(--font-mono); font-size: 10px; line-height: 14px; letter-spacing: .12em; text-transform: uppercase; }
+.gauge-grade { font-family: var(--font-mono); font-size: 11px; line-height: 14px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+
+/* Compact: the sidebar card, full sidebar width and 56px tall. */
+.gauge-card--compact { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 14px 0 10px; transition: background var(--motion-duration), transform 160ms var(--ease-out-strong); }
+.gauge-card--compact:active { transform: scale(.98); }
+@media (hover: hover) and (pointer: fine) { .gauge-card--compact:hover { background: var(--color-layer-1); } }
+.gauge-card--compact .gauge-ruler { height: 5px; opacity: .5; }
+.gauge-card--compact .gauge-dial { flex: none; width: 60px; height: 34px; }
+.gauge-card--compact:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.gauge-stack { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; }
+.gauge-card--compact .gauge-eyebrow { font-size: 9px; line-height: 12px; letter-spacing: .14em; }
+/* One 24px line in every state: the graded number keeps a fixed slot before its grade; while calibrating, /100 follows
+   the count directly. */
+.gauge-readout { display: flex; align-items: baseline; gap: 8px; height: 24px; line-height: 24px; }
+.gauge-readout b { display: inline-block; min-width: 1.5em; font-size: 21px; line-height: 24px; font-weight: 600; letter-spacing: -.03em; }
+.gauge-readout b:has(+ small) { min-width: 0; }
+.gauge-readout small { margin-left: -7px; color: var(--color-muted); font-size: 11px; line-height: 1; }
+.gauge-readout small.gauge-readout__pending { margin-left: -2px; white-space: nowrap; }
+.gauge-readout .gauge-grade { font-size: 13px; letter-spacing: .04em; }
+
+/* Next steps: a short list of places to go; rows fade up in sequence. */
+.next-steps { display: flex; flex-direction: column; gap: var(--space-8); min-width: 0; }
+.next-steps__title { font-size: var(--text-sm); line-height: var(--leading-sm); font-weight: var(--font-weight-bold); }
+.next-steps ul { margin: 0; padding: 0; list-style: none; }
+.next-steps li { animation: row-enter 220ms var(--ease-out-strong) both; animation-delay: calc(var(--i, 0) * 40ms); }
+.next-steps li + li { border-top: 1px solid var(--color-border-muted); }
+.next-steps a { display: flex; align-items: center; gap: var(--space-8); min-height: 36px; color: var(--color-text); text-decoration: none; font-size: var(--text-sm); }
+.next-steps a > :first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.next-steps a .muted { font-size: var(--text-xs); white-space: nowrap; }
+.next-steps a svg { flex-shrink: 0; color: var(--color-muted); transition: transform 160ms var(--ease-out-strong); }
+@media (hover: hover) and (pointer: fine) {
+  .next-steps a:hover > :first-child { text-decoration: underline; text-underline-offset: 4px; }
+  .next-steps a:hover svg { transform: translate(2px, -2px); }
+}
+
+/* The sidebar card's standing dot (Warn and up), in the card's top-right corner: positioned, so it never moves anything. */
+.gauge-card > .gauge-alert { position: absolute; top: 8px; right: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--tone-marker); box-shadow: 0 0 0 2px var(--color-surface); animation: gauge-alert-in 240ms var(--ease-out-strong) both; }
+@keyframes gauge-alert-in { from { opacity: 0; transform: scale(.4); } }
+
+/* Phone: 44px targets for the next steps and the standing card's link. */
+@media (max-width: 640px) {
+  .next-steps a { min-height: 44px; }
+  .standing-card__docs { display: inline-flex; align-items: center; min-height: 44px; margin-block: calc(-1 * var(--space-12)); }
+}
+
+/* Overview's standing card (Warn and up): tone from the step, three parts and the release action. */
+.standing-card { display: flex; flex-direction: column; gap: var(--space-12); padding: var(--space-12); border: 1px solid var(--tone-border); border-radius: var(--radius-sm); background: var(--tone-bg); font-size: var(--text-sm); line-height: var(--leading-sm); scroll-margin-top: var(--space-24); }
+.ov-split__aside > .standing-card + * { border-top: 0; }
+.standing-card__head { display: flex; align-items: center; gap: var(--space-8); }
+.standing-card__head h2 { flex: 1; min-width: 0; color: var(--tone-ink); font-size: var(--text-sm); line-height: var(--leading-sm); font-weight: var(--font-weight-bold); }
+.standing-card__head .muted { font-size: var(--text-xs); white-space: nowrap; }
+.standing-card__dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--tone-marker); }
+.standing-card__part { display: flex; flex-direction: column; gap: var(--space-4); }
+.standing-card__part h3 { color: var(--color-muted); font-family: var(--font-mono); font-size: 10px; line-height: 14px; font-weight: 400; letter-spacing: .12em; text-transform: uppercase; }
+.standing-card__part p, .standing-card__action p { margin: 0; text-wrap: pretty; }
+.standing-card__part ul, .standing-checklist { display: flex; flex-direction: column; gap: var(--space-4); margin: 0; padding-inline-start: var(--space-20); font-variant-numeric: tabular-nums; }
+.standing-card__action { display: flex; align-items: center; gap: var(--space-8); }
+.standing-card__action p { font-size: var(--text-xs); line-height: var(--leading-xs); }
+.standing-card__docs { align-self: flex-start; font-size: var(--text-xs); line-height: var(--leading-xs); }
+.standing-release { display: flex; flex-direction: column; gap: var(--space-12); }
+@media (prefers-reduced-motion: reduce) { .gauge-alert { animation: none; } }
+
+/* The explainer: the status, what counts, how it is graded and the six parts. */
+.score-about { width: min(600px, calc(100vw - 32px)); }
+.score-about .ui-dialog__body { display: flex; flex-direction: column; gap: var(--space-16); }
+/* The body scrolls; its blocks keep their full height instead of shrinking into each other. */
+.score-about .ui-dialog__body > * { flex-shrink: 0; }
+.score-about__status { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: var(--space-12); row-gap: var(--space-8); min-height: 56px; padding: var(--space-12); border-radius: var(--radius-sm); background: var(--color-surface); box-shadow: inset 0 0 0 1px var(--color-border); font-variant-numeric: tabular-nums; }
+.score-about__status > b { min-width: 2ch; font-size: 30px; line-height: 32px; font-weight: 600; letter-spacing: -.04em; text-align: center; }
+.score-about__status-text { display: flex; flex-direction: column; gap: 2px; font-size: var(--text-sm); line-height: var(--leading-sm); }
+.score-about__status-text .muted { font-size: var(--text-xs); line-height: var(--leading-xs); }
+.score-about__grade { color: var(--grade-fill, inherit); font-family: var(--font-mono); }
+.score-about__status:has(.score-about__history) { grid-template-columns: auto minmax(0, 1fr) auto; }
+.score-about__history { display: flex; align-items: flex-end; gap: 2px; width: 98px; height: 20px; }
+.score-about__history > span { flex: 1; height: 100%; border-radius: 1px; background: var(--color-layer-3); transform-origin: bottom; }
+.score-about__history > span[data-last] { background: var(--color-contrast); }
+.score-about__limit { grid-column: 1 / -1; padding-top: var(--space-8); border-top: 1px solid var(--color-border-muted); font-size: var(--text-xs); line-height: var(--leading-xs); text-wrap: pretty; }
+.score-about__helps { padding: 0 var(--space-6); border-radius: var(--radius-sm); background: var(--color-layer-2); color: var(--color-text); font-size: var(--text-xs); font-weight: normal; line-height: var(--leading-xs); white-space: nowrap; }
+.score-about__section ul { display: flex; flex-direction: column; gap: var(--space-4); margin: 0; padding-inline-start: var(--space-20); text-wrap: pretty; }
+.score-about__progress { grid-column: 1 / -1; position: relative; display: block; height: 4px; overflow: hidden; border-radius: 2px; background: var(--color-layer-2); }
+.score-about__progress > i { position: absolute; inset: 0 auto 0 0; width: var(--share); border-radius: inherit; background: var(--color-contrast); }
+.score-about__section { display: flex; flex-direction: column; gap: var(--space-4); font-size: var(--text-sm); line-height: var(--leading-sm); }
+.score-about__section h3 { font-size: var(--text-sm); font-weight: var(--font-weight-bold); }
+.score-about__section code { font-size: .92em; }
+.score-about__factors { margin: 0; padding: 0; list-style: none; }
+.score-about__factors > li { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--space-12); padding: var(--space-8) var(--focus-reach); margin: 0 calc(-1 * var(--focus-reach)); border-top: 1px solid var(--color-border-muted); border-radius: var(--radius-sm); font-size: var(--text-sm); line-height: var(--leading-sm); scroll-margin: var(--space-8); }
+.score-about__factors > li[data-focus] { background: var(--color-layer-2); }
+.score-about__factors > li > p { grid-column: 1 / -1; font-size: var(--text-xs); line-height: var(--leading-xs); }
+.score-about__factor-name { display: flex; align-items: baseline; gap: var(--space-8); font-weight: var(--font-weight-bold); }
+.score-about__factor-name .muted { font-weight: normal; font-size: var(--text-xs); }
+.score-about__factor-now { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }

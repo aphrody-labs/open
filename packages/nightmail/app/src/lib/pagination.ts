@@ -1,0 +1,103 @@
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { matches, SHELL_COMPACT } from './media'
+
+// The fitted page size of each list is remembered, so the next session can warm that exact first page. A phone or tablet
+// (the document scrolls, nothing to fit) uses a fixed page and remembers it apart from the desktop's.
+const sizeKey = (scope: string) => `bane.page-size.${scope}${matches(SHELL_COMPACT) ? '.compact' : ''}`
+const COMPACT_PAGE = 25
+export function rememberedPageSize(scope: string) {
+  try { const size = Number(localStorage.getItem(sizeKey(scope))); return Number.isInteger(size) && size > 0 ? size : null } catch { return null }
+}
+function rememberPageSize(scope: string, size: number) {
+  try { localStorage.setItem(sizeKey(scope), String(size)) } catch { /* Warming then skips this list. */ }
+}
+
+export function useAdaptivePageSize(minimum = 5, maximum = 20, scope?: string) {
+  // The remembered size makes the first render ask for the page that was warmed (or cached) for it.
+  const [pageSize, setPageSize] = useState(() => matches(SHELL_COMPACT) ? Math.max(minimum, Math.min(maximum, COMPACT_PAGE)) : (scope && rememberedPageSize(scope)) || minimum)
+  const [measured, setMeasured] = useState(false)
+  const [table, setTable] = useState<HTMLDivElement | null>(null)
+  const tableRef = useCallback((node: HTMLDivElement | null) => setTable(node), [])
+
+  useLayoutEffect(() => {
+    if (!table) return
+    const currentTable = table
+    const surface = currentTable.closest<HTMLElement>('.page-surface')
+    if (!surface) { setMeasured(true); return }
+    const currentSurface = surface
+    function measure() {
+      if (matches(SHELL_COMPACT)) {
+        const size = Math.max(minimum, Math.min(maximum, COMPACT_PAGE))
+        setPageSize(size); setMeasured(true)
+        if (scope) rememberPageSize(scope, size)
+        return
+      }
+      const style = getComputedStyle(currentSurface)
+      const tableStyle = getComputedStyle(currentTable)
+      const rowHeight = parseFloat(tableStyle.getPropertyValue('--table-row-height')) || parseFloat(style.getPropertyValue('--row-height')) || 53
+      const footerHeight = parseFloat(style.getPropertyValue('--row-height-lg')) || 64
+      const contentBottom = currentSurface.getBoundingClientRect().bottom - parseFloat(style.paddingBottom)
+      const availableBody = contentBottom - currentTable.getBoundingClientRect().top - 36 - footerHeight
+      const size = Math.max(minimum, Math.min(maximum, Math.floor(availableBody / rowHeight)))
+      setPageSize(size)
+      setMeasured(true)
+      if (scope) rememberPageSize(scope, size)
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(currentSurface)
+    window.addEventListener('resize', measure)
+    return () => { observer.disconnect(); window.removeEventListener('resize', measure) }
+  }, [maximum, minimum, scope, table])
+
+  // Gate list queries on `measured` so mount requests the fitted page size once.
+  return { pageSize, tableRef, measured }
+}
+
+export function useCursorPagination() {
+  const [page, setPage] = useState(1)
+  const [cursors, setCursors] = useState<(string | undefined)[]>([undefined])
+
+  function onPageChange(nextPage: number, nextCursor?: string | null) {
+    if (nextPage === page + 1 && nextCursor) {
+      setCursors(current => {
+        const next = [...current]
+        next[nextPage - 1] = nextCursor
+        return next
+      })
+      setPage(nextPage)
+    } else if (nextPage >= 1 && nextPage <= cursors.length) {
+      setPage(nextPage)
+    }
+  }
+
+  function reset() {
+    setPage(1)
+    setCursors([undefined])
+  }
+
+  function cursorForPage(nextPage: number, nextCursor?: string | null) {
+    return nextPage === page + 1 ? nextCursor ?? undefined : cursors[nextPage - 1]
+  }
+
+  return { page, cursor: cursors[page - 1], cursorForPage, onPageChange, reset }
+}
+
+/** `value` once it has stopped changing for `ms`: a search box's text, so a typed word is one request, not one per key. */
+export function useDebounced<T>(value: T, ms = 250) {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => { const timer = window.setTimeout(() => setDebounced(value), ms); return () => window.clearTimeout(timer) }, [value, ms])
+  return debounced
+}
+
+/** A list's search box over a search kept in the URL: the box holds its own text while you type and `write`s it once
+ * you pause, so typing neither fetches per key nor races the previous navigation. A search changed elsewhere (Back,
+ * Clear filters) replaces the text. */
+export function useSearchDraft(search: string, write: (value: string) => void, ms = 250) {
+  const [draft, setDraft] = useState(search)
+  const written = useRef(search), typing = useRef<number | undefined>(undefined)
+  useEffect(() => { if (search !== written.current) { window.clearTimeout(typing.current); written.current = search; setDraft(search) } }, [search])
+  useEffect(() => () => window.clearTimeout(typing.current), [])
+  const type = (value: string) => { setDraft(value); window.clearTimeout(typing.current); typing.current = window.setTimeout(() => { written.current = value; write(value) }, ms) }
+  return [draft, type] as const
+}

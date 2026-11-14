@@ -1,0 +1,34 @@
+import { sql } from 'drizzle-orm';
+import { boolean, index, integer, jsonb, pgTable, primaryKey, text, timestamp, unique } from 'drizzle-orm/pg-core';
+
+export type SegmentRule = { field: 'email' | 'firstName' | 'plan' | 'country'; operator: 'eq' | 'neq' | 'contains'; value: string } | { field: 'lastOpenAt' | 'lastClickAt'; operator: 'within' | 'inactive'; days: number } | { operator: 'and' | 'or'; rules: SegmentRule[] };
+export type ImportRow = { row: number; email: string; name?: string; properties: Record<string, string | number | boolean | null> };
+export type ImportError = { row: number; field: string; message: string };
+// Both SES feedback paths use the same precedence. Never downgrade an operator/complaint
+// suppression to one a reply could bypass, or a delivery bounce to validation alone.
+export const reversibleReasons = sql`('hard_bounce','soft_bounce','transient','email_validation')`;
+export const mergeSuppression = sql`suppressed=c.suppressed OR excluded.suppressed,
+  suppression_reason=CASE WHEN NOT c.suppressed THEN excluded.suppression_reason
+    WHEN excluded.suppression_reason IS NULL OR c.suppression_reason IS NULL OR c.suppression_reason NOT IN ${reversibleReasons} THEN c.suppression_reason
+    WHEN excluded.suppression_reason='email_validation' THEN c.suppression_reason ELSE excluded.suppression_reason END,
+  suppressed_at=greatest(CASE WHEN c.suppressed THEN coalesce(c.suppressed_at,c.updated_at) END,excluded.suppressed_at)`;
+export type AudienceOperation = { kind: 'update_contacts'; targets: { id: string; email: string; updatedAt: string; consent: 'unknown' | 'subscribed' | 'unsubscribed' }[]; set: { name?: string | null; consent?: 'subscribed' | 'unsubscribed'; properties?: Record<string, string | number | boolean | null> } } | { kind: 'add_to_list' | 'remove_from_list'; targetIds: string[]; listId: string };
+const scope = () => ({ workspaceId: text('workspace_id').notNull() });
+const dates = () => ({ createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(), updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow() });
+
+export const contacts = pgTable('audience_contacts', {
+  id: text('id').primaryKey(), ...scope(), email: text('email').notNull(), name: text('name'),
+  properties: jsonb('properties').$type<Record<string, string | number | boolean | null>>().notNull().default({}),
+  marketingConsent: text('marketing_consent').$type<'unknown' | 'subscribed' | 'unsubscribed'>().notNull().default('unknown'),
+  suppressed: boolean('suppressed').notNull().default(false), suppressionReason: text('suppression_reason'),
+  lastOpenAt: timestamp('last_open_at', { withTimezone: true, mode: 'string' }), lastClickAt: timestamp('last_click_at', { withTimezone: true, mode: 'string' }),
+  observedSince: timestamp('observed_since', { withTimezone: true, mode: 'string' }),
+  openObservedSince: timestamp('open_observed_since', { withTimezone: true, mode: 'string' }), clickObservedSince: timestamp('click_observed_since', { withTimezone: true, mode: 'string' }),
+  deletedAt: timestamp('deleted_at', { withTimezone: true, mode: 'string' }), ...dates(),
+}, t => [unique('audience_contacts_email_scope').on(t.workspaceId, t.email), index('audience_contacts_page').on(t.workspaceId, t.id)]);
+export const lists = pgTable('audience_lists', { id: text('id').primaryKey(), ...scope(), name: text('name').notNull(), description: text('description').notNull().default(''), ...dates() }, t => [index('audience_lists_page').on(t.workspaceId, t.id)]);
+export const listMembers = pgTable('audience_list_members', { ...scope(), listId: text('list_id').notNull(), contactId: text('contact_id').notNull(), createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow() }, t => [primaryKey({ columns: [t.workspaceId, t.listId, t.contactId] }), index('audience_members_contact').on(t.workspaceId, t.contactId)]);
+export const segments = pgTable('audience_segments', { id: text('id').primaryKey(), ...scope(), name: text('name').notNull(), rule: jsonb('rule').$type<SegmentRule>().notNull(), ...dates() }, t => [index('audience_segments_page').on(t.workspaceId, t.id)]);
+export const imports = pgTable('audience_imports', { id: text('id').primaryKey(), ...scope(), listId: text('list_id'), status: text('status').$type<'preview' | 'committed'>().notNull().default('preview'), rows: jsonb('rows').$type<ImportRow[]>().notNull(), errors: jsonb('errors').$type<ImportError[]>().notNull(), imported: integer('imported').notNull().default(0), ...dates() }, t => [index('audience_imports_page').on(t.workspaceId, t.id)]);
+export const audiencePlans = pgTable('audience_operation_plans', { id: text('id').primaryKey(), ...scope(), actorKeyId: text('actor_key_id').notNull(), statement: text('statement').notNull(), operation: jsonb('operation').$type<AudienceOperation>().notNull(), matched: integer('matched').notNull(), expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'string' }).notNull(), appliedAt: timestamp('applied_at', { withTimezone: true, mode: 'string' }), createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow() }, t => [index('audience_plans_scope').on(t.workspaceId, t.id), index('audience_plans_expiry').on(t.expiresAt)]);
+export const consentAudit = pgTable('audience_consent_audit', { id: text('id').primaryKey(), ...scope(), contactId: text('contact_id').notNull(), email: text('email').notNull(), status: text('status').$type<'subscribed' | 'unsubscribed'>().notNull(), source: text('source').notNull(), policyVersion: text('policy_version'), evidence: text('evidence'), actorKeyId: text('actor_key_id'), occurredAt: timestamp('occurred_at', { withTimezone: true, mode: 'string' }).notNull(), createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow() }, t => [index('audience_consent_page').on(t.workspaceId, t.contactId, t.id)]);

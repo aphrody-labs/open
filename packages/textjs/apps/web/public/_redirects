@@ -1,0 +1,45 @@
+# nextjs.org docs paths, most specific first.
+/docs/app /docs 301
+/docs/app/getting-started /docs 301
+/docs/app/getting-started/installation /docs/installation 301
+/docs/app/getting-started/project-structure /docs/project-structure 301
+/docs/app/getting-started/layouts-and-pages /docs/routing 301
+/docs/app/getting-started/fonts /docs/fonts 301
+/docs/app/getting-started/css /docs/styling 301
+/docs/app/getting-started/route-handlers /docs/route-handlers 301
+/docs/app/getting-started/caching /docs/caching 301
+/docs/app/getting-started/caching-and-revalidating /docs/caching 301
+/docs/app/getting-started/error-handling /docs/loading-and-errors 301
+/docs/app/getting-started/deploying /docs/deploying 301
+/docs/app/api-reference/file-conventions/middleware /docs/middleware 301
+/docs/app/api-reference/file-conventions/proxy /docs/middleware 301
+/docs/app/guides/internationalization /docs/internationalization 301
+/docs/app/guides/testing /docs/testing 301
+/docs/app/api-reference/config/eslint /docs/eslint 301
+/docs/app/* /docs 302
+/learn/dashboard-app /learn 302
+/learn/dashboard-app/* /learn 302
+
+# Renamed pages. Without these, Pages keeps serving a removed page's old HTML for up to a week
+# (its asset preservation cache answers 404s), and zone purges don't clear it. /terminal/callback
+# is a Function and stays put.
+/terminal /coffee 301
+/merch /store 301
+/merch/ /store 301
+/merch/frame-tee /store 301
+/merch/hoodie /store 301
+/merch/cap /store 301
+/merch/sticker-sheet /store 301
+/merch/* /store/:splat 301
+/playground/doom /doom 301
+/playground/doom/ /doom 301
+/:locale/playground/doom /:locale/doom 301
+/:locale/playground/doom/ /:locale/doom 301
+
+# Locale paths are lowercase (src/i18n/locales.ts); the BCP 47 spelling redirects.
+/pt-BR /pt-br 301
+/pt-BR/* /pt-br/:splat 301
+/zh-CN /zh-cn 301
+/zh-CN/* /zh-cn/:splat 301
+/zh-TW /zh-tw 301
+/zh-TW/* /zh-tw/:splat 301

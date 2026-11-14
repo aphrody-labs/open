@@ -1,0 +1,602 @@
+{
+ "about": "Copy lint findings accepted so far (app/scripts/copy-lint.mjs), as “line: text” per file and rule. Only new ones fail; fix one and the next local run removes it. Regenerate with: bun run copy-lint --update-baseline",
+ "findings": {
+  "app/src/components/AccountSwitcher.tsx": {
+   "length/description": [
+    "140: each workspace has its own domains, keys and contacts. you’l"
+   ]
+  },
+  "app/src/components/AppShell.tsx": {
+   "glossary": [
+    "209: daily sending quota used ⟨quota⟩"
+   ]
+  },
+  "app/src/components/ContactSupport.tsx": {
+   "length/description": [
+    "28: if the tab didn’t open, use the link below. mention this ref"
+   ],
+   "length/heading": [
+    "27: support is open in a new tab"
+   ],
+   "length/placeholder": [
+    "39: what were you trying to do?"
+   ],
+   "restate": [
+    "28: include this reference when you email brand support. ⟨support reference⟩"
+   ]
+  },
+  "app/src/components/EmailInsight.tsx": {
+   "length/label": [
+    "170: can i email (opens in a new tab)"
+   ]
+  },
+  "app/src/components/LegalLinks.tsx": {
+   "grade": [
+    "8: by continuing you agree to the terms of service and privacy "
+   ]
+  },
+  "app/src/components/ui/primitives.tsx": {
+   "duplicate": [
+    "161: couldn’t complete the action. try again. ⟨dup⟩"
+   ],
+   "filler": [
+    "336: something went wrong. please try again. ⟨please⟩"
+   ]
+  },
+  "app/src/data/billing.ts": {
+   "passive": [
+    "67: the card was flagged by the bank ⟨was flagged by the⟩"
+   ]
+  },
+  "app/src/data/context.tsx": {
+   "glossary": [
+    "335: this account isn’t approved here. ask an administrator to ad ⟨administrator⟩"
+   ]
+  },
+  "app/src/data/regions.ts": {
+   "grade": [
+    "43: enable this region and use an unrestricted read or managemen"
+   ]
+  },
+  "app/src/data/types.ts": {
+   "numerals": [
+    "239: your workspace is still being set up for sending. try again  ⟨two⟩"
+   ]
+  },
+  "app/src/features/audience/bulk.tsx": {
+   "glossary": [
+    "49: confirm the people who opted out opted in again. ⟨opted in⟩",
+    "49: some of them opted out before. they opted in again. ⟨opted in⟩"
+   ],
+   "length/description": [
+    "37: changes every contact with unknown consent …. people who opt",
+    "41: no one …has unknown consent. nothing to change."
+   ]
+  },
+  "app/src/features/audience/consent.tsx": {
+   "length/label": [
+    "17: what do these states mean?"
+   ]
+  },
+  "app/src/features/audience/contacts.tsx": {
+   "duplicate": [
+    "104: records that they agreed to marketing email, so campaigns ca ⟨dup⟩"
+   ],
+   "glossary": [
+    "107: this person opted out before and has opted in again. ⟨opted in⟩"
+   ]
+  },
+  "app/src/features/audience/import.tsx": {
+   "duplicate": [
+    "107: say how they agreed, for example “signed up on our website”. ⟨dup⟩"
+   ],
+   "grade": [
+    "84: … already had a consent decision, which was kept: opt-outs a"
+   ],
+   "length/description": [
+    "84: … already had a consent decision, which was kept: opt-outs a"
+   ],
+   "sentence-case": [
+    "82: review unknown contacts ⟨unknown⟩"
+   ]
+  },
+  "app/src/features/audience/lists.tsx": {
+   "grade": [
+    "49: removes this list and its memberships. contacts, consent, su"
+   ],
+   "length/label": [
+    "65: mark … unknown as subscribed…"
+   ],
+   "sentence-case": [
+    "65: mark … unknown as subscribed… ⟨unknown⟩",
+    "67: no one with unknown consent ⟨unknown⟩"
+   ]
+  },
+  "app/src/features/audience/segments-live.tsx": {
+   "length/description": [
+    "162: more than 1,000 contacts match, the most a preview counts. p"
+   ],
+   "length/empty": [
+    "15: a segment is a saved filter, like “plan is pro” or “opened a"
+   ]
+  },
+  "app/src/features/audience/skeletons.tsx": {
+   "duplicate": [
+    "71: every consent change, and how it was given or withdrawn. ⟨dup⟩",
+    "75: a segment narrows a campaign’s list to the people who match  ⟨dup⟩"
+   ]
+  },
+  "app/src/features/campaigns/CampaignAttachments.tsx": {
+   "filler": [
+    "12: something went wrong. please try again. ⟨please⟩"
+   ],
+   "length/toast": [
+    "37: use at most 20 attachments with a combined size of 8 mib."
+   ]
+  },
+  "app/src/features/campaigns/CampaignProgress.tsx": {
+   "duplicate": [
+    "76: something went wrong. please try again. ⟨dup⟩"
+   ],
+   "filler": [
+    "76: something went wrong. please try again. ⟨please⟩"
+   ],
+   "grade": [
+    "70: processed means done processing, including failed and cancel"
+   ]
+  },
+  "app/src/features/campaigns/EmailComposer.tsx": {
+   "duplicate": [
+    "181: use at most 20 attachments with a combined size of 8 mib. ⟨dup⟩",
+    "189: use at most 20 attachments with a combined size of 8 mib. ⟨dup⟩"
+   ],
+   "grade": [
+    "317: select an image, button, section, column, heading, or paragr"
+   ],
+   "length/helper": [
+    "319: choose the block name above to style the whole block, or use"
+   ],
+   "length/placeholder": [
+    "313: write your email, or type / to insert a block…"
+   ],
+   "numerals": [
+    "298: two columns ⟨two⟩"
+   ]
+  },
+  "app/src/features/campaigns/index.tsx": {
+   "duplicate": [
+    "38: something went wrong. please try again. ⟨dup⟩",
+    "236: enter a valid sender email address. ⟨dup⟩",
+    "256: the composer is still loading. try again in a moment. ⟨dup⟩",
+    "338: text shown after the subject in the inbox ⟨dup⟩"
+   ],
+   "filler": [
+    "38: something went wrong. please try again. ⟨please⟩",
+    "393: the test email was not accepted. please try again. ⟨please⟩"
+   ],
+   "glossary": [
+    "679: sending also stays within your daily sending limit. ⟨sending limit⟩"
+   ],
+   "grade": [
+    "689: send “…”… to …… on … (…).……… you can reschedule or unschedul"
+   ],
+   "length/alert": [
+    "631: … … no fallback. a contact without a value stops the send. a"
+   ],
+   "length/description": [
+    "398: sends the saved draft to one address. tests don’t count as a",
+    "503: the audience and message stay as they are. to change them, u",
+    "645: eligible means subscribed and not suppressed. consent is che"
+   ],
+   "length/helper": [
+    "404: only for this test. add a fallback in the editor for contact"
+   ],
+   "length/label": [
+    "686: see every finding in the editor"
+   ],
+   "length/option": [
+    "334: no segments yet. a segment is a saved filter, made in audien"
+   ],
+   "length/placeholder": [
+    "338: text shown after the subject in the inbox",
+    "346: used when a contact has no …",
+    "350: name the campaign to check it. drafts save automatically."
+   ],
+   "numerals": [
+    "436: date and time: schedule within one year. ⟨one year⟩"
+   ]
+  },
+  "app/src/features/campaigns/skeletons.tsx": {
+   "duplicate": [
+    "39: eligible means subscribed and not suppressed. consent is che ⟨dup⟩"
+   ],
+   "length/description": [
+    "39: eligible means subscribed and not suppressed. consent is che",
+    "75: write example content. add personalization, such as {{name}}"
+   ]
+  },
+  "app/src/features/campaigns/templates.tsx": {
+   "duplicate": [
+    "22: something went wrong. please try again. ⟨dup⟩",
+    "187: publish this template to start campaigns from it ⟨dup⟩",
+    "192: write example content. add personalization, such as {{name}} ⟨dup⟩"
+   ],
+   "filler": [
+    "22: something went wrong. please try again. ⟨please⟩"
+   ],
+   "length/description": [
+    "90: a reusable starting point for campaigns. you can change ever",
+    "192: write example content. add personalization, such as {{name}}"
+   ]
+  },
+  "app/src/features/inbound/addresses.tsx": {
+   "duplicate": [
+    "228: shown as the sender name on replies. ⟨dup⟩"
+   ],
+   "grade": [
+    "64: permanent: receives until you delete it, including mail sent",
+    "218: this temporary address expired. it no longer receives or sen"
+   ],
+   "length/description": [
+    "53: mail to it lands in the inbox, where you, the api and agents",
+    "163: no mail yet. mail sent to shows up here and in the inbox wit"
+   ],
+   "length/helper": [
+    "64: after it expires it stops receiving and sending. its mail st",
+    "67: replies come from the same name on a parent domain you send "
+   ],
+   "length/label": [
+    "62: advanced · lifetime and reply-as address, optional"
+   ]
+  },
+  "app/src/features/inbound/concepts.ts": {
+   "length/description": [
+    "13: what happens to an address’s mail: post it, forward it, junk",
+    "24: run an email through your routes and rituals to see what wou",
+    "29: questions a ritual asks brand’s ai about an email. each answ",
+    "47: an address keeps its own threads in the inbox. a route can s"
+   ]
+  },
+  "app/src/features/inbound/inboxes.tsx": {
+   "grade": [
+    "139: this message contains styling or invisible characters. hidde",
+    "231: after it expires, new mail is held for 1 more day (stored an"
+   ],
+   "length/description": [
+    "251: these api keys read only this inbox, over the api or mcp. th"
+   ],
+   "length/empty": [
+    "110: expiring addresses for agents and end-to-end tests. create o"
+   ],
+   "length/helper": [
+    "79: sandbox: a made-up .invalid address that only gets test mail",
+    "86: then it holds new mail for 1 more day without delivering it,"
+   ],
+   "length/option": [
+    "89: create an api key for this inbox: lets an agent or test read",
+    "90: allow replies: up to 20 a day, only to people who wrote to i"
+   ],
+   "sentence-length": [
+    "89: create an api key for this inbox: lets an agent or test read",
+    "231: after it expires, new mail is held for 1 more day (stored an"
+   ]
+  },
+  "app/src/features/inbound/receiving.tsx": {
+   "length/description": [
+    "154: showing the first 100 endpoints and 100 inbound webhooks. ev"
+   ]
+  },
+  "app/src/features/inbound/ritual-agent.tsx": {
+   "length/helper": [
+    "76: then run … , choose brand, sign in and approve full access. "
+   ],
+   "length/label": [
+    "101: how agents connect over mcp"
+   ]
+  },
+  "app/src/features/inbound/ritual-connections.tsx": {
+   "length/helper": [
+    "119: its recipient confirmed this address, so it can’t change. cr"
+   ],
+   "length/option": [
+    "128: skip the email: the address is on a domain this workspace ve"
+   ]
+  },
+  "app/src/features/inbound/rituals.tsx": {
+   "duplicate": [
+    "372: version … was saved while you were editing: load theirs or k ⟨dup⟩",
+    "445: run the next one too ⟨dup⟩",
+    "515: run the next one too ⟨dup⟩"
+   ],
+   "length/heading": [
+    "535: … saved version … while you were editing."
+   ],
+   "length/toast": [
+    "338: your edits are on top of version …. save to apply them.",
+    "354: version … was saved while you were editing: load theirs or k",
+    "372: version … was saved while you were editing: load theirs or k"
+   ]
+  },
+  "app/src/features/inbound/routing.tsx": {
+   "grade": [
+    "104: mail to this route falls back to the next most specific rule"
+   ],
+   "length/description": [
+    "88: slack, discord and forwards go through a ritual, which picks"
+   ],
+   "length/option": [
+    "93: on. when off, this mail follows the next most specific rule."
+   ],
+   "sentence-length": [
+    "88: slack, discord and forwards go through a ritual, which picks",
+    "104: mail to this route falls back to the next most specific rule"
+   ]
+  },
+  "app/src/features/inbound/threads.tsx": {
+   "length/description": [
+    "170: this conversation reached several addresses. filter by one t"
+   ]
+  },
+  "app/src/features/inbound/trace.tsx": {
+   "length/description": [
+    "63: no mail received yet. try the sample email, or paste a messa",
+    "79: no mail yet, so a sample email stands in. paste a message to"
+   ],
+   "length/placeholder": [
+    "78: from: ana@example.org to: support@acme.com subject: invoice "
+   ]
+  },
+  "app/src/features/inbound/webhooks.tsx": {
+   "length/description": [
+    "103: signed posts (standard webhooks) for received mail and your ",
+    "104: the active and paused webhooks that get this address’s mail."
+   ],
+   "length/heading": [
+    "75: only owners and admins can manage webhooks"
+   ]
+  },
+  "app/src/features/onboarding/index.tsx": {
+   "duplicate": [
+    "322: open aws to create the stack ⟨dup⟩"
+   ],
+   "filler": [
+    "261: send through brand’s amazon ses account. no aws account need ⟨just⟩"
+   ],
+   "length/description": [
+    "261: send through brand’s amazon ses account. no aws account need",
+    "267: send through amazon ses in your own aws account. setup creat",
+    "318: a cloudformation stack gives brand a role in your account. i",
+    "408: use a domain you own. next, you’ll add a few dns records.",
+    "440: add these records at your dns provider. you can continue whi",
+    "491: create a key, then send with curl, the sdk or your coding ag"
+   ],
+   "length/label": [
+    "321: open aws to create the stack",
+    "322: open aws to create the stack",
+    "334: having trouble? enter your aws account id"
+   ],
+   "length/toast": [
+    "158: if you created the brand stack in aws, you can delete it the"
+   ],
+   "numerals": [
+    "318: a cloudformation stack gives brand a role in your account. i ⟨two⟩"
+   ]
+  },
+  "app/src/features/operator/index.tsx": {
+   "duplicate": [
+    "359: optional: the support ticket id or url. ⟨dup⟩"
+   ],
+   "glossary": [
+    "268: all sending stops and the ses tenants are disabled. owners s ⟨tenants⟩"
+   ],
+   "length/description": [
+    "268: all sending stops and the ses tenants are disabled. owners s"
+   ],
+   "restate": [
+    "210: billing ⟨billing⟩"
+   ]
+  },
+  "app/src/features/operator/notes.tsx": {
+   "length/description": [
+    "165: a key lets a script or agent list ui notes, download their s"
+   ],
+   "length/heading": [
+    "169: copy the key now. it isn’t shown again."
+   ],
+   "length/placeholder": [
+    "131: what was done, or why not"
+   ]
+  },
+  "app/src/features/score/standing.tsx": {
+   "glossary": [
+    "33: confirm every contact opted in; stop mailing bought or old l ⟨opted in⟩",
+    "42: how sending limits work ⟨sending limits⟩"
+   ],
+   "length/description": [
+    "54: marketing resumes at 50% of its allowance for 48 hours. you "
+   ]
+  },
+  "app/src/features/settings/admin-only.tsx": {
+   "length/description": [
+    "12: only workspace owners and admins can …. ask one to do it, or"
+   ]
+  },
+  "app/src/features/settings/billing.tsx": {
+   "duplicate": [
+    "74: … of … free emails used ⟨dup⟩",
+    "74: usage after the free emails ⟨dup⟩",
+    "238: … added to your balance ⟨dup⟩"
+   ],
+   "glossary": [
+    "54: for auto-recharge and one-click top-ups ⟨top-ups⟩",
+    "93: then it’s held until you add credit. the balance is below $0 ⟨top-up⟩",
+    "196: top-ups and hourly usage appear here. ⟨top-ups⟩"
+   ],
+   "length/alert": [
+    "93: then it’s held until you add credit. the balance is below $0"
+   ],
+   "length/description": [
+    "67: nothing is charged and sending never pauses for a balance. u",
+    "244: credit pays for email you send and receive at $0.20 per 1,00"
+   ],
+   "length/label": [
+    "121: terms (refund and expiry policy)"
+   ]
+  },
+  "app/src/features/settings/create-key.tsx": {
+   "grade": [
+    "31: for your server, a script or an agent: the whole workspace, "
+   ],
+   "length/description": [
+    "170: no domains yet. add one, or keep all domains.",
+    "183: no receiving addresses yet. create one, or choose every addr",
+    "227: shown once. copy it now and enter it as the password in your"
+   ],
+   "length/field": [
+    "191: what it can do with the mail"
+   ],
+   "length/helper": [
+    "31: for your server, a script or an agent: the whole workspace, ",
+    "241: mail app access is billed by the day while the inbox has an "
+   ]
+  },
+  "app/src/features/settings/domain-records.tsx": {
+   "duplicate": [
+    "250: dns records are not available yet. ⟨dup⟩"
+   ],
+   "grade": [
+    "191: new records usually appear within minutes, sometimes up to a"
+   ],
+   "length/description": [
+    "246: add these at your dns provider. brand keeps checking."
+   ]
+  },
+  "app/src/features/settings/domains.tsx": {
+   "duplicate": [
+    "227: use an unused subdomain of …. ⟨dup⟩"
+   ],
+   "grade": [
+    "267: creating the s3 bucket, sns topic and ses receipt rule, usua"
+   ],
+   "length/description": [
+    "251: receive mail on …. its addresses and routes are in receiving"
+   ]
+  },
+  "app/src/features/settings/hosted.tsx": {
+   "length/label": [
+    "124: … of … real emails",
+    "153: sign out of this account"
+   ]
+  },
+  "app/src/features/settings/keys-guide.tsx": {
+   "length/label": [
+    "19: which key do i need?"
+   ]
+  },
+  "app/src/features/settings/keys.tsx": {
+   "grade": [
+    "108: an app password lets a mail app such as apple mail or thunde"
+   ],
+   "length/empty": [
+    "107: connect an agent to let opencode, claude code or cursor work",
+    "108: an app password lets a mail app such as apple mail or thunde"
+   ],
+   "sentence-length": [
+    "108: an app password lets a mail app such as apple mail or thunde"
+   ]
+  },
+  "app/src/features/settings/mcp-approval.tsx": {
+   "length/description": [
+    "39: the client acts as the account it signed in with at anomaly ",
+    "57: tool calls can name any of your workspaces, or default to th"
+   ]
+  },
+  "app/src/features/settings/region-setup.tsx": {
+   "glossary": [
+    "146: sent / daily quota ⟨quota⟩"
+   ],
+   "length/confirm": [
+    "129: creates or repairs ses configuration sets and sns feedback i"
+   ],
+   "sentence-length": [
+    "129: creates or repairs ses configuration sets and sns feedback i"
+   ]
+  },
+  "app/src/features/settings/reputation.tsx": {
+   "length/description": [
+    "48: no data in the last 14 days. ses publishes these rates once "
+   ]
+  },
+  "app/src/features/settings/setup-checklist.tsx": {
+   "glossary": [
+    "40: callback ⟨callback⟩"
+   ],
+   "grade": [
+    "36: in sns, choose request confirmation for the pending subscrip"
+   ]
+  },
+  "app/src/features/settings/shared.tsx": {
+   "duplicate": [
+    "12: couldn’t save the change. try again. ⟨dup⟩"
+   ]
+  },
+  "app/src/features/settings/skeletons.tsx": {
+   "duplicate": [
+    "112: used for api sends that omit a region. ⟨dup⟩"
+   ]
+  },
+  "app/src/features/settings/usage.tsx": {
+   "length/description": [
+    "50: new workspaces start small so one mistake can’t hurt everyon"
+   ],
+   "length/label": [
+    "42: free emails used this month"
+   ]
+  },
+  "app/src/features/settings/webhook-headers.tsx": {
+   "grade": [
+    "11: sent with every delivery, such as authorization. values are "
+   ]
+  },
+  "app/src/features/settings/webhooks.tsx": {
+   "duplicate": [
+    "35: enter a full url, such as https://acme.com/hooks/email. ⟨dup⟩",
+    "196: shown once. copy it now. ⟨dup⟩"
+   ],
+   "length/description": [
+    "66: brand calls your url when email you send is delivered, bounc",
+    "196: keep it on your server. anyone with it can sign requests as ",
+    "196: shown once. copy it now.",
+    "209: brand signs every delivery with this secret in the … header."
+   ]
+  },
+  "app/src/features/settings/workspace-members.tsx": {
+   "grade": [
+    "36: owners can do everything, including changing your role or re",
+    "38: they keep sending email and editing content, and lose access"
+   ],
+   "length/description": [
+    "36: owners can do everything, including changing your role or re",
+    "38: they keep sending email and editing content, and lose access"
+   ]
+  },
+  "app/src/features/support/SupportPanel.tsx": {
+   "length/heading": [
+    "235: let brand support read the content of your emails in … for t"
+   ]
+  },
+  "app/src/features/ui-notes/index.tsx": {
+   "length/label": [
+    "241: open where it was left"
+   ],
+   "length/toast": [
+    "54: that shows a secret, so it can’t have a note. note what’s ar"
+   ]
+  },
+  "app/src/lib/leave-guard.tsx": {
+   "length/description": [
+    "38: you haven’t saved …. leaving now discards them."
+   ]
+  }
+ }
+}

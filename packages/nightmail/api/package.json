@@ -1,0 +1,65 @@
+{
+  "name": "bane-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=.env src/server.ts",
+    "start": "node --env-file-if-exists=.env --import tsx src/server.ts",
+    "worker": "node --env-file-if-exists=.env --import tsx src/runner.ts",
+    "migrate": "node --env-file-if-exists=.env --import tsx src/migrate.ts",
+    "iam-policy:personal": "node scripts/create-iam-policy.mjs",
+    "check": "tsc --noEmit && tsc --ignoreConfig --noEmit --strict --skipLibCheck --target ES2022 --module NodeNext --lib ES2023,DOM,DOM.Iterable --types node,@cloudflare/workers-types scripts/e2e.ts",
+    "e2e": "node --import tsx scripts/e2e.ts",
+    "test": "node --env-file-if-exists=.env --import tsx --test api.acceptance.test.ts",
+    "tear:ci": "cargo run --release --locked --manifest-path tear/Cargo.toml -- ci",
+    "openapi": "tsx src/export-openapi.ts",
+    "sdk": "bun run openapi && openapi-ts && cp src/brand.ts ../sdk/src/brand.ts && cp src/brand.ts ../mcp/src/brand.ts && tsc -p ../sdk/tsconfig.json",
+    "docs:check": "bun run sdk && node scripts/check-doc-examples.mjs && tsx scripts/check-agent-docs.ts",
+    "cf:dev": "wrangler dev --config wrangler.dev.jsonc",
+    "cf:check": "wrangler deploy --config wrangler.prod.jsonc --dry-run",
+    "build": "tsc -p tsconfig.build.json",
+    "mcp:coverage": "tsx scripts/mcp-coverage.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cloudwatch": "^3.1128.0",
+    "@aws-sdk/client-s3": "^3.1128.0",
+    "@aws-sdk/client-ses": "^3.1128.0",
+    "@aws-sdk/client-sesv2": "^3.1128.0",
+    "@aws-sdk/client-sns": "^3.1128.0",
+    "@aws-sdk/client-sts": "^3.1128.0",
+    "@aws-sdk/s3-request-presigner": "^3.1128.0",
+    "@cfworker/json-schema": "4.1.1",
+    "@hono/node-server": "2.1.6",
+    "@hono/zod-openapi": "^1.6.3",
+    "@modelcontextprotocol/server": "2.4.0",
+    "@smithy/fetch-http-handler": "^5.8.0",
+    "acorn": "^8",
+    "devalue": "6.0.3",
+    "drizzle-orm": "^0.45.2",
+    "hono": "4.13.17",
+    "oauth4webapi": "^3.8.8",
+    "parse5": "^8.0.1",
+    "pg": "^8.23.0",
+    "postal-mime": "4.2.1",
+    "re2js": "2.10.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260908.1",
+    "@hey-api/openapi-ts": "^0.99.0",
+    "@types/node": "^26.5.0",
+    "@types/pg": "^8.23.1",
+    "tsx": "^4.23.13",
+    "typescript": "^6.0.3",
+    "wrangler": "^4.130.0"
+  },
+  "overrides": {
+    "js-yaml": "5.4.1",
+    "sharp": "0.35.5",
+    "undici": "7.30.2"
+  },
+  "trustedDependencies": [
+    "esbuild",
+    "workerd"
+  ]
+}

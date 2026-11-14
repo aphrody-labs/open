@@ -1,0 +1,144 @@
+<!doctype html>
+<!-- ⌘⌥J · Ctrl+Shift+J -->
+<html lang="en" style="background:#000000">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#000000" />
+    <title>Text.js | The Console Framework</title>
+    <meta name="description" content="Text.js is the React framework for apps that render inside the DevTools console." />
+    <meta name="generator" content="Text.js 1.0 (Turbolog)" />
+    <link rel="canonical" href="https://textjs.org/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="author" type="text/plain" href="/humans.txt" />
+    <link rel="alternate" type="application/rss+xml" title="Text.js Blog" href="https://textjs.org/blog/rss.xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Text.js" />
+    <meta property="og:url" content="https://textjs.org/" />
+    <meta property="og:title" content="Text.js | The Console Framework" />
+    <meta property="og:description" content="Build full-stack React apps that render inside console.log." />
+    <meta property="og:image" content="https://textjs.org/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Text.js, the Console Framework for the Web" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Text.js | The Console Framework" />
+    <meta name="twitter:description" content="Build full-stack React apps that render inside console.log." />
+    <meta name="twitter:image" content="https://textjs.org/og.png" />
+    <link rel="preload" href="/fonts/geist-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/geist-mono-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/geist-mono-symbols.woff2" as="font" type="font/woff2" crossorigin />
+    <style>
+      /* Self-hosted Geist (OFL). `optional` + preload: the web font is either there for first paint or
+         not used on this page view, so text never re-flows; fallbacks are metric-matched, and only for the
+         scripts Arial and Menlo are matched to, so Arabic, Hebrew and CJK go to the page language's system font. */
+      @font-face { font-family: "Geist"; font-style: normal; font-weight: 100 900; font-display: optional; src: url(/fonts/geist-latin.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+      @font-face { font-family: "Geist Mono"; font-style: normal; font-weight: 100 900; font-display: optional; src: url(/fonts/geist-mono-latin.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+      @font-face { font-family: "Geist Mono"; font-style: normal; font-weight: 100 900; font-display: optional; src: url(/fonts/geist-mono-symbols.woff2) format("woff2"); unicode-range: U+2000-2001, U+2004-2008, U+200A, U+23B8-23BD, U+2500-259F; }
+      @font-face { font-family: "Geist Fallback"; src: local("Arial"), local("Helvetica"); size-adjust: 102.18%; ascent-override: 98.84%; descent-override: 28.38%; line-gap-override: 0%; unicode-range: U+0000-024F, U+0259, U+02B0-036F, U+0370-03FF, U+0400-052F, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2100-218F, U+2190-23FF, U+2500-25FF, U+FEFF, U+FFFD; }
+      @font-face { font-family: "Geist Mono Fallback"; src: local("Menlo"), local("Courier New"); size-adjust: 99.66%; ascent-override: 101.34%; descent-override: 29.1%; line-gap-override: 0%; unicode-range: U+0000-024F, U+0259, U+02B0-036F, U+0370-03FF, U+0400-052F, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2100-218F, U+2190-23FF, U+2500-25FF, U+FEFF, U+FFFD; }
+      html, body { margin: 0; background: #000000; color: #ededed; }
+    </style>
+    <script>
+      (function () {
+        // Console shortcuts differ by platform (⌘⌥J, Ctrl+Shift+J) and browser (⌘⌥K in Firefox, ⌘⌥C in Safari).
+        // Every variant is prerendered and CSS picks one. Same checks as detectConsoleBrowser() in @textjs/core.
+        var root = document.documentElement;
+        if (/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)) root.dataset.os = "mac";
+        if (!window.CSS || !CSS.supports) return;
+        if (!CSS.supports("-moz-appearance", "none")) {
+          if (window.chrome || navigator.userAgentData) return;
+          if (CSS.supports("-webkit-hyphens", "auto") || CSS.supports("-webkit-backdrop-filter", "none")) root.dataset.browser = "safari";
+          return;
+        }
+        root.dataset.browser = "firefox";
+        // Chrome holds first paint up to 100ms for a preloaded `optional` font. Firefox paints at once and swaps Geist
+        // in if it lands within 100ms of first using it, which moves text. Hold the page until the fonts are applied
+        // (150ms at most), loading the local fallbacks too: Firefox loads local() faces lazily. The stylesheets come
+        // after this script (postbuild-pages.ts), so it runs, and the timer starts, without waiting for them.
+        if (!document.fonts || !Promise.allSettled) return;
+        var shown = false, show = function () {
+          if (shown) return;
+          shown = true;
+          root.style.removeProperty("visibility");
+        };
+        // Firefox restyles for a loaded font a frame or two after the promise settles.
+        var settle = function () { requestAnimationFrame(function () { requestAnimationFrame(show); }); };
+        root.style.visibility = "hidden";
+        setTimeout(show, 150);
+        // allSettled: a local() fallback that isn't installed rejects at once. " \u2588" loads Geist Mono's symbols subset too.
+        // Plus a character from the page's language, so pages in Latin Extended or Cyrillic load that subset of both too.
+        var sample = { pl: "ą", tr: "ğ", vi: "ạ", ru: "ж" }[root.lang] || "";
+        Promise.allSettled([
+          document.fonts.load("16px Geist", "a" + sample),
+          document.fonts.load('12px "Geist Mono"', " \u2588" + sample),
+          document.fonts.load('16px "Geist Fallback"'),
+          document.fonts.load('12px "Geist Mono Fallback"'),
+        ]).then(settle);
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      <p style="font-family: system-ui, sans-serif; padding: 48px; text-align: center; color: #a1a1a1">
+        ▼ Text.js renders into <code>console.log</code>, which requires JavaScript.
+      </p>
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // `?debug=scroll`: live scroll/viewport readout for diagnosing mobile Safari.
+      if (/[?&]debug=scroll\b/.test(location.search)) {
+        var d = document.createElement("pre");
+        d.style.cssText = "position:fixed;left:8px;bottom:8px;z-index:99999;margin:0;padding:6px 8px;font:10px/1.35 ui-monospace,monospace;max-width:calc(100vw - 16px);white-space:pre-wrap;word-break:break-all;color:#0f0;background:rgba(0,0,0,.85);border:1px solid #0f0;pointer-events:none";
+        document.body.appendChild(d);
+        // Count and attribute every programmatic focus/scroll so the culprit shows up on screen.
+        var calls = {}, last = "-";
+        var wrap = function (obj, name, label) {
+          var orig = obj[name];
+          if (!orig) return;
+          obj[name] = function () {
+            calls[label] = (calls[label] || 0) + 1;
+            var t = this && this.tagName ? this.tagName.toLowerCase() + (this.className && typeof this.className === "string" ? "." + this.className.split(" ")[0] : "") : "window";
+            var st = (new Error().stack || "").split("\n").slice(1, 4).map(function (l) { return l.replace(/^.*\//, "").slice(0, 38); }).join(" < ");
+            last = label + " " + t + " @" + Math.round(scrollY) + " " + st;
+            return orig.apply(this, arguments);
+          };
+        };
+        wrap(HTMLElement.prototype, "focus", "focus");
+        wrap(Element.prototype, "scrollIntoView", "sIV");
+        wrap(window, "scrollTo", "scrollTo");
+        wrap(window, "scrollBy", "scrollBy");
+        wrap(Element.prototype, "scrollTo", "el.scrollTo");
+        var se0 = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop");
+        if (se0 && se0.set) Object.defineProperty(Element.prototype, "scrollTop", { get: se0.get, set: function (v) { if (this === document.scrollingElement || this === document.body) { calls.setTop = (calls.setTop || 0) + 1; last = "scrollTop=" + v; } return se0.set.call(this, v); }, configurable: true });
+        var touch = 0, lastTouch = 0, sy = scrollY, events = [], resizes = 0;
+        addEventListener("touchstart", function () { touch++; lastTouch = performance.now(); }, { passive: true });
+        addEventListener("touchmove", function () { lastTouch = performance.now(); }, { passive: true });
+        addEventListener("touchend", function () { touch--; lastTouch = performance.now(); }, { passive: true });
+        addEventListener("resize", function () { resizes++; events.push("rs" + innerHeight); if (events.length > 6) events.shift(); });
+        addEventListener("scroll", function () {
+          var d = Math.round(scrollY - sy); sy = scrollY;
+          if (!d) return;
+          var src = touch > 0 ? "t" : performance.now() - lastTouch < 1500 ? "m" : "X";
+          events.push(src + (d > 0 ? "+" : "") + d + "@" + Math.round(scrollY));
+          if (events.length > 6) events.shift();
+        }, { passive: true });
+        var tick = function () {
+          var v = visualViewport, h = document.querySelector(".header"), m = document.querySelector("main"), se = document.scrollingElement;
+          d.textContent = "scrollY " + Math.round(scrollY) + "  se.top " + Math.round(se.scrollTop) + "\ninner " + innerWidth + "x" + innerHeight + "  outerH " + outerHeight +
+            "\nvv " + Math.round(v.width) + "x" + Math.round(v.height) + " off " + Math.round(v.offsetTop) + " page " + Math.round(v.pageTop) + " s " + v.scale.toFixed(2) +
+            "\ndocH " + se.scrollHeight + "  hdr " + Math.round(h.getBoundingClientRect().top) + "-" + Math.round(h.getBoundingClientRect().bottom) + "  main " + Math.round(m.getBoundingClientRect().top) +
+            "\ngutter " + getComputedStyle(document.documentElement).scrollbarGutter + "  html.ov " + (document.documentElement.style.overflow || "-") +
+            "\nactive " + (function (a) { return a ? a.tagName.toLowerCase() + (typeof a.className === "string" && a.className ? "." + a.className.split(" ")[0] : "") + (a.getAttribute && a.getAttribute("aria-label") ? "[" + a.getAttribute("aria-label").slice(0, 20) + "]" : "") : "-"; })(document.activeElement) +
+            "\ncalls " + JSON.stringify(calls) + "\nlast " + last +
+            "\nanchor " + getComputedStyle(document.documentElement).overflowAnchor + "  resizes " + resizes +
+            "\nscroll " + events.join(" ");
+          requestAnimationFrame(tick);
+        };
+        tick();
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,46 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {"Effect": "Deny", "Action": "ses:SendEmail", "Resource": "arn:aws:ses:us-east-1:YOUR_AWS_ACCOUNT_ID:identity/*@*"},
+    {
+      "Effect": "Allow", "Action": "ses:SendEmail",
+      "Resource": ["arn:aws:ses:us-east-1:YOUR_AWS_ACCOUNT_ID:identity/?*.??*", "arn:aws:ses:us-east-1:YOUR_AWS_ACCOUNT_ID:configuration-set/bane-trusted-transactional", "arn:aws:ses:us-east-1:YOUR_AWS_ACCOUNT_ID:configuration-set/bane-trusted-marketing"],
+      "Condition": {"StringLike": {"ses:TenantName": "bane-trusted-ws_????????????????????????????????"}, "StringEquals": {"ses:ApiVersion": "2"}, "Null": {"ses:MultiRegionEndpointId": "true"}}
+    },
+    {
+      "Effect": "Allow", "Action": ["ses:GetConfigurationSet", "sns:GetTopicAttributes", "sns:ListTagsForResource", "sns:ListSubscriptionsByTopic", "sns:GetSubscriptionAttributes"],
+      "Resource": ["arn:aws:ses:us-east-1:YOUR_AWS_ACCOUNT_ID:configuration-set/bane-trusted-transactional", "arn:aws:ses:us-east-1:YOUR_AWS_ACCOUNT_ID:configuration-set/bane-trusted-marketing", "arn:aws:sns:us-east-1:YOUR_AWS_ACCOUNT_ID:bane-trusted-feedback"]
+    },
+    {
+      "Effect": "Allow", "Action": ["ses:GetConfigurationSetEventDestinations", "ses:CreateTenantResourceAssociation"],
+      "Resource": ["arn:aws:ses:us-east-1:YOUR_AWS_ACCOUNT_ID:configuration-set/bane-trusted-transactional", "arn:aws:ses:us-east-1:YOUR_AWS_ACCOUNT_ID:configuration-set/bane-trusted-marketing"],
+      "Condition": {"StringEquals": {"aws:ResourceTag/bane:owner": "bane", "aws:ResourceTag/bane:installation-id": "bane:pool", "aws:ResourceTag/bane:purpose": "ses-feedback"}}
+    },
+    {
+      "Effect": "Allow", "Action": "sns:Subscribe", "Resource": "arn:aws:sns:us-east-1:YOUR_AWS_ACCOUNT_ID:bane-trusted-feedback",
+      "Condition": {"StringEquals": {"aws:ResourceTag/bane:owner": "bane", "aws:ResourceTag/bane:installation-id": "bane:pool", "aws:ResourceTag/bane:purpose": "ses-feedback", "sns:Protocol": "https", "sns:Endpoint": "https://bane.mx/v1/events/ses"}}
+    },
+    {
+      "Effect": "Allow", "Action": "ses:CreateTenant", "Resource": ["arn:aws:ses:us-east-1:YOUR_AWS_ACCOUNT_ID:tenant/bane-trusted-ws_????????????????????????????????/*", "arn:aws:ses:us-east-2:YOUR_AWS_ACCOUNT_ID:tenant/bane-probation-ws_????????????????????????????????/*"],
+      "Condition": {
+        "StringEquals": {"aws:RequestTag/bane:owner": "bane", "aws:RequestTag/bane:installation-id": "bane:pool", "aws:RequestTag/bane:purpose": "workspace-tenant"},
+        "ForAllValues:StringEquals": {"aws:TagKeys": ["bane:owner", "bane:installation-id", "bane:purpose"]}
+      }
+    },
+    {
+      "Effect": "Allow", "Action": "ses:TagResource", "Resource": ["arn:aws:ses:us-east-1:YOUR_AWS_ACCOUNT_ID:tenant/bane-trusted-ws_????????????????????????????????/*", "arn:aws:ses:us-east-2:YOUR_AWS_ACCOUNT_ID:tenant/bane-probation-ws_????????????????????????????????/*"],
+      "Condition": {
+        "StringEquals": {"aws:RequestTag/bane:owner": "bane", "aws:RequestTag/bane:installation-id": "bane:pool", "aws:RequestTag/bane:purpose": "workspace-tenant", "aws:ResourceTag/bane:owner": "bane", "aws:ResourceTag/bane:installation-id": "bane:pool", "aws:ResourceTag/bane:purpose": "workspace-tenant"},
+        "ForAllValues:StringEquals": {"aws:TagKeys": ["bane:owner", "bane:installation-id", "bane:purpose"]}
+      }
+    },
+    {
+      "Effect": "Allow", "Action": ["ses:GetTenant", "ses:CreateTenantResourceAssociation", "ses:DeleteTenantResourceAssociation", "ses:PutTenantSuppressionAttributes", "ses:UpdateReputationEntityPolicy", "ses:GetReputationEntity", "ses:UpdateReputationEntityCustomerManagedStatus"],
+      "Resource": ["arn:aws:ses:us-east-1:YOUR_AWS_ACCOUNT_ID:tenant/bane-trusted-ws_????????????????????????????????/*", "arn:aws:ses:us-east-2:YOUR_AWS_ACCOUNT_ID:tenant/bane-probation-ws_????????????????????????????????/*"],
+      "Condition": {"StringEquals": {"aws:ResourceTag/bane:owner": "bane", "aws:ResourceTag/bane:installation-id": "bane:pool", "aws:ResourceTag/bane:purpose": "workspace-tenant"}}
+    },
+    {
+      "Effect": "Allow", "Action": "ses:UpdateReputationEntityPolicy", "Resource": "arn:aws:ses:us-east-1:aws:reputation-policy/strict"
+    }
+  ]
+}

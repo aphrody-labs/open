@@ -1,0 +1,491 @@
+{
+ "about": "Density lint: each page’s score and findings accepted so far (app/scripts/density.mjs). A new finding or a score more than 5% higher fails; a local run lowers these as pages improve. Regenerate with: node scripts/density.mjs --update-baseline",
+ "pages": {
+  "API keys · create key dialog · desktop": {
+   "score": 13,
+   "findings": []
+  },
+  "API keys · create key dialog · phone": {
+   "score": 13,
+   "findings": []
+  },
+  "API keys · desktop": {
+   "score": 8,
+   "findings": []
+  },
+  "API keys · phone": {
+   "score": 16,
+   "findings": []
+  },
+  "Audience · desktop": {
+   "score": 16,
+   "findings": []
+  },
+  "Audience · import dialog · desktop": {
+   "score": 18,
+   "findings": []
+  },
+  "Audience · phone": {
+   "score": 13,
+   "findings": []
+  },
+  "Campaign editor · desktop": {
+   "score": 45,
+   "findings": []
+  },
+  "Campaign review · desktop": {
+   "score": 20,
+   "findings": []
+  },
+  "Campaign review · phone": {
+   "score": 18,
+   "findings": []
+  },
+  "Campaigns · desktop": {
+   "score": 5,
+   "findings": []
+  },
+  "Campaigns · phone": {
+   "score": 4,
+   "findings": []
+  },
+  "Campaigns · restricted · desktop": {
+   "score": 20,
+   "findings": []
+  },
+  "Campaigns · restricted · phone": {
+   "score": 19,
+   "findings": []
+  },
+  "Contact · desktop": {
+   "score": 18,
+   "findings": []
+  },
+  "Domain · desktop": {
+   "score": 46,
+   "findings": []
+  },
+  "Domain · phone": {
+   "score": 53,
+   "findings": [
+    "dup-label|cname",
+    "dup-label|txt"
+   ]
+  },
+  "Domains · add domain dialog · desktop": {
+   "score": 3,
+   "findings": []
+  },
+  "Domains · desktop": {
+   "score": 4,
+   "findings": []
+  },
+  "Domains · phone": {
+   "score": 4,
+   "findings": []
+  },
+  "List · desktop": {
+   "score": 17,
+   "findings": []
+  },
+  "Lists · desktop": {
+   "score": 13,
+   "findings": []
+  },
+  "Lists · phone": {
+   "score": 6,
+   "findings": []
+  },
+  "Logs · desktop": {
+   "score": 9,
+   "findings": []
+  },
+  "Logs · phone": {
+   "score": 32,
+   "findings": []
+  },
+  "Logs · received · desktop": {
+   "score": 7,
+   "findings": []
+  },
+  "New campaign · desktop": {
+   "score": 24,
+   "findings": []
+  },
+  "Onboarding · desktop": {
+   "score": 17,
+   "findings": []
+  },
+  "Onboarding · phone": {
+   "score": 18,
+   "findings": []
+  },
+  "Operator · desktop": {
+   "score": 8,
+   "findings": []
+  },
+  "Operator · phone": {
+   "score": 6,
+   "findings": []
+  },
+  "Operator · workspace · desktop": {
+   "score": 30,
+   "findings": []
+  },
+  "Operator · workspace · phone": {
+   "score": 31,
+   "findings": [
+    "inert|# of #,### accepted emails were marked a"
+   ]
+  },
+  "Overview · desktop": {
+   "score": 23,
+   "findings": []
+  },
+  "Overview · phone": {
+   "score": 26,
+   "findings": []
+  },
+  "Overview · restricted · desktop": {
+   "score": 43,
+   "findings": []
+  },
+  "Overview · restricted · phone": {
+   "score": 44,
+   "findings": []
+  },
+  "Overview · sender score dialog · desktop": {
+   "score": 44,
+   "findings": []
+  },
+  "Overview · sender score dialog · phone": {
+   "score": 43,
+   "findings": []
+  },
+  "Overview · sending limits dialog · desktop": {
+   "score": 65,
+   "findings": [
+    "inert|marketing is held, not receipts or reset",
+    "inert|sending stops; receiving, inboxes and th",
+    "inert|the limit stops rising and owners and ad",
+    "long-block|marketing is held, not receipts or reset",
+    "long-block|sending stops; receiving, inboxes and th"
+   ]
+  },
+  "Overview · sending limits dialog · phone": {
+   "score": 56,
+   "findings": [
+    "long-block|marketing is held, not receipts or reset",
+    "long-block|sending stops; receiving, inboxes and th"
+   ]
+  },
+  "Overview · setup · desktop": {
+   "score": 26,
+   "findings": []
+  },
+  "Received email · desktop": {
+   "score": 10,
+   "findings": []
+  },
+  "Received email · phone": {
+   "score": 10,
+   "findings": []
+  },
+  "Receiving · address · desktop": {
+   "score": 50,
+   "findings": []
+  },
+  "Receiving · address · phone": {
+   "score": 39,
+   "findings": []
+  },
+  "Receiving · agent inbox · desktop": {
+   "score": 43,
+   "findings": [
+    "inert|create one with connect an agent. it com",
+    "long-block|after it expires, new mail is held for #"
+   ]
+  },
+  "Receiving · agent inboxes · desktop": {
+   "score": 4,
+   "findings": []
+  },
+  "Receiving · agent inboxes · phone": {
+   "score": 4,
+   "findings": []
+  },
+  "Receiving · ask your agent dialog · desktop": {
+   "score": 43,
+   "findings": []
+  },
+  "Receiving · desktop": {
+   "score": 20,
+   "findings": []
+  },
+  "Receiving · endpoints · desktop": {
+   "score": 17,
+   "findings": []
+  },
+  "Receiving · inbox · desktop": {
+   "score": 74,
+   "findings": []
+  },
+  "Receiving · inbox · phone": {
+   "score": 71,
+   "findings": []
+  },
+  "Receiving · new address dialog · desktop": {
+   "score": 11,
+   "findings": []
+  },
+  "Receiving · new address dialog · phone": {
+   "score": 11,
+   "findings": []
+  },
+  "Receiving · new agent inbox dialog · desktop": {
+   "score": 35,
+   "findings": [
+    "long-block|then it holds new mail for # more day wi"
+   ]
+  },
+  "Receiving · new ritual · desktop": {
+   "score": 40,
+   "findings": []
+  },
+  "Receiving · new ritual · new workspace · desktop": {
+   "score": 40,
+   "findings": []
+  },
+  "Receiving · new ritual · phone": {
+   "score": 34,
+   "findings": []
+  },
+  "Receiving · phone": {
+   "score": 15,
+   "findings": []
+  },
+  "Receiving · recipe form · desktop": {
+   "score": 10,
+   "findings": []
+  },
+  "Receiving · recipe form · phone": {
+   "score": 9,
+   "findings": []
+  },
+  "Receiving · recipe ritual · desktop": {
+   "score": 14,
+   "findings": []
+  },
+  "Receiving · recipe ritual · phone": {
+   "score": 13,
+   "findings": []
+  },
+  "Receiving · ritual editor · desktop": {
+   "score": 52,
+   "findings": []
+  },
+  "Receiving · ritual editor · new script · desktop": {
+   "score": 50,
+   "findings": []
+  },
+  "Receiving · rituals · agent · desktop": {
+   "score": 57,
+   "findings": []
+  },
+  "Receiving · rituals · desktop": {
+   "score": 24,
+   "findings": []
+  },
+  "Receiving · rituals · no agent · desktop": {
+   "score": 60,
+   "findings": []
+  },
+  "Receiving · rituals · phone": {
+   "score": 24,
+   "findings": []
+  },
+  "Receiving · trace · desktop": {
+   "score": 37,
+   "findings": []
+  },
+  "Receiving · webhook · desktop": {
+   "score": 29,
+   "findings": []
+  },
+  "Receiving · webhooks · desktop": {
+   "score": 9,
+   "findings": []
+  },
+  "Receiving · webhooks · phone": {
+   "score": 9,
+   "findings": []
+  },
+  "Segment · desktop": {
+   "score": 23,
+   "findings": []
+  },
+  "Segments · desktop": {
+   "score": 4,
+   "findings": []
+  },
+  "Sent email · desktop": {
+   "score": 31,
+   "findings": []
+  },
+  "Sent email · junk-like · desktop": {
+   "score": 34,
+   "findings": []
+  },
+  "Sent email · junk-like · phone": {
+   "score": 7,
+   "findings": []
+  },
+  "Sent email · phone": {
+   "score": 6,
+   "findings": []
+  },
+  "Settings · MCP connection · desktop": {
+   "score": 19,
+   "findings": []
+  },
+  "Settings · MCP connection · phone": {
+   "score": 19,
+   "findings": []
+  },
+  "Settings · account · desktop": {
+   "score": 14,
+   "findings": []
+  },
+  "Settings · activity · desktop": {
+   "score": 27,
+   "findings": []
+  },
+  "Settings · activity · phone": {
+   "score": 26,
+   "findings": []
+  },
+  "Settings · add credit dialog · desktop": {
+   "score": 15,
+   "findings": []
+  },
+  "Settings · add credit dialog · phone": {
+   "score": 15,
+   "findings": []
+  },
+  "Settings · billing · desktop": {
+   "score": 42,
+   "findings": [
+    "long-block|brand charges your saved card when t"
+   ]
+  },
+  "Settings · billing · free · desktop": {
+   "score": 17,
+   "findings": []
+  },
+  "Settings · billing · free · phone": {
+   "score": 16,
+   "findings": []
+  },
+  "Settings · billing · owed · desktop": {
+   "score": 60,
+   "findings": [
+    "long-block|brand charges your saved card when t"
+   ]
+  },
+  "Settings · billing · owed · phone": {
+   "score": 62,
+   "findings": [
+    "disclosure|balance|billing-balance__amount",
+    "inert|then it’s held until you add credit. the",
+    "long-block|brand charges your saved card when t"
+   ]
+  },
+  "Settings · billing · phone": {
+   "score": 47,
+   "findings": [
+    "disclosure|balance|billing-balance__amount",
+    "long-block|brand charges your saved card when t"
+   ]
+  },
+  "Settings · desktop": {
+   "score": 6,
+   "findings": []
+  },
+  "Settings · invite dialog · desktop": {
+   "score": 18,
+   "findings": []
+  },
+  "Settings · invite dialog · phone": {
+   "score": 17,
+   "findings": []
+  },
+  "Settings · members · desktop": {
+   "score": 15,
+   "findings": []
+  },
+  "Settings · members · phone": {
+   "score": 16,
+   "findings": []
+  },
+  "Settings · new webhook · desktop": {
+   "score": 23,
+   "findings": []
+  },
+  "Settings · phone": {
+   "score": 6,
+   "findings": []
+  },
+  "Settings · plan & usage · desktop": {
+   "score": 58,
+   "findings": [
+    "inert|# days after connecting sending, with at",
+    "inert|## days after connecting sending, with a",
+    "inert|new workspaces start small so one mistak",
+    "long-block|new workspaces start small so one mistak"
+   ]
+  },
+  "Settings · plan & usage · phone": {
+   "score": 45,
+   "findings": [
+    "inert|## days after connecting sending, with a",
+    "long-block|new workspaces start small so one mistak"
+   ]
+  },
+  "Settings · sending · desktop": {
+   "score": 25,
+   "findings": [
+    "dup-fact|the sender score|sender score|sender score"
+   ]
+  },
+  "Settings · webhook · desktop": {
+   "score": 43,
+   "findings": [
+    "long-block|brand signs every delivery with this"
+   ]
+  },
+  "Settings · webhook · phone": {
+   "score": 35,
+   "findings": [
+    "long-block|brand signs every delivery with this"
+   ]
+  },
+  "Settings · webhooks · desktop": {
+   "score": 17,
+   "findings": [
+    "long-block|brand calls your url when email you "
+   ]
+  },
+  "Template · desktop": {
+   "score": 18,
+   "findings": []
+  },
+  "Templates · desktop": {
+   "score": 6,
+   "findings": []
+  },
+  "Templates · phone": {
+   "score": 5,
+   "findings": []
+  }
+ }
+}

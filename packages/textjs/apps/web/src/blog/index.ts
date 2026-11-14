@@ -1,0 +1,104 @@
+import textJs10 from "./text-js-1-0.md?raw";
+import turbolog from "./turbolog-eliminating-the-flash.md?raw";
+import inverted from "./the-inverted-architecture.md?raw";
+import rightToLeft from "./right-to-left-text.md?raw";
+import useKeymap from "./keyboard-shortcuts-with-usekeymap.md?raw";
+import serverRendering from "./server-rendering-in-the-console.md?raw";
+import figlet from "./figlet-fonts.md?raw";
+import yoga from "./laying-out-the-console-with-yoga.md?raw";
+import textJs01 from "./text-js-0-1.md?raw";
+import consoleLog from "./rendering-react-into-console-log.md?raw";
+import { LOCALE, localePath } from "../i18n/locales";
+import { t } from "../i18n/t";
+import { formatPostDate, getPostMeta, postPath, POSTS_META, type BlogPostMeta } from "./meta";
+import { POST_SUMMARIES } from "./summaries";
+
+export { formatPostDate, getPostMeta, postPath, POSTS_META, type BlogPostMeta };
+
+export interface BlogPost extends BlogPostMeta {
+  summary: string;
+  markdown: string;
+}
+
+/** Split `---` frontmatter (flat `key: value` pairs, optionally quoted) from the body. */
+export function parseFrontmatter(source: string): { data: Record<string, string>; body: string } {
+  const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(source);
+  if (!m) return { data: {}, body: source };
+  const data: Record<string, string> = {};
+  for (const line of (m[1] as string).split(/\r?\n/)) {
+    const i = line.indexOf(":");
+    if (i <= 0) continue;
+    let value = line.slice(i + 1).trim();
+    if (/^(["']).*\1$/.test(value)) value = value.slice(1, -1);
+    data[line.slice(0, i).trim()] = value;
+  }
+  return { data, body: source.slice(m[0].length) };
+}
+
+function post(slug: string, source: string): BlogPost {
+  const { data, body } = parseFrontmatter(source);
+  for (const key of ["title", "date", "author", "summary"]) {
+    if (!data[key]) throw new Error(`blog/${slug}.md is missing "${key}" in its frontmatter`);
+  }
+  if (data.brand !== undefined && data.brand !== "turbolog") throw new Error(`blog/${slug}.md has an unknown brand "${data.brand}"`);
+  // Title and summary come from POSTS_META and POST_SUMMARIES, where the catalog translates them; frontmatter stays English.
+  const meta = getPostMeta(slug);
+  return { slug, title: meta?.title ?? (data.title as string), date: data.date as string, author: data.author as string, summary: POST_SUMMARIES[slug] ?? (data.summary as string), ...(data.brand ? { brand: "turbolog" as const } : {}), markdown: body.trim() };
+}
+
+/** Newest first; posts on the same day keep the order listed here. */
+export const POSTS: readonly BlogPost[] = [
+  post("text-js-1-0", textJs10),
+  post("turbolog-eliminating-the-flash", turbolog),
+  post("the-inverted-architecture", inverted),
+  post("right-to-left-text", rightToLeft),
+  post("keyboard-shortcuts-with-usekeymap", useKeymap),
+  post("server-rendering-in-the-console", serverRendering),
+  post("figlet-fonts", figlet),
+  post("laying-out-the-console-with-yoga", yoga),
+  post("text-js-0-1", textJs01),
+  post("rendering-react-into-console-log", consoleLog),
+]
+  .map((p, i) => ({ p, i }))
+  .sort((a, b) => b.p.date.localeCompare(a.p.date) || a.i - b.i)
+  .map(({ p }) => p);
+
+export function getPost(slug: string): BlogPost | undefined {
+  return POSTS.find((p) => p.slug === slug);
+}
+
+const SITE = "https://textjs.org";
+
+function xml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+/** RSS 2.0 feed for `/blog/rss.xml`, written at build time. */
+export function renderRss(posts: readonly BlogPost[] = POSTS): string {
+  const items = posts
+    .map(
+      (p) => `    <item>
+      <title>${xml(p.title)}</title>
+      <link>${SITE}${localePath(LOCALE, postPath(p.slug))}</link>
+      <guid isPermaLink="true">${SITE}${localePath(LOCALE, postPath(p.slug))}</guid>
+      <pubDate>${new Date(`${p.date}T00:00:00Z`).toUTCString()}</pubDate>
+      <dc:creator>${xml(p.author)}</dc:creator>
+      <description>${xml(p.summary)}</description>
+    </item>`,
+    )
+    .join("\n");
+  const latest = posts[0] ? new Date(`${posts[0].date}T00:00:00Z`).toUTCString() : new Date(0).toUTCString();
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>${xml(t("Text.js Blog"))}</title>
+    <link>${SITE}${localePath(LOCALE, "/blog")}</link>
+    <description>${xml(t("Releases and engineering notes from the Text.js team."))}</description>
+    <language>${LOCALE.code}</language>
+    <lastBuildDate>${latest}</lastBuildDate>
+    <atom:link href="${SITE}${localePath(LOCALE, "/blog/rss.xml")}" rel="self" type="application/rss+xml" />
+${items}
+  </channel>
+</rss>
+`;
+}
