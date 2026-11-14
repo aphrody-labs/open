@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!--share-meta-->
+    <title>Grim — A place to think with your agents</title>
+    <meta name="description" content="Grim is a collection of notes shared between you, your agents, and your team. Agents write Markdown in a shared filesystem; you edit it in a live editor; everything is tracked in git." />
+    <link rel="canonical" href="https://grimnotes.app/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Grim" />
+    <meta property="og:title" content="Grim — A place to think with your agents" />
+    <meta property="og:description" content="Grim is a collection of notes shared between you, your agents, and your team. Agents write Markdown in a shared filesystem; you edit it in a live editor; everything is tracked in git." />
+    <meta property="og:url" content="https://grimnotes.app/" />
+    <meta property="og:image" content="https://grimnotes.app/og/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Grim: a place to think with your agents. A note being edited live, with an agent's cursor." />
+    <meta property="og:image" content="https://grimnotes.app/og/og-square.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="1200" />
+    <meta property="og:image:alt" content="Grim: a place to think with your agents" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Grim — A place to think with your agents" />
+    <meta name="twitter:description" content="Grim is a collection of notes shared between you, your agents, and your team. Agents write Markdown in a shared filesystem; you edit it in a live editor; everything is tracked in git." />
+    <meta name="twitter:image" content="https://grimnotes.app/og/twitter-card.png" />
+    <meta name="twitter:image:alt" content="Grim: a place to think with your agents. A note being edited live, with an agent's cursor." />
+    <!--/share-meta-->
+    <meta name="color-scheme" content="light" />
+    <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="preload" href="/api/server" as="fetch" crossorigin />
+    <link rel="preload" href="/api/me" as="fetch" crossorigin />
+    <!--boot-preload-->
+    <style>
+      html, body { margin: 0; height: 100%; background: #fcfcfb; }
+      #splash { position: fixed; inset: 0; z-index: 2147483646; display: grid; place-items: center; background: #fcfcfb; }
+      #splash span { font: 600 11px/1 -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto, Arial, sans-serif; letter-spacing: 0.32em; padding-left: 0.32em; color: #a3a3aa; opacity: 0; animation: splash-in 0.4s ease-out 0.15s forwards; }
+      @keyframes splash-in { to { opacity: 1; } }
+      @media (prefers-reduced-motion: reduce) { #splash span { animation-duration: 0s; } }
+    </style>
+  </head>
+  <body>
+    <div id="splash" aria-hidden="true"><span>GRIM</span></div>
+    <link rel="stylesheet" href="/app.css" />
+    <link rel="stylesheet" href="/editor.css" />
+    <div id="app" aria-busy="true"></div>
+    <script type="module" src="/dist/main.js"></script>
+  </body>
+</html>

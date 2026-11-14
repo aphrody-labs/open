@@ -1,0 +1,477 @@
+---
+layout: example
+title: How to create a Vue.js app with serverless
+short_title: Vue.js
+date: 2021-10-15 00:00:00
+lang: en
+index: 3
+type: webapp
+description: In this example we will look at how to use Vue.js with a serverless API to create a simple click counter app. We'll be using SST and the StaticSite construct to deploy our app to AWS S3 and CloudFront.
+short_desc: Full-stack Vue.js app with a serverless API.
+repo: vue-app
+ref: how-to-create-a-vuejs-app-with-serverless
+comments_id: how-to-create-a-vue-js-app-with-serverless/2508
+---
+
+In this example we will look at how to use [Vue.js](https://vuejs.org) with a [serverless]({% link _chapters/what-is-serverless.md %}) API to create a simple click counter app. We'll be using the [SST]({{ site.sst_github_repo }}) and the SST [`StaticSite`]({{ site.v2_url }}/constructs/StaticSite) construct to deploy our app to AWS.
+
+## Requirements
+
+- Node.js 16 or later
+- We'll be using TypeScript
+- An [AWS account]({% link _chapters/create-an-aws-account.md %}) with the [AWS CLI configured locally]({% link _chapters/configure-the-aws-cli.md %})
+
+## Create an SST app
+
+{%change%} Let's start by creating an SST app.
+
+```bash
+$ npx create-sst@latest --template=base/example vue-app
+$ cd vue-app
+$ npm install
+```
+
+By default, our app will be deployed to the `us-east-1` AWS region. This can be changed in the `sst.config.ts` in your project root.
+
+```js
+import { SSTConfig } from "sst";
+
+export default {
+  config(_input) {
+    return {
+      name: "vue-app",
+      region: "us-east-1",
+    };
+  },
+} satisfies SSTConfig;
+```
+
+## Project layout
+
+An SST app is made up of a couple of parts.
+
+1. `stacks/` — App Infrastructure
+
+   The code that describes the infrastructure of your serverless app is placed in the `stacks/` directory of your project. SST uses [AWS CDK]({% link _archives/what-is-aws-cdk.md %}), to create the infrastructure.
+
+2. `packages/functions/` — App Code
+
+   The code that's run when your API is invoked is placed in the `packages/functions/` directory of your project.
+
+3. `packages/frontend/` — Vue App
+
+   The code for our frontend Vue.js app.
+
+## Create our infrastructure
+
+Our app is made up of a simple API and a Vue.js app. The API will be talking to a database to store the number of clicks. We'll start by creating the database.
+
+### Adding the table
+
+We'll be using [Amazon DynamoDB](https://aws.amazon.com/dynamodb/); a reliable and highly-performant NoSQL database that can be configured as a true serverless database. Meaning that it'll scale up and down automatically. And you won't get charged if you are not using it.
+
+{%change%} Replace the `stacks/ExampleStack.ts` with the following.
+
+```typescript
+import { Api, StaticSite, StackContext, Table } from "sst/constructs";
+
+export function ExampleStack({ stack }: StackContext) {
+  // Create the table
+  const table = new Table(stack, "Counter", {
+    fields: {
+      counter: "string",
+    },
+    primaryIndex: { partitionKey: "counter" },
+  });
+}
+```
+
+This creates a serverless DynamoDB table using the SST [`Table`]({{ site.v2_url }}/constructs/Table) construct. It has a primary key called `counter`. Our table is going to look something like this:
+
+| counter | tally |
+| ------- | ----- |
+| clicks  | 123   |
+
+### Creating our API
+
+Now let's add the API.
+
+{%change%} Add this below the `Table` definition in `stacks/ExampleStack.ts`.
+
+```typescript
+// Create the HTTP API
+const api = new Api(stack, "Api", {
+  defaults: {
+    function: {
+      // Bind the table name to our API
+      bind: [table],
+    },
+  },
+  routes: {
+    "POST /": "packages/functions/src/lambda.main",
+  },
+});
+
+// Show the URLs in the output
+stack.addOutputs({
+  ApiEndpoint: api.url,
+});
+```
+
+We are using the SST [`Api`]({{ site.v2_url }}/constructs/Api) construct to create our API. It simply has one endpoint (the root). When we make a `POST` request to this endpoint the Lambda function called `main` in `packages/functions/src/lambda.ts` will get invoked.
+
+We'll also bind our table to our API. It allows our API to access (read and write) the table we just created.
+
+### Setting up our Vue app
+
+To deploy a Vue.js app to AWS, we'll be using the SST [`StaticSite`]({{ site.v2_url }}/constructs/StaticSite) construct.
+
+{%change%} Replace the following in `stacks/ExampleStack.ts`:
+
+```typescript
+// Show the API endpoint in the output
+stack.addOutputs({
+  ApiEndpoint: api.url,
+});
+```
+
+{%change%} With:
+
+```typescript
+const site = new StaticSite(stack, "VueJSSite", {
+  path: "packages/frontend",
+  buildOutput: "dist",
+  buildCommand: "npm run build",
+  errorPage: "redirect_to_index_page",
+  environment: {
+    // Pass in the API endpoint to our app
+    VITE_APP_API_URL: api.url,
+  },
+});
+
+// Show the URLs in the output
+stack.addOutputs({
+  SiteUrl: site.url,
+  ApiEndpoint: api.url,
+});
+```
+
+The construct is pointing to where our Vue.js app is located. We haven't created our app yet but for now we'll point to the `frontend` directory.
+
+We are also setting up a [build time Vue environment variable](https://cli.vuejs.org/guide/mode-and-env.html) `VITE_APP_API_URL` with the endpoint of our API. The [`StaticSite`]({{ site.v2_url }}/constructs/StaticSite) allows us to set environment variables automatically from our backend, without having to hard code them in our frontend.
+
+You can also optionally configure a custom domain.
+
+```typescript
+// Deploy our Vue app
+const site = new StaticSite(stack, "VueJSSite", {
+  // ...
+  customDomain: "www.my-vue-app.com",
+});
+```
+
+But we'll skip this for now.
+
+### Reading from our table
+
+Our API is powered by a Lambda function. In the function we'll read from our DynamoDB table.
+
+{%change%} Replace `packages/functions/src/lambda.ts` with the following.
+
+```typescript
+import AWS from "aws-sdk";
+import { Table } from "sst/node/table";
+
+const dynamoDb = new AWS.DynamoDB.DocumentClient();
+
+export async function main() {
+  const getParams = {
+    // Get the table name from the environment variable
+    TableName: Table.Counter.tableName,
+    // Get the row where the counter is called "clicks"
+    Key: {
+      counter: "clicks",
+    },
+  };
+  const results = await dynamoDb.get(getParams).promise();
+
+  // If there is a row, then get the value of the
+  // column called "tally"
+  let count = results.Item ? results.Item.tally : 0;
+
+  return {
+    statusCode: 200,
+    body: count,
+  };
+}
+```
+
+We make a `get` call to our DynamoDB table and get the value of a row where the `counter` column has the value `clicks`. Since we haven't written to this column yet, we are going to just return `0`.
+
+{%change%} Let's install the `aws-sdk` package in the `packages/functions/` folder.
+
+```bash
+$ npm install aws-sdk
+```
+
+And let's test what we have so far.
+
+## Starting your dev environment
+
+{%change%} SST features a [Live Lambda Development]({{ site.v2_url }}/live-lambda-development) environment that allows you to work on your serverless apps live.
+
+```bash
+$ npm run dev
+```
+
+The first time you run this command it'll take a couple of minutes to deploy your app and a debug stack to power the Live Lambda Development environment.
+
+```
+===============
+ Deploying app
+===============
+
+Preparing your SST app
+Transpiling source
+Linting source
+Deploying stacks
+dev-vue-app-ExampleStack: deploying...
+
+ ✅  dev-vue-app-ExampleStack
+
+
+Stack dev-vue-app-ExampleStack
+  Status: deployed
+  Outputs:
+    ApiEndpoint: https://sez1p3dsia.execute-api.ap-south-1.amazonaws.com
+```
+
+The `ApiEndpoint` is the API we just created.
+
+Let's test our endpoint with the [SST Console](https://console.sst.dev). The SST Console is a web based dashboard to manage your SST apps. [Learn more about it in our docs]({{ site.v2_url }}/console).
+
+Go to the **API** tab and click **Send** button to send a `POST` request.
+
+Note, The [API explorer]({{ site.v2_url }}/console#api) lets you make HTTP requests to any of the routes in your `Api` construct. Set the headers, query params, request body, and view the function logs with the response.
+
+![API explorer invocation response](/assets/examples/angular-app/api-explorer-invocation-response.png)
+
+You should see a `0` in the response body.
+
+## Setting up our Vue app
+
+We are now ready to use the API we just created. Let's use [Vue quickstart](https://vuejs.org/guide/quick-start.html) to setup our Vue.js app.
+
+{%change%} Run the following in the `packages/` directory.
+
+```bash
+$ npx create-vue@latest
+```
+
+This command will install and execute [create-vue](https://github.com/vuejs/create-vue), the official Vue project scaffolding tool. You will be presented with prompts for a number of optional features such as TypeScript and testing support:
+
+```bash
+✓ Project name: frontend
+✓ Add TypeScript? … No / Yes
+✓ Add JSX Support? … No / Yes
+✓ Add Vue Router for Single Page Application development? … No / Yes
+✓ Add Pinia for state management? … No / Yes
+✓ Add Vitest for Unit testing? … No / Yes
+✓ Add Cypress for both Unit and End-to-End testing? … No / Yes
+✓ Add ESLint for code quality? … No / Yes
+✓ Add Prettier for code formatting? … No / Yes
+
+Scaffolding project in ./frontend
+Done.
+```
+
+For this tutorial, simply choose **No** by hitting enter for now. Once the project is created, follow the instructions to install dependencies.
+
+```bash
+$ cd frontend
+$ npm install
+```
+
+This sets up our Vue app in the `packages/frontend/` directory. Recall that, earlier in the guide we were pointing the `StaticSite` construct to this path.
+
+We also need to load the environment variables from our SST app. To do this, we'll be using the [`sst bind`](https://docs.sst.dev/packages/sst#sst-bind) command.
+
+{%change%} Replace the `dev` script in your `frontend/package.json`.
+
+```bash
+"dev": "vite"
+```
+
+{%change%} With the following:
+
+```bash
+"dev": "sst bind vite"
+```
+
+Let's start our Vue development environment.
+
+{%change%} In the `frontend/` directory run.
+
+```bash
+$ npm run dev
+```
+
+Open up your browser and go to `http://localhost:3000`.
+
+### Add the click button
+
+We are now ready to add the UI for our app and connect it to our serverless API.
+
+{%change%} Replace `packages/frontend/src/App.vue` with.
+
+```coffee
+<template>
+  <div className="App">
+    <p>You clicked me {{ count }} times.</p>
+    <button @click="onClick()">Click Me!</button>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      count: 0,
+    };
+  },
+  methods: {
+    onClick() {
+      fetch(import.meta.env.VITE_APP_API_URL, {
+        method: "POST",
+      })
+        .then((response) => response.text())
+        .then((data) => {
+          this.count = data;
+        });
+    },
+  },
+};
+</script>
+```
+
+Here we are adding a simple button that when clicked, makes a request to our API. We are getting the API endpoint from the environment variable, `import.meta.env.VITE_APP_API_URL`.
+
+The response from our API is then stored in our app's state. We use that to display the count of the number of times the button has been clicked.
+
+Let's add some styles.
+
+{%change%} Add a style tag with the below styles in `App.vue` file.
+
+```vue
+<style>
+body,
+html {
+  height: 100vh;
+  display: grid;
+  place-items: center;
+}
+#root {
+  margin: auto;
+}
+.App {
+  text-align: center;
+}
+p {
+  margin-top: 0;
+  font-size: 20px;
+}
+button {
+  font-size: 48px;
+}
+</style>
+```
+
+Now if you head over to your browser, your Vue app should look something like this.
+
+![Click counter UI in Vue app](/assets/examples/react-app/click-counter-ui-in-react-app.png)
+
+Of course if you click on the button multiple times, the count doesn't change. That's because we are not updating the count in our API. We'll do that next.
+
+## Making changes
+
+Let's update our table with the clicks.
+
+{%change%} Add this above the `return` statement in `packages/functions/src/lambda.ts`.
+
+```typescript
+const putParams = {
+  TableName: Table.Counter.tableName,
+  Key: {
+    counter: "clicks",
+  },
+  // Update the "tally" column
+  UpdateExpression: "SET tally = :count",
+  ExpressionAttributeValues: {
+    // Increase the count
+    ":count": ++count,
+  },
+};
+await dynamoDb.update(putParams).promise();
+```
+
+Here we are updating the `clicks` row's `tally` column with the increased count.
+
+And if you head over to your browser and click the button again, you should see the count increase!
+
+![Click counter updating in Vue app](/assets/examples/react-app/click-counter-updating-in-react-app.png)
+
+Also let's go to the **DynamoDB** tab in the SST Console and check that the value has been updated in the table.
+
+Note, The [DynamoDB explorer]({{ site.v2_url }}/console#dynamodb) allows you to query the DynamoDB tables in the [`Table`]({{ site.v2_url }}/constructs/Table) constructs in your app. You can scan the table, query specific keys, create and edit items.
+
+![DynamoDB table view of counter table](/assets/examples/angular-app/dynamo-table-view-of-counter-table.png)
+
+## Deploying to prod
+
+{%change%} To wrap things up we'll deploy our app to prod.
+
+```bash
+$ npx sst deploy --stage prod
+```
+
+This allows us to separate our environments, so when we are working in `dev`, it doesn't break the app for our users.
+
+Once deployed, you should see something like this.
+
+```bash
+ ✅  prod-vue-app-ExampleStack
+
+
+Stack prod-vue-app-ExampleStack
+  Status: deployed
+  Outputs:
+    ApiEndpoint: https://k40qchmtvf.execute-api.ap-south-1.amazonaws.com
+    SiteUrl: https://d8zfb4waxo6ct.cloudfront.net
+```
+
+Run the below command to open the SST Console in **prod** stage to test the production endpoint.
+
+```bash
+npx sst console --stage prod
+```
+
+Go to the **API** tab and click **Send** button to send a `POST` request.
+
+![API explorer prod invocation response](/assets/examples/angular-app/api-explorer-prod-invocation-response.png)
+
+If you head over to the `SiteUrl` in your browser, you should see your new Vue app in action!
+
+![Vue app deployed to AWS](/assets/examples/react-app/react-app-deployed-to-aws.png)
+
+## Cleaning up
+
+Finally, you can remove the resources created in this example using the following commands.
+
+```bash
+$ npx sst remove
+$ npx sst remove --stage prod
+```
+
+## Conclusion
+
+And that's it! We've got a completely serverless click counter in Vue.js. A local development environment, to test and make changes. And it's deployed to production as well, so you can share it with your users. Check out the repo below for the code we used in this example. And leave a comment if you have any questions!

@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>parity</title>
+    <link rel="stylesheet" href="editor.css" />
+    <style>
+      body { margin: 0; padding: 24px 0; background: #fff; }
+      /* text column ~670px: wraps long lines at the same words as Bear's window (fonts differ) */
+      #ed .mde-content { max-width: none; width: 743px; margin: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="ed"></div>
+    <script src="wasm.js"></script>
+    <script src="page.js"></script>
+  </body>
+</html>

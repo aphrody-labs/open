@@ -1,0 +1,38 @@
+{
+  "name": "grimoire",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run build:client --watch & bun --watch src/server/index.ts",
+    "start": "bun run build:client && bun src/server/index.ts",
+    "build:client": "bun scripts/build-client.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "test:workers": "bun test test/workers",
+    "check:workers": "tsc --noEmit -p tsconfig.workers.json && bun scripts/check-workers.ts",
+    "dev:workers": "wrangler dev --local --var PUBLIC_URL:http://localhost:8787 --var STORAGE:memory",
+    "test:e2e": "bun scripts/e2e-workers.ts --bun",
+    "test:e2e:workers": "bun scripts/e2e-workers.ts",
+    "test:all": "tsc --noEmit -p . && bun test test/server && bun test test/editor && bun run check:workers && bun run test:workers && bun scripts/e2e-workers.ts --bun && bun scripts/e2e-workers.ts"
+  },
+  "dependencies": {
+    "@pierre/highlights": "0.3.0",
+    "@pierre/storage": "^1.17.1",
+    "diff": "^8.0.4",
+    "just-bash": "^3.6.0",
+    "lib0": "^0.2.119",
+    "three": "0.170.0",
+    "y-protocols": "^1.0.7",
+    "yjs": "^13.6.33"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260811.1",
+    "@types/bun": "^1.4.4",
+    "@types/three": "0.170.0",
+    "happy-dom": "^21.0.4",
+    "miniflare": "5.20260811.1-alpha",
+    "playwright-core": "1.63.0",
+    "typescript": "^7.0.2",
+    "wrangler": "4.123.0"
+  }
+}

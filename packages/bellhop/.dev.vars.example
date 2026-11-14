@@ -1,0 +1,11 @@
+TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+# Set to an independent random secret before starting the Worker.
+COOKIE_SECRET=
+# Independent random secret (at least 32 characters) for wrapping help-desk approval keys.
+APPROVAL_KEK=
+# Enables /auth/dev?email=... sign-in without Google. Never set in production.
+DEV_LOGIN=1
+# Origin for the Google OAuth callback when served behind a TLS proxy (e.g. https://bellhop.i.vogel.dev). Optional.
+PUBLIC_ORIGIN=

@@ -1,0 +1,29 @@
+# effect-http-recorder
+
+## 0.3.0
+
+### Minor Changes
+
+- 28e02cf: Add `HttpRecorder.layerFetch` as the fetch-backed convenience layer and change `HttpRecorder.layer` to decorate an application-provided Effect `HttpClient`.
+
+## 0.2.2
+
+### Patch Changes
+
+- 7ba86c0: Fix Node 22 WebSocket replay, preserve unchanged JSON bodies during redaction, apply custom URL redaction to HTTP errors, and reject completely unused replay cassettes.
+
+## 0.2.1
+
+### Patch Changes
+
+- f2def1d: Replay each HTTP request from the first unused matching interaction so distinct requests can run out of order or concurrently.
+
+## 0.2.0
+
+### Minor Changes
+
+- 6b1c422: Add constructor-level WebSocket recording for applications that select connection URLs at runtime. Rename the public layers to `layer`, `layerSocket`, and `layerWebSocketConstructor` to mirror Effect's layer naming.
+
+## 0.1.0
+
+Initial public beta with deterministic Effect HTTP and finite WebSocket conversation recording and replay.

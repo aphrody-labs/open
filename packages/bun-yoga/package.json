@@ -1,0 +1,42 @@
+{
+  "name": "@yoga/yoga",
+  "version": "0.1.0",
+  "description": "FFI wrapper for Yoga-Layout",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kommander/bun-yoga"
+  },
+  "homepage": "https://github.com/kommander/bun-yoga",
+  "bugs": {
+    "url": "https://github.com/kommander/bun-yoga/issues"
+  },
+  "module": "src/index.ts",
+  "main": "src/index.ts",
+  "type": "module",
+  "license": "Apache-2.0",
+  "author": "SST",
+  "scripts": {
+    "test": "bun test",
+    "build:dev": "cd src/zig && zig build -Doptimize=Debug",
+    "build:prod": "cd src/zig && zig build -Doptimize=ReleaseFast",
+    "build": "bun run build:native && bun run build:lib",
+    "build:lib": "bun run scripts/build.ts --lib",
+    "build:native": "bun run scripts/build.ts --native",
+    "build:native:dev": "bun run scripts/build.ts --native --dev",
+    "build:native:current": "bun run scripts/build.ts --native --native-only",
+    "build:native:current:dev": "bun run scripts/build.ts --native --native-only --dev",
+    "build:current": "bun run build:native:current && bun run build:lib",
+    "build:current:dev": "bun run build:native:current:dev && bun run build:lib",
+    "publish": "node scripts/publish.mjs",
+    "publish:dry-run": "node scripts/publish.mjs --dry-run",
+    "benchmark": "bun run scripts/benchmark-comparison.ts",
+    "benchmark:quick": "bun run scripts/benchmark-comparison.ts 100"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "yoga-layout": "^3.2.1"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

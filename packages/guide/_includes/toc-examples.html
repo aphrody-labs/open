@@ -1,0 +1,29 @@
+{% if include.page_en_url %}
+  {% assign current_page_en_url = include.page_en_url %}
+{% else %}
+  {% assign current_page_en_url = page.url %}
+{% endif %}
+
+<div id="{{ include.id }}" class="toc-section">
+  <h3>{{ include.title }}</h3>
+  <ul>
+  {% for item in include.items %}
+    {% if item.url != current_page_en_url %}
+      {% assign trunc_desc = item.description | truncate: 80 %}
+      <li>
+        <div class="content">
+          <h4>
+            <a href="{{ item.url }}">{{ item.short_title | default: item.title }}</a>
+          </h4>
+          <p>{{ item.short_desc | default: trunc_desc }}</p>
+        </div>
+        <div class="controls">
+          <a href="{{ item.url }}">Read tutorial</a>
+          <a target="_blank" href="{{ site.sst_github_repo }}{{ site.sst_github_examples_prefix }}{{ item.repo }}">View code</a>
+        </div>
+      </li>
+    {% endif %}
+  {% endfor %}
+  </ul>
+</div>
+

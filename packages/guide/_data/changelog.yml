@@ -1,0 +1,143 @@
+current:
+  title: "Flip Ion to v3"
+  desc: "Aug 20, 2024: Update SST version from Ion to v3."
+
+v9-0:
+  title: "Migrate to Ion"
+  desc: "Jul 25, 2024: Migrating away from CDK to Terraform with SST Ion v0.1."
+
+v8-0-1:
+  title: "Updating Seed to IAM roles"
+  desc: "Sep 15, 2023: Minor changes to the setting up your project on Seed chapter."
+
+v8-0:
+  title: "Updating to TypeScript"
+  desc: "Aug 31, 2023: Using TS by default, switching to pnpm, and using Vite instead of Create React App. And archiving old chapters."
+
+v7-4:
+  title: "Upgrading to SST v2.5"
+  desc: "Apr 9, 2023: Updating the guide and code to use the latest `sst bind`."
+
+v7-3:
+  title: "Upgrading to SST v2"
+  desc: "Mar 10, 2023: Updating the guide and code snippets to SST v2."
+
+v7-2:
+  title: "Upgrading to SST v1"
+  desc: "May 24, 2022: Updating the guide and code snippets to SST v1."
+
+v7-1:
+  title: "Upgrading to CDK v2"
+  desc: "Feb 2, 2022: Updating SST version for CDK v2 upgrade."
+
+v7-0-3:
+  title: "Renaming lib to stacks"
+  desc: "Sep 24, 2021: Renaming lib to stacks in the SST app."
+
+v7-0:
+  title: "Creating separate SST and Serverless Framework sections"
+  desc: "Aug 25, 2021: Creating a separate SST version and Serverless Framework version of the guide."
+
+v6-1:
+  title: "Adding Extra Credit AppSync and Auth chapters"
+  desc: "Aug 3, 2021: Adding Extra Credit chapters on AppSync and Auth."
+
+v6-0:
+  title: "Upgrading Bootstrap and reorganizing chapters"
+  desc: "Nov 11, 2020: Upgrading to Bootstrap 4 and React Bootstrap 1.4. Also, a major reorganizing of the chapters."
+
+v5-0-2:
+  title: "Fixing encoding issue in eBook"
+  desc: "Oct 23, 2020: Generating new eBook version to fix encoding issues."
+
+v5-0-1:
+  title: "Updating to new eBook format"
+  desc: "Oct 21, 2020: Generating new eBook using Pandoc."
+
+v5-0:
+  title: "Using CDK to configure infrastructure resources"
+  desc: "Oct 7, 2020: Moving from CloudFormation to AWS CDK to configure infrastructure resources. And using SST to deploy CDK alongside Serverless Framework."
+
+v4-1:
+  title: "Adding new monitoring and debugging section"
+  desc: "Apr 8, 2020: Adding a new section on monitoring and debugging full-stack Serverless apps. Updating React Router. Using React Context to manage app state."
+
+v4-0:
+  title: "New edition of SST"
+  desc: "Oct 8, 2019: Adding a new section for Serverless best practices. Updating to React Hooks. Reorganizing chapters. Updating backend to Node 10."
+
+v3-4:
+  title: "Updating to serverless-bundle and on-demand DynamoDB"
+  desc: "Jul 18, 2019: Updating to serverless-bundle plugin and On-Demand Capacity for DynamoDB."
+
+v3-3-3:
+  title: "Handling API Gateway CORS errors"
+  desc: "Jan 27, 2019: Adding CORS headers to API Gateway 4xx and 5xx errors."
+
+v3-3-2:
+  title: "Refactoring async Lambda functions"
+  desc: "Nov 1, 2018: Refactoring async Lambda functions to return instead of using the callback."
+
+v3-3-1:
+  title: "Updated to Create React App v2"
+  desc: "Oct 5, 2018: Updated the frontend React app to use Create React App v2."
+
+v3-3:
+  title: "Added new chapters"
+  desc: "Oct 5, 2018: Added new chapters on Facebook login with AWS Amplify and mapping Identity Id with User Pool Id. Also, added a new series of chapters on forgot password, change email and password."
+
+v3-2:
+  title: "Added section on Serverless architecture"
+  desc: "Aug 18, 2018: Adding a new section on organizing Serverless applications. Outlining how to use CloudFormation cross-stack references to link multiple Serverless services."
+
+v3-1:
+  title: "Update to use UsernameAttributes"
+  desc: "May 24, 2018: CloudFormation now supports UsernameAttributes. This means that we don't need the email as alias work around."
+
+v3-0:
+  title: "Adding Part II"
+  desc: "May 10, 2018: Adding a new part to the guide to help create a production ready version of the note taking app."
+
+v2-2:
+  title: "Updating to user Node.js starter and v8.10"
+  desc: "Apr 11, 2018: Updating the backend to use Node.js starter and Lambda Node v8.10."
+
+v2-1:
+  title: "Updating to Webpack 4"
+  desc: "Mar 21, 2018: Updating the backend to use Webpack 4 and serverless-webpack 5."
+
+v2-0:
+  title: "AWS Amplify update"
+  desc: "Updating frontend to use AWS Amplify. Verifying SSL certificate now uses DNS validation."
+
+v1-2-5:
+  title: "Using specific Bootstrap CSS version"
+  desc: "Feb 5, 2018: Using specific Bootstrap CSS version since `latest` now points to Bootstrap v4. But React-Bootstrap uses v3."
+
+v1-2-4:
+  title: "Updating to React 16"
+  desc: "Dec 31, 2017: Updated to React 16 and fixed `sigv4Client.js` [IE11 issue]({{ site.github_repo }}/issues/114#issuecomment-349938586)."
+
+v1-2-3:
+  title: "Updating to babel-preset-env"
+  desc: "Dec 30, 2017: Updated serverless backend to use babel-preset-env plugin and added a note to the Deploy to S3 chapter on reducing React app bundle size."
+
+v1-2-2:
+  title: "Adding new chapters"
+  desc: "Dec 1, 2017: Added the following *Extra Credit* chapters."
+
+v1-2-1:
+  title: "Adding new chapters"
+  desc: "Oct 7, 2017: Added the following *Extra Credit* chapters."
+
+v1-2:
+  title: "Upgrade to Serverless Webpack v3"
+  desc: "Sep 16, 2017: Upgrading serverless backend to using serverless-webpack plugin v3. The new version of the plugin changes some of the commands used to test the serverless backend."
+
+v1-1:
+  title: "Improved Session Handling"
+  desc: "Aug 30, 2017: Fixing some issues with session handling in the React app. A few minor updates bundled together."
+
+v1-0:
+  title: "IAM as authorizer"
+  desc: "July 19, 2017: Switching to using IAM as an authorizer instead of the authenticating directly with User Pool. This was a major update to the tutorial."

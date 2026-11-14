@@ -1,0 +1,24 @@
+{
+ "events": [
+  {
+   "t": 0.3,
+   "type": "tap",
+   "key": "doc-more"
+  },
+  {
+   "t": 0.35,
+   "type": "menu-pick",
+   "id": "history"
+  },
+  {
+   "t": 0.6,
+   "type": "tap",
+   "key": "commit1"
+  },
+  {
+   "t": 0.9,
+   "type": "tap",
+   "key": "history-restore"
+  }
+ ]
+}

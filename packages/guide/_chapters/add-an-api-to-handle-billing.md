@@ -1,0 +1,163 @@
+---
+layout: post
+title: Add an API to Handle Billing
+date: 2021-08-17 00:00:00
+lang: en
+description: In this chapter we'll add an API to our serverless app to handle billing. We'll use the Stripe npm package in our Lambda function to charge a credit card.
+ref: add-an-api-to-handle-billing
+comments_id: add-an-api-to-handle-billing/2454
+---
+
+Now let's get started with creating an API to handle billing. It's going to take a Stripe token and the number of notes the user wants to store.
+
+### Add a Billing Lambda
+
+Start by installing the Stripe npm package.
+
+{%change%} Run the following **in the `packages/functions/` directory** of our project.
+
+```bash
+$ npm install stripe
+```
+
+{%change%} Create a new file in `packages/functions/src/billing.ts` with the following.
+
+```ts
+import Stripe from "stripe";
+import { Resource } from "sst";
+import { Util } from "@notes/core/util";
+import { Billing } from "@notes/core/billing";
+
+export const main = Util.handler(async (event) => {
+  const { storage, source } = JSON.parse(event.body || "{}");
+  const amount = Billing.compute(storage);
+  const description = "Scratch charge";
+
+  const stripe = new Stripe(
+    // Load our secret key
+    Resource.StripeSecretKey.value,
+    { apiVersion: "2024-06-20" }
+  );
+
+  await stripe.charges.create({
+    source,
+    amount,
+    description,
+    currency: "usd",
+  });
+
+  return JSON.stringify({ status: true });
+});
+```
+
+Most of this is fairly straightforward but let's go over it quickly:
+
+- We get the `storage` and `source` from the request body. The `storage` variable is the number of notes the user would like to store in his account. And `source` is the Stripe token for the card that we are going to charge.
+
+- We are using a `Billing.compute(storage)` function, that we are going to add soon; to figure out how much to charge a user based on the number of notes that are going to be stored.
+
+- We create a new Stripe object using our Stripe Secret key. We are getting this from the secret that we configured in the [previous chapter]({% link _chapters/handling-secrets-in-sst.md %}). At the time of writing, we are using `apiVersion` `2024-06-20` but you can check the [Stripe docs](https://stripe.com/docs/api/versioning){:target="_blank"} for the latest version.
+
+- Finally, we use the `stripe.charges.create()` function to charge the user and respond to the request if everything went through successfully.
+
+{%note%}
+If you are testing this from India, you'll need to add some shipping information as well. Check out the [details in our forums](https://discourse.sst.dev/t/test-the-billing-api/172/20){:target="_blank"}.
+{%endnote%}
+
+### Add the Business Logic
+
+Now let's implement our `Billing.compute` function. This is primarily the _business logic_ in our app.
+
+{%change%} Create a `packages/core/src/billing/index.ts` and add the following.
+
+```ts
+export module Billing {
+  export function compute(storage: number) {
+    const rate = storage <= 10 ? 4 : storage <= 100 ? 2 : 1;
+    return rate * storage * 100;
+  }
+}
+```
+
+A _module_ is a good way to organize our business logic. You want to create modules for the various _domains_ in your app. This follows some basic principles of [Domain-driven design](https://en.wikipedia.org/wiki/Domain-driven_design){:target="_blank"}.
+
+The `compute` function is basically saying that if a user wants to store 10 or fewer notes, we'll charge them $4 per note. For 11 to 100 notes, we'll charge $2 and any more than 100 is $1 per note. Since Stripe expects us to provide the amount in pennies (the currency’s smallest unit) we multiply the result by 100.
+
+Clearly, our serverless infrastructure might be cheap but our service isn't!
+
+### Add the Route
+
+Let's add a new route for our billing API.
+
+{%change%} Add the following below the `DELETE /notes/{id}` route in `infra/api.ts`.
+
+```ts
+api.route("POST /billing", "packages/functions/src/billing.main");
+```
+
+### Deploy Our Changes
+
+If you switch over to your terminal, you will notice that your changes are being deployed.
+
+{%info%}
+You’ll need to have `sst dev` running for this to happen. If you had previously stopped it, then running `npx sst dev` will deploy your changes again.
+{%endinfo%}
+
+You should see that the new API stack has been deployed.
+
+```bash
++  Complete
+   Api: https://5bv7x0iuga.execute-api.us-east-1.amazonaws.com
+   ...
+```
+
+### Test the Billing API
+
+Now that we have our billing API all set up, let's do a quick test in our local environment.
+
+We'll be using the same CLI from [a few chapters ago]({% link _chapters/secure-our-serverless-apis.md %}){:target="_blank"}.
+
+{%change%} Run the following in your terminal.
+
+```bash
+$ npx aws-api-gateway-cli-test \
+--username='admin@example.com' \
+--password='Passw0rd!' \
+--user-pool-id='<USER_POOL_ID>' \
+--app-client-id='<USER_POOL_CLIENT_ID>' \
+--cognito-region='<COGNITO_REGION>' \
+--identity-pool-id='<IDENTITY_POOL_ID>' \
+--invoke-url='<API_ENDPOINT>' \
+--api-gateway-region='<API_REGION>' \
+--path-template='/billing' \
+--method='POST' \
+--body='{"source":"tok_visa","storage":21}'
+```
+{%note%}
+Make sure to replace the `USER_POOL_ID`, `USER_POOL_CLIENT_ID`, `COGNITO_REGION`, `IDENTITY_POOL_ID`, `API_ENDPOINT`, and `API_REGION` with the [same values we used a couple of chapters ago]({% link _chapters/secure-our-serverless-apis.md %}){:target="_blank"}.
+
+If you have the previous request, update the `path-template` and `body` with the new values.
+{%endnote%}
+
+Here we are testing with a Stripe test token called `tok_visa` and with `21` as the number of notes we want to store. You can read more about the Stripe test cards and tokens in the [Stripe API Docs here](https://stripe.com/docs/testing#cards){:target="_blank"}.
+
+If the command is successful, the response will look similar to this.
+
+```bash
+Authenticating with User Pool
+Getting temporary credentials
+Making API request
+{ status: 200, statusText: 'OK', data: { status: true } }
+```
+
+### Commit the Changes
+
+{%change%} Let's commit and push our changes to GitHub.
+
+```bash
+$ git add .
+$ git commit -m "Adding a billing API"
+$ git push
+```
+
+Now that we have our new billing API ready. Let's look at how to setup unit tests in serverless. We'll be using that to ensure that our infrastructure and business logic has been configured correctly.

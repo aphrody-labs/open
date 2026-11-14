@@ -1,0 +1,360 @@
+// Folders (workspaces) are public: anyone signed in opens and edits any of them (and anyone reads them); the joined list; only
+// the maker removes a folder; agent links (one per person per folder); and the migration of older databases.
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { mkdtempSync } from "node:fs";
+import { join } from "node:path";
+import { isolate, roomHello } from "./helpers.ts";
+import { seedNotebook } from "./helpers.ts";
+
+const dir = process.env.DATA_DIR!;
+process.env.QUIET_MS = "100";
+process.env.POLL_MS = "60000";
+const { config } = await import("../../src/server/config.ts");
+const { db: earlyDb } = await import("../../src/server/db.ts");
+const restore = isolate(config, earlyDb);
+Object.assign(config, { storage: "local", allowDevLogin: true, signIn: true, quietMs: 100 });
+config.github.clientId = "";
+config.github.appSlug = "";
+const { startServer } = await import("../../src/server/index.ts");
+
+let app: Awaited<ReturnType<typeof startServer>>;
+let base = "";
+
+interface Person {
+  cookie: string;
+  id: string;
+  name: string;
+}
+
+async function person(name: string): Promise<Person> {
+  const res = await fetch(`${base}/auth/dev`, { method: "POST", headers: { origin: base }, body: new URLSearchParams({ name }), redirect: "manual" });
+  expect(res.status).toBe(303);
+  const cookie = res.headers.getSetCookie().find((s) => s.startsWith("np_session="))!.split(";")[0]!;
+  const id = (await api(cookie, "GET", "/api/me")).data.id;
+  return { cookie, id, name };
+}
+
+async function api(cookie: string, method: string, path: string, body?: unknown, headers: Record<string, string> = {}) {
+  const res = await fetch(`${base}${path}`, {
+    method,
+    headers: { cookie, "content-type": "application/json", ...headers },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const text = await res.text();
+  let data: any = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text;
+  }
+  return { status: res.status, data: data, headers: res.headers };
+}
+
+/** A workspace made by `owner` with notes committed. */
+async function workspace(owner: Person, title: string, files: Record<string, string> = {}) {
+  const r = await api(owner.cookie, "POST", "/api/workspaces", { title });
+  expect(r.status).toBe(201);
+  const id = r.data.id as string;
+  if (Object.keys(files).length) {
+    await app.ctx.store.commit({
+      repo: id,
+      branch: "main",
+      expectedHead: await app.ctx.store.head(id, "main"),
+      changes: Object.entries(files).map(([path, content]) => ({ path, content })),
+      message: "seed",
+      author: { name: "x", email: "x@example.com" },
+    });
+  }
+  return id;
+}
+
+const roomFor = (p: Person, repo: string, path: string) => roomHello(base, { repo, path }, { cookie: p.cookie, origin: base });
+
+beforeAll(async () => {
+  app = await startServer({ port: 0, quiet: true });
+  await seedNotebook(app.ctx, "wst-notes");
+  base = `http://localhost:${app.server.port}`;
+});
+
+afterAll(async () => {
+  await app?.stop();
+  restore();
+});
+
+describe("public folders", () => {
+  test("anyone signed in opens and edits any folder; opening it joins it; leaving takes it off the list", async () => {
+    const owner = await person("Pub Owner");
+    const ws = await workspace(owner, "WST Public", { "p.md": "p\n" });
+    const item = { id: ws, title: "WST Public", kind: "notes", readOnly: false, status: "ready", head: expect.any(String) };
+    expect((await api(owner.cookie, "GET", "/api/workspaces")).data.find((w: any) => w.id === ws)).toEqual({ ...item, canRemove: true });
+    expect((await api(owner.cookie, "GET", `/api/workspace/${ws}`)).data).toEqual({ ...item, canRemove: true, ownerId: owner.id });
+
+    for (const p of [await person("Pub Other"), await person("moist-noodle")]) {
+      expect((await api(p.cookie, "GET", "/api/workspaces")).data.some((w: any) => w.id === ws)).toBe(false);
+      expect((await api(p.cookie, "GET", `/api/workspace/${ws}`)).data).toMatchObject({ ...item, canRemove: false });
+      expect((await api(p.cookie, "GET", `/api/workspace/${ws}/tree`)).data.files).toContain("p.md");
+      expect((await api(p.cookie, "GET", "/api/workspaces")).data.find((w: any) => w.id === ws)).toEqual({ ...item, canRemove: false });
+      expect((await api(p.cookie, "GET", "/api/workspaces")).data.find((r: any) => r.id === ws)).toMatchObject({ readOnly: false, canRemove: false });
+      expect((await api(p.cookie, "POST", `/api/workspace/${ws}/files`, { path: `${p.id}.md` })).status).toBe(201);
+      expect((await roomFor(p, ws, "p.md")).hello?.readOnly).toBe(false);
+      // Leave: off the list (always allowed); opening it again rejoins.
+      expect((await api(p.cookie, "DELETE", `/api/workspace/${ws}/join`)).data).toEqual({ ok: true });
+      expect((await api(p.cookie, "GET", "/api/workspaces")).data.some((w: any) => w.id === ws)).toBe(false);
+      // Opening the room alone also records the join.
+      await roomFor(p, ws, "p.md");
+      expect((await api(p.cookie, "GET", "/api/workspaces")).data.some((w: any) => w.id === ws)).toBe(true);
+    }
+    // The maker may leave too.
+    expect((await api(owner.cookie, "DELETE", `/api/workspace/${ws}/join`)).status).toBe(200);
+    expect((await api(owner.cookie, "GET", "/api/workspaces")).data.some((w: any) => w.id === ws)).toBe(false);
+    expect((await api(owner.cookie, "GET", `/api/workspace/no-such-ws`)).status).toBe(404);
+    // Signed out: reading is open (no joined list, no folder details), writing isn't.
+    expect((await fetch(`${base}/api/workspace/${ws}`)).status).toBe(401);
+    expect((await fetch(`${base}/api/workspaces`)).status).toBe(401);
+    expect(((await (await fetch(`${base}/api/workspace/${ws}/tree`)).json()) as { files: string[] }).files).toContain("p.md");
+    expect((await fetch(`${base}/api/workspace/${ws}/files`, { method: "POST", headers: { origin: base, "content-type": "application/json" }, body: JSON.stringify({ path: "x.md" }) })).status).toBe(401);
+  });
+
+  test("the account's list follows the person to any device; join-many merges a list kept elsewhere (a guest browser, the Mac app)", async () => {
+    const maker = await person("Merge Maker");
+    const made = await workspace(maker, "WST Made");
+    const opened = await workspace(maker, "WST Opened");
+    const other = await workspace(maker, "WST Other");
+    const p = await person("Merger");
+    // a second device: the same account sees the same list
+    const listed = async (c: string) => ((await api(c, "GET", "/api/workspaces")).data as Array<{ id: string }>).map((w) => w.id);
+    expect(await listed(maker.cookie)).toEqual(expect.arrayContaining([made, opened, other]));
+    const r = await api(p.cookie, "POST", "/api/workspaces/join-many", { ids: [made, opened, "gone-zzzz", made] });
+    expect(r).toMatchObject({ status: 200, data: { joined: [made, opened], missing: ["gone-zzzz"] } });
+    expect(await listed(p.cookie)).toEqual(expect.arrayContaining([made, opened]));
+    expect(await listed(p.cookie)).not.toContain(other);
+    // again: nothing changes (no duplicates)
+    expect((await api(p.cookie, "POST", "/api/workspaces/join-many", { ids: [made] })).data).toEqual({ joined: [made], missing: [] });
+    expect((await listed(p.cookie)).filter((id) => id === made)).toHaveLength(1);
+    // bad bodies; signed out
+    for (const b of [{}, { ids: "x" }, { ids: [1] }, { ids: [""] }, { ids: Array.from({ length: 201 }, (_, i) => `w${i}`) }]) expect((await api(p.cookie, "POST", "/api/workspaces/join-many", b)).status).toBe(400);
+    expect((await api("", "POST", "/api/workspaces/join-many", { ids: [made] }, { origin: base })).status).toBe(401);
+  });
+
+  test("the access settings are gone", async () => {
+    const owner = await person("Gone Owner");
+    const ws = await workspace(owner, "WST Gone");
+    expect((await api(owner.cookie, "PATCH", `/api/workspace/${ws}`, { linkAccess: "none" })).status).toBe(405);
+    expect((await api(owner.cookie, "GET", `/api/workspace/${ws}/members`)).status).toBe(404);
+    expect((await api(owner.cookie, "POST", `/api/workspace/${ws}/members`, { email: "x@example.com" })).status).toBe(404);
+    expect((await fetch(`${base}/api/workspace/${ws}/public`)).status).toBe(401);
+    expect((await api(owner.cookie, "GET", "/api/tokens")).status).toBe(404);
+    expect((await api(owner.cookie, "GET", "/api/note-links/x")).status).toBe(404);
+    // A `linkAccess` in the body is ignored: folders are public.
+    const r = await api(owner.cookie, "POST", "/api/workspaces", { title: "WST Private?", linkAccess: "none" });
+    expect(r.status).toBe(201);
+    expect((await api((await person("Gone Other")).cookie, "GET", `/api/workspace/${r.data.id}/tree`)).status).toBe(200);
+  });
+
+  test("only whoever made a folder may remove it", async () => {
+    const owner = await person("Rm Owner");
+    const other = await person("Rm Other");
+    const ws = await workspace(owner, "WST Remove");
+    expect((await api(other.cookie, "GET", `/api/workspace/${ws}`)).data.canRemove).toBe(false);
+    expect((await api(other.cookie, "DELETE", `/api/workspace/${ws}`)).status).toBe(403);
+    expect((await api(owner.cookie, "GET", `/api/workspace/${ws}`)).data.canRemove).toBe(true);
+    expect((await api(owner.cookie, "DELETE", `/api/workspace/${ws}`)).status).toBe(200);
+    expect((await api(other.cookie, "GET", `/api/workspace/${ws}`)).status).toBe(404);
+    // Nobody may remove the default notebook.
+    expect((await api(owner.cookie, "DELETE", `/api/workspace/wst-notes`)).status).toBe(403);
+  });
+
+  test("deleting an account: its sign-ins, list and the workspaces it made go; others' stay", async () => {
+    const gone = await person("Del Gone");
+    const other = await person("Del Other");
+    const a = await workspace(gone, "WST Del A", { "a.md": "a\n" });
+    const b = await workspace(gone, "WST Del B");
+    const theirs = await workspace(other, "WST Del Theirs", { "t.md": "t\n" });
+    expect((await api(gone.cookie, "GET", `/api/workspace/${theirs}/tree`)).status).toBe(200);
+    // cross-origin: refused
+    expect((await api(gone.cookie, "DELETE", "/api/me", undefined, { origin: "https://evil.example" })).status).toBe(403);
+    const r = await api(gone.cookie, "DELETE", "/api/me");
+    expect(r.status).toBe(200);
+    expect(r.data).toEqual({ ok: true, deletedWorkspaces: 2, failedWorkspaces: [] });
+    expect(r.headers.get("set-cookie")).toContain("Max-Age=0");
+    expect((await api(gone.cookie, "GET", "/api/me")).status).toBe(401);
+    for (const ws of [a, b]) expect((await api(other.cookie, "GET", `/api/workspace/${ws}`)).status).toBe(404);
+    expect((await api(other.cookie, "GET", `/api/workspace/${theirs}/tree`)).data.files).toContain("t.md");
+    expect(await app.ctx.repos.db.get("SELECT 1 FROM users WHERE id = ?", gone.id)).toBeNull();
+    expect(await app.ctx.repos.db.get("SELECT 1 FROM joined WHERE user_id = ?", gone.id)).toBeNull();
+  });
+});
+
+describe("few writes to the global tables", () => {
+  const GLOBAL = /\b(users|sessions|repos|joined|app_tokens)\b/i;
+
+  /** The write statements on global tables run through `db.query` while `fn` runs, and the reads of `joined`. */
+  async function spy(fn: () => Promise<unknown>) {
+    const writes: string[] = [];
+    const joinedReads: string[] = [];
+    const orig = earlyDb.query;
+    earlyDb.query = ((sql: string) => {
+      if (/^\s*(INSERT|UPDATE|DELETE|REPLACE)\b/i.test(sql) && GLOBAL.test(sql)) writes.push(sql);
+      else if (/^\s*SELECT\b/i.test(sql) && /\bFROM joined\b/i.test(sql)) joinedReads.push(sql);
+      return orig.call(earlyDb, sql);
+    }) as typeof orig;
+    try {
+      await fn();
+    } finally {
+      earlyDb.query = orig;
+    }
+    return { writes, joinedReads };
+  }
+
+  const joinedRow = (user: string, ws: string) => earlyDb.query("SELECT joined_at FROM joined WHERE user_id = ? AND workspace_id = ?").get(user, ws) as { joined_at: number } | null;
+
+  test("opening a folder again (tree or room) doesn't write; a cold cache reads before inserting", async () => {
+    const owner = await person("Hot Owner");
+    const p = await person("Hot Visitor");
+    const ws = await workspace(owner, "WST Hot", { "h.md": "h\n" });
+    const first = await spy(() => api(p.cookie, "GET", `/api/workspace/${ws}/tree`));
+    expect(first.writes.filter((s) => /INTO joined/i.test(s))).toHaveLength(1);
+    expect(joinedRow(p.id, ws)).not.toBeNull();
+
+    const again = await spy(async () => {
+      expect((await api(p.cookie, "GET", `/api/workspace/${ws}/tree`)).status).toBe(200);
+      expect((await roomFor(p, ws, "h.md")).hello).toBeTruthy();
+      expect((await api(p.cookie, "GET", `/api/workspace/${ws}/tree`)).status).toBe(200);
+    });
+    expect(again.writes).toEqual([]);
+    expect(again.joinedReads).toEqual([]);
+
+    // Another process (or a restart): the row is there, so only a read.
+    const { clearJoinCache } = await import("../../src/server/workspaces.ts");
+    clearJoinCache();
+    const cold = await spy(async () => {
+      await api(p.cookie, "GET", `/api/workspace/${ws}/tree`);
+      await roomFor(p, ws, "h.md");
+    });
+    expect(cold.writes).toEqual([]);
+    expect(cold.joinedReads).toHaveLength(1);
+
+    // Leaving forgets it, so the next open joins again.
+    await api(p.cookie, "DELETE", `/api/workspace/${ws}/join`);
+    expect(joinedRow(p.id, ws)).toBeNull();
+    await roomFor(p, ws, "h.md");
+    expect(joinedRow(p.id, ws)).not.toBeNull();
+  });
+
+  test("pruneSessions deletes expired sessions only", async () => {
+    const { pruneSessions } = await import("../../src/server/auth.ts");
+    const { bunDb } = await import("../../src/server/bun/db-bun.ts");
+    const p = await person("Prune Person");
+    const now = Date.now();
+    earlyDb.query("INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)").run("prune-old", p.id, now - 1000);
+    earlyDb.query("INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)").run("prune-new", p.id, now + 60_000);
+    await pruneSessions(bunDb(), now);
+    const left = (earlyDb.query("SELECT token FROM sessions WHERE token LIKE 'prune-%'").all() as Array<{ token: string }>).map((r) => r.token);
+    expect(left).toEqual(["prune-new"]);
+    // The real session still works.
+    expect((await api(p.cookie, "GET", "/api/me")).status).toBe(200);
+    await pruneSessions(bunDb(), now + 120_000);
+    expect(earlyDb.query("SELECT 1 FROM sessions WHERE token = 'prune-new'").get()).toBeNull();
+  });
+
+  test("sign-in checks prune expired sessions only while inline pruning is on (Workers: off, the cron prunes)", async () => {
+    const { authenticate, setInlinePrune } = await import("../../src/server/auth.ts");
+    const { bunDb } = await import("../../src/server/bun/db-bun.ts");
+    const p = await person("Inline Prune");
+    const inner = bunDb();
+    const seen: string[] = [];
+    const db = { ...inner, run: (sql: string, ...a: unknown[]) => (seen.push(sql), inner.run(sql, ...a)) } as typeof inner;
+    const req = new Request(base, { headers: { cookie: p.cookie } });
+    try {
+      setInlinePrune(false);
+      expect((await authenticate(db, req))?.user.id).toBe(p.id);
+      expect(seen.filter((s) => /DELETE FROM sessions/.test(s))).toEqual([]);
+      setInlinePrune(true);
+      expect((await authenticate(db, req))?.user.id).toBe(p.id);
+      expect(seen.filter((s) => /DELETE FROM sessions/.test(s)).length).toBe(1);
+    } finally {
+      setInlinePrune(true);
+    }
+  });
+});
+
+describe("migration", () => {
+  const USERS = `CREATE TABLE users (id TEXT PRIMARY KEY, github_id INTEGER UNIQUE, login TEXT NOT NULL, name TEXT NOT NULL, email TEXT NOT NULL, avatar TEXT, github_token TEXT, is_admin INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL);
+    CREATE TABLE sessions (token TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, expires_at INTEGER NOT NULL);
+    INSERT INTO users (id, login, name, email, is_admin, created_at) VALUES ('admin', 'a', 'A', 'a@x', 1, 1), ('u2', 'b', 'B', 'b@x', 0, 2), ('u3', 'c', 'C', 'c@x', 0, 3);`;
+  const SHARES = "CREATE TABLE share_links (id TEXT PRIMARY KEY, repo_id TEXT NOT NULL REFERENCES repos(id) ON DELETE CASCADE, label TEXT, created_by TEXT REFERENCES users(id) ON DELETE CASCADE, created_at INTEGER NOT NULL, last_used_at INTEGER, revoked_at INTEGER";
+
+  /** Open an older database `sql` with the current code (twice: the second run must change nothing). */
+  async function migrate(sql: string) {
+    const tmp = mkdtempSync(join(dir, "migrate-ws-"));
+    const { Database } = await import("bun:sqlite");
+    const old = new Database(join(tmp, "grimoire.sqlite"));
+    old.exec(sql);
+    old.close();
+    const script = `const { db } = await import(${JSON.stringify(join(import.meta.dir, "../../src/server/db.ts"))});
+      const q = (s) => db.query(s).all();
+      console.log(JSON.stringify({
+        owners: q("SELECT id, owner_id FROM repos ORDER BY id"),
+        joined: q("SELECT workspace_id || ':' || user_id AS k FROM joined ORDER BY k").map((r) => r.k),
+        users: q("SELECT id, email_verified, google_sub FROM users ORDER BY id"),
+        shares: q("SELECT name FROM sqlite_master WHERE name LIKE 'share_links%'").length,
+        tables: q("SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('members', 'joined', 'app_tokens') ORDER BY name").map((r) => r.name),
+      }));`;
+    const run = async () => {
+      const p = Bun.spawn([process.execPath, "-e", script], { env: { ...process.env, DATA_DIR: tmp }, stdout: "pipe", stderr: "pipe" });
+      const [out, err] = await Promise.all([new Response(p.stdout).text(), new Response(p.stderr).text(), p.exited]);
+      expect(err).toBe("");
+      return JSON.parse(out);
+    };
+    const r = await run();
+    expect(await run()).toEqual(r);
+    return r;
+  }
+
+  test("a database from before folders: owned by whoever made them (never by the old admin); everyone has joined everything; agent links go", async () => {
+    const r = await migrate(`${USERS}
+      CREATE TABLE repos (id TEXT PRIMARY KEY, title TEXT NOT NULL, kind TEXT NOT NULL, gh_owner TEXT, gh_name TEXT, read_only INTEGER NOT NULL DEFAULT 0, branch TEXT NOT NULL, status TEXT NOT NULL, error TEXT, created_by TEXT, created_at INTEGER NOT NULL);
+      ${SHARES});
+      INSERT INTO repos (id, title, kind, branch, status, created_by, created_at) VALUES ('notes', 'Notes', 'notes', 'main', 'ready', NULL, 1), ('team', 'Team', 'notes', 'main', 'ready', 'u2', 2);
+      INSERT INTO repos (id, title, kind, gh_owner, gh_name, read_only, branch, status, created_by, created_at) VALUES ('gh-o-r', 'o/r', 'github', 'o', 'r', 1, 'main', 'ready', 'u3', 3), ('gh-gone', 'o/g', 'github', 'o', 'g', 1, 'main', 'ready', 'deleted-user', 4);
+      INSERT INTO share_links (id, repo_id, label, created_by, created_at) VALUES ('l1', 'team', 'Kept', 'u2', 5);`);
+    expect(r.owners).toEqual([
+      { id: "gh-gone", owner_id: null },
+      { id: "gh-o-r", owner_id: "u3" },
+      { id: "notes", owner_id: null },
+      { id: "team", owner_id: "u2" },
+    ]);
+    expect(r.joined).toEqual(["gh-gone", "gh-o-r", "notes", "team"].flatMap((w) => ["admin", "u2", "u3"].map((u) => `${w}:${u}`)));
+    expect(r.users).toEqual([
+      { id: "admin", email_verified: 0, google_sub: null },
+      { id: "u2", email_verified: 0, google_sub: null },
+      { id: "u3", email_verified: 0, google_sub: null },
+    ]);
+    expect(r.shares).toBe(0);
+    expect(r.tables).toEqual(["app_tokens", "joined"]);
+  });
+
+  test("a database with private folders: everything is public, members join their folders, and the old agent links go", async () => {
+    const r = await migrate(`${USERS}
+      ALTER TABLE users ADD COLUMN google_sub TEXT;
+      ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0;
+      CREATE TABLE repos (id TEXT PRIMARY KEY, title TEXT NOT NULL, kind TEXT NOT NULL, gh_owner TEXT, gh_name TEXT, read_only INTEGER NOT NULL DEFAULT 0, branch TEXT NOT NULL, status TEXT NOT NULL, error TEXT, created_by TEXT, created_at INTEGER NOT NULL,
+        link_access TEXT NOT NULL DEFAULT 'edit', domain_rule TEXT, owner_id TEXT REFERENCES users(id) ON DELETE SET NULL);
+      ${SHARES}, kind TEXT NOT NULL DEFAULT 'agent', path TEXT, role TEXT);
+      CREATE TABLE members (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL REFERENCES repos(id) ON DELETE CASCADE, user_id TEXT REFERENCES users(id) ON DELETE CASCADE, email TEXT, role TEXT NOT NULL, invited_by TEXT, created_at INTEGER NOT NULL);
+      CREATE TABLE joined (workspace_id TEXT NOT NULL REFERENCES repos(id) ON DELETE CASCADE, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, via TEXT NOT NULL, joined_at INTEGER NOT NULL, PRIMARY KEY (workspace_id, user_id));
+      INSERT INTO repos (id, title, kind, branch, status, created_by, created_at, link_access, owner_id) VALUES ('secret', 'Secret', 'notes', 'main', 'ready', 'u2', 1, 'none', 'u2'), ('open', 'Open', 'notes', 'main', 'ready', 'u2', 2, 'edit', 'u2');
+      INSERT INTO members (id, workspace_id, user_id, email, role, created_at) VALUES ('m1', 'secret', 'u2', NULL, 'owner', 1), ('m2', 'secret', 'u3', NULL, 'viewer', 1), ('m3', 'secret', NULL, 'x@y.z', 'editor', 1);
+      INSERT INTO joined (workspace_id, user_id, via, joined_at) VALUES ('open', 'admin', 'link', 1), ('open', 'u3', 'link', 1);
+      INSERT INTO share_links (id, repo_id, label, created_by, created_at, kind, path, role) VALUES
+        ('agent', 'secret', NULL, 'u2', 1, 'agent', NULL, NULL), ('agent-editor', 'open', NULL, 'u3', 1, 'agent', NULL, 'editor'),
+        ('agent-viewer', 'open', NULL, 'u2', 1, 'agent', NULL, 'viewer'), ('note', 'open', NULL, 'u2', 1, 'note', 'a.md', 'editor');`);
+    expect(r.owners).toEqual([
+      { id: "open", owner_id: "u2" },
+      { id: "secret", owner_id: "u2" },
+    ]);
+    expect(r.joined).toEqual(["open:admin", "open:u3", "secret:u2", "secret:u3"]);
+    expect(r.shares).toBe(0);
+    expect(r.tables).toEqual(["app_tokens", "joined"]);
+  });
+});

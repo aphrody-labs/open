@@ -1,0 +1,267 @@
+preface:
+  title: Preface
+  chapters:
+    - page: Who is this guide for?
+      url: /chapters/who-is-this-guide-for.html
+    - page: What does this guide cover?
+      url: /chapters/what-does-this-guide-cover.html
+    - page: How to get help?
+      url: /chapters/how-to-get-help.html
+
+intro:
+  title: Introduction
+  chapters:
+    - page: What is serverless?
+      url: /chapters/what-is-serverless.html
+    - page: What is AWS Lambda?
+      url: /chapters/what-is-aws-lambda.html
+    - page: Why create serverless apps?
+      url: /chapters/why-create-serverless-apps.html
+
+setup-aws:
+  title: Set up your AWS account
+  chapters:
+    - page: Create an AWS account
+      url: /chapters/create-an-aws-account.html
+    - page: Create an IAM user
+      url: /chapters/create-an-iam-user.html
+    - page: Configure the AWS CLI
+      url: /chapters/configure-the-aws-cli.html
+
+setup-sst:
+  title: Setting up an SST app
+  chapters:
+    - page: What is SST?
+      url: /chapters/what-is-sst.html
+      subchapters:
+        - page: What is Infrastructure as Code?
+          url: /chapters/what-is-infrastructure-as-code.html
+    - page: Create an SST app
+      url: /chapters/create-an-sst-app.html
+    - page: Create a Hello World API
+      url: /chapters/create-a-hello-world-api.html
+
+setup-sst-backend:
+  title: Create your AWS resources
+  chapters:
+    - page: Create a DynamoDB Table in SST
+      url: /chapters/create-a-dynamodb-table-in-sst.html
+    - page: Create an S3 bucket in SST
+      url: /chapters/create-an-s3-bucket-in-sst.html
+
+build-sst-api:
+  title: Building a serverless API
+  chapters:
+    - page: Review our app architecture
+      url: /chapters/review-our-app-architecture.html
+    - page: Add an API to create a note
+      url: /chapters/add-an-api-to-create-a-note.html
+    - page: Add an API to get a note
+      url: /chapters/add-an-api-to-get-a-note.html
+    - page: Add an API to list all the notes
+      url: /chapters/add-an-api-to-list-all-the-notes.html
+    - page: Add an API to update a note
+      url: /chapters/add-an-api-to-update-a-note.html
+    - page: Add an API to delete a note
+      url: /chapters/add-an-api-to-delete-a-note.html
+
+add-auth-stack:
+  title: Users and authentication
+  chapters:
+    - page: Auth in serverless apps
+      url: /chapters/auth-in-serverless-apps.html
+    - page: Adding auth to our serverless app
+      url: /chapters/adding-auth-to-our-serverless-app.html
+    - page: Secure our serverless APIs
+      url: /chapters/secure-our-serverless-apis.html
+
+handling-secrets:
+  title: Working with secrets
+  chapters:
+    - page: Setup a Stripe account
+      url: /chapters/setup-a-stripe-account.html
+    - page: Handling secrets in SST
+      url: /chapters/handling-secrets-in-sst.html
+    - page: Add an API to handle billing
+      url: /chapters/add-an-api-to-handle-billing.html
+
+unit-tests:
+  title: Serverless unit tests
+  chapters:
+    - page: Unit tests in serverless
+      url: /chapters/unit-tests-in-serverless.html
+
+cors-sst:
+  title: CORS in serverless
+  chapters:
+    - page: Handle CORS in serverless APIs
+      url: /chapters/handle-cors-in-serverless-apis.html
+    - page: Handle CORS in S3 for File Uploads
+      url: /chapters/handle-cors-in-s3-for-file-uploads.html
+
+setup-react:
+  title: Setting up a React app
+  chapters:
+    - page: Create a new React.js app
+      url: /chapters/create-a-new-reactjs-app.html
+      subchapters:
+        - page: Add app favicons
+          url: /chapters/add-app-favicons.html
+        - page: Set up custom fonts
+          url: /chapters/setup-custom-fonts.html
+        - page: Set up Bootstrap
+          url: /chapters/setup-bootstrap.html
+
+react-routes:
+  title: Routes in React
+  chapters:
+    - page: Handle routes with React Router
+      url: /chapters/handle-routes-with-react-router.html
+      subchapters:
+        - page: Create containers
+          url: /chapters/create-containers.html
+        - page: Adding links in the navbar
+          url: /chapters/adding-links-in-the-navbar.html
+        - page: Handle 404s
+          url: /chapters/handle-404s.html
+
+setup-amplify:
+  title: Adding auth to a React app
+  chapters:
+    - page: Configure AWS Amplify
+      url: /chapters/configure-aws-amplify.html
+    - page: Create a login page
+      url: /chapters/create-a-login-page.html
+      subchapters:
+        - page: Login with AWS Cognito
+          url: /chapters/login-with-aws-cognito.html
+        - page: Add the session to the state
+          url: /chapters/add-the-session-to-the-state.html
+        - page: Load the state from the session
+          url: /chapters/load-the-state-from-the-session.html
+        - page: Clear the session on logout
+          url: /chapters/clear-the-session-on-logout.html
+        - page: Redirect on login and logout
+          url: /chapters/redirect-on-login-and-logout.html
+        - page: Give feedback while logging in
+          url: /chapters/give-feedback-while-logging-in.html
+        - page: Create a Custom React Hook to Handle Form Fields
+          url: /chapters/create-a-custom-react-hook-to-handle-form-fields.html
+    - page: Create a signup page
+      url: /chapters/create-a-signup-page.html
+      subchapters:
+        - page: Create the signup form
+          url: /chapters/create-the-signup-form.html
+        - page: Signup with AWS Cognito
+          url: /chapters/signup-with-aws-cognito.html
+
+build-react:
+  title: Building a React app
+  chapters:
+    - page: Add the create note page
+      url: /chapters/add-the-create-note-page.html
+      subchapters:
+        - page: Call the create API
+          url: /chapters/call-the-create-api.html
+        - page: Upload a file to S3
+          url: /chapters/upload-a-file-to-s3.html
+    - page: List all the notes
+      url: /chapters/list-all-the-notes.html
+      subchapters:
+        - page: Call the list API
+          url: /chapters/call-the-list-api.html
+    - page: Display a note
+      url: /chapters/display-a-note.html
+      subchapters:
+        - page: Render the note form
+          url: /chapters/render-the-note-form.html
+        - page: Save changes to a note
+          url: /chapters/save-changes-to-a-note.html
+        - page: Delete a note
+          url: /chapters/delete-a-note.html
+    - page: Create a settings page
+      url: /chapters/create-a-settings-page.html
+      subchapters:
+        - page: Add Stripe keys to config
+          url: /chapters/add-stripe-keys-to-config.html
+        - page: Create a billing form
+          url: /chapters/create-a-billing-form.html
+        - page: Connect the billing form
+          url: /chapters/connect-the-billing-form.html
+
+secure-pages:
+  title: Securing React pages
+  chapters:
+    - page: Set up secure pages
+      url: /chapters/setup-secure-pages.html
+    - page: Create a route that redirects
+      url: /chapters/create-a-route-that-redirects.html
+    - page: Use the redirect routes
+      url: /chapters/use-the-redirect-routes.html
+    - page: Redirect on login
+      url: /chapters/redirect-on-login.html
+
+custom-domains:
+  title: Using Custom Domains
+  chapters:
+    - page: Getting production ready
+      url: /chapters/getting-production-ready.html
+    - page: Purchase a domain with Route 53
+      url: /chapters/purchase-a-domain-with-route-53.html
+    - page: Custom domains in serverless APIs
+      url: /chapters/custom-domains-in-serverless-apis.html
+    - page: Custom domains for React apps on AWS
+      url: /chapters/custom-domains-for-react-apps-on-aws.html
+
+automating-deployments:
+  title: Automating deployments
+  chapters:
+    - page: Creating a CI/CD pipeline for serverless
+      url: /chapters/creating-a-ci-cd-pipeline-for-serverless.html
+      subchapters:
+      - page: Setting up the SST Console
+        url: /chapters/setting-up-the-sst-console.html
+#      - page: Configure secrets in Seed
+#        url: /chapters/configure-secrets-in-seed.html
+      - page: Deploying Through the SST Console
+        url: /chapters/deploying-through-the-sst-console.html
+
+#monitor-debug-errors:
+#  title: Monitoring and debugging
+#  chapters:
+#    - page: Debugging full-stack serverless apps
+#      url: /chapters/debugging-full-stack-serverless-apps.html
+#    - page: Setup error reporting in React
+#      url: /chapters/setup-error-reporting-in-react.html
+#      subchapters:
+#        - page: Report API errors in React
+#          url: /chapters/report-api-errors-in-react.html
+#        - page: Configure an error boundary in React
+#          url: /chapters/setup-an-error-boundary-in-react.html
+#    - page: Setup error logging in serverless
+#      url: /chapters/setup-error-logging-in-serverless.html
+#      subchapters:
+#        - page: Logic errors in Lambda functions
+#          url: /chapters/logic-errors-in-lambda-functions.html
+#        - page: Unexpected errors in Lambda functions
+#          url: /chapters/unexpected-errors-in-lambda-functions.html
+#        - page: Errors outside Lambda functions
+#          url: /chapters/errors-outside-lambda-functions.html
+#        - page: Errors in API Gateway
+#          url: /chapters/errors-in-api-gateway.html
+
+conclusion:
+  title: Conclusion
+  chapters:
+    - page: Wrapping up
+      url: /chapters/wrapping-up.html
+    - page: Further reading
+      url: /chapters/further-reading.html
+    - page: Translations
+      url: /chapters/translations.html
+    - page: Giving back
+      url: /chapters/giving-back.html
+    - page: Changelog
+      url: /chapters/changelog.html
+    - page: Staying up to date
+      url: /chapters/staying-up-to-date.html

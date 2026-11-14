@@ -1,0 +1,501 @@
+/* Live-markdown editor, light theme: paper and ink (the platform font or Inter, system monospace). */
+.mde {
+  /* Note typography: the one place to tune the note's colours and type on the web. The Mac app's twin is
+     crates/app/src/theme.rs; keep the two equal (docs/typography.md lists the tokens). Whole pixels throughout,
+     so both apps put every line at the same place. */
+  --mde-text: #36373d; /* body text: 11.6:1 on the paper */
+  --mde-heading: #1d1e22; /* headings and table heads: a step darker than the text */
+  --mde-text-light: #55565d; /* quotes and tags: 7.1:1 */
+  --mde-size: 16px;
+  --mde-leading: 1.6875; /* 27px: unitless, so smaller inline code and the link pencil keep their own */
+  --mde-h1-size: 32px;
+  --mde-h1-leading: calc(36 / 32); /* 36px */
+  --mde-h1-pad: 24px 0 4px;
+  --mde-h2-size: 24px;
+  --mde-h2-leading: calc(30 / 24); /* 30px */
+  --mde-h2-pad: 20px 0 2px;
+  --mde-h3-size: 18px;
+  --mde-h3-leading: calc(24 / 18); /* 24px */
+  --mde-h3-pad: 12px 0 2px;
+  --mde-h4-size: 16px;
+  --mde-h4-leading: calc(22 / 16); /* 22px */
+  --mde-h4-pad: 10px 0 2px;
+  --mde-h5-size: 13px;
+  --mde-h5-leading: calc(16 / 13); /* 16px */
+  --mde-h5-pad: 8px 0 2px;
+  --mde-h1-weight: 700;
+  --mde-h-weight: 600;
+  --mde-code-size: 13.5px;
+  --mde-code-leading: calc(22 / 13.5); /* 22px */
+  --mde-code-pad-x: 16px;
+  --mde-code-pad-y: 10px;
+  --mde-code-radius: 6px;
+  --mde-inline-code: 0.875em; /* 14px */
+  --mde-cell-pad: 5px 20px 5px 0;
+  /* Inter only: San Francisco tracks itself at each size (html.sysfont, below) */
+  --mde-h1-tracking: -0.024em;
+  --mde-h2-tracking: -0.02em;
+  --mde-h3-tracking: -0.01em;
+  --mde-accent: #1d1e22;
+  --mde-link: #296d9a;
+  --mde-marker: #62626a;
+  --mde-bg: #fcfcfb;
+  --mde-bg2: #ececee;
+  --mde-code-bg: #f1f1f2;
+  --mde-stroke: #d4d4d8;
+  --mde-quote: #d4d4d8;
+  --mde-selection: rgba(41, 109, 154, 0.18);
+  --mde-highlight: rgba(245, 197, 66, 0.3);
+  --mde-checked: #62626a;
+  --mde-gutter: 33px;
+  /* Faces come from the app (--font-*); the values after the commas are the defaults. */
+  --mde-font: var(--font-text, -apple-system, BlinkMacSystemFont, "Inter", system-ui, "Segoe UI", Roboto, Arial, sans-serif);
+  --mde-head-font: var(--font-head, var(--mde-font));
+  --mde-ui-font: var(--font-ui, var(--mde-font));
+  --mde-mono: var(--font-mono, ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace);
+  position: relative;
+  background: var(--mde-bg);
+}
+
+.mde-content {
+  box-sizing: border-box;
+  max-width: 840px;
+  margin: 0 auto;
+  padding: 40px 24px 40vh calc(var(--mde-gutter) + 16px);
+  min-height: 100%;
+  outline: none;
+  color: var(--mde-text);
+  font-family: var(--mde-font);
+  font-size: var(--mde-size);
+  line-height: var(--mde-leading);
+  white-space: pre-wrap;
+  /* long words and URLs wrap rather than widen the page; tables and code blocks scroll inside their blocks (below) */
+  overflow-wrap: anywhere;
+  tab-size: 4;
+  caret-color: var(--mde-accent);
+}
+.mde-content ::selection { background: var(--mde-selection); }
+
+/* lines */
+.mde .ln {
+  position: relative;
+  min-height: 1.5em;
+  padding-left: calc(var(--lv, 0) * var(--mde-gutter));
+  text-indent: calc(var(--lv, 0) * -1 * var(--mde-gutter));
+}
+.mde .ln-heading { font-family: var(--mde-head-font); font-weight: var(--mde-h-weight); letter-spacing: 0; color: var(--mde-heading); }
+.mde .ln-heading.h1 { font-size: var(--mde-h1-size); line-height: var(--mde-h1-leading); --mde-hlh: calc(var(--mde-h1-size) * var(--mde-h1-leading)); padding: var(--mde-h1-pad); font-weight: var(--mde-h1-weight); letter-spacing: var(--mde-h1-tracking); }
+.mde .ln-heading.h2 { font-size: var(--mde-h2-size); line-height: var(--mde-h2-leading); --mde-hlh: calc(var(--mde-h2-size) * var(--mde-h2-leading)); padding: var(--mde-h2-pad); letter-spacing: var(--mde-h2-tracking); }
+.mde .ln-heading.h3 { font-size: var(--mde-h3-size); line-height: var(--mde-h3-leading); --mde-hlh: calc(var(--mde-h3-size) * var(--mde-h3-leading)); padding: var(--mde-h3-pad); letter-spacing: var(--mde-h3-tracking); }
+.mde .ln-heading.h4 { font-size: var(--mde-h4-size); line-height: var(--mde-h4-leading); --mde-hlh: calc(var(--mde-h4-size) * var(--mde-h4-leading)); padding: var(--mde-h4-pad); }
+.mde .ln-heading.h5, .mde .ln-heading.h6 { font-size: var(--mde-h5-size); line-height: var(--mde-h5-leading); --mde-hlh: calc(var(--mde-h5-size) * var(--mde-h5-leading)); padding: var(--mde-h5-pad); letter-spacing: var(--label-tracking, 0.005em); text-transform: var(--label-case, none); }
+:root.sysfont .mde { --mde-h1-tracking: 0; --mde-h2-tracking: 0; --mde-h3-tracking: 0; }
+
+/* prefix tokens (atomic, contenteditable=false) */
+.mde .tok {
+  display: inline-block;
+  text-indent: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  vertical-align: top;
+  font-weight: 400;
+  font-style: normal;
+}
+.mde .tok-indent { width: var(--mde-gutter); }
+.mde .tok-bullet { width: var(--mde-gutter); text-align: center; color: transparent; font-weight: 700; position: relative; }
+.mde .tok-bullet::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: calc(var(--mde-leading) * 0.5em);
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  background: var(--mde-text);
+}
+.mde .tok-numbered {
+  min-width: var(--mde-gutter);
+  box-sizing: border-box;
+  padding-right: 6px;
+  text-align: right;
+  color: var(--mde-text);
+  font-variant-numeric: tabular-nums;
+}
+.mde .tok-quote { width: var(--mde-gutter); }
+.mde .ln-quote::before {
+  content: "";
+  position: absolute;
+  top: 0.15em;
+  bottom: 0.15em;
+  left: calc(var(--ind, 0) * var(--mde-gutter) + 12px);
+  width: 3px;
+  border-radius: 2px;
+  background: var(--mde-quote);
+}
+.mde .ln-quote { color: var(--mde-text-light); }
+.mde .tok-heading {
+  width: var(--mde-gutter);
+  margin-left: calc(-1 * var(--mde-gutter));
+  font-size: 10px;
+  font-weight: 600;
+  font-stretch: 100%;
+  letter-spacing: 0.08em;
+  /* centred on the heading's first line, as the Mac app's */
+  line-height: 12px;
+  padding-top: calc(var(--mde-hlh, 24px) / 2 - 6px);
+  color: var(--mde-marker);
+  visibility: hidden;
+}
+.mde .ln.active .tok-heading { visibility: visible; }
+.mde .tok-hr {
+  width: calc(100% - 2px);
+  height: calc(var(--mde-leading) * 1em);
+  background: linear-gradient(var(--mde-stroke), var(--mde-stroke)) center / 100% 1px no-repeat;
+}
+.mde .tok-todo { width: var(--mde-gutter); text-align: center; cursor: pointer; }
+.mde .cb {
+  display: inline-block;
+  box-sizing: border-box;
+  width: 14px;
+  height: 14px;
+  margin-top: calc(var(--mde-leading) * 0.5em - 7px);
+  /* on a whole pixel, as the Mac app's */
+  margin-top: round(calc(var(--mde-leading) * 0.5em - 7px), 1px);
+  border: 1.5px solid var(--mde-text);
+  border-radius: 3px;
+  position: relative;
+  vertical-align: top;
+}
+.mde .cb.on { background: var(--mde-text); border-color: var(--mde-text); }
+.mde .cb.on::after {
+  content: "";
+  position: absolute;
+  left: 3.5px;
+  top: 0.5px;
+  width: 3px;
+  height: 7px;
+  border: solid var(--mde-bg);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.mde .ln-todo.checked .t { color: var(--mde-checked); }
+
+/* inline styles */
+.mde .b { font-weight: 700; }
+.mde .i { font-style: italic; }
+.mde .s { text-decoration: line-through; }
+.mde .u { text-decoration: underline; }
+.mde .s.u { text-decoration: underline line-through; }
+/* Inline code and highlights: one pill per span. Its pieces (the text segments, and the delimiters while revealed,
+   in the muted marker colour) sit edge to edge with square inner corners; only the outer ends are rounded and padded.
+   The padding takes no room in the line (as the Mac app's, whose text engine pads only the background), so both
+   apps wrap a line with inline code at the same place.
+   (Collapsed delimiters aren't pieces: the text alone is the pill.) */
+.mde :is(.t.code, .mk.code.rv) {
+  font-family: var(--mde-mono);
+  font-size: var(--mde-inline-code);
+  background: var(--mde-code-bg);
+  padding: 1px 0;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.mde :is(.t.code, .mk.code.rv):not(:is(.t.code, .mk.code.rv) + *) { padding-left: 3px; margin-left: -3px; border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
+.mde :is(.t.code, .mk.code.rv):not(:has(+ :is(.t.code, .mk.code.rv))) { padding-right: 3px; margin-right: -3px; border-top-right-radius: 4px; border-bottom-right-radius: 4px; }
+.mde :is(.t.hl, .mk.hl.rv) { background: var(--mde-highlight); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.mde :is(.t.hl, .mk.hl.rv):not(:is(.t.hl, .mk.hl.rv) + *) { border-top-left-radius: 2px; border-bottom-left-radius: 2px; }
+.mde :is(.t.hl, .mk.hl.rv):not(:has(+ :is(.t.hl, .mk.hl.rv))) { border-top-right-radius: 2px; border-bottom-right-radius: 2px; }
+.mde .t.link { color: var(--mde-link); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; text-decoration-color: rgba(41, 109, 154, 0.55); }
+.mde .t.tag { color: var(--mde-text-light); background: var(--mde-bg2); font-weight: 500; padding: 1px 4px; border-radius: 4px; }
+.mde .chip {
+  display: inline-block;
+  position: relative;
+  text-indent: 0;
+  font-size: 0.85em;
+  color: var(--mde-text-light);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  font-style: normal;
+  font-weight: 400;
+}
+/* the link's pencil: muted, darker on hover; a click expands the link's source (a click on its text opens it) */
+.mde .chip { color: #a1a1aa; }
+.mde .chip:hover { color: #52525b; }
+/* it takes a "W"'s width (as the Mac app's slot), the 13px pencil centred on it and on the line */
+.mde .chip::before { content: "W"; color: transparent; }
+.mde .chip svg { position: absolute; left: 50%; top: calc(50% - 0.07em); width: 13px; height: 13px; margin: -6.5px 0 0 -6.5px; }
+/* an expanded link: its URL is editable text in the marker colour (.mk.link.rv), no pencil */
+.mde .mk.url.rv + .chip, .mde .chip.img-link { display: none; }
+.mde .img-chip { align-self: flex-end; padding: 0 2px 2px; font-size: 0.85em; line-height: 1; }
+.mde .img-chip.rv { display: none; }
+/* read-only: nothing to edit */
+.mde.readonly .chip::before { content: none; }
+.mde.readonly .chip svg, .mde.readonly .img-chip { display: none; }
+.mde .part.nil .chip { font-size: 0; padding: 0; }
+/* over a collapsed link (or linked image): a click opens it */
+.mde.lk-hot .mde-content, .mde.lk-hot .imgbox { cursor: pointer; }
+
+/* images: drawn below their line's text, or where they are in it on a split line (.part) (contenteditable=false,
+   no raw text). The source collapses like a marker;
+   a line of only images shows just the images until the caret is on it. */
+.mde .mk.img.alt.rv { color: var(--mde-text); }
+.mde .ln-img:not(.img-rv) { font-size: 0; line-height: 0; min-height: 0; }
+.mde .imgs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 4px 0 6px;
+  text-indent: 0;
+  font-size: var(--mde-size);
+  line-height: 1.5;
+  font-weight: 400;
+  font-style: normal;
+  white-space: normal;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.mde .ln-img:not(.img-rv) .imgs { padding-top: 6px; }
+/* a line split at its images (text after an image): each text part a block, the images between them. A part with
+   nothing visible (.nil: collapsed sources, whitespace) takes no row; the whitespace starting a row after an image
+   block (.t.ws) has no width (like whitespace at a soft wrap). Only the first part hangs its tokens in the gutter. */
+.mde .part { display: block; }
+.mde .part.nil { height: 0; }
+.mde .part.nil:first-child + .imgs { padding-top: 6px; }
+.mde .imgs ~ .part { text-indent: 0; }
+.mde .t.ws { font-size: 0; }
+.mde .imgbox { display: block; max-width: 100%; min-width: 0; cursor: default; }
+.mde .imgbox img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 480px;
+  border-radius: 6px;
+}
+.mde .imgbox.broken img { display: none; }
+.mde .img-missing { display: none; }
+.mde .imgbox.broken .img-missing {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--mde-bg2);
+  color: var(--mde-marker);
+  font-family: var(--mde-ui-font);
+  font-size: 0.8em;
+  overflow-wrap: anywhere;
+}
+.mde .img-missing svg { flex: none; }
+
+/* collapsed / revealed markers */
+.mde .mk { font-size: 0; }
+.mde .mk.rv { font-size: 1em; color: var(--mde-marker); }
+.mde .mk.hl.rv { color: var(--mde-marker); }
+.mde .mk.link.rv { color: var(--mde-marker); text-decoration: none; }
+.mde .mk.esc { font-size: 0 !important; }
+
+/* Wide blocks (blocks.ts): a table's or a code block's lines sit in a block that's as wide as they need, from the text
+   column's width (where it keeps the column's left edge) up to a cap: 1400px for tables, 1000px for code, and never
+   more than the pane allows (--mde-room, set by view.ts: twice the room from the column's centre to the nearer pane
+   edge, less 24px a side). Wider than the column, it's centred on the column, out into the margins; wider than its
+   cap, it scrolls sideways inside itself. */
+.mde .mde-blk {
+  box-sizing: border-box;
+  width: max-content;
+  min-width: 100%;
+  max-width: min(var(--blk-max), var(--mde-room, 100%));
+  margin-left: 50%;
+  transform: translateX(-50%);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+.mde .mde-blk-table { --blk-max: 1400px; }
+/* code: one column as wide as the longest line, so every line's background spans the scrolled width */
+.mde .mde-blk-code {
+  --blk-max: 1000px;
+  display: grid;
+  grid-template-columns: minmax(max-content, 1fr);
+  border-radius: var(--mde-code-radius);
+}
+.mde .mde-blk-code .ln.in-code { white-space: pre; overflow-wrap: normal; }
+
+/* code blocks */
+.mde .ln.in-code {
+  font-family: var(--mde-mono);
+  font-size: var(--mde-code-size);
+  line-height: var(--mde-code-leading);
+  background: var(--mde-code-bg);
+  padding-left: var(--mde-code-pad-x);
+  padding-right: var(--mde-code-pad-x);
+  text-indent: 0;
+}
+.mde .ln.code-first { border-top-left-radius: var(--mde-code-radius); border-top-right-radius: var(--mde-code-radius); }
+.mde .ln.code-last { border-bottom-left-radius: var(--mde-code-radius); border-bottom-right-radius: var(--mde-code-radius); }
+.mde .ln-fence:not(.rv) { font-size: 0; line-height: 0; min-height: 0; height: var(--mde-code-pad-y); }
+.mde .ln-fence.rv { color: var(--mde-marker); }
+.mde .ln-fence .mk.fence { font-size: 0; }
+.mde .ln-fence.rv .mk.fence { font-size: 1em; color: var(--mde-marker); }
+
+/* tables (GFM): consecutive table-row lines form one anonymous table, so columns line up.
+   Pipes, cell padding and the delimiter row are markers: collapsed unless the caret is in the table. */
+.mde .ln-table { display: table-row; }
+.mde .ln-table .tcell {
+  display: table-cell;
+  padding: var(--mde-cell-pad);
+  vertical-align: top;
+  text-indent: 0;
+  border-bottom: 1px solid var(--mde-bg2);
+  /* break-word (not anywhere): long words still wrap, but a column is never squeezed below its
+     longest word, which would wrap short cells like "Feature" mid-word; a table that is still too
+     wide scrolls inside the editor */
+  overflow-wrap: break-word;
+}
+.mde .ln-table .tcell:last-child { padding-right: 0; }
+.mde .ln-table-head .tcell { font-weight: var(--mde-h-weight); color: var(--mde-heading); border-bottom-color: #c4c4ca; }
+.mde .ln-table .tcell.textra { color: var(--mde-marker); }
+/* collapsed pipes/padding are display:none (not just zero-size), so they add no break opportunities
+   or empty line boxes in front of the cell text */
+.mde .ln-table .mk.tbl { display: none; }
+/* revealed: "| " stays glued to the cell text (no wrap opportunity in pipes/padding) */
+.mde .ln-table.rv .mk.tbl { display: inline; font-size: 1em; color: var(--mde-marker); white-space: pre; }
+.mde .ln-table.rv .mk.tpipe { padding: 0 2px 0 0; }
+/* while editing, cells show raw text from their left edge so the pipes line up */
+.mde .ln-table.rv .tcell { text-align: left !important; }
+.mde .ln-table-delim:not(.rv) .tcell { padding-top: 0; padding-bottom: 0; font-size: 0; line-height: 0; border-bottom: 0; }
+.mde .ln-table-delim.rv .tcell { font-family: var(--mde-mono); font-size: var(--mde-code-size); }
+
+/* collapsible sections (Rust engine): a heading's fold chevron sits in the gutter left of its "H1" label (shown on
+   hover, with the caret on the line, and always while folded); a folded heading ends in a "…" pill and the rest of
+   its section is hidden (no space, no caret positions). Both toggles are handled in editor-rs/input.ts (foldHit). */
+.mde .ln.fold-hidden { display: none; }
+.mde .ln.fold-able > .tok-heading { position: relative; }
+.mde .ln.fold-able > .tok-heading::before {
+  content: "";
+  position: absolute;
+  left: -16px;
+  top: calc(var(--mde-hlh, 24px) / 2 - 9px);
+  width: 14px;
+  height: 18px;
+  background: no-repeat center / 10px 10px
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2 3.5l3 3 3-3' fill='none' stroke='%2362626a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  visibility: visible;
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.12s ease;
+}
+.mde .ln.fold-able:hover > .tok-heading::before,
+.mde .ln.fold-able.active > .tok-heading::before,
+.mde .ln.folded > .tok-heading::before { opacity: 1; }
+.mde .ln.folded > .tok-heading::before { transform: rotate(-90deg); }
+.mde .ln.folded::after {
+  content: "\2026";
+  display: inline-block;
+  margin-left: 0.4em;
+  padding: 0 0.55em;
+  border-radius: 999px;
+  background: var(--mde-bg2);
+  color: var(--mde-marker);
+  font: 600 12px/16px var(--mde-ui-font);
+  letter-spacing: 0;
+  text-indent: 0;
+  vertical-align: 0.2em;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.mde .ln.folded:hover::after { color: var(--mde-text); }
+
+/* remote cursors */
+/* (clipped sideways: nothing drawn here may widen the pane; labels near its right edge flip left, cursors.ts) */
+.mde-cursors { position: absolute; inset: 0; pointer-events: none; overflow-x: clip; overflow-y: visible; }
+/* images dragged over the text: where they'd go (the native app's drop caret); uploading: a mark at that spot */
+.mde-drops { position: absolute; inset: 0; pointer-events: none; overflow-x: clip; overflow-y: visible; }
+.mde .drop-caret, .mde .drop-pending { position: absolute; width: 2px; border-radius: 1px; background: #007aff; }
+.mde .drop-pending { animation: mde-drop-pulse 1s ease-in-out infinite alternate; }
+.mde .drop-pending span {
+  position: absolute; left: 0; bottom: 100%; white-space: nowrap;
+  font: 500 11px/16px var(--mde-ui-font); color: #fff; background: #007aff; border-radius: 3px 3px 3px 0; padding: 0 5px;
+}
+@keyframes mde-drop-pulse { from { opacity: 1; } to { opacity: 0.4; } }
+.mde .rsel { position: absolute; opacity: 0.22; }
+.mde .rcaret { position: absolute; width: 2px; }
+.mde .rlabel {
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  padding: 1px 5px 0;
+  border-radius: 3px 3px 3px 0;
+  color: #fff;
+  font: 600 10px/1.5 var(--mde-ui-font);
+  letter-spacing: 0.01em;
+  text-transform: var(--label-case, none);
+  white-space: nowrap;
+  transform: translateY(-1px);
+  /* shown briefly after the cursor moves, and on hover over the caret */
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.mde .rlabel.show { opacity: 1; transition-duration: 0.1s; }
+.mde .rlabel.flip { left: auto; right: 0; border-radius: 3px 3px 0 3px; }
+
+/* line authors (authors.ts): a small muted grey name at the editor pane's left edge, on its line's baseline (never the author's colour) */
+.mde-authors { position: absolute; inset: 0; pointer-events: none; overflow: hidden; opacity: 0; transition: opacity 0.3s ease-out; }
+/* the names arrive after the text: they fade in once */
+.mde-authors.has-blame { opacity: 1; }
+.mde .mde-author {
+  position: absolute;
+  white-space: nowrap;
+  text-align: left;
+  color: #9a9aa1;
+  pointer-events: auto;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* the box has the line's font and line height (set inline), so this sits on the line's baseline */
+.mde .mde-author .nm { font: 500 11px/1 var(--mde-ui-font); letter-spacing: 0.01em; vertical-align: baseline; }
+.no-authors .mde-authors { display: none; }
+
+/* phones: slightly smaller code, tighter margins */
+@media (max-width: 520px) {
+  .mde-content { padding: 24px 16px 40vh calc(var(--mde-gutter) + 4px); }
+  .mde .ln.in-code { font-size: 13px; }
+  /* little gutter: the fold chevron goes where the label starts, the label moves right */
+  .mde .ln.fold-able > .tok-heading { text-indent: 14px; }
+  .mde .ln.fold-able > .tok-heading::before { left: 0; }
+}
+
+/* The editor couldn't run (fallback.ts): the Markdown as plain text under a notice. */
+.mde-fallback {
+  max-width: 840px;
+  margin: 0 auto;
+  padding: 24px;
+  box-sizing: border-box;
+}
+.mde-fallback .mde-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border: 1px solid var(--mde-stroke);
+  border-radius: 6px;
+  background: var(--mde-bg2);
+  color: var(--mde-text);
+  font: 14px/1.4 var(--mde-ui-font);
+}
+.mde-fallback .mde-notice span { flex: 1; min-width: 12em; }
+.mde-fallback-text {
+  margin: 20px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: 14px/1.6 var(--mde-mono);
+  color: var(--mde-text);
+}
+.mde-fallback.mde-unsaved { padding: 16px 24px 0; }
+.mde-unsaved details { margin: 8px 0 0; font: 13px/1.4 var(--mde-ui-font); color: var(--mde-text); }
+.mde-unsaved summary { cursor: pointer; }
+.mde-unsaved .mde-fallback-text { margin-top: 8px; max-height: 40vh; overflow: auto; }

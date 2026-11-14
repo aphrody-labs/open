@@ -1,0 +1,83 @@
+{% assign groups = site.examples | group_by: "type" %}
+<section class="examples-list">
+
+  <div class="icon">
+    <i class="fa fa-link" aria-hidden="true"></i>
+  </div>
+  {% assign apis_group = groups | find: "name", "api" %}
+  {% assign apis = apis_group.items | sort: "index" %}
+  {% include toc-examples.html items=apis title="APIs" id="apis" %}
+
+  <div class="icon">
+    <i class="fa fa-html5" aria-hidden="true"></i>
+  </div>
+  {% assign webapps_group = groups | find: "name", "webapp" %}
+  {% assign webapps = webapps_group.items | sort: "index" %}
+  {% include toc-examples.html items=webapps title="Web Apps" id="webapps" %}
+
+  <div class="icon">
+    <i class="fa fa-mobile" aria-hidden="true"></i>
+  </div>
+  {% assign mobileapps_group = groups | find: "name", "mobileapp" %}
+  {% assign mobileapps = mobileapps_group.items | sort: "index" %}
+  {% include toc-examples.html items=mobileapps title="Mobile Apps" id="mobileapps" %}
+
+  <div class="icon">
+    <img class="graphql" src="/assets/lander/graphql-logo.svg" />
+  </div>
+  {% assign graphql_group = groups | find: "name", "graphql" %}
+  {% assign graphql = graphql_group.items | sort: "index" %}
+  {% include toc-examples.html items=graphql title="GraphQL" id="graphql" %}
+
+  <div class="icon">
+    <i class="fa fa-database" aria-hidden="true"></i>
+  </div>
+  {% assign databases_group = groups | find: "name", "database" %}
+  {% assign databases = databases_group.items | sort: "index" %}
+  {% include toc-examples.html items=databases title="Databases" id="databases" %}
+
+  <div class="icon">
+    <i class="fa fa-key" aria-hidden="true"></i>
+  </div>
+  <div id="auth" class="toc-section">
+    <h3>Authentication</h3>
+    {% assign sst_auth_group = groups | find: "name", "sst-auth" %}
+    {% assign sst_auth = sst_auth_group.items | sort: "index" %}
+    {% include toc-examples.html items=sst_auth title="Using SST Auth" id="sst-auth" %}
+    {% assign iam_auth_group = groups | find: "name", "iam-auth" %}
+    {% assign iam_auth = iam_auth_group.items | sort: "index" %}
+    {% include toc-examples.html items=iam_auth title="Using Cognito Identity Pools" id="iam-auth" %}
+    {% assign jwt_auth_group = groups | find: "name", "jwt-auth" %}
+    {% assign jwt_auth = jwt_auth_group.items | sort: "index" %}
+    {% include toc-examples.html items=jwt_auth title="Using Cognito User Pools" id="jwt-auth" %}
+  </div>
+
+  <div class="icon">
+    <i class="fa fa-clock-o" aria-hidden="true"></i>
+  </div>
+  {% assign async_group = groups | find: "name", "async" %}
+  {% assign async = async_group.items | sort: "index" %}
+  {% include toc-examples.html items=async title="Async Tasks" id="async" %}
+
+  <div class="icon">
+    <i class="fa fa-code" aria-hidden="true"></i>
+  </div>
+  {% assign editors_group = groups | find: "name", "editor" %}
+  {% assign editors = editors_group.items | sort: "index" %}
+  {% include toc-examples.html items=editors title="Editors" id="editors" %}
+
+  <div class="icon">
+    <i class="fa fa-search" aria-hidden="true"></i>
+  </div>
+  {% assign monitoring_group = groups | find: "name", "monitoring" %}
+  {% assign monitoring = monitoring_group.items | sort: "index" %}
+  {% include toc-examples.html items=monitoring title="Monitoring" id="monitoring" %}
+
+  <div class="icon">
+    <i class="fa fa-cubes" aria-hidden="true"></i>
+  </div>
+  {% assign misc_group = groups | find: "name", "misc" %}
+  {% assign misc = misc_group.items | sort: "index" %}
+  {% include toc-examples.html items=misc title="Miscellaneous" id="misc" %}
+
+</section>

@@ -1,0 +1,36 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "jobmail",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-18",
+  "compatibility_flags": ["nodejs_compat"],
+  // Domains that receive applications. Each zone must already exist in the
+  // Cloudflare account that runs this Worker. `npm run setup` enables Email
+  // Routing on every domain listed here, and `wrangler deploy` keeps a
+  // catch-all rule pointing at this Worker for each one.
+  "addresses": [
+    "*@jobs.example.com"
+  ],
+  // Optional. Attach the Worker to your jobs domain so web visits redirect to
+  // REDIRECT_URL. Email Routing does not need this; delete it or set your hosts.
+  // "routes": [
+  //   { "pattern": "jobs.example.com", "custom_domain": true },
+  //   { "pattern": "www.jobs.example.com", "custom_domain": true }
+  // ],
+  "vars": {
+    // GitHub owner and repository that store the records (usually this fork).
+    "GITHUB_OWNER": "your-github-owner",
+    "GITHUB_REPO": "jobmail",
+    "GITHUB_BRANCH": "main",
+    // Optional verified Email Routing destination that also receives every application.
+    "FORWARD_TO": "",
+    // Optional URL for web visits to the jobs domain. Empty returns 404.
+    "REDIRECT_URL": ""
+  },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "head_sampling_rate": 1
+    }
+  }
+}

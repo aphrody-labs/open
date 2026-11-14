@@ -1,0 +1,12 @@
+Session.vim
+.sst/
+node_modules/
+_site
+.sw*
+.*.sw*
+.sass-cache
+.jekyll-metadata
+.jekyll-cache/
+.DS_Store
+vendor/
+.idea/
