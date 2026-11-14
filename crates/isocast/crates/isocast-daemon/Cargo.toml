@@ -1,0 +1,62 @@
+[package]
+name = "isocast-daemon"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "isocastd: the headless Isocast engine behind a local control socket."
+
+[features]
+vcam-diagnostics = ["isocast-platform-macos/vcam-diagnostics"]
+
+[[bin]]
+name = "isocastd"
+path = "src/main.rs"
+
+[[example]]
+name = "webrtc-receive"
+# Keep the RTP/SR and pulse-pairing unit checks in the normal CI test gate.
+test = true
+
+[dependencies]
+isocast-diagnostics = { path = "../isocast-diagnostics" }
+anyhow = "1.0.104"
+base64 = "0.22.1"
+# Already in the build through isocast-engine: local times in replies.
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+ctrlc = { version = "3", features = ["termination"] }
+isocast-engine = { path = "../isocast-engine" }
+isocast-ipc = { path = "../isocast-ipc" }
+isocast-remote = { path = "../isocast-remote" }
+isocast-discovery = { path = "../isocast-discovery" }
+isocast-obsws = { path = "../isocast-obsws" }
+isocast-protocol = { path = "../isocast-protocol" }
+isocast-surfaces = { path = "../isocast-surfaces" }
+libc = "0.2"
+# Locks that don't poison (already in the lock file through wgpu): one
+# contained panic must not fail every thread that shares its state (#30).
+parking_lot = "0.12"
+serde = "1.0.229"
+serde_json = "1.0.154"
+# WHATWG URL parsing (already in the lock file through reqwest/tungstenite):
+# a network caller's browser URL is checked on the host a browser sees, and
+# loaded in that normalized form (docs/remote-engines.md, decision 26).
+url = "2.5.8"
+# Sans-I/O WebRTC: the authenticated R1 connection carries SDP, never HTTP.
+str0m = { version = "=0.24.1", default-features = false, features = ["rust-crypto"] }
+
+[dev-dependencies]
+isocast-client = { path = "../isocast-client" }
+opus2 = { version = "=0.4.0", features = ["bundled"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+isocast-platform-macos = { path = "../isocast-platform-macos" }
+
+[target.'cfg(windows)'.dependencies]
+isocast-platform-windows = { path = "../isocast-platform-windows" }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+isocast-platform-linux = { path = "../isocast-platform-linux" }
+
+[target.'cfg(not(any(target_os = "macos", target_os = "linux", windows)))'.dependencies]
+isocast-platform-stub = { path = "../isocast-platform-stub" }

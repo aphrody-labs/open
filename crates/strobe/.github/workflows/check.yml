@@ -1,0 +1,101 @@
+name: Check
+
+# Every branch push builds strobe and lints it with clippy on Windows (x64 and Arm), Linux and macOS: each OS compiles
+# its own code paths (ETW, /proc and perf events, libproc and CoreGraphics), which no other OS's build sees. No tests
+# (SPEC rule 5): builds, lints, and strobe's own action run once as a project would run it (dogfood).
+# The org shares 5 macOS runners, so CI time is spent once per commit: not on tags (Release builds them, and a tag's
+# commit was checked on main), not on a pull request from this repository (its branch push checks the same commit),
+# and a newer push to a branch cancels the branch's older, still running check.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, toolchain: stable-x86_64-pc-windows-gnu, rustflags: "-C link-self-contained=yes" }
+          - { os: windows-11-arm, toolchain: stable-aarch64-pc-windows-msvc, rustflags: "" }
+          - { os: ubuntu-24.04, toolchain: stable, rustflags: "" }
+          - { os: blacksmith-6vcpu-macos-15, toolchain: stable, rustflags: "" }
+    runs-on: ${{ matrix.os }}
+    env:
+      RUSTFLAGS: ${{ matrix.rustflags }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # Linux runs support-matrix.ts --check, whose no-rot rule reads each verified cell's code at its
+          # evidence commit and checks that commit is in this commit's history: the whole history, there only.
+          fetch-depth: ${{ matrix.os == 'ubuntu-24.04' && '0' || '1' }}
+      - name: Rust
+        shell: bash
+        run: rustup toolchain install ${{ matrix.toolchain }} --profile minimal --component clippy && rustup default ${{ matrix.toolchain }}
+      - name: Clippy
+        run: cargo clippy --release --locked -- -D warnings
+      - name: Build
+        run: cargo build --release --locked
+      # The support matrix against what the library answers (scripts/dev/support-matrix.ts --check): every
+      # catalog metric's runtimes held to its table. Once, on Linux; the build fetched the crates it needs.
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        if: matrix.os == 'ubuntu-24.04'
+      - name: Support matrix
+        if: matrix.os == 'ubuntu-24.04'
+        run: bun scripts/dev/support-matrix.ts --check
+      # The action (action.yml) as a project runs it, with the binary just built: a check of the known-answer
+      # page (served by each checkout, scripts/dev/served), its exact counters held to the base commit's. A
+      # smoke run of the action, not a test suite (SPEC rule 5): does it install, run and report on this OS's
+      # GitHub-hosted runner. Not on Windows on Arm: Windows x64 runs the same action paths.
+      - name: strobe's action
+        if: matrix.os != 'windows-11-arm'
+        uses: ./
+        with:
+          strobe-binary: target/release/strobe
+          working-directory: scripts/dev/served
+          bench: known-served.bench.ts
+          noworse: count.ctx=0,count.page=0,net.requests=0,net.bytes=0,dom.nodes=0
+          upload-artifacts: always
+
+  # The tree stays rustfmt-clean, so a builder's `cargo fmt` only ever touches its own lines.
+  fmt:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Rust
+        run: rustup toolchain install stable --profile minimal --component rustfmt && rustup default stable
+      - name: Format
+        run: cargo fmt --all --check
+
+  # Rule 15 (SPEC §1): no product names outside scripts/generic.ts's allowlist.
+  generic:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # support-matrix.ts --check below reads each verified cell's code at its evidence commit (the no-rot rule).
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+      - name: Generic
+        run: bun scripts/generic.ts
+      # SPEC.md and the skill against the code's catalogs (validators, warnings, flags, MCP tools, the SDK's keys).
+      - name: Docs
+        run: bun scripts/doc-check.ts
+      # The support matrix's own invariants from the source (the Linux check job runs it against the library).
+      - name: Support matrix
+        run: bun scripts/dev/support-matrix.ts --check --no-rust

@@ -1,0 +1,406 @@
+// Lists (Paper "Components" › Dock, list rows, toolbar; Tower's sidebar
+// manners): 30px rows inset 6px from the dock's edges as 6px-cornered
+// pills, the name in 13px Mona Sans with a 16px kind icon; hover is
+// `hover`, the selected row is `selected` (the yellow-tinted black) with a
+// yellow icon and a medium name (and doesn't change on hover); a hidden
+// item's name is `text-3` and its icon `text-disabled`. A list owns the
+// keyboard: ↑ ↓ Home End move through its rows (the owner selects), and
+// keys it doesn't use go to `unhandled-key` (F2 to rename, Delete…).
+// Screen readers get a list of selectable items with their position and
+// whether each is selected (AXList with AXSelectedRows on macOS).
+
+import { Theme, Motion } from "../theme.slint";
+import { Icon } from "../icons.slint";
+import { FocusRing, ShownState } from "focus.slint";
+import { EmptyState } from "misc.slint";
+
+// A scrolling area with the thin scroll bar (3.15): 8px, a 4px thumb at
+// 14% bone that turns g10 on hover; only while the content is taller.
+export component ScrollArea inherits Rectangle {
+    // The content's height, if not its layout's own.
+    in property <length> content-height: content.preferred-height;
+    // Keep the scroll bar's 8px clear (WebKit's styled bar does) instead
+    // of drawing it over the content: the owner says when its content is
+    // taller, from its row count (from the content's own height, wrapped
+    // text in it would be a binding loop).
+    in property <bool> gutter;
+    out property <length> gutter-width: root.gutter ? Theme.scrollbar : 0px;
+    out property <length> scroll-y: -flick.content-y;
+    out property <length> visible-height: flick.height;
+    // A click or right-click (in window coordinates) where no child is.
+    callback background-clicked();
+    callback background-menu(length, length);
+
+    // Scroll so that `top` to `top + height` (in content coordinates) shows.
+    public function show-range(top: length, height: length) {
+        if top < -flick.content-y {
+            flick.content-y = -top;
+        } else if top + height > -flick.content-y + flick.height {
+            flick.content-y = -(top + height - flick.height);
+        }
+    }
+
+    public function scroll-to-top() {
+        flick.content-y = 0;
+    }
+
+    property <length> total: max(flick.height, root.content-height);
+    property <bool> scrolls: root.content-height > flick.height + 0.5px;
+
+    accessible-role: none;
+
+    flick := Flickable {
+        width: parent.width;
+        height: parent.height;
+        content-height: root.total;
+        // Scrolled by the wheel or trackpad, not by dragging the content
+        // (a desktop list; rows are dragged to reorder them).
+        interactive: false;
+        TouchArea {
+            width: parent.width;
+            height: root.total;
+            clicked => { root.background-clicked(); }
+            pointer-event(event) => {
+                // A right-click, or a Control-click (`meta` on macOS).
+                if event.kind == PointerEventKind.up && (event.button == PointerEventButton.right || (event.button == PointerEventButton.left && event.modifiers.meta)) {
+                    root.background-menu(self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y);
+                }
+            }
+        }
+        content := VerticalLayout {
+            width: parent.width - root.gutter-width;
+            alignment: start;
+            spacing: 0;
+            @children
+        }
+    }
+
+    if root.scrolls: bar := Rectangle {
+        x: parent.width - Theme.scrollbar;
+        width: Theme.scrollbar;
+        property <float> page: flick.height / root.total;
+        property <length> thumb-h: max(24px, (flick.height - 4px) * self.page);
+        property <length> travel: flick.height - 4px - self.thumb-h;
+        property <float> at: -flick.content-y / max(1px, root.total - flick.height);
+        Rectangle {
+            x: 2px;
+            y: 2px + parent.travel * parent.at;
+            width: Theme.scrollbar - 4px;
+            height: parent.thumb-h;
+            border-radius: self.width / 2;
+            background: thumb-ta.has-hover || thumb-ta.pressed ? Theme.scroll-thumb-hover : Theme.scroll-thumb;
+            thumb-ta := TouchArea {
+                property <length> start;
+                // In window coordinates: the thumb moves under the pointer.
+                property <length> press-y;
+                pointer-event(event) => {
+                    if event.kind == PointerEventKind.down {
+                        self.start = flick.content-y;
+                        self.press-y = self.absolute-position.y + self.mouse-y;
+                    }
+                }
+                moved => {
+                    if bar.travel > 0 {
+                        flick.content-y = max(flick.height - root.total, min(0px, self.start - (self.absolute-position.y + self.mouse-y - self.press-y) * ((root.total - flick.height) / bar.travel)));
+                    }
+                }
+            }
+        }
+    }
+}
+
+// One row of a list. Trailing controls (icon buttons, badges) go in as
+// children, after the name.
+export component ListRow inherits Rectangle {
+    in property <string> text;
+    // The kind icon (`Icons.*`), or none.
+    in property <string> icon;
+    in property <bool> selected;
+    // A hidden item: its name and icon dim (text-3; text-2 when selected
+    // or hovered).
+    in property <bool> dim;
+    // Being dragged to a new place.
+    in property <bool> dragging;
+    // Group depth: `indent` (16px) per level.
+    in property <int> depth;
+    in property <length> indent: 16px;
+    // Kept for callers; Console rows have no marker bar.
+    in property <bool> marker: true;
+    // The kind icon at rest (`text-2`; the Scenes list's are `text-3`).
+    in property <color> icon-color: Theme.text-2;
+    // The list has keyboard focus on this row.
+    in property <bool> focus-shown;
+    // What screen readers hear about it, besides its name.
+    in property <string> description;
+    in property <int> index;
+    in property <int> count;
+    in property <length> trailing-pad: Theme.space-1;
+    // Room right of the label its name may run into before it elides: an
+    // empty trailing lane, kept so the controls after it line up (#108).
+    in property <length> label-room;
+    // Rows can be dragged to a new place (the list draws where it lands).
+    in property <bool> draggable;
+    // Draw a state regardless of the pointer (the kit gallery): `hover`.
+    in property <ShownState> shown: ShownState.live;
+    out property <bool> has-hover: ta.has-hover;
+    // Its name doesn't fit (show it whole in a tooltip).
+    out property <bool> elided: label.preferred-width > label.width + 0.5px;
+    // The keys held at the last press (⌘ or Shift: add to a selection;
+    // Slint reports ⌘ as `control` on macOS, and the Control key as
+    // `meta`).
+    out property <bool> press-command;
+    out property <bool> press-shift;
+    callback clicked();
+    callback double-clicked();
+    // A right-click (or ctrl-click), in window coordinates.
+    callback context-menu(length, length);
+    // While dragging (after the pointer moved 4px): where the pointer is,
+    // from the row's top; then once let go.
+    callback drag-moved(length);
+    callback drag-ended();
+
+    // Dragged since the press: the release isn't a click.
+    property <bool> dragged;
+    // The press was a plain left one (only that drags; a right-press opens
+    // the row's menu, whose popup takes the release).
+    property <bool> left-press;
+
+    property <bool> hovered: ta.has-hover || root.shown == ShownState.hover;
+    property <color> ink: root.dim && !(root.selected || root.hovered) ? Theme.text-3 : root.dim ? Theme.text-2 : Theme.text;
+
+    height: Theme.row;
+    opacity: root.dragging ? Theme.dragging-opacity : 1;
+    accessible-role: list-item;
+    accessible-label: root.text;
+    accessible-description: root.description;
+    accessible-item-selectable: true;
+    accessible-item-selected: root.selected;
+    accessible-item-index: root.index;
+    accessible-item-count: root.count;
+    accessible-action-default => { root.clicked(); }
+
+    // The row's pill, 6px in from the list's edges.
+    pill := Rectangle {
+        x: Theme.list-inset;
+        width: parent.width - 2 * Theme.list-inset;
+        border-radius: Theme.r;
+        background: root.selected ? Theme.selected : root.hovered ? Theme.hover : transparent;
+    }
+
+    ta := TouchArea {
+        clicked => {
+            if !root.dragged {
+                root.clicked();
+            }
+        }
+        double-clicked => { root.double-clicked(); }
+        // Let go (or the press was cancelled): the drag is over.
+        changed pressed => {
+            if !self.pressed && root.dragged {
+                root.drag-ended();
+            }
+        }
+        moved => {
+            if root.draggable && root.left-press && (root.dragged || abs(self.mouse-y - self.pressed-y) >= 4px) {
+                root.dragged = true;
+                root.drag-moved(self.mouse-y);
+            }
+        }
+        pointer-event(event) => {
+            if event.kind == PointerEventKind.down {
+                if root.dragged {
+                    root.drag-ended();
+                }
+                root.dragged = false;
+                root.left-press = event.button == PointerEventButton.left && !event.modifiers.meta;
+                root.press-command = event.modifiers.control;
+                root.press-shift = event.modifiers.shift;
+            }
+            // A right-click, or a Control-click (`meta` on macOS).
+            if event.kind == PointerEventKind.up && (event.button == PointerEventButton.right || (event.button == PointerEventButton.left && event.modifiers.meta)) {
+                root.context-menu(self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y);
+            }
+        }
+    }
+
+    HorizontalLayout {
+        padding-left: Theme.list-inset + Theme.space-2 + root.depth * root.indent;
+        padding-right: Theme.list-inset + root.trailing-pad;
+        spacing: Theme.space-2;
+
+        if root.icon != "": VerticalLayout {
+            alignment: center;
+            Icon {
+                path: root.icon;
+                color: root.selected ? Theme.accent-text : root.dim ? Theme.text-disabled : root.icon-color;
+            }
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+            min-width: 0px;
+            preferred-width: label.preferred-width;
+            label := Text {
+                x: 0px;
+                width: parent.width + root.label-room;
+                height: parent.height;
+                text: root.text;
+                color: root.ink;
+                font-size: Theme.fs;
+                font-weight: root.selected ? Theme.weight-medium : Theme.weight-regular;
+                letter-spacing: Theme.tracking;
+                vertical-alignment: center;
+                overflow: elide;
+                accessible-role: none;
+            }
+        }
+        // Trailing controls (a 40px badge lane, 22px toggles), 8px apart,
+        // in the middle of the row (a layout puts a shorter item at the
+        // top of its row).
+        VerticalLayout {
+            alignment: center;
+            HorizontalLayout {
+                spacing: Theme.space-2;
+                @children
+            }
+        }
+    }
+
+    // Keyboard focus: the ring inside the pill.
+    FocusRing {
+        x: pill.x;
+        width: pill.width;
+        inset: true;
+        radius: Theme.r;
+        shown: root.focus-shown || root.shown == ShownState.focus;
+    }
+}
+
+// A list that fills its pane: its rows (ListRow) as children, scrolling,
+// with 6px above and below. Give it `count` and the `current` row (the
+// selected one, or -1); arrows ask for another with `navigate`. With no
+// rows it shows `empty-text` under `empty-icon` (EmptyState) in the
+// middle of the pane.
+export component List inherits Rectangle {
+    in property <string> label;
+    in property <int> count;
+    in property <string> empty-text;
+    in property <string> empty-icon;
+    in property <int> current: -1;
+    in property <length> row-height: Theme.row;
+    // Rows with keyboard focus show their ring.
+    out property <bool> keyboard-focus: fs.has-focus && root.keyboard;
+    out property <bool> has-focus: fs.has-focus;
+    // ↑ ↓ Home End: the row to go to.
+    callback navigate(int);
+    // Any other key while the list has focus; return true if handled.
+    callback unhandled-key(KeyEvent) -> bool;
+    // A click or right-click (window coordinates) away from any row.
+    callback background-clicked();
+    callback background-menu(length, length);
+
+
+    // Take the keyboard (a row was clicked: its TouchArea, not the list,
+    // got the press), so ↑ ↓ and F2 work next, as in OBS.
+    public function focus-list() {
+        fs.focus();
+    }
+
+    // Scroll so the row shows (call after selecting it from outside).
+    public function show-row(index: int) {
+        scroll.show-range(Theme.list-inset + index * root.row-height, root.row-height);
+    }
+
+    forward-focus: fs;
+    property <bool> keyboard;
+
+    function go(index: int) {
+        if root.count > 0 {
+            root.keyboard = true;
+            root.navigate(max(0, min(root.count - 1, index)));
+            root.show-row(max(0, min(root.count - 1, index)));
+        }
+    }
+
+    vertical-stretch: 1;
+    accessible-role: list;
+    accessible-label: root.label;
+
+    fs := FocusScope {
+        focus-on-click: true;
+        focus-gained(reason) => { root.keyboard = reason == FocusReason.tab-navigation; }
+        focus-lost => { root.keyboard = false; }
+        key-pressed(event) => {
+            if event.modifiers.meta || event.modifiers.control || event.modifiers.alt {
+                return root.unhandled-key(event) ? accept : reject;
+            }
+            if event.text == Key.UpArrow {
+                root.go(root.current < 0 ? root.count - 1 : root.current - 1);
+                return accept;
+            }
+            if event.text == Key.DownArrow {
+                root.go(root.current < 0 ? 0 : root.current + 1);
+                return accept;
+            }
+            if event.text == Key.Home {
+                root.go(0);
+                return accept;
+            }
+            if event.text == Key.End {
+                root.go(root.count - 1);
+                return accept;
+            }
+            root.unhandled-key(event) ? accept : reject
+        }
+
+        scroll := ScrollArea {
+            gutter: 2 * Theme.list-inset + root.count * root.row-height > self.height + 0.5px;
+            background-clicked => { root.background-clicked(); }
+            background-menu(x, y) => { root.background-menu(x, y); }
+            Rectangle { height: Theme.list-inset; }
+            @children
+            Rectangle { height: Theme.list-inset; }
+        }
+        // Over the list, letting clicks through to it (its menu).
+        if root.count == 0 && root.empty-text != "": EmptyState {
+            width: parent.width;
+            height: parent.height;
+            icon: root.empty-icon;
+            text: root.empty-text;
+            gap: Theme.empty-gap-dock;
+        }
+    }
+}
+
+// The 2px copper line where a dragged row would go.
+export component DropLine inherits Rectangle {
+    height: 2px;
+    background: Theme.accent;
+    accessible-role: none;
+}
+
+// A bordered list inside a form (Create/Select Source's existing sources,
+// a playlist): rows of 28px with 8px padding, on the inset surface.
+export component PickList inherits Rectangle {
+    in property <string> label;
+    in property <bool> enabled: true;
+    in property <length> limit-height: 168px;
+    property <length> wanted: scroll.content-height;
+
+    height: min(root.limit-height, max(Theme.row, root.wanted) + 2px);
+    border-radius: Theme.r;
+    border-width: 1px;
+    border-color: Theme.line;
+    background: Theme.surface-inset;
+    clip: true;
+    opacity: root.enabled ? 1 : Theme.disabled-opacity;
+    accessible-role: list;
+    accessible-label: root.label;
+
+    scroll := ScrollArea {
+        x: 1px;
+        y: 1px;
+        width: parent.width - 2px;
+        height: parent.height - 2px;
+        @children
+    }
+}

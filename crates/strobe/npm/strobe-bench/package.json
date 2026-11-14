@@ -1,0 +1,23 @@
+{
+  "name": "@hona/strobe-bench",
+  "version": "0.44.0",
+  "description": "Renamed: install @hona/strobe, which has the strobe CLI and these types",
+  "type": "module",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "default": "./index.js"
+    }
+  },
+  "files": ["index.js", "index.d.ts"],
+  "dependencies": {
+    "@hona/strobe": "0.44.0"
+  },
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/anomalyco/strobe.git" },
+  "publishConfig": {
+    "access": "public"
+  }
+}

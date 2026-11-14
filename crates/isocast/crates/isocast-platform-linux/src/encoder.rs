@@ -1,0 +1,610 @@
+//! Synchronous, bounded software H.264. No external process or GPL codec.
+
+use std::time::Duration;
+
+use anyhow::{Context, Result, bail};
+use isocast_engine::{EncodedVideo, LiveVideoSpec, ParameterSets, Time, VideoEncoder};
+use isocast_openh264::openh264;
+use isocast_protocol::api::H264Profile;
+use openh264::encoder::{
+    BitRate, EncoderConfig, FrameRate, FrameType, IntraFramePeriod, Profile, QpRange,
+    RateControlMode, VuiConfig,
+};
+use openh264::formats::YUVSource;
+
+use crate::frames::Frame;
+
+pub struct Encoder {
+    native: openh264::encoder::Encoder,
+    spec: LiveVideoSpec,
+    pixels: I420,
+    parameters: ParameterSets,
+    ready: Option<EncodedVideo>,
+    last: Option<Time>,
+    dropped: u64,
+    /// The bitrate made with: the most `set_rate` may ask (the wrapper
+    /// pins the layer's maximum to it at initialization).
+    created_kbps: u32,
+}
+
+// OpenH264's SetOption ids and bitrate argument (codec_app_def.h); the
+// safe wrapper sets these only when it (re)initializes.
+const OPTION_FRAME_RATE: std::os::raw::c_int = 4;
+const OPTION_BITRATE: std::os::raw::c_int = 5;
+const OPTION_PADDING: std::os::raw::c_int = 10;
+const SPATIAL_LAYER_ALL: std::os::raw::c_int = 4;
+
+#[repr(C)]
+struct BitrateInfo {
+    layer: std::os::raw::c_int,
+    bitrate: std::os::raw::c_int,
+}
+
+impl Encoder {
+    pub fn new(spec: &LiveVideoSpec) -> Result<Self> {
+        let mut encoder = Self::configured(spec, None)?;
+        if spec.constant_bitrate {
+            // OpenH264's rate control then pads with filler data up to the
+            // target when pictures come out smaller: that holds the rate.
+            encoder.option(OPTION_PADDING, &mut 1i32)?;
+        }
+        Ok(encoder)
+    }
+
+    /// Set one of OpenH264's options on the initialized encoder.
+    fn option<T>(&mut self, id: std::os::raw::c_int, value: &mut T) -> Result<()> {
+        // SAFETY: the encoder was initialized by the probe picture in
+        // `configured`; each id is given the type codec_app_def.h names
+        // for it (int, float or SBitrateInfo), alive for the call.
+        let result = unsafe {
+            self.native
+                .raw_api()
+                .set_option(id, std::ptr::from_mut(value).cast())
+        };
+        if result != 0 {
+            bail!("video: OpenH264 refused option {id} (error {result})");
+        }
+        Ok(())
+    }
+
+    /// The target bitrate, at most the one it was made with.
+    fn bitrate(&mut self, kbps: u32) -> Result<()> {
+        let bitrate = i32::try_from(kbps * 1000).context("video.bitrate_kbps: too large")?;
+        self.option(
+            OPTION_BITRATE,
+            &mut BitrateInfo {
+                layer: SPATIAL_LAYER_ALL,
+                bitrate,
+            },
+        )
+    }
+
+    pub(crate) fn recording(width: u32, height: u32, fps: u32, quality: u8) -> Result<Self> {
+        if !(1..=100).contains(&quality) {
+            bail!("video.encoder.quality: valid range is 1..=100");
+        }
+        // OpenH264 quality mode with a fixed quantizer range, not a guessed
+        // recording bitrate. The generous rate ceiling cannot enable skips.
+        // This is a software-specific ladder, not VideoToolbox quality parity.
+        let qp = 38 - (u32::from(quality) * 22 / 100) as u8;
+        Self::configured(
+            &LiveVideoSpec {
+                profile: H264Profile::High,
+                width,
+                height,
+                fps,
+                bitrate_kbps: 100_000,
+                constant_bitrate: false,
+                keyframe_interval: fps.saturating_mul(2),
+                low_latency: true,
+            },
+            Some(qp),
+        )
+    }
+
+    fn configured(spec: &LiveVideoSpec, qp: Option<u8>) -> Result<Self> {
+        if spec.width < 16
+            || spec.height < 16
+            || !spec.width.is_multiple_of(2)
+            || !spec.height.is_multiple_of(2)
+            || spec.width.max(spec.height) > 3840
+            || spec.width.min(spec.height) > 2160
+        {
+            bail!(
+                "video.width/height: OpenH264 requires even dimensions from 16 up to 3840x2160 (or portrait)"
+            );
+        }
+        if !(1..=60).contains(&spec.fps) {
+            bail!("video.fps: Linux software H.264 supports 1..=60");
+        }
+        if !(1..=100_000).contains(&spec.bitrate_kbps) || spec.keyframe_interval == 0 {
+            bail!("video: bitrate_kbps must be 1..=100000 and keyframe_interval must be positive");
+        }
+        let mut config = EncoderConfig::new()
+            .bitrate(BitRate::from_bps(spec.bitrate_kbps * 1000))
+            .max_frame_rate(FrameRate::from_hz(spec.fps as f32))
+            .intra_frame_period(IntraFramePeriod::from_num_frames(spec.keyframe_interval))
+            // OpenH264's Baseline is CAVLC with constraint_set0/1 set
+            // (au_set.cpp): Constrained Baseline.
+            .profile(match spec.profile {
+                H264Profile::High => Profile::High,
+                H264Profile::ConstrainedBaseline => Profile::Baseline,
+            })
+            .vui(VuiConfig::bt709())
+            .skip_frames(false)
+            // Program plus ISOs must not each spawn one thread per CPU.
+            .num_threads(1)
+            .rate_control_mode(RateControlMode::Bitrate);
+        if let Some(qp) = qp {
+            config = config
+                .rate_control_mode(RateControlMode::Quality)
+                .qp(QpRange::new(qp, qp))
+                .adaptive_quantization(false);
+        }
+        // Cisco's library, as installed: the reason and the fix if not.
+        let api = isocast_openh264::api()?;
+        let mut native = openh264::encoder::Encoder::with_api_config(api, config)?;
+        let pixels = I420::new(spec.width as usize, spec.height as usize);
+        // OpenH264 initializes lazily. Probe a black picture now, before the
+        // output path is reserved, so invalid native settings fail at creation
+        // and audio never waits for a video description. Discard this picture;
+        // the first caller picture is forced to IDR and has its caller's PTS.
+        let packet = packet(&native.encode(&pixels)?, Time::from_nanos(0))?;
+        let parameters = packet
+            .parameter_sets
+            .context("OpenH264 did not provide SPS/PPS at initialization")?;
+        // What it made, not what it was asked for (later SPS changes are
+        // refused in `encode`).
+        if spec.profile == H264Profile::ConstrainedBaseline
+            && !parameters
+                .sps
+                .iter()
+                .all(|sps| sps.get(1) == Some(&66) && sps.get(2).is_some_and(|f| f & 0x40 != 0))
+        {
+            bail!(
+                "video.profile: OpenH264 did not make Constrained Baseline (profile 66 with constraint_set1)"
+            );
+        }
+        avcc(&parameters)?;
+        Ok(Self {
+            native,
+            spec: *spec,
+            pixels,
+            parameters,
+            ready: None,
+            last: None,
+            dropped: 0,
+            created_kbps: spec.bitrate_kbps,
+        })
+    }
+
+    pub(crate) fn decoder_config(&self) -> Result<Vec<u8>> {
+        avcc(&self.parameters)
+    }
+}
+
+impl VideoEncoder for Encoder {
+    type Frame = Frame;
+
+    fn encode(&mut self, frame: &Frame, pts: Time, keyframe: bool) -> Result<()> {
+        if frame.width() != self.spec.width || frame.height() != self.spec.height {
+            bail!("video.frame: dimensions must match the encoder's configured size");
+        }
+        if pts.as_nanos() < 0 || self.last.is_some_and(|last| pts <= last) {
+            bail!("video.pts: timestamps must be nonnegative and strictly increasing");
+        }
+        if self.ready.is_some() {
+            self.dropped += 1;
+            return Ok(());
+        }
+        self.pixels.read_bgra(&frame.read_bgra()?)?;
+        if keyframe || self.last.is_none() {
+            self.native.force_intra_frame();
+        }
+        let stream = self.native.encode_at(
+            &self.pixels,
+            openh264::Timestamp::from_millis(pts.as_nanos() as u64 / 1_000_000),
+        )?;
+        self.last = Some(pts);
+        if stream.frame_type() == FrameType::Skip {
+            self.dropped += 1;
+            return Ok(());
+        }
+        let mut encoded = packet(&stream, pts)?;
+        if let Some(parameters) = &encoded.parameter_sets {
+            if *parameters != self.parameters {
+                bail!("video: OpenH264 changed SPS/PPS; a new encoder/file is required");
+            }
+        } else if encoded.keyframe {
+            encoded.parameter_sets = Some(self.parameters.clone());
+        }
+        self.ready = Some(encoded);
+        Ok(())
+    }
+
+    fn receive(&mut self) -> Result<Option<EncodedVideo>> {
+        Ok(self.ready.take())
+    }
+
+    fn receive_timeout(&mut self, _timeout: Duration) -> Result<Option<EncodedVideo>> {
+        // Encoding completes synchronously; there is no worker to wait for.
+        self.receive()
+    }
+
+    fn dropped(&self) -> u64 {
+        self.dropped
+    }
+
+    fn set_rate(&mut self, fps: u32, bitrate_kbps: u32) -> Result<()> {
+        if !(1..=60).contains(&fps) || !(1..=100_000).contains(&bitrate_kbps) {
+            bail!("video.rate: fps must be 1..=60 and bitrate_kbps 1..=100000");
+        }
+        // The layer's maximum stays the bitrate it was made with: above it,
+        // OpenH264 would not follow. A stream only lowers its rate from
+        // there and comes back up to it.
+        if bitrate_kbps > self.created_kbps {
+            bail!(
+                "video.rate: bitrate_kbps {bitrate_kbps} is above the {} kb/s this encoder was made with; make a new encoder",
+                self.created_kbps
+            );
+        }
+        // In place, through OpenH264's options: no new session, no IDR.
+        if fps != self.spec.fps {
+            self.option(OPTION_FRAME_RATE, &mut (fps as f32))?;
+            self.spec.fps = fps;
+        }
+        if bitrate_kbps != self.spec.bitrate_kbps {
+            self.bitrate(bitrate_kbps)?;
+            self.spec.bitrate_kbps = bitrate_kbps;
+        }
+        Ok(())
+    }
+}
+
+fn packet(stream: &openh264::encoder::EncodedBitStream<'_>, pts: Time) -> Result<EncodedVideo> {
+    let mut data = Vec::new();
+    let mut parameters = ParameterSets::default();
+    let mut picture = false;
+    let mut keyframe = false;
+    for index in 0..stream.num_layers() {
+        let layer = stream
+            .layer(index)
+            .context("OpenH264 returned a missing layer")?;
+        for index in 0..layer.nal_count() {
+            let bytes = layer
+                .nal_unit(index)
+                .context("OpenH264 returned a missing NAL")?;
+            let nal = bytes
+                .strip_prefix(&[0, 0, 0, 1])
+                .or_else(|| bytes.strip_prefix(&[0, 0, 1]))
+                .context("OpenH264 returned a NAL without a start code")?;
+            let kind = nal.first().context("OpenH264 returned an empty NAL")? & 31;
+            match kind {
+                7 => parameters.sps.push(nal.to_vec()),
+                8 => parameters.pps.push(nal.to_vec()),
+                _ => {
+                    picture |= matches!(kind, 1..=5);
+                    keyframe |= kind == 5;
+                    data.extend_from_slice(&u32::try_from(nal.len())?.to_be_bytes());
+                    data.extend_from_slice(nal);
+                }
+            }
+        }
+    }
+    if !picture {
+        bail!("OpenH264 returned no coded picture");
+    }
+    Ok(EncodedVideo {
+        data,
+        pts,
+        dts: pts,
+        keyframe,
+        parameter_sets: (!parameters.sps.is_empty() || !parameters.pps.is_empty())
+            .then_some(parameters),
+    })
+}
+
+pub(crate) fn avcc(parameters: &ParameterSets) -> Result<Vec<u8>> {
+    let sps = parameters.sps.first().context("video: missing SPS")?;
+    if sps.len() < 4
+        || parameters.sps.len() > 31
+        || parameters.pps.is_empty()
+        || parameters.pps.len() > 255
+    {
+        bail!("video: invalid SPS/PPS configuration");
+    }
+    let mut config = vec![
+        1,
+        sps[1],
+        sps[2],
+        sps[3],
+        0xff,
+        0xe0 | parameters.sps.len() as u8,
+    ];
+    for nal in &parameters.sps {
+        config.extend_from_slice(&u16::try_from(nal.len())?.to_be_bytes());
+        config.extend_from_slice(nal);
+    }
+    config.push(parameters.pps.len() as u8);
+    for nal in &parameters.pps {
+        config.extend_from_slice(&u16::try_from(nal.len())?.to_be_bytes());
+        config.extend_from_slice(nal);
+    }
+    // High-profile extension: 4:2:0, 8-bit luma/chroma, no SPS extensions.
+    if matches!(sps[1], 100 | 110 | 122 | 144) {
+        config.extend_from_slice(&[0xfd, 0xf8, 0xf8, 0]);
+    }
+    Ok(config)
+}
+
+pub(crate) struct I420 {
+    width: usize,
+    height: usize,
+    y: Vec<u8>,
+    u: Vec<u8>,
+    v: Vec<u8>,
+}
+
+impl I420 {
+    pub(crate) fn new(width: usize, height: usize) -> Self {
+        Self {
+            width,
+            height,
+            y: vec![16; width * height],
+            u: vec![128; width * height / 4],
+            v: vec![128; width * height / 4],
+        }
+    }
+
+    pub(crate) fn read_bgra(&mut self, bgra: &[u8]) -> Result<()> {
+        if bgra.len() != self.width * self.height * 4 {
+            bail!("video.frame: expected tightly packed BGRA pixels");
+        }
+        // Limited-range Rec.709; average each 2x2 chroma footprint. The
+        // wrapper's convenience RGB conversion uses a different matrix.
+        for row in (0..self.height).step_by(2) {
+            for col in (0..self.width).step_by(2) {
+                let (mut r_sum, mut g_sum, mut b_sum) = (0, 0, 0);
+                for dy in 0..2 {
+                    for dx in 0..2 {
+                        let offset = (row + dy) * self.width + col + dx;
+                        let b = i32::from(bgra[offset * 4]);
+                        let g = i32::from(bgra[offset * 4 + 1]);
+                        let r = i32::from(bgra[offset * 4 + 2]);
+                        self.y[offset] = (16 + ((47 * r + 157 * g + 16 * b + 128) >> 8)) as u8;
+                        r_sum += r;
+                        g_sum += g;
+                        b_sum += b;
+                    }
+                }
+                let offset = row / 2 * (self.width / 2) + col / 2;
+                self.u[offset] =
+                    (128 + ((-26 * r_sum - 87 * g_sum + 113 * b_sum + 512) >> 10)) as u8;
+                self.v[offset] =
+                    (128 + ((112 * r_sum - 102 * g_sum - 10 * b_sum + 512) >> 10)) as u8;
+            }
+        }
+        Ok(())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn write_nv12(&self, output: &mut Vec<u8>) {
+        output.resize(self.y.len() + self.u.len() * 2, 0);
+        output[..self.y.len()].copy_from_slice(&self.y);
+        for (uv, (&u, &v)) in output[self.y.len()..]
+            .as_chunks_mut::<2>()
+            .0
+            .iter_mut()
+            .zip(self.u.iter().zip(&self.v))
+        {
+            uv.copy_from_slice(&[u, v]);
+        }
+    }
+}
+
+impl YUVSource for I420 {
+    fn dimensions(&self) -> (usize, usize) {
+        (self.width, self.height)
+    }
+    fn strides(&self) -> (usize, usize, usize) {
+        (self.width, self.width / 2, self.width / 2)
+    }
+    fn y(&self) -> &[u8] {
+        &self.y
+    }
+    fn u(&self) -> &[u8] {
+        &self.u
+    }
+    fn v(&self) -> &[u8] {
+        &self.v
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use isocast_engine::FramePool as _;
+
+    #[test]
+    fn bounded_admission_keeps_pts_and_first_idr_decodes() {
+        let mut pool = crate::frames::FramePool::new(32, 32).unwrap();
+        let frame = pool
+            .draw(&mut |pixels, _| pixels.fill(255))
+            .unwrap()
+            .unwrap();
+        let spec = LiveVideoSpec {
+            profile: H264Profile::High,
+            width: 32,
+            height: 32,
+            fps: 30,
+            bitrate_kbps: 1000,
+            constant_bitrate: false,
+            keyframe_interval: 60,
+            low_latency: true,
+        };
+        let mut encoder = Encoder::new(&spec).unwrap();
+        let first = Time::from_nanos(1_000_000_000);
+        encoder.encode(&frame, first, false).unwrap();
+        encoder
+            .encode(&frame, first.add_ticks(1, 30), false)
+            .unwrap();
+        assert_eq!(encoder.dropped(), 1);
+        let packet = encoder.receive().unwrap().unwrap();
+        assert!(packet.keyframe);
+        assert_eq!((packet.pts, packet.dts), (first, first));
+        let mut annex_b = Vec::new();
+        let parameters = packet.parameter_sets.unwrap();
+        for nal in parameters.sps.iter().chain(&parameters.pps) {
+            annex_b.extend_from_slice(&[0, 0, 0, 1]);
+            annex_b.extend_from_slice(nal);
+        }
+        let mut data = packet.data.as_slice();
+        while !data.is_empty() {
+            let size = u32::from_be_bytes(data[..4].try_into().unwrap()) as usize;
+            annex_b.extend_from_slice(&[0, 0, 0, 1]);
+            annex_b.extend_from_slice(&data[4..4 + size]);
+            data = &data[4 + size..];
+        }
+        let mut decoder = openh264::decoder::Decoder::with_api_config(
+            isocast_openh264::api().unwrap(),
+            openh264::decoder::DecoderConfig::new(),
+        )
+        .unwrap();
+        let decoded = decoder.decode(&annex_b).unwrap().unwrap();
+        assert_eq!(decoded.dimensions(), (32, 32));
+        assert!(decoded.y().iter().all(|value| (230..=240).contains(value)));
+        assert!(encoder.receive().unwrap().is_none());
+        // A new rate in place: no keyframe of its own.
+        encoder.set_rate(15, 500).unwrap();
+        assert!(encoder.set_rate(0, 500).is_err());
+        // Back up to where it was made, never above.
+        encoder.set_rate(15, 1000).unwrap();
+        let above = encoder.set_rate(15, 1001).unwrap_err().to_string();
+        assert!(above.contains("above the 1000 kb/s"), "{above}");
+        encoder.set_rate(15, 500).unwrap();
+        encoder
+            .encode(&frame, first.add_ticks(2, 30), false)
+            .unwrap();
+        assert!(!encoder.receive().unwrap().unwrap().keyframe);
+        encoder
+            .encode(&frame, first.add_ticks(3, 30), true)
+            .unwrap();
+        assert!(encoder.receive().unwrap().unwrap().keyframe);
+    }
+
+    #[test]
+    fn constrained_baseline_says_so_in_its_sps_and_decodes() {
+        let mut pool = crate::frames::FramePool::new(64, 64).unwrap();
+        let frame = pool
+            .draw(&mut |pixels, _| pixels.fill(255))
+            .unwrap()
+            .unwrap();
+        let spec = |profile| LiveVideoSpec {
+            profile,
+            width: 64,
+            height: 64,
+            fps: 30,
+            bitrate_kbps: 1000,
+            constant_bitrate: false,
+            keyframe_interval: 60,
+            low_latency: true,
+        };
+        let mut encoder = Encoder::new(&spec(H264Profile::ConstrainedBaseline)).unwrap();
+        encoder
+            .encode(&frame, Time::from_nanos(1_000_000_000), false)
+            .unwrap();
+        let packet = encoder.receive().unwrap().unwrap();
+        let parameters = packet.parameter_sets.unwrap();
+        // profile_idc 66 with constraint_set0 and constraint_set1: 42 c0.
+        assert_eq!(parameters.sps[0][1], 66);
+        assert_eq!(parameters.sps[0][2] & 0xc0, 0xc0);
+        // CAVLC: pps_id 0 and sps_id 0 ("1", "1"), then entropy_coding_mode_flag 0.
+        assert_eq!(parameters.pps[0][1] & 0b1110_0000, 0b1100_0000);
+        let config = encoder.decoder_config().unwrap();
+        assert_eq!(config[1], 66);
+        assert_eq!(config[2] & 0x40, 0x40);
+        let mut annex_b = Vec::new();
+        for nal in parameters.sps.iter().chain(&parameters.pps) {
+            annex_b.extend_from_slice(&[0, 0, 0, 1]);
+            annex_b.extend_from_slice(nal);
+        }
+        let mut data = packet.data.as_slice();
+        while !data.is_empty() {
+            let size = u32::from_be_bytes(data[..4].try_into().unwrap()) as usize;
+            annex_b.extend_from_slice(&[0, 0, 0, 1]);
+            annex_b.extend_from_slice(&data[4..4 + size]);
+            data = &data[4 + size..];
+        }
+        let mut decoder = openh264::decoder::Decoder::with_api_config(
+            isocast_openh264::api().unwrap(),
+            openh264::decoder::DecoderConfig::new(),
+        )
+        .unwrap();
+        let decoded = decoder.decode(&annex_b).unwrap().unwrap();
+        assert_eq!(decoded.dimensions(), (64, 64));
+        // The default is still High, as before.
+        let high = Encoder::new(&spec(H264Profile::High)).unwrap();
+        assert_eq!(high.parameters.sps[0][1], 100);
+    }
+
+    /// kb/s of a still picture over seconds 1 to 3 at 30 fps, with the rate
+    /// changed to `then_kbps` after second 3 (measured over 4 to 6).
+    fn still_kbps(constant_bitrate: bool, then_kbps: u32) -> (f64, f64) {
+        let mut pool = crate::frames::FramePool::new(320, 240).unwrap();
+        let frame = pool
+            .draw(&mut |pixels, _| pixels.fill(128))
+            .unwrap()
+            .unwrap();
+        let mut encoder = Encoder::new(&LiveVideoSpec {
+            profile: H264Profile::High,
+            width: 320,
+            height: 240,
+            fps: 30,
+            bitrate_kbps: 1000,
+            constant_bitrate,
+            keyframe_interval: 60,
+            low_latency: false,
+        })
+        .unwrap();
+        let mut bytes = [0usize; 6];
+        for n in 0..180u32 {
+            if n == 90 {
+                encoder.set_rate(30, then_kbps).unwrap();
+            }
+            let pts = Time::from_nanos(1_000_000_000).add_ticks(u64::from(n), 30);
+            encoder.encode(&frame, pts, n % 60 == 0).unwrap();
+            bytes[(n / 30) as usize] += encoder.receive().unwrap().unwrap().data.len();
+        }
+        let kbps = |range: std::ops::Range<usize>| {
+            bytes[range.clone()].iter().sum::<usize>() as f64 * 8.0 / range.len() as f64 / 1000.0
+        };
+        (kbps(1..3), kbps(4..6))
+    }
+
+    #[test]
+    fn constant_bitrate_pads_still_pictures_and_follows_a_new_rate() {
+        let (cbr, lowered) = still_kbps(true, 500);
+        assert!((800.0..=1100.0).contains(&cbr), "{cbr:.0} kb/s for 1000");
+        assert!(
+            (400.0..=560.0).contains(&lowered),
+            "{lowered:.0} kb/s for 500"
+        );
+        // On average, a still picture costs almost nothing.
+        let (average, _) = still_kbps(false, 1000);
+        assert!(average < 300.0, "{average:.0} kb/s without padding");
+    }
+
+    #[test]
+    fn rec709_black_white_and_neutral_chroma() {
+        let mut pixels = I420::new(2, 2);
+        pixels.read_bgra(&[0; 16]).unwrap();
+        assert_eq!(pixels.y, [16; 4]);
+        assert_eq!(pixels.u, [128]);
+        assert_eq!(pixels.v, [128]);
+        pixels.read_bgra(&[255; 16]).unwrap();
+        assert_eq!(pixels.y, [235; 4]);
+        assert_eq!(pixels.u, [128]);
+        assert_eq!(pixels.v, [128]);
+        assert!(pixels.read_bgra(&[0; 15]).is_err());
+    }
+}

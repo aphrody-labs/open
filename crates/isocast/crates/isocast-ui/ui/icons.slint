@@ -1,0 +1,341 @@
+// Icons from Lucide (lucide-static 1.48.0, ISC licence: see
+// crates/isocast-app/ui/vendor/LICENSE-lucide), the same set and names as
+// the web app's ui/ui/icons.js (camelCase there, kebab-case here), as path
+// data in a 24-unit box. Regenerate from icons.js rather than editing by
+// hand: circles, rects and lines are written as path commands, and each
+// sub-path starts with an absolute move.
+//
+// Draw them with `Icon { path: Icons.eye; }`: 16px by default (12, 14 and
+// 20 are the other sizes the design allows), stroked 2.25 of the 24 units
+// as Paper's icons are (1.5px at 16px), in `Theme.text-2` unless told
+// otherwise (`--text` on hover, `accent-text` when on, a status colour for
+// a status).
+
+import { Theme } from "theme.slint";
+
+export global Icons {
+    out property <string> alert: "M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0M12 8L12 12M12 16L12.01 16";
+    out property <string> app-audio: "M2 10v3M6 6v11M10 3v18M14 8v7M18 5v13M22 10v3";
+    out property <string> application: "M4 3h5a1 1 0 0 1 1 1v5a1 1 0 0 1 -1 1h-5a1 1 0 0 1 -1 -1v-5a1 1 0 0 1 1 -1zM15 3h5a1 1 0 0 1 1 1v5a1 1 0 0 1 -1 1h-5a1 1 0 0 1 -1 -1v-5a1 1 0 0 1 1 -1zM15 14h5a1 1 0 0 1 1 1v5a1 1 0 0 1 -1 1h-5a1 1 0 0 1 -1 -1v-5a1 1 0 0 1 1 -1zM4 14h5a1 1 0 0 1 1 1v5a1 1 0 0 1 -1 1h-5a1 1 0 0 1 -1 -1v-5a1 1 0 0 1 1 -1z";
+    out property <string> arrow-right: "M5 12h14M12 5l7 7-7 7";
+    out property <string> blend: "M8 9a7 7 0 1 0 14 0a7 7 0 1 0 -14 0M2 15a7 7 0 1 0 14 0a7 7 0 1 0 -14 0";
+    out property <string> box: "M5 3a2 2 0 0 0-2 2M19 3a2 2 0 0 1 2 2M21 19a2 2 0 0 1-2 2M5 21a2 2 0 0 1-2-2M9 3h1M9 21h1M14 3h1M14 21h1M3 9v1M21 9v1M3 14v1M21 14v1";
+    out property <string> browser: "M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20";
+    // Lucide's history (ISC): the replay buffer.
+    out property <string> history: "M3 12a9 9 0 1 0 9 -9a9.75 9.75 0 0 0 -6.74 2.74L3 8M3 3v5h5M12 7v5l4 2";
+    // Lucide's pause and play (ISC).
+    out property <string> pause: "M14 5a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v14a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1zM6 5a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v14a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z";
+    out property <string> play: "M5 5a2 2 0 0 1 3.008 -1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7a2 2 0 0 1 -3.008 -1.728z";
+    out property <string> camera: "M16 13l5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5M4 6h10a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-8a2 2 0 0 1 2 -2z";
+    out property <string> check: "M20 6 9 17l-5-5";
+    out property <string> chevron-down: "M6 9l6 6 6-6";
+    out property <string> chevron-left: "M15 18l-6-6 6-6";
+    out property <string> chevron-right: "M9 18l6-6-6-6";
+    out property <string> chevron-up: "M18 15l-6-6-6 6";
+    out property <string> color: "M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8zM13 6.5a0.5 0.5 0 1 0 1 0a0.5 0.5 0 1 0 -1 0M17 10.5a0.5 0.5 0 1 0 1 0a0.5 0.5 0 1 0 -1 0M6 12.5a0.5 0.5 0 1 0 1 0a0.5 0.5 0 1 0 -1 0M8 7.5a0.5 0.5 0 1 0 1 0a0.5 0.5 0 1 0 -1 0";
+    out property <string> copy: "M10 8h10a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-10a2 2 0 0 1 2 -2zM4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2";
+    out property <string> cpu: "M12 20v2M12 2v2M17 20v2M17 2v2M2 12h2M2 17h2M2 7h2M20 12h2M20 17h2M20 7h2M7 20v2M7 2v2M6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2zM9 8h6a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-6a1 1 0 0 1 -1 -1v-6a1 1 0 0 1 1 -1z";
+    out property <string> crop: "M6 2v14a2 2 0 0 0 2 2h14M18 22V8a2 2 0 0 0-2-2H2";
+    out property <string> disk: "M10 16h.01M2.212 11.577a2 2 0 0 0-.212.896V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5.527a2 2 0 0 0-.212-.896L18.55 5.11A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11zM21.946 12.013H2.054M6 16h.01";
+    out property <string> display: "M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-16a2 2 0 0 1 -2 -2v-10a2 2 0 0 1 2 -2zM8 21L16 21M12 17L12 21";
+    out property <string> eye: "M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0M9 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0";
+    out property <string> eye-off: "M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49M14.084 14.158a3 3 0 0 1-4.242-4.242M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143M2 2l20 20";
+    out property <string> file-code: "M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2zM14 2v5a1 1 0 0 0 1 1h5M10 12.5 8 15l2 2.5M14 12.5l2 2.5-2 2.5";
+    out property <string> file-up: "M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2zM14 2v5a1 1 0 0 0 1 1h5M12 12v6M15 15l-3-3-3 3";
+    out property <string> filters: "M10 5H3M12 19H3M14 3v4M16 17v4M21 12h-9M21 19h-5M21 5h-7M8 10v4M8 12H3";
+    out property <string> flag: "M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528";
+    out property <string> folder-open: "M6 14l1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2";
+    out property <string> gauge: "M12 14l4-4M3.34 19a10 10 0 1 1 17.32 0";
+    out property <string> grip: "M8 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0M8 5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0M8 19a1 1 0 1 0 2 0a1 1 0 1 0 -2 0M14 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0M14 5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0M14 19a1 1 0 1 0 2 0a1 1 0 1 0 -2 0";
+    out property <string> group: "M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z";
+    out property <string> headphones: "M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3";
+    out property <string> image: "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2zM7 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0M21 15l-3.086-3.086a2 2 0 0 0-2.828 0L6 21";
+    out property <string> info: "M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0M12 16v-4M12 8h.01";
+    out property <string> keyboard: "M10 8h.01M12 12h.01M14 8h.01M16 12h.01M18 8h.01M6 8h.01M7 16h10M8 12h.01M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-16a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2z";
+    out property <string> layout: "M4 3h16a1 1 0 0 1 1 1v5a1 1 0 0 1 -1 1h-16a1 1 0 0 1 -1 -1v-5a1 1 0 0 1 1 -1zM4 14h7a1 1 0 0 1 1 1v5a1 1 0 0 1 -1 1h-7a1 1 0 0 1 -1 -1v-5a1 1 0 0 1 1 -1zM17 14h3a1 1 0 0 1 1 1v5a1 1 0 0 1 -1 1h-3a1 1 0 0 1 -1 -1v-5a1 1 0 0 1 1 -1z";
+    out property <string> link: "M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71";
+    out property <string> list-plus: "M16 5H3M11 12H3M16 19H3M18 9v6M21 12h-6";
+    out property <string> live: "M16.247 7.761a6 6 0 0 1 0 8.478M19.075 4.933a10 10 0 0 1 0 14.134M4.925 19.067a10 10 0 0 1 0-14.134M7.753 16.239a6 6 0 0 1 0-8.478M10 12a2 2 0 1 0 4 0a2 2 0 1 0 -4 0";
+    out property <string> lock: "M5 11h14a2 2 0 0 1 2 2v7a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-7a2 2 0 0 1 2 -2zM7 11V7a5 5 0 0 1 10 0v4";
+    out property <string> magnet: "M12 15l4 4M2.352 10.648a1.205 1.205 0 0 0 0 1.704l2.296 2.296a1.205 1.205 0 0 0 1.704 0l6.029-6.029a1 1 0 1 1 3 3l-6.029 6.029a1.205 1.205 0 0 0 0 1.704l2.296 2.296a1.205 1.205 0 0 0 1.704 0l6.365-6.367A1 1 0 0 0 8.716 4.282zM5 8l4 4";
+    out property <string> maximize: "M15 3h6v6M21 3l-7 7M3 21l7-7M9 21H3v-6";
+    out property <string> media: "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2zM7 3v18M3 7.5h4M3 12h18M3 16.5h4M17 3v18M17 7.5h4M17 16.5h4";
+    out property <string> mic: "M12 19v3M19 10v2a7 7 0 0 1-14 0v-2M12 2h0a3 3 0 0 1 3 3v7a3 3 0 0 1 -3 3h-0a3 3 0 0 1 -3 -3v-7a3 3 0 0 1 3 -3z";
+    out property <string> minus: "M5 12h14";
+    out property <string> more: "M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0M18 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0M4 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0";
+    out property <string> more-vertical: "M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0M11 5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0M11 19a1 1 0 1 0 2 0a1 1 0 1 0 -2 0";
+    out property <string> move: "M12 2v20M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M5 9l-3 3 3 3M9 5l3-3 3 3";
+    out property <string> muted: "M11 4.702a.7.7 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.7.7 0 0 0 11 19.298zM16.5 14.5l5-5M16.5 9.5l5 5";
+    out property <string> pencil: "M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497zM15 5l4 4";
+    out property <string> plug: "M6.3 20.3a2.4 2.4 0 0 0 3.4 0L12 18l-6-6-2.3 2.3a2.4 2.4 0 0 0 0 3.4ZM2 22l3-3M7.5 13.5 10 11M10.5 16.5 13 14M18 3l-4 4h6l-4 4";
+    out property <string> plus: "M5 12h14M12 5v14";
+    out property <string> record: "M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0";
+    out property <string> refresh: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M8 16H3v5";
+    out property <string> rotate: "M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8M21 3v5h-5";
+    out property <string> scan: "M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2";
+    out property <string> scene: "M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83zM2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17";
+    out property <string> scissors: "M3 6a3 3 0 1 0 6 0a3 3 0 1 0 -6 0M8.12 8.12 12 12M20 4 8.12 15.88M3 18a3 3 0 1 0 6 0a3 3 0 1 0 -6 0M14.8 14.8 20 20";
+    out property <string> search: "M21 21l-4.34-4.34M3 11a8 8 0 1 0 16 0a8 8 0 1 0 -16 0";
+    out property <string> settings: "M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2zM9 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0";
+    out property <string> slideshow: "M22 11l-1.296-1.296a2.4 2.4 0 0 0-3.408 0L11 16M4 8a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2M12 7a1 1 0 1 0 2 0a1 1 0 1 0 -2 0M10 2h10a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-10a2 2 0 0 1 2 -2z";
+    out property <string> sparkles: "M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594zM20 2v4M22 4h-4M2 20a2 2 0 1 0 4 0a2 2 0 1 0 -4 0";
+    out property <string> speaker: "M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298zM16 9a5 5 0 0 1 0 6M19.364 18.364a9 9 0 0 0 0-12.728";
+    out property <string> square: "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2z";
+    out property <string> stack: "M7 2h10M5 6h14M5 10h14a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-8a2 2 0 0 1 2 -2z";
+    out property <string> studio: "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2zM12 3v18";
+    out property <string> swap: "M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4";
+    out property <string> test-pattern: "M17 2l-5 5-5-5M4 7h16a2 2 0 0 1 2 2v11a2 2 0 0 1 -2 2h-16a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2z";
+    out property <string> text: "M4 7V4h16v3M9 20h6M12 4v16";
+    out property <string> to-back: "M12 17V3M6 11l6 6 6-6M19 21H5";
+    out property <string> to-front: "M5 3h14M18 13l-6-6-6 6M12 7v14";
+    out property <string> tone: "M2 13a2 2 0 0 0 2-2V7a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0V4a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0v-4a2 2 0 0 1 2-2";
+    out property <string> trash: "M10 11v6M14 11v6M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2";
+    out property <string> undo: "M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11";
+    out property <string> unlock: "M5 11h14a2 2 0 0 1 2 2v7a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-7a2 2 0 0 1 2 -2zM7 11V7a5 5 0 0 1 9.9-1";
+    out property <string> wand: "M21.64 3.64l-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72M14 7l3 3M5 6v4M19 14v4M10 2v2M7 8H3M21 16h-4M11 3H9";
+    out property <string> warning: "M21.73 18l-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4M12 17h.01";
+    out property <string> window: "M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-16a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2zM10 4v4M2 8h20M6 4v4";
+    out property <string> x: "M18 6 6 18M6 6l12 12";
+
+    // From the Console boards (Paper's Lucide paths).
+    out property <string> columns: "M3.5 5h6a1.5 1.5 0 0 1 1.5 1.5v11a1.5 1.5 0 0 1 -1.5 1.5h-6a1.5 1.5 0 0 1 -1.5 -1.5v-11a1.5 1.5 0 0 1 1.5 -1.5zM14.5 5h6a1.5 1.5 0 0 1 1.5 1.5v11a1.5 1.5 0 0 1 -1.5 1.5h-6a1.5 1.5 0 0 1 -1.5 -1.5v-11a1.5 1.5 0 0 1 1.5 -1.5z";
+    out property <string> log-out: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9";
+    out property <string> panel-bottom: "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2zM3 15h18";
+    out property <string> panel-right: "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2zM15 3v18";
+    out property <string> reset: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5";
+    out property <string> scene-card: "M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-10a2 2 0 0 1 2 -2zM3 10h18";
+    // Streaming (the Controls dock's Start Streaming; the transport's).
+    out property <string> broadcast: "M4.9 19.1C1 15.2 1 8.8 4.9 4.9M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5M19.1 4.9C23 8.8 23 15.1 19.1 19M10 12a2 2 0 1 0 4 0a2 2 0 1 0 -4 0";
+    // Filters, Advanced Audio (the control bar's capsule, the mixer's toolbar).
+    out property <string> sliders: "M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4";
+    // The control bar with nothing selected: scene-card's frame dashed 3/3
+    // (Paper's `strokeDasharray="3 3"`; Slint paths have no dashes, so the
+    // dashes are drawn as segments). Draw it with butt caps.
+    out property <string> scene-none: "M5 5L8 5M11 5L14 5M17 5L19 5L19.49 5.06L19.96 5.24M21 7.86L21 10.86M21 13.86L21 16.86M19.28 18.98L18.78 19L16.28 19M13.28 19L10.28 19M7.28 19L5.28 19L4.78 18.99L4.3 18.87M3 16.42L3 13.42M3 10.42L3 7.42M4.44 5.08L4.72 5.02L5 5";
+
+    // Empty docks (Paper's glyphs, 40px at 1.2 units: EmptyState): the
+    // Welcome board's Scenes ("No scenes yet"), Sources ("No scene
+    // selected") and Audio Mixer ("No audio sources") docks, and the
+    // Components board's "No sources in this scene".
+    out property <string> empty-scenes: "M5.5 7h13a2.5 2.5 0 0 1 2.5 2.5v8a2.5 2.5 0 0 1 -2.5 2.5h-13a2.5 2.5 0 0 1 -2.5 -2.5v-8a2.5 2.5 0 0 1 2.5 -2.5zM6 4.5h12M12 11v5M9.5 13.5h5";
+    out property <string> empty-scene: "M5.5 4h13a2.5 2.5 0 0 1 2.5 2.5v11a2.5 2.5 0 0 1 -2.5 2.5h-13a2.5 2.5 0 0 1 -2.5 -2.5v-11a2.5 2.5 0 0 1 2.5 -2.5zM3 9h18M8 4v5M16 4v5M12 12.5v4M10 14.5h4";
+    out property <string> empty-sources: "M5.5 3h13a2.5 2.5 0 0 1 2.5 2.5v13a2.5 2.5 0 0 1 -2.5 2.5h-13a2.5 2.5 0 0 1 -2.5 -2.5v-13a2.5 2.5 0 0 1 2.5 -2.5zM3 15.5l4.5-4.5 4 4 2.5-2.5 7 7M13.7 8a1.8 1.8 0 1 0 3.6 0a1.8 1.8 0 1 0 -3.6 0";
+    out property <string> empty-audio: "M4 9.5h6M14 9.5h6M4 14.5h2M10 14.5h10M10 9.5a2 2 0 1 0 4 0a2 2 0 1 0 -4 0M6 14.5a2 2 0 1 0 4 0a2 2 0 1 0 -4 0";
+    // Properties' "Add Files…" plus: 12 units (draw with `box-width: 12`),
+    // stroked 1.6 (Paper's Properties, media clip board).
+    out property <string> plus-12: "M6 1.5v9M1.5 6h9";
+
+    // The sheets' own glyphs (Paper's Settings, Properties and Welcome
+    // boards draw them in 16 units: here at 24, so they take Icon's
+    // sizes and 1.5px strokes). `drive-led` and `film-play` are the
+    // yellow parts of the Output and media sheet glyphs (filled, see
+    // SheetGlyph's `accent`).
+    out property <string> drive: "M4.875 13.125h14.25a2.25 2.25 0 0 1 2.25 2.25v2.25a2.25 2.25 0 0 1 -2.25 2.25h-14.25a2.25 2.25 0 0 1 -2.25 -2.25v-2.25a2.25 2.25 0 0 1 2.25 -2.25zM4.5 13.125L6.9 5.4A2.25 2.25 0 0 1 9 4.125h6a2.25 2.25 0 0 1 2.1 1.275L19.5 13.125M17.25 16.5h0.01";
+    out property <string> drive-led: "M15.9 16.5a1.35 1.35 0 1 0 2.7 0a1.35 1.35 0 1 0 -2.7 0";
+    out property <string> monitor: "M4.875 4.125h14.25a2.25 2.25 0 0 1 2.25 2.25v8.25a2.25 2.25 0 0 1 -2.25 2.25h-14.25a2.25 2.25 0 0 1 -2.25 -2.25v-8.25a2.25 2.25 0 0 1 2.25 -2.25zM8.25 20.625h7.5";
+    out property <string> volume: "M3.375 9v6h3.75l5.25 4.5V4.5l-5.25 4.5h-3.75ZM16.125 8.625a4.8 4.8 0 0 1 0 6.75M19.125 5.625a9 9 0 0 1 0 12.75";
+    out property <string> volume-low: "M3.375 9v6h3.75l5.25 4.5V4.5l-5.25 4.5h-3.75ZM16.125 8.625a4.8 4.8 0 0 1 0 6.75";
+    out property <string> sheet-broadcast: "M9.9 12a2.1 2.1 0 1 0 4.2 0a2.1 2.1 0 1 0 -4.2 0M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.5 4.5a10.65 10.65 0 0 0 0 15M19.5 4.5a10.65 10.65 0 0 1 0 15";
+    out property <string> sun: "M8.7 12a3.3 3.3 0 1 0 6.6 0a3.3 3.3 0 1 0 -6.6 0M12 2.625v2.4M12 18.975v2.4M21.375 12h-2.4M5.025 12h-2.4M18.6 5.4l-1.65 1.65M7.05 16.95l-1.65 1.65M18.6 18.6l-1.65 -1.65M7.05 7.05L5.4 5.4";
+    out property <string> keys: "M4.875 5.625h14.25a2.25 2.25 0 0 1 2.25 2.25v8.25a2.25 2.25 0 0 1 -2.25 2.25h-14.25a2.25 2.25 0 0 1 -2.25 -2.25v-8.25a2.25 2.25 0 0 1 2.25 -2.25zM6.75 9.75h0.015M10.5 9.75h0.015M14.25 9.75h0.015M18 9.75h-0.75M7.5 14.25h9";
+    out property <string> sheet-sliders: "M3.75 6.75h9M17.25 6.75h3M3.75 17.25h3M11.25 17.25h9M12.75 6.75a2.25 2.25 0 1 0 4.5 0a2.25 2.25 0 1 0 -4.5 0M6.75 17.25a2.25 2.25 0 1 0 4.5 0a2.25 2.25 0 1 0 -4.5 0";
+    out property <string> film: "M5.625 2.625h12.75a2.25 2.25 0 0 1 2.25 2.25v14.25a2.25 2.25 0 0 1 -2.25 2.25h-12.75a2.25 2.25 0 0 1 -2.25 -2.25v-14.25a2.25 2.25 0 0 1 2.25 -2.25zM7.5 2.625v18.75M16.5 2.625v18.75M3.375 7.5h4.125M3.375 12h4.125M3.375 16.5h4.125M16.5 7.5h4.125M16.5 12h4.125M16.5 16.5h4.125";
+    out property <string> film-play: "M10.5 9.3v5.4L14.4 12Z";
+    out property <string> reel: "M5.625 2.625h12.75a2.25 2.25 0 0 1 2.25 2.25v14.25a2.25 2.25 0 0 1 -2.25 2.25h-12.75a2.25 2.25 0 0 1 -2.25 -2.25v-14.25a2.25 2.25 0 0 1 2.25 -2.25zM7.5 2.625v18.75M16.5 2.625v18.75";
+    out property <string> folder: "M2.625 6.375a2.25 2.25 0 0 1 2.25 -2.25h4.5l2.25 2.625h7.5a2.25 2.25 0 0 1 2.25 2.25v8.625a2.25 2.25 0 0 1 -2.25 2.25h-14.25a2.25 2.25 0 0 1 -2.25 -2.25Z";
+    out property <string> frame: "M4.875 4.875h14.25a2.25 2.25 0 0 1 2.25 2.25v9.75a2.25 2.25 0 0 1 -2.25 2.25h-14.25a2.25 2.25 0 0 1 -2.25 -2.25v-9.75a2.25 2.25 0 0 1 2.25 -2.25z";
+    out property <string> codec: "M5.625 2.625h12.75a2.25 2.25 0 0 1 2.25 2.25v14.25a2.25 2.25 0 0 1 -2.25 2.25h-12.75a2.25 2.25 0 0 1 -2.25 -2.25v-14.25a2.25 2.25 0 0 1 2.25 -2.25zM7.5 2.625v18.75M16.5 2.625v18.75M3.375 12h17.25";
+    out property <string> clock: "M2.625 12a9.375 9.375 0 1 0 18.75 0a9.375 9.375 0 1 0 -18.75 0M12 7.125V12l3 2.25";
+    out property <string> download: "M12 3v12M7.5 10.5l4.5 4.5l4.5 -4.5M4.125 15.75v2.625a2.25 2.25 0 0 0 2.25 2.25h11.25a2.25 2.25 0 0 0 2.25 -2.25V15.75";
+
+    // The icon called `name` (as above, e.g. "camera"), or "": for models
+    // built in Rust, which name icons rather than carry their paths.
+    public pure function named(name: string) -> string {
+        if name == "alert" { return root.alert; }
+        if name == "app-audio" { return root.app-audio; }
+        if name == "application" { return root.application; }
+        if name == "arrow-right" { return root.arrow-right; }
+        if name == "blend" { return root.blend; }
+        if name == "box" { return root.box; }
+        if name == "browser" { return root.browser; }
+        if name == "camera" { return root.camera; }
+        if name == "check" { return root.check; }
+        if name == "chevron-down" { return root.chevron-down; }
+        if name == "chevron-left" { return root.chevron-left; }
+        if name == "chevron-right" { return root.chevron-right; }
+        if name == "chevron-up" { return root.chevron-up; }
+        if name == "color" { return root.color; }
+        if name == "copy" { return root.copy; }
+        if name == "cpu" { return root.cpu; }
+        if name == "crop" { return root.crop; }
+        if name == "disk" { return root.disk; }
+        if name == "display" { return root.display; }
+        if name == "eye" { return root.eye; }
+        if name == "eye-off" { return root.eye-off; }
+        if name == "file-code" { return root.file-code; }
+        if name == "file-up" { return root.file-up; }
+        if name == "filters" { return root.filters; }
+        if name == "flag" { return root.flag; }
+        if name == "folder-open" { return root.folder-open; }
+        if name == "gauge" { return root.gauge; }
+        if name == "grip" { return root.grip; }
+        if name == "group" { return root.group; }
+        if name == "headphones" { return root.headphones; }
+        if name == "image" { return root.image; }
+        if name == "info" { return root.info; }
+        if name == "keyboard" { return root.keyboard; }
+        if name == "layout" { return root.layout; }
+        if name == "link" { return root.link; }
+        if name == "list-plus" { return root.list-plus; }
+        if name == "live" { return root.live; }
+        if name == "lock" { return root.lock; }
+        if name == "magnet" { return root.magnet; }
+        if name == "maximize" { return root.maximize; }
+        if name == "media" { return root.media; }
+        if name == "mic" { return root.mic; }
+        if name == "minus" { return root.minus; }
+        if name == "more" { return root.more; }
+        if name == "more-vertical" { return root.more-vertical; }
+        if name == "move" { return root.move; }
+        if name == "muted" { return root.muted; }
+        if name == "pencil" { return root.pencil; }
+        if name == "plug" { return root.plug; }
+        if name == "plus" { return root.plus; }
+        if name == "record" { return root.record; }
+        if name == "refresh" { return root.refresh; }
+        if name == "rotate" { return root.rotate; }
+        if name == "scan" { return root.scan; }
+        if name == "scene" { return root.scene; }
+        if name == "scissors" { return root.scissors; }
+        if name == "search" { return root.search; }
+        if name == "settings" { return root.settings; }
+        if name == "slideshow" { return root.slideshow; }
+        if name == "sparkles" { return root.sparkles; }
+        if name == "speaker" { return root.speaker; }
+        if name == "square" { return root.square; }
+        if name == "stack" { return root.stack; }
+        if name == "studio" { return root.studio; }
+        if name == "swap" { return root.swap; }
+        if name == "test-pattern" { return root.test-pattern; }
+        if name == "text" { return root.text; }
+        if name == "to-back" { return root.to-back; }
+        if name == "to-front" { return root.to-front; }
+        if name == "tone" { return root.tone; }
+        if name == "trash" { return root.trash; }
+        if name == "undo" { return root.undo; }
+        if name == "unlock" { return root.unlock; }
+        if name == "wand" { return root.wand; }
+        if name == "warning" { return root.warning; }
+        if name == "window" { return root.window; }
+        if name == "x" { return root.x; }
+        if name == "columns" { return root.columns; }
+        if name == "log-out" { return root.log-out; }
+        if name == "panel-bottom" { return root.panel-bottom; }
+        if name == "panel-right" { return root.panel-right; }
+        if name == "reset" { return root.reset; }
+        if name == "scene-card" { return root.scene-card; }
+        if name == "broadcast" { return root.broadcast; }
+        if name == "sliders" { return root.sliders; }
+        if name == "scene-none" { return root.scene-none; }
+        if name == "empty-scenes" { return root.empty-scenes; }
+        if name == "empty-scene" { return root.empty-scene; }
+        if name == "empty-sources" { return root.empty-sources; }
+        if name == "empty-audio" { return root.empty-audio; }
+        if name == "drive" { return root.drive; }
+        if name == "drive-led" { return root.drive-led; }
+        if name == "monitor" { return root.monitor; }
+        if name == "volume" { return root.volume; }
+        if name == "volume-low" { return root.volume-low; }
+        if name == "sheet-broadcast" { return root.sheet-broadcast; }
+        if name == "sun" { return root.sun; }
+        if name == "keys" { return root.keys; }
+        if name == "sheet-sliders" { return root.sheet-sliders; }
+        if name == "film" { return root.film; }
+        if name == "film-play" { return root.film-play; }
+        if name == "reel" { return root.reel; }
+        if name == "folder" { return root.folder; }
+        if name == "frame" { return root.frame; }
+        if name == "codec" { return root.codec; }
+        if name == "clock" { return root.clock; }
+        if name == "download" { return root.download; }
+        return "";
+    }
+}
+
+// A path drawn as an SVG draws it: its box (`box-width` × `box-height`
+// units) scaled evenly into the element and centred, the stroke straddling
+// the outline. Slint fits a Path's viewbox into the element less the
+// stroke (i-slint-core's `fitted_path_events`), so a stroked drawing came
+// out smaller than Paper's (a 16px icon by 1.5px, ~10%); this widens the
+// viewbox by the stroke's share to undo that. Set `width`, `height`,
+// `commands` and the stroke as on a Path.
+export component SvgPath inherits Path {
+    in property <float> box-width: 24;
+    in property <float> box-height: 24;
+    // Units to px, and the stroke in px (as plain numbers).
+    property <float> k: max(0.0001, min(self.width / 1px / root.box-width, self.height / 1px / root.box-height));
+    property <float> s: self.stroke-width / 1px;
+    viewbox-x: root.box-width / 2 - (self.width / 1px - root.s) / (2 * root.k);
+    viewbox-y: root.box-height / 2 - (self.height / 1px - root.s) / (2 * root.k);
+    viewbox-width: max(0.0001, (self.width / 1px - root.s) / root.k);
+    viewbox-height: max(0.0001, (self.height / 1px - root.s) / root.k);
+}
+
+// An icon: `path` from `Icons`, `size` 12, 14, 16 or 20px.
+export component Icon inherits SvgPath {
+    in property <string> path;
+    in property <color> color: Theme.text-2;
+    in property <length> size: Theme.icon;
+    width: root.size;
+    height: root.size;
+    commands: root.path;
+    stroke: root.color;
+    // Paper's 2.25 units (some icons there use 2 or 2.5: set it).
+    stroke-width: root.size * 2.25 / 24;
+    stroke-line-cap: round;
+    stroke-line-join: round;
+    fill: transparent;
+    accessible-role: none;
+}
+
+// The brand mark ("Equal"), as in the app icon (bundle/Isocast.icon) on
+// its 1024-unit canvas: a copper record dot and two round-capped bars,
+// bone where they cross the dot and verdigris beyond it; `size` square,
+// centred on the mark.
+export component BrandMark inherits Rectangle {
+    in property <length> size: 24px;
+    width: root.size;
+    height: root.size;
+    accessible-role: none;
+
+    Path {
+        width: 100%;
+        height: 100%;
+        viewbox-x: 140;
+        viewbox-y: 142;
+        viewbox-width: 740;
+        viewbox-height: 740;
+        commands: "M200 512a200 200 0 1 0 400 0a200 200 0 1 0 -400 0";
+        fill: Theme.copper;
+    }
+    Path {
+        width: 100%;
+        height: 100%;
+        viewbox-x: 140;
+        viewbox-y: 142;
+        viewbox-width: 740;
+        viewbox-height: 740;
+        commands: "M332 426H580.57A200 200 0 0 1 598.79 490H332A32 32 0 0 1 332 426ZM332 534H598.79A200 200 0 0 1 580.57 598H332A32 32 0 0 1 332 534Z";
+        fill: Theme.brand-bone;
+    }
+    Path {
+        width: 100%;
+        height: 100%;
+        viewbox-x: 140;
+        viewbox-y: 142;
+        viewbox-width: 740;
+        viewbox-height: 740;
+        commands: "M580.57 426H788A32 32 0 0 1 788 490H598.79A200 200 0 0 0 580.57 426ZM598.79 534H788A32 32 0 0 1 788 598H580.57A200 200 0 0 0 598.79 534Z";
+        fill: Theme.verdigris;
+    }
+}

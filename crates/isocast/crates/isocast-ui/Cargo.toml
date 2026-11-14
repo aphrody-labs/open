@@ -1,0 +1,130 @@
+[package]
+name = "isocast-ui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "The Isocast app rebuilt in Slint (spike): a portable native window, a thin client of isocastd."
+# Slint is used under its royalty-free licence, which asks for the
+# "About Slint" notice the app shows in Help → About Isocast.
+
+[features]
+# Development only, never in a shipped build: the interface is read from
+# ui/*.slint by Slint's interpreter when the app starts (and again after an
+# edit, under `--snapshot-watch`) instead of being compiled into the
+# binary, so a layout change needs no rebuild and a Rust change rebuilds
+# far less. Same Slint version; see build.rs.
+live-slint = ["slint/live-preview", "isocast-ui-interface/live-slint"]
+
+[[bin]]
+name = "isocast-ui"
+path = "src/main.rs"
+
+[dependencies]
+# The interface (ui/*.slint) compiled into Rust, built once per profile.
+isocast-ui-interface = { path = "../isocast-ui-interface" }
+isocast-diagnostics = { path = "../isocast-diagnostics" }
+anyhow = "1.0.104"
+# `wgpu`: the daemon's shared frames as wgpu textures (the portable preview).
+isocast-client = { path = "../isocast-client", features = ["wgpu"] }
+isocast-protocol = { path = "../isocast-protocol" }
+# The `frames` stream's connection (local or TLS): rate lines and hanging up.
+isocast-ipc = { path = "../isocast-ipc" }
+# Another computer's engine's program as WebRTC (src/video/whep.rs): the
+# engine's own stack and Opus binding, pinned the same as isocast-daemon's.
+str0m = { version = "=0.24.1", default-features = false, features = ["rust-crypto"] }
+opus2 = { version = "=0.4.0", features = ["bundled"] }
+# Engines on the network for the engine picker (remote control, R2).
+isocast-discovery = { path = "../isocast-discovery" }
+# The test-only element search API (accessible roles and names), used by
+# `--a11y` to print what screen readers are given.
+i-slint-backend-testing = "=1.18.1"
+png = "0.18.1"
+# Interim previews of another computer's engine (R2): its `frame` stills
+# arrive as base64 JPEG. Both already build for the engine and daemon.
+base64 = "0.22.1"
+image = { version = "0.25.10", default-features = false, features = ["jpeg"] }
+serde = "1.0.229"
+serde_json = "1.0.154"
+# The motion harness's suites (src/motion/scenario.rs); already the
+# workspace's setup format.
+toml = "1.1.8"
+slint = { version = "=1.18.1", default-features = false, features = [
+    "std",
+    "compat-1-2",
+    "accessibility",
+    "backend-winit",
+    "renderer-skia",
+    "unstable-wgpu-30",
+    "unstable-winit-030",
+] }
+# The engine's wgpu, pinned the same (its frame import uses wgpu-hal), so
+# the preview can share GPU textures with it. Slint's Skia renderer adds
+# the platform's backend (Metal on macOS, DX12 on Windows).
+wgpu = { version = "=30.0.1", default-features = false, features = ["std", "wgsl"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+# The same text clipboard backend as Slint/winit (Wayland, X11 and Windows).
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+arboard = { version = "3.6.1", default-features = false, features = ["wayland-data-control"] }
+
+# Linux: the engine's live video decoded in software (src/video/openh264.rs)
+# by the same run-time OpenH264 library the Linux engine encodes with.
+[target.'cfg(target_os = "linux")'.dependencies]
+isocast-openh264 = { path = "../isocast-openh264" }
+# Another computer's engine's sound (src/video/sound.rs): a PipeWire playback
+# stream, the binding and worker pattern isocast-platform-linux's monitoring
+# uses (src/playback.rs), pinned the same.
+pipewire = { version = "=0.10.1", features = ["v0_3_77"] }
+# Native open panels on Linux (src/platform.rs): the xdg-desktop-portal
+# FileChooser, through the portal binding isocast-platform-linux uses.
+ashpd = { version = "=0.13.13", default-features = false, features = ["tokio", "file_chooser"] }
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "time"] }
+
+[target.'cfg(windows)'.dependencies]
+i-slint-renderer-skia = { version = "=1.18.1", default-features = false, features = ["unstable-wgpu-30"] }
+windows = { version = "0.62.2", features = [
+    "Win32_Foundation", "Win32_Graphics_DirectComposition",
+    "Win32_Graphics_Direct2D_Common", "Win32_Graphics_Direct3D12",
+    "Win32_Graphics_Direct3D", "Win32_Graphics_Direct3D11", "Win32_Graphics_Direct3D11on12",
+    "Win32_Graphics_Dxgi", "Win32_Graphics_Dxgi_Common",
+    "Win32_System_Threading", "Win32_UI_WindowsAndMessaging",
+    # Another computer's engine's live video (src/video/media_foundation.rs): Media
+    # Foundation's H.264 decoder, DXVA through a D3D11 device.
+    "Win32_Media_MediaFoundation", "Win32_System_Com",
+    # Its sound (src/video/sound.rs): WASAPI shared mode.
+    "Win32_Media_Audio", "Win32_Devices_FunctionDiscovery", "Win32_System_Com_StructuredStorage",
+    # A bigger UDP receive buffer for its packets (src/video/whep.rs).
+    "Win32_Networking_WinSock",
+] }
+windows-numerics = "0.3.1"
+# Real process counters: Windows UI measurements must not report stub zeroes.
+# Console (a GUI program that writes to the terminal it ran from), Shell
+# (opening web pages and Explorer), DWM/GDI/Controls/HiDpi (dark title and
+# menu bars, the first window's size: src/chrome_windows.rs).
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Dwm", "Win32_Graphics_Gdi", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_LibraryLoader", "Win32_System_ProcessStatus", "Win32_System_Threading", "Win32_UI_Controls", "Win32_UI_HiDpi", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }
+
+# macOS: the preview's picture and selection box as Core Animation layers
+# under the window's interface (see src/layers.rs), so the interface isn't
+# redrawn for every video frame.
+[target.'cfg(target_os = "macos")'.dependencies]
+# The NSEvent key monitor's handler (src/keys.rs: focused hotkeys).
+block2 = "0.6.2"
+objc2 = "0.6.5"
+objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["std", "CFBase", "CFCGTypes", "CFDictionary", "CFNumber", "CFString", "CFUUID"] }
+# CGColor: the layers' outlines and fills (src/layers.rs).
+objc2-core-graphics = { version = "0.3.2", default-features = false, features = ["std", "CGColor", "CGColorSpace"] }
+objc2-io-surface = { version = "0.3.2", default-features = false, features = ["std", "IOSurfaceRef", "IOSurfaceTypes", "libc", "objc2-core-foundation"] }
+objc2-quartz-core = { version = "0.3.2", default-features = false, features = ["std", "CALayer", "CATransaction", "objc2-core-foundation", "objc2-core-graphics"] }
+raw-window-handle = "0.6.2"
+# Another computer's engine's live video (src/video/videotoolbox.rs): VideoToolbox
+# decodes its H.264 in hardware. All three already build for the engine.
+objc2-core-media = { version = "0.3.2", default-features = false, features = ["std", "objc2-core-video", "CMBase", "CMBlockBuffer", "CMFormatDescription", "CMSampleBuffer", "CMTime"] }
+objc2-core-video = { version = "0.3.2", default-features = false, features = ["std", "CVBase", "CVBuffer", "CVImageBuffer", "CVPixelBuffer", "CVPixelBufferIOSurface", "CVReturn", "objc2-io-surface"] }
+# Its sound on the default output (src/video/sound.rs), as the engine plays
+# monitoring: already built for isocast-platform-macos.
+objc2-audio-toolbox = { version = "0.3.2", default-features = false, features = ["std", "AUComponent", "AudioComponent", "AudioOutputUnit", "AudioUnitProperties", "objc2-core-audio-types"] }
+objc2-core-audio-types = { version = "0.3.2", default-features = false, features = ["std", "CoreAudioBaseTypes"] }
+objc2-video-toolbox = { version = "0.3.2", default-features = false, features = ["std", "objc2-core-media", "objc2-core-video", "VTDecompressionSession", "VTDecompressionProperties", "VTSession", "VTErrors"] }

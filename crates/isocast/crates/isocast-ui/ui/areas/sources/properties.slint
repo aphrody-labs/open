@@ -1,0 +1,356 @@
+// A source's Properties (the web app's properties.js; Paper's Properties
+// sheet): the source's name and what it is under its kind's glyph, a live
+// picture of it in the black well (video sources), its settings as
+// grouped rows (drawn from the setup schema; only they scroll), Defaults
+// at the bottom left and Cancel / OK at the right. Changes show at once;
+// Cancel puts the source back as it was. A source that can't exist yet (a
+// new image without its file) is a draft, added on OK.
+//
+// Filters (filters.js), as Settings is laid out: the Audio Filters and
+// Effect Filters lists in the sheet's sidebar, each with + − ⌃ ⌄ under it
+// and an eye per filter; beside them the source's picture and the
+// selected filter's settings. Close keeps them.
+
+import { Theme } from "../../theme.slint";
+import { Icon, Icons } from "../../icons.slint";
+import { Ui } from "../../state.slint";
+import {
+    Button, Callout, CalloutKind, Capsule, CapsuleButton, CapsuleDivider, Dialog, DialogFooter, GroupHeading,
+    GroupHint, IconButton, ListRow, Menus, ScrollArea, SettingsForm, SheetHeader, SheetSidebar,
+    ControlSize, SidebarHeading, TextField, Viewport,
+} from "../../kit.slint";
+import { SourcesArea, FilterRow } from "state.slint";
+import { SourcePreview } from "source-preview.slint";
+
+// A kind's glyph's yellow part in a sheet's header (the media source's
+// play mark).
+export global KindGlyph {
+    public pure function accent(icon: string) -> string {
+        if icon == "media" { return Icons.film-play; }
+        return "";
+    }
+    // The sheet glyph for a kind (the boards' own film for a media source).
+    public pure function glyph(icon: string) -> string {
+        if icon == "media" { return Icons.film; }
+        return Icons.named(icon);
+    }
+}
+
+export component PropertiesDialog inherits Dialog {
+    title: SourcesArea.props-name;
+    accessible-name: SourcesArea.props-title;
+    subtitle: SourcesArea.props-subtitle;
+    icon: KindGlyph.glyph(SourcesArea.props-icon);
+    icon-accent: KindGlyph.accent(SourcesArea.props-icon);
+    dialog-width: 640px;
+    ok-enabled: SourcesArea.props-need == "";
+    extra-text: "Defaults";
+    note: SourcesArea.props-need;
+    accepted => { SourcesArea.props-accept(); }
+    cancelled => { SourcesArea.props-cancel(); }
+    extra => { SourcesArea.props-defaults(); }
+
+    // Paper's 288px room under the viewer line; at most 40% of what the
+    // sheet can have in a short window (the window less 40px), so the
+    // settings keep most of it.
+    if SourcesArea.props-video: SourcePreview {
+        name: SourcesArea.props-name;
+        area-height: max(120px, min(288px, (Viewport.height - 40px) * 0.4 - 30px));
+    }
+    if SourcesArea.props-problem != "": VerticalLayout {
+        padding-left: Theme.sheet-pad;
+        padding-right: Theme.sheet-pad;
+        padding-bottom: Theme.space-4;
+        Callout {
+            kind: CalloutKind.error;
+            title: "This source isn’t running";
+            message: SourcesArea.props-problem;
+            details: SourcesArea.props-problem-details;
+        }
+    }
+    // Nothing chosen yet in the desktop's sharing dialog: a wait, with
+    // the button that opens it (where this app can).
+    if SourcesArea.props-pick != "": VerticalLayout {
+        padding-left: Theme.sheet-pad;
+        padding-right: Theme.sheet-pad;
+        padding-bottom: Theme.space-4;
+        Callout {
+            kind: CalloutKind.info;
+            title: "No " + SourcesArea.props-pick + " chosen yet";
+            message: SourcesArea.props-pick-id == ""
+                ? "Choose it in the sharing dialog on the computer Isocast records on."
+                : SourcesArea.props-pick-id == SourcesArea.unchosen-picking
+                ? "Choose it in the desktop’s sharing dialog."
+                : "This source shows nothing until you choose one.";
+            if SourcesArea.props-pick-id != "": VerticalLayout {
+                alignment: center;
+                Button {
+                    text: "Choose a " + SourcesArea.props-pick + "…";
+                    size: ControlSize.small;
+                    enabled: SourcesArea.unchosen-picking == "";
+                    clicked => { SourcesArea.choose-unchosen(SourcesArea.props-pick-id); }
+                }
+            }
+        }
+    }
+    ScrollArea {
+        vertical-stretch: 1;
+        min-height: 60px;
+        preferred-height: body.preferred-height;
+        body := VerticalLayout {
+            padding-left: Theme.sheet-pad;
+            padding-right: Theme.sheet-pad;
+            spacing: 0;
+            alignment: start;
+            if SourcesArea.props-form.length == 0: GroupHint {
+                text: "This source has no settings.";
+            }
+            SettingsForm {
+                groups: SourcesArea.props-form;
+                form: "props";
+            }
+            if SourcesArea.props-created: GroupHint {
+                text: "Added to the scene. Cancel keeps it with these settings; remove it with − under Sources.";
+            }
+        }
+    }
+}
+
+// A filter's row in the sidebar: the kit's list row, the filter's name
+// (dim when it is off), its eye on the right.
+component FilterItem inherits ListRow {
+    in property <FilterRow> filter;
+    callback toggled();
+
+    text: root.filter.name;
+    dim: !root.filter.enabled;
+    description: root.filter.enabled ? "" : "Off";
+    trailing-pad: 2px;
+
+    VerticalLayout {
+        alignment: center;
+        IconButton {
+            compact: true;
+            icon: root.filter.enabled ? Icons.eye : Icons.eye-off;
+            icon-size: Theme.icon-row;
+            rest-color: root.filter.enabled ? Theme.text-2 : Theme.text-3;
+            label: root.filter.enabled ? "Turn off" : "Turn on";
+            clicked => { root.toggled(); }
+        }
+    }
+}
+
+// One list of filters: its heading, its rows, and + − ⌃ ⌄ under them.
+component FilterGroup inherits VerticalLayout {
+    in property <string> title;
+    // "audio_filters" or "filters".
+    in property <string> list;
+    in property <[FilterRow]> filters;
+    property <int> current: -1;
+
+    spacing: 2px;
+
+    // The sidebar's 8px plus the rows' own 6px: its heading on their text.
+    HorizontalLayout {
+        padding-left: 6px;
+        SidebarHeading {
+            text: root.title;
+        }
+    }
+    VerticalLayout {
+        spacing: 2px;
+        accessible-role: AccessibleRole.list;
+        accessible-label: root.title;
+        if root.filters.length == 0: HorizontalLayout {
+            padding-left: 16px;
+            Text {
+                height: Theme.row;
+                text: "None yet. Add one with +.";
+                color: Theme.text-3;
+                font-size: Theme.fs-sm;
+                letter-spacing: Theme.tracking-sm;
+                vertical-alignment: center;
+            }
+        }
+        for filter[i] in root.filters: Rectangle {
+            property <bool> chosen: SourcesArea.filter-list == root.list && SourcesArea.filter-key == filter.key;
+            changed chosen => {
+                if self.chosen {
+                    root.current = i;
+                } else if root.current == i {
+                    root.current = -1;
+                }
+            }
+            init => {
+                if self.chosen {
+                    root.current = i;
+                }
+            }
+            height: Theme.row;
+
+            FilterItem {
+                filter: filter;
+                selected: parent.chosen;
+                index: i;
+                count: root.filters.length;
+                clicked => { SourcesArea.filter-select(root.list, filter.key); }
+                double-clicked => { SourcesArea.renaming-filter = (root.list + ":" + filter.key); }
+                toggled => { SourcesArea.filter-toggle(root.list, filter.key); }
+                // Right-click: Rename, Duplicate, Copy, Paste, Remove.
+                context-menu(x, y) => {
+                    SourcesArea.filter-select(root.list, filter.key);
+                    SourcesArea.filter-menu(root.list, filter.key, x, y);
+                }
+            }
+
+            if SourcesArea.renaming-filter == (root.list + ":" + filter.key): TextField {
+                x: Theme.list-inset + Theme.space-2 - 5px;
+                y: (parent.height - self.height) / 2;
+                width: parent.width - self.x - Theme.list-inset;
+                small: true;
+                font-size: Theme.fs;
+                text: filter.name;
+                label: "Filter name";
+                submits: false;
+                auto-focus: true;
+                accepted(name) => {
+                    SourcesArea.renaming-filter = "";
+                    SourcesArea.filter-rename(root.list, filter.key, name);
+                }
+                committed(name) => {
+                    if SourcesArea.renaming-filter == (root.list + ":" + filter.key) {
+                        SourcesArea.renaming-filter = "";
+                        SourcesArea.filter-rename(root.list, filter.key, name);
+                    }
+                }
+                cancelled => { SourcesArea.renaming-filter = ""; }
+            }
+        }
+    }
+    HorizontalLayout {
+        padding-left: 6px;
+        padding-top: Theme.space-1;
+        spacing: Theme.space-2;
+        alignment: start;
+        Capsule {
+            CapsuleButton {
+                icon: Icons.plus;
+                label: "Add a filter";
+                menu-open: Menus.open && Menus.owner == "filters:add:" + root.list;
+                clicked => {
+                    SourcesArea.filter-add(root.list, self.absolute-position.x, self.absolute-position.y, self.width, self.height);
+                }
+            }
+            CapsuleDivider { }
+            CapsuleButton {
+                icon: Icons.minus;
+                label: "Remove the filter";
+                enabled: root.current >= 0;
+                clicked => { SourcesArea.filter-remove(root.list); }
+            }
+        }
+        Capsule {
+            CapsuleButton {
+                icon: Icons.chevron-up;
+                label: "Move up";
+                enabled: root.current > 0;
+                clicked => { SourcesArea.filter-move(root.list, -1); }
+            }
+            CapsuleDivider { }
+            CapsuleButton {
+                icon: Icons.chevron-down;
+                label: "Move down";
+                enabled: root.current >= 0 && root.current < root.filters.length - 1;
+                clicked => { SourcesArea.filter-move(root.list, 1); }
+            }
+        }
+    }
+}
+
+export component FiltersDialog inherits Dialog {
+    property <string> explain: SourcesArea.filters-audio && SourcesArea.filters-video ? "Filters for the picture and the sound, applied top to bottom."
+        : SourcesArea.filters-audio ? "Filters for the sound, applied top to bottom."
+        : "Filters for the picture, applied top to bottom.";
+
+    title: SourcesArea.filters-name;
+    accessible-name: SourcesArea.filters-title;
+    header: false;
+    footer: false;
+    drag-height: 78px;
+    dialog-width: 880px;
+    dialog-height: min(700px, Viewport.height - 60px);
+    accepted => { Ui.close-dialog(); }
+    cancelled => { Ui.close-dialog(); }
+
+    HorizontalLayout {
+        vertical-stretch: 1;
+        spacing: 0;
+        SheetSidebar {
+            label: "Filters";
+            if SourcesArea.filters-audio: FilterGroup {
+                title: "Audio Filters";
+                list: "audio_filters";
+                filters: SourcesArea.audio-filters;
+            }
+            if SourcesArea.filters-audio && SourcesArea.filters-video: Rectangle {
+                height: 12px;
+            }
+            if SourcesArea.filters-video: FilterGroup {
+                title: "Effect Filters";
+                list: "filters";
+                filters: SourcesArea.video-filters;
+            }
+            Rectangle {
+                vertical-stretch: 1;
+            }
+        }
+        VerticalLayout {
+            horizontal-stretch: 1;
+            spacing: 0;
+            SheetHeader {
+                inset: Theme.sheet-pad-wide;
+                title: SourcesArea.filters-name;
+                subtitle: root.explain;
+                icon: Icons.filters;
+            }
+            if SourcesArea.filters-video: SourcePreview {
+                padding-left: Theme.sheet-pad-wide;
+                padding-right: Theme.sheet-pad-wide;
+                name: SourcesArea.filters-name;
+                handles: true;
+                area-height: max(100px, min(240px, (Viewport.height - 40px) * 0.3));
+            }
+            ScrollArea {
+                vertical-stretch: 1;
+                VerticalLayout {
+                    padding-left: Theme.sheet-pad-wide;
+                    padding-right: Theme.sheet-pad-wide;
+                    spacing: 0;
+                    alignment: start;
+                    if SourcesArea.filter-key != "": GroupHeading {
+                        title: SourcesArea.filter-heading + (SourcesArea.filter-off ? " · off" : "");
+                    }
+                    if SourcesArea.filter-key != "" && SourcesArea.filter-form.length == 0: GroupHint {
+                        text: "This filter has no settings.";
+                    }
+                    if SourcesArea.filter-key != "": SettingsForm {
+                        groups: SourcesArea.filter-form;
+                        form: "filter";
+                    }
+                    if SourcesArea.filter-key == "": GroupHint {
+                        text: "Select a filter to change its settings, or add one with +.";
+                    }
+                }
+            }
+            DialogFooter {
+                inset: Theme.sheet-pad-wide;
+                ok-text: "Close";
+                cancel-text: "";
+                extra-text: "Defaults";
+                extra-enabled: SourcesArea.filter-key != "";
+                ok => { Ui.close-dialog(); }
+                extra => { SourcesArea.filter-defaults(); }
+            }
+        }
+    }
+}

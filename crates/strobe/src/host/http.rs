@@ -1,0 +1,210 @@
+//! A minimal HTTP/1.1 server for the daemon (MCP, reports) and the calibration page. Hand-rolled, like mesh.
+
+use std::collections::HashMap;
+use std::io::{BufRead, BufReader, Read, Write};
+use std::net::{TcpListener, TcpStream};
+use std::sync::Arc;
+use std::time::Duration;
+
+pub struct Request {
+    pub method: String,
+    pub path: String,
+    pub headers: HashMap<String, String>,
+    pub body: Vec<u8>,
+}
+
+pub struct Response {
+    pub status: u16,
+    pub content_type: &'static str,
+    pub body: Vec<u8>,
+    /// A Content-Security-Policy header, enforced on top of any the page sets itself.
+    pub csp: Option<String>,
+    /// Other headers (a video's byte range).
+    pub headers: Vec<(&'static str, String)>,
+    /// A body read from a file as it is sent instead of `body`: its path, offset and length (a video,
+    /// never held whole in the daemon's memory).
+    pub file: Option<(std::path::PathBuf, u64, u64)>,
+}
+
+impl Response {
+    pub fn new(status: u16, content_type: &'static str, body: impl Into<Vec<u8>>) -> Response {
+        Response { status, content_type, body: body.into(), csp: None, headers: Vec::new(), file: None }
+    }
+    pub fn text(status: u16, body: &str) -> Response {
+        Response::new(status, "text/plain; charset=utf-8", body.as_bytes().to_vec())
+    }
+}
+
+const MAX_HEADERS: usize = 64 * 1024;
+const MAX_BODY: usize = 16 * 1024 * 1024;
+
+pub fn read_request(stream: &mut TcpStream) -> Option<Request> {
+    stream.set_read_timeout(Some(Duration::from_secs(30))).ok();
+    let mut reader = BufReader::new(stream.try_clone().ok()?);
+    let mut line = String::new();
+    reader.read_line(&mut line).ok()?;
+    let mut parts = line.split_whitespace();
+    let method = parts.next()?.to_string();
+    let path = parts.next()?.to_string();
+    let mut headers = HashMap::new();
+    let mut size = 0;
+    loop {
+        let mut h = String::new();
+        let n = reader.read_line(&mut h).ok()?;
+        size += n;
+        if n == 0 || size > MAX_HEADERS {
+            return None;
+        }
+        let h = h.trim_end();
+        if h.is_empty() {
+            break;
+        }
+        if let Some((k, v)) = h.split_once(':') {
+            headers.insert(k.trim().to_ascii_lowercase(), v.trim().to_string());
+        }
+    }
+    let len: usize = headers.get("content-length").and_then(|v| v.parse().ok()).unwrap_or(0);
+    if len > MAX_BODY {
+        return None;
+    }
+    let mut body = vec![0u8; len];
+    reader.read_exact(&mut body).ok()?;
+    Some(Request { method, path, headers, body })
+}
+
+pub fn write_response(stream: &mut TcpStream, r: &Response) {
+    let reason = match r.status {
+        200 => "OK",
+        202 => "Accepted",
+        206 => "Partial Content",
+        400 => "Bad Request",
+        401 => "Unauthorized",
+        403 => "Forbidden",
+        404 => "Not Found",
+        405 => "Method Not Allowed",
+        415 => "Unsupported Media Type",
+        416 => "Range Not Satisfiable",
+        _ => "Error",
+    };
+    let csp = r.csp.as_ref().map(|c| format!("Content-Security-Policy: {c}\r\n")).unwrap_or_default() + &r.headers.iter().map(|(k, v)| format!("{k}: {v}\r\n")).collect::<String>();
+    let len = r.file.as_ref().map_or(r.body.len() as u64, |f| f.2);
+    let head = format!("HTTP/1.1 {} {reason}\r\nContent-Type: {}\r\nContent-Length: {len}\r\nCache-Control: no-store\r\n{csp}Connection: close\r\n\r\n", r.status, r.content_type);
+    let _ = stream.write_all(head.as_bytes());
+    match &r.file {
+        // 64 KiB at a time from the offset: the file is never read whole.
+        Some((path, offset, len)) => {
+            use std::io::Seek;
+            if let Ok(mut f) = std::fs::File::open(path)
+                && f.seek(std::io::SeekFrom::Start(*offset)).is_ok()
+            {
+                let _ = std::io::copy(&mut std::io::BufReader::with_capacity(64 * 1024, f.take(*len)), stream);
+            }
+        }
+        None => {
+            let _ = stream.write_all(&r.body);
+        }
+    }
+    let _ = stream.flush();
+}
+
+/// Serves `handler` on a listener, one thread per connection.
+pub fn serve(listener: TcpListener, handler: Arc<dyn Fn(Request) -> Response + Send + Sync>) {
+    for stream in listener.incoming().flatten() {
+        let handler = handler.clone();
+        std::thread::spawn(move || {
+            let mut stream = stream;
+            if let Some(req) = read_request(&mut stream) {
+                let resp = handler(req);
+                write_response(&mut stream, &resp);
+            }
+        });
+    }
+}
+
+/// Starts a static server for in-memory files on a free port; returns the port.
+pub fn serve_static(files: Vec<(&'static str, &'static str, &'static str)>) -> std::io::Result<u16> {
+    let listener = TcpListener::bind("127.0.0.1:0")?;
+    let port = listener.local_addr()?.port();
+    let handler: Arc<dyn Fn(Request) -> Response + Send + Sync> = Arc::new(move |req: Request| {
+        let path = req.path.split('?').next().unwrap_or("/");
+        match files.iter().find(|f| f.0 == path) {
+            Some(f) => Response::new(200, f.1, f.2.as_bytes().to_vec()),
+            None => Response::text(404, "not found"),
+        }
+    });
+    std::thread::spawn(move || serve(listener, handler));
+    Ok(port)
+}
+
+/// Serves the files under `root` on a free loopback port, one server per folder for the process (a
+/// local page loaded where no file of this computer is: a phone); returns the port. Paths are taken
+/// percent-decoded; any `..` or a path outside `root` is a 404.
+pub fn serve_folder(root: &std::path::Path) -> std::io::Result<u16> {
+    static SERVED: std::sync::Mutex<Vec<(std::path::PathBuf, u16)>> = std::sync::Mutex::new(Vec::new());
+    let root = std::fs::canonicalize(root)?;
+    let mut served = SERVED.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some((_, port)) = served.iter().find(|(r, _)| *r == root) {
+        return Ok(*port);
+    }
+    let listener = TcpListener::bind("127.0.0.1:0")?;
+    let port = listener.local_addr()?.port();
+    let base = root.clone();
+    let handler: Arc<dyn Fn(Request) -> Response + Send + Sync> = Arc::new(move |req: Request| {
+        let raw = req.path.split(['?', '#']).next().unwrap_or("/");
+        let mut bytes = Vec::new();
+        let mut it = raw.bytes();
+        while let Some(b) = it.next() {
+            let hex = |c: Option<u8>| c.and_then(|c| (c as char).to_digit(16));
+            match b {
+                b'%' => match (hex(it.next()), hex(it.next())) {
+                    (Some(h), Some(l)) => bytes.push((h * 16 + l) as u8),
+                    _ => return Response::text(400, "bad path"),
+                },
+                _ => bytes.push(b),
+            }
+        }
+        let rel = String::from_utf8_lossy(&bytes).trim_start_matches('/').to_string();
+        if rel.split(['/', '\\']).any(|p| p == "..") {
+            return Response::text(404, "not found");
+        }
+        let mut path = base.join(&rel);
+        if path.is_dir() {
+            path = path.join("index.html");
+        }
+        if !path.canonicalize().is_ok_and(|p| p.starts_with(&base)) {
+            return Response::text(404, "not found");
+        }
+        let kind = match path.extension().and_then(|e| e.to_str()).map(str::to_ascii_lowercase).as_deref() {
+            Some("html" | "htm") => "text/html; charset=utf-8",
+            Some("xhtml") => "application/xhtml+xml",
+            Some("js" | "mjs") => "text/javascript; charset=utf-8",
+            Some("css") => "text/css; charset=utf-8",
+            Some("json" | "map") => "application/json",
+            Some("svg") => "image/svg+xml",
+            Some("png") => "image/png",
+            Some("jpg" | "jpeg") => "image/jpeg",
+            Some("gif") => "image/gif",
+            Some("webp") => "image/webp",
+            Some("woff2") => "font/woff2",
+            Some("woff") => "font/woff",
+            Some("wasm") => "application/wasm",
+            Some("txt") => "text/plain; charset=utf-8",
+            _ => "application/octet-stream",
+        };
+        match std::fs::metadata(&path) {
+            Ok(m) if m.is_file() => Response { file: Some((path, 0, m.len())), ..Response::new(200, kind, Vec::new()) },
+            _ => Response::text(404, "not found"),
+        }
+    });
+    std::thread::spawn(move || serve(listener, handler));
+    served.push((root, port));
+    Ok(port)
+}
+
+/// Compares in constant time.
+pub fn same(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+}

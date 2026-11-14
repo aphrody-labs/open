@@ -1,0 +1,1646 @@
+// Content-script side of the inline menu: opens the account menu under a
+// focused login field and applies fills sent by the background. Ported from
+// Foyer (github.com/R44VC0RP/foyer, src/autofill/inline.ts, by Ryan Vogel),
+// without SSO buttons, auto-submit and the fill shortcut.
+//
+// The menu is an extension page in an iframe inside a closed shadow root. The
+// page can't read the account list (cross-origin frame) and can't click it for
+// the user (synthetic events don't cross into the frame). It can see that a
+// menu appeared, which says only that the site has logins or Deadbolt is
+// locked, the values written into its own fields after the user picks an
+// account, and that a save offer appeared (see the threat model in
+// docs/autofill.md).
+//
+// The host element has a fresh random custom-element name each time, so page
+// CSS can't aim at it, and inline `!important` styles, which beat any page
+// rule. A page that defines that name afterwards upgrades the element but
+// can't reach a shadow root attached before. The host is a manual popover,
+// shown in the top layer above everything the page has, and inside the
+// field's modal dialog or full-screen element when there is one.
+// Whatever the page puts in the top layer after it (a popover, a modal
+// dialog, full screen) is answered by raising the surface back on top, a few
+// times; a page that keeps at it gets the surface closed.
+//
+// The same frame is Deadbolt's one surface in the page, in three modes it
+// morphs between: the account list under a field, a pill on the field while
+// it fills, and, after a confirmed sign-in, the save offer in the top right
+// corner (see bg/save.ts): a small pill that opens on approach and shrinks to
+// a dot when it's not wanted. This script owns the frame's place and size: the frame
+// says what size its mode needs (db:menu-resize) and the host springs there,
+// so no transparent area is left over the page to swallow its clicks.
+
+import { GENERATE_KINDS, IDENTIFIER_ROLES, MENU_ROLES, type Box, type FillAck, type FormsAck, type QueryReply, type SurfaceKind, type SurfaceMode, type ToBackground, type ToContent } from "../messages"
+import { epochNow, gridBox, inFrame, MENU_MOTION, reducedMotion, Spring, timing } from "../ui/motion"
+import { approvals } from "./approvals"
+import { asksNewPassword, findAccountTile, findProviderButton, ownerOf, type Field, type FieldOwner, type FormControl } from "./detect"
+import { approvedForms, approveForms, fillCheck, fillForm, onScreen, takeApproved, type FormsState } from "./formfill"
+import { sectionFields, type FormField } from "./forms"
+import { hideRing, showRing } from "./ring"
+import { readPageIcon } from "./site-icon"
+import { isAccountPage, pageAccountOf, provider } from "../signin"
+import { fillable, fillFields, ownValue, successor, visibleBox } from "./fill"
+import { fieldRules, fitsPattern, keptGenerated, rememberGenerated } from "./generate"
+import { learning } from "./learn"
+import { deepActiveElement, eventTarget, markOwnHost } from "./shadow"
+import { signInEnabled } from "../auth-state"
+
+export interface PageState {
+  targets(): Field[]
+  /** Which form snapshot `targets` is; it changes whenever the fields do. */
+  form(): number
+  kind(): SurfaceKind | null
+  /** Scan again now, so `targets` and `form` are current. */
+  rescan(): void
+  /** Identity and payment fields (see forms.ts), and which snapshot they are. */
+  formFields(): FormField[]
+  formsForm(): number
+}
+
+/** A row's height: the app's list rows (menu.css .row). */
+export const MENU_ROW = 46
+/** The list's 6px padding, top and bottom. */
+const MENU_CHROME = 12
+/** The caption over an identity or card list: where a pick goes. Login lists have none. */
+const MENU_CAPTION = 22
+/** The narrowest the menu gets under a narrow field: an avatar, a title and username. */
+const MENU_MIN_WIDTH = 240
+/** The menu's gap to each side of the viewport. */
+const MENU_MARGIN = 4
+/** The save offer's place: the top right corner, near the toolbar button. */
+const SAVE_INSET = 12
+/** The offer's compact pill, before its frame says its size. */
+const SAVE_GUESS = { width: 220, height: 36 }
+const RADIUS = 12
+const light = () => !matchMedia("(prefers-color-scheme: dark)").matches
+/** Rune's floating elevation (theme.json v2-elevation-floating), as the app's quick panel: a hairline and two soft layers. */
+const SHADOW = () =>
+  light()
+    ? "0 0 0 0.5px #0000001f, 0 4px 8px #00000014, 0 8px 16px #0000000a"
+    : "0 0 0 0.5px #ffffff29, 0 -0.5px 0 #ffffff0f, 0 4px 8px #0000004d, 0 8px 16px #0000004d"
+/** How many times one menu goes back on top of the top layer before it gives up and closes. */
+export const MAX_RAISES = 3
+/** Where the menu checks that a click there would land on it, as fractions of its box. */
+const SAMPLES = [
+  [0.5, 0.5],
+  [0.08, 0.12],
+  [0.92, 0.12],
+  [0.08, 0.88],
+  [0.92, 0.88],
+]
+
+let state: PageState
+let host: HTMLElement | null = null
+let frame: HTMLIFrameElement | null = null
+let anchor: FormControl | null = null
+/** Where the anchor was when the surface opened on it: a pill follows a box the page re-rendered in its place (see successor). */
+let anchorOwner: FieldOwner | null = null
+let unlockAnchor: FormControl | null = null
+/**
+ * For a field in a frame below: where it showed in this page when the menu
+ * opened, the page's scroll then, and the frame element it shows in (if
+ * this page has it) and where that was. The menu follows the frame element
+ * as the page moves it (scrolling, or a reflow), else the page's scrolling.
+ */
+let anchorBox: { box: Box; x: number; y: number; frame: { el: Element; left: number; top: number } | null } | null = null
+let token: string | null = null
+/** Handed to the menu with its token; only this script can say "the user pressed ↓" over it. */
+let port: MessagePort | null = null
+let raf = 0
+let menuHeight = 0
+let raises = 0
+/** Set while Deadbolt itself hides and shows the host. */
+let raising = false
+/** The surface is out of the top layer for a moment, while frames below are measured (see hold). */
+let held = false
+/** Which mode the surface is in, and the size the frame asked for in it. */
+let mode: SurfaceMode = "accounts"
+let wanted = { width: 0, height: 0 }
+/** The host's place is its mode's target plus these, which spring to 0 when the mode or size changes. */
+const offset = { left: new Spring(0, undefined, epochNow), top: new Spring(0, undefined, epochNow), width: new Spring(0, undefined, epochNow), height: new Spring(0, undefined, epochNow) }
+let lastTarget: Rect | null = null
+/** Where this script last put the host: what it must still be for the host to be taken as Deadbolt's own (see ownPill). */
+let written: Rect | null = null
+let closing = false
+/** The save offer's fallbacks: it goes if its frame never loads, and in any case after a while. */
+let saveTimers: ReturnType<typeof setTimeout>[] = []
+const SAVE_LOAD_MS = 3000
+const SAVE_CAP_MS = 60_000
+/** The largest a pill can be. */
+const PILL_MAX = { width: 260, height: 32 }
+let dismissedFor: Element | null = null
+/** In a frame: the field the background last opened the menu for in the top page, which can't see the frame's events (see db:menu-away). */
+let framedFor: Element | null = null
+/** Where that field was in this frame's viewport, and how big: the menu follows it when that changes (see onFrameScroll). */
+let framedAt: Rect | null = null
+/** A new box for that field is on its way to the top page (see onFrameScroll). */
+let framedMoving = false
+/** Which menu for a field here that is: a move's answer for an earlier one says nothing of the one open now. */
+let framedSeq = 0
+
+/** In a frame: the menu the background opened in the top page for one of its fields goes (or went), with `tell`, by the user's doing here. */
+function framedGone(tell: boolean, dismissed = false) {
+  if (!framedFor) return
+  framedFor = framedAt = null
+  if (tell) void send({ type: "db:menu-away", ...(dismissed ? { dismissed } : {}) })
+}
+
+/**
+ * In a frame: a scroll, or the frame's own layout changing (it was resized,
+ * a hint came in above the field, the box around it opened), that moved the
+ * field the menu is for in this frame, or changed its size. The top page
+ * can't see that, so the frame says where the field shows now, one move at
+ * a time; the background checks it through every frame above, and the menu
+ * follows it there or goes (see Autofill.menuMove).
+ */
+function onFrameScroll() {
+  if (!framedFor || !framedAt || framedMoving) return
+  const el = framedFor
+  const r = el.getBoundingClientRect()
+  const at = { left: r.left, top: r.top, width: r.width, height: r.height }
+  if ((["left", "top", "width", "height"] as const).every((k) => Math.abs(at[k] - framedAt![k]) <= 2)) return
+  const box = visibleBox(el)
+  if (!box) return framedGone(true)
+  framedMoving = true
+  const seq = framedSeq
+  void send<boolean>({ type: "db:menu-move", box }).then((moved) => {
+    if (seq !== framedSeq) return
+    framedMoving = false
+    if (framedFor !== el) return
+    if (moved === true) framedAt = at
+    // The background closed it already.
+    else framedGone(false)
+  })
+}
+
+let framedRaf = 0
+/** In a frame: checks every frame, for as long as the top page's menu is for a field here, that the field hasn't moved (see onFrameScroll). */
+function watchFramed() {
+  cancelAnimationFrame(framedRaf)
+  const tick = () => {
+    onFrameScroll()
+    if (framedFor) framedRaf = requestAnimationFrame(tick)
+  }
+  framedRaf = requestAnimationFrame(tick)
+}
+/**
+ * Fields whose typing narrowed the menu to nothing (or that the user typed a
+ * password into by hand, or pressed Enter in): the menu doesn't come back on
+ * focus until the field is cleared, clicked again, or ↓.
+ */
+const quiet = new WeakSet<Element>()
+/**
+ * Forms the user is filling by hand: the identifier they typed matched no
+ * saved login. Their other fields don't open the menu on focus or click
+ * either, only on ↓ or a second click.
+ */
+const byHand = new WeakSet<Node>()
+const formOf = (el: FormControl): Node => el.form ?? el.closest("form") ?? el.getRootNode()
+/** Whether the pointer is near the save offer, as last told to its frame (it pauses the offer's bar). */
+let near = false
+
+/** The origin the menu frame said it's on, and where its frame last was on screen. */
+let menuOrigin = ""
+let lastRect: Rect | null = null
+let lastGeometry = ""
+let scaleVisible = false
+let scaleObserver: ResizeObserver | null = null
+let placementObserver: MutationObserver | null = null
+let placementVersion = 0
+let placementChangedAt = -Infinity
+let placementAncestors: Node[] = []
+/** Paint-time evidence (see watchPaint): the host was last drawn where it was written. */
+let paintObserver: IntersectionObserver | null = null
+/** The host and the written rect the paint observer was made for. */
+let paintFor: { box: HTMLElement; at: Rect } | null = null
+let paintKey = ""
+let paintSeen = true
+/** Whether the scale observer has given a verdict yet: a later return to "visible" is a move back. */
+let scaleKnown = false
+/** The last host toggle handled: its own listener and the window's both hear it. */
+let lastToggle: Event | null = null
+/** Where a frame's field is in this page now (see anchorBox). */
+function boxNow(): DOMRect | null {
+  if (!anchorBox) return null
+  const { box, x, y, frame } = anchorBox
+  let dx = x - scrollX
+  let dy = y - scrollY
+  if (frame) {
+    // The frame is gone: so is the field.
+    if (!frame.el.isConnected) return null
+    const f = frame.el.getBoundingClientRect()
+    dx = f.left - frame.left
+    dy = f.top - frame.top
+  }
+  return new DOMRect(box.left + dx, box.top + dy, box.right - box.left, box.bottom - box.top)
+}
+
+/**
+ * The frame element of this page a frame's field at `box` shows in: the
+ * smallest one around it. Not one in a shadow root; then the menu follows
+ * the page's scrolling only.
+ */
+function frameAround(box: Box): { el: Element; left: number; top: number } | null {
+  let best: { el: Element; left: number; top: number } | null = null
+  let area = Infinity
+  for (const el of Array.from(document.querySelectorAll("iframe, frame"))) {
+    const r = el.getBoundingClientRect()
+    if (r.left > box.left + 1 || r.top > box.top + 1 || r.right < box.right - 1 || r.bottom < box.bottom - 1 || r.width * r.height >= area) continue
+    area = r.width * r.height
+    best = { el, left: r.left, top: r.top }
+  }
+  return best
+}
+
+/**
+ * How much the browser resized the viewport since the frame was last placed
+ * (an infobar such as "started debugging this browser" came or went, or the
+ * window was resized). A page can't send a trusted resize event, nor resize a
+ * tab's viewport (only a popup's, with resizeTo).
+ */
+let resized: { dw: number; dh: number } | null = null
+let viewport = { w: innerWidth, h: innerHeight }
+/** The fields the last fill in this document wrote, and whether the user submitted since. */
+let lastFilled: HTMLInputElement[] = []
+let submittedSinceFill = false
+/**
+ * The menu only opens right after a real click or keypress. A page can focus a
+ * field from script (focus() fires a trusted focusin) and slide it under the
+ * user's next click; it can't fake the user's own input event.
+ */
+let lastGestureAt = 0
+/** What the user's last pointerdown landed on: a click into a field asks for the menu outright. */
+let lastPointer: EventTarget | null = null
+const GESTURE_WINDOW_MS = 1000
+const recentGesture = () => Date.now() - lastGestureAt < GESTURE_WINDOW_MS
+/**
+ * The menu opens only in the top page. A frame's position, size and style are
+ * up to the page around it, which a menu inside can't watch. A field in a
+ * frame only says where it shows; the background opens the menu in the top
+ * page under it, for a login field only when every frame up to the top page
+ * is the same site (see Autofill.query and Forms.query).
+ */
+const isTop = window === window.top
+
+export function send<T>(message: ToBackground): Promise<T | null> {
+  try {
+    return chrome.runtime.sendMessage(message).catch(() => null) as Promise<T | null>
+  } catch {
+    // The extension was reloaded; this page's script is orphaned.
+    return Promise.resolve(null)
+  }
+}
+
+function targetFor(el: Element): Field | undefined {
+  return state.targets().find((t) => t.el === el)
+}
+
+/** A random valid custom-element name, such as `kqzvt-hmwbe`. */
+function hostTag(): string {
+  const letters = () => Array.from(crypto.getRandomValues(new Uint8Array(5)), (b) => String.fromCharCode(97 + (b % 26))).join("")
+  return `${letters()}-${letters()}`
+}
+
+/** Inline declarations a page's stylesheets can't override. */
+const important = (css: Record<string, string>) =>
+  Object.entries(css)
+    .map(([k, v]) => `${k}:${v} !important`)
+    .join(";")
+
+/** `node` is `ancestor` or inside it, across shadow roots. */
+function within(node: Node | null, ancestor: Node): boolean {
+  for (let n = node; n; n = n.parentNode ?? (n instanceof ShadowRoot ? n.host : null)) if (n === ancestor) return true
+  return false
+}
+
+/**
+ * Where the menu mounts when the field is in a modal dialog or the
+ * full-screen element: inside the innermost one, as outside a modal dialog
+ * it's inert and outside the full-screen element it isn't drawn. When that
+ * element is a shadow host and the field is in its shadow tree, the menu
+ * goes in that shadow root: a host's own children aren't drawn unless a slot
+ * takes them.
+ */
+function modalAround(el: Element): Element | ShadowRoot | null {
+  let from: Node | null = null
+  for (let n: Node | null = el; n; from = n, n = n.parentNode ?? (n instanceof ShadowRoot ? n.host : null))
+    if (n instanceof Element && n.matches(":modal, :fullscreen")) return from instanceof ShadowRoot ? from : n
+  return null
+}
+
+/** The menu said it moved: it waits its half second again before it takes a pick (see Dwell). */
+function tellMoved() {
+  if (frame && menuOrigin) frame.contentWindow?.postMessage({ type: "db:menu-moved" }, menuOrigin)
+}
+
+/** Puts the host at the top of the top layer. */
+function show(el: HTMLElement) {
+  raising = true
+  try {
+    if (el.matches(":popover-open")) el.hidePopover()
+    el.showPopover()
+  } catch {
+    // Not connected, or the page broke the popover: position() will find it.
+  } finally {
+    raising = false
+  }
+}
+
+/**
+ * Something went into the top layer after the menu, or covers it: raise the
+ * menu over it again, and the menu waits again before it takes a pick. Past
+ * MAX_RAISES the page is fighting for the top, and the menu closes.
+ */
+function raise() {
+  if (!host) return
+  if (++raises > MAX_RAISES) return closeMenu()
+  show(host)
+  if (!host.matches(":popover-open")) return closeMenu()
+  tellMoved()
+}
+
+/**
+ * Whether something other than the menu would take a click on it. Only
+ * things in the top layer can be over it; ones that let clicks through don't
+ * show here, but the menu's own visibility readings see them.
+ */
+function covered(el: HTMLElement): boolean {
+  const root = el.getRootNode() as Document | ShadowRoot
+  const r = el.getBoundingClientRect()
+  return SAMPLES.some(([fx, fy]) => {
+    const hit = root.elementFromPoint?.(r.left + r.width * fx, r.top + r.height * fy)
+    return !!hit && hit !== el
+  })
+}
+
+interface Rect {
+  left: number
+  top: number
+  width: number
+  height: number
+}
+
+/** Where the surface goes in its mode, in the viewport. */
+function targetRect(): Rect | null {
+  if (mode === "save" || mode === "signin") return corner(wanted.width || SAVE_GUESS.width, wanted.height || SAVE_GUESS.height)
+  // The saved pill stays in the same corner. A pill for a frame's field sits
+  // on where the field shows (anchorBox), out of sight while the frame's
+  // fields are checked (see hold).
+  if (mode === "pill" && !anchor && !anchorBox) return corner(Math.min(wanted.width || 180, 320), 32)
+  const r = anchor ? anchor.getBoundingClientRect() : boxNow()
+  if (!r) return null
+  if (mode === "pill") {
+    // On the field, at its end: beside the text the user sees being filled, not over the next field.
+    const height = 32
+    const width = Math.min(wanted.width || 140, 260)
+    const inside = r.width >= width + 48
+    const left = inside ? r.right - width - (r.height - height) / 2 : Math.min(r.right + 6, innerWidth - width - 4)
+    return { left, top: r.top + (r.height - height) / 2, width, height }
+  }
+  // As wide as the field (or the frame's box), left-aligned with it, within the viewport.
+  const width = Math.min(Math.max(r.width, MENU_MIN_WIDTH), innerWidth - 2 * MENU_MARGIN)
+  const below = r.bottom + 6
+  const fitsBelow = below + menuHeight < innerHeight
+  const top = fitsBelow ? below : Math.max(4, r.top - menuHeight - 6)
+  const left = Math.min(Math.max(MENU_MARGIN, r.left), innerWidth - width - MENU_MARGIN)
+  return { left, top, width, height: menuHeight }
+}
+
+/**
+ * The save offer's place: the top right corner, 12 px in, whatever its size.
+ * It grows from there, down and to the left, as it opens.
+ */
+function corner(width: number, height: number): Rect {
+  return { left: Math.max(4, innerWidth - width - SAVE_INSET), top: SAVE_INSET, width, height }
+}
+
+/**
+ * The mode or the asked-for size changed: from where the host is now, spring
+ * to the new place (`duration` seconds). Following the field as the page
+ * scrolls isn't animated: the target moves and the host with it, 1:1.
+ */
+function retarget(duration: number) {
+  const from = lastTarget
+  const to = targetRect()
+  if (!from || !to) return
+  for (const k of ["left", "top", "width", "height"] as const) offset[k].shift(from[k] - to[k], duration)
+  lastTarget = to
+}
+
+/** Never let a restoring write erase evidence of a late page restyle. */
+function placementChanged() {
+  placementVersion++
+  placementChangedAt = performance.now()
+  tellMoved()
+  tellGeometry()
+}
+
+function placed(): boolean {
+  if (!host || !written) return false
+  const r = host.getBoundingClientRect()
+  return (["left", "top", "width", "height"] as const).every((k) => Math.abs(r[k] - written![k]) <= 2)
+}
+
+function placementChanges(records: MutationRecord[]) {
+  if (!host || !records.length) return
+  const changed = records.some((r) => r.target === host || [...r.addedNodes, ...r.removedNodes].some((n) => within(host, n)))
+  // Ancestor transforms don't move a top-layer box, but inherited zoom can.
+  // Read it in the mutation microtask, before a later task can restore it;
+  // unrelated theme/scroll-lock classes mustn't keep a dialog menu unsettled.
+  const zoom = (host as HTMLElement & { currentCSSZoom?: number }).currentCSSZoom
+  if (changed || (!held && (!placed() || typeof zoom !== "number" || Math.abs(zoom - 1) >= 0.001))) placementChanged()
+}
+
+/** Watch only the rendered ancestry, not unrelated style churn in the page. */
+function watchPlacement() {
+  if (!host || !placementObserver) return
+  const ancestors: Node[] = []
+  for (let n: Node | null = host; n; n = n.parentNode ?? (n instanceof ShadowRoot ? n.host : null)) ancestors.push(n)
+  if (ancestors.length === placementAncestors.length && ancestors.every((n, i) => n === placementAncestors[i])) return
+  placementChanges(placementObserver.takeRecords())
+  placementObserver.disconnect()
+  placementAncestors = ancestors
+  for (const n of ancestors) placementObserver.observe(n, { attributes: true, attributeFilter: ["style", "class"], childList: true })
+}
+
+function placementSafe(): boolean {
+  return performance.now() - placementChangedAt >= 500
+}
+
+/**
+ * Where the host was painted, from the browser's own intersection pass, which
+ * runs after every script in the frame. The observer's root is the written
+ * rect ± 2 px, so the host leaving it or coming back triggers an entry; each
+ * entry is then judged by the host's own rect in it against the written
+ * rect. Whatever draws the host elsewhere (a late restyle, an ancestor's
+ * transform, a way not listed here) fails that, and a pick waits until it's
+ * back and has sat still again. Remade whenever the written rect or the
+ * viewport changes, so following a scrolled or reflowed field isn't taken
+ * for a displacement; a viewport the page changed after our frame (a
+ * scrollbar) only moves the trigger, not the judgement.
+ */
+function watchPaint() {
+  if (!host || !written || held || closing) {
+    stopPaint()
+    return
+  }
+  const view = document.scrollingElement ?? document.documentElement
+  const vw = view.clientWidth
+  const vh = view.clientHeight
+  const w = written
+  const key = [w.left, w.top, w.width, w.height, vw, vh].map((n) => Math.round(n * 4)).join()
+  if (key === paintKey) return
+  stopPaint()
+  paintKey = key
+  const box = host
+  const root = { left: w.left - 2, top: w.top - 2, right: w.left + w.width + 2, bottom: w.top + w.height + 2 }
+  const margin = [root.top, vw - root.right, vh - root.bottom, root.left].map((n) => `${-n}px`).join(" ")
+  const observer = new IntersectionObserver((entries) => observer === paintObserver && judgePaint(entries), { root: document, rootMargin: margin, threshold: 1 })
+  paintObserver = observer
+  paintFor = { box, at: { ...w } }
+  observer.observe(box)
+}
+
+/** Judges what the old observer still holds, then drops it. */
+function stopPaint() {
+  if (paintObserver) judgePaint(paintObserver.takeRecords())
+  paintObserver?.disconnect()
+  paintObserver = null
+  paintFor = null
+  paintKey = ""
+}
+
+/**
+ * Every entry is evidence, not just the last: a page can hold its
+ * notifications back until a later frame has put the host back, so one
+ * delivery may carry a displaced paint and then a good one. Any entry drawn
+ * elsewhere restarts the wait; the last one says whether it's in place now.
+ */
+function judgePaint(entries: IntersectionObserverEntry[]) {
+  if (!entries.length || !paintFor || host !== paintFor.box || held || closing) return
+  const at = paintFor.at
+  const near = (a: number, b: number) => Math.abs(a - b) <= 2
+  const verdicts = entries.map(({ boundingClientRect: r }) => near(r.left, at.left) && near(r.top, at.top) && near(r.width, at.width) && near(r.height, at.height))
+  const seen = verdicts[verdicts.length - 1]
+  const moved = verdicts.includes(false) || seen !== paintSeen
+  paintSeen = seen
+  // Drawn elsewhere, or back in place: either way it moved, and waits again.
+  if (moved) placementChanged()
+}
+
+/**
+ * The host hidden by the page, or by the browser for a modal dialog or full
+ * screen: that counts as a raise like any other, and a move. Heard on the
+ * host and, from document_start, on the window in the capture phase, before
+ * any listener a page can add there, so the page can't stop it reaching here.
+ */
+function onHostToggle(e: Event) {
+  const box = host
+  if (!box || e.target !== box || !e.isTrusted || e === lastToggle || raising || held || (e as ToggleEvent).newState !== "closed") return
+  lastToggle = e
+  // `toggle` comes a task later: if a raise already put it back, nothing to do.
+  if (e.type === "toggle" && box.matches(":popover-open")) return
+  queueMicrotask(() => {
+    if (host !== box) return
+    raise()
+    if (host === box) placementChanged()
+  })
+}
+
+function position() {
+  if (!host) return
+  // A pill's field re-rendered by the page as it filled: the pill moves to the box now in its place.
+  if (anchor instanceof HTMLInputElement && !anchor.isConnected && mode === "pill" && anchorOwner) anchor = successor({ el: anchor, owner: anchorOwner }) ?? anchor
+  if ((anchor && !anchor.isConnected) || !host.isConnected || (!held && !host.matches(":popover-open"))) return closeMenu()
+  placementChanges(placementObserver?.takeRecords() ?? [])
+  watchPlacement()
+  if (written && !held && !placed()) placementChanged()
+  const to = targetRect()
+  if (!to) return closeMenu()
+  lastTarget = to
+  const at = gridBox(to, offset)
+  written = at
+  host.style.cssText = important({
+    all: "initial",
+    // Undoes a CSS zoom the page put on an element the host is in (<html>,
+    // or the field's dialog): zoom multiplies down the tree, top layer or
+    // not, so the place and size written here, which are in the viewport's
+    // pixels, would be scaled and land elsewhere, and the list with them.
+    zoom: String(unzoom(host)),
+    position: "fixed",
+    inset: "auto",
+    top: `${at.top}px`,
+    left: `${at.left}px`,
+    width: `${at.width}px`,
+    height: `${at.height}px`,
+    margin: "0",
+    // Held, it isn't drawn at all: it may sit on a frame's field being checked (see hold).
+    display: held ? "none" : "block",
+    "z-index": "2147483647",
+    ...(closing ? { "pointer-events": "none" } : {}),
+  })
+  // Only this synchronous style assignment is ours. Do not discard additional
+  // records: a page may upgrade the random host to a custom element and run
+  // an attributeChangedCallback synchronously inside the assignment.
+  const own = placementObserver?.takeRecords() ?? []
+  if (own.length !== 1 || own[0].target !== host || own[0].attributeName !== "style") placementChanges(own)
+  watchPaint()
+  // Publish recovery once, not every sub-pixel step of a size spring. The
+  // resize observer publishes actual size changes as before.
+  if (placementChangedAt !== -Infinity && placementSafe()) {
+    placementChangedAt = -Infinity
+    tellGeometry()
+  }
+  // The menu only takes a pick once it has sat still for a moment (see
+  // Dwell). From inside its frame it can't tell it was moved, so say so: the
+  // page can restyle the host, and the field it follows can move.
+  if (frame) {
+    // This layout read also syncs the child viewport. Its scale observers
+    // rely on seeing restored layout as well as a page's later scaled paint.
+    const f = frame.getBoundingClientRect()
+    const now = { left: f.left, top: f.top, width: f.width, height: f.height }
+    const moved = !lastRect || (["left", "top", "width", "height"] as const).some((k) => Math.abs(now[k] - lastRect![k]) > 1)
+    if (moved) {
+      if (lastRect && !followedResize(lastRect, now)) tellMoved()
+      lastRect = now
+    }
+    resized = null
+  }
+  // While it fades out it lets clicks through (and anything under it would
+  // read as a cover): only a surface still in use goes back on top.
+  if (!closing && !held && covered(host)) raise()
+  if (host) raf = requestAnimationFrame((time) => inFrame(time, position))
+}
+
+/** The intended size, not a rect the page may have restyled; only the menu gets it. */
+function tellGeometry() {
+  if (!port || !written) return
+  // Keep fractional width: rounding it before multiplying by DPR would
+  // inflate the physical-pixel tolerance on high-density displays.
+  const geometry = { width: written.width, height: Math.round(written.height), dpr: devicePixelRatio, visible: scaleVisible && placementSafe() && paintSeen, version: placementVersion }
+  const key = JSON.stringify(geometry)
+  if (key === lastGeometry) return
+  lastGeometry = key
+  port.postMessage({ type: "db:menu-geometry", geometry })
+}
+
+/**
+ * The zoom that undoes the CSS zoom in effect where `el` is mounted (the
+ * product of the page's zooms above it, read each frame), or 1 when that
+ * can't be read or its inverse isn't a finite number.
+ */
+function unzoom(el: Element): number {
+  const parent = el.parentNode instanceof ShadowRoot ? el.parentNode.host : el.parentElement
+  const zoom = (parent as (Element & { currentCSSZoom?: number }) | null)?.currentCSSZoom
+  if (typeof zoom !== "number" || !(zoom > 0)) return 1
+  const inverse = 1 / zoom
+  return Number.isFinite(inverse) && inverse > 0 ? inverse : 1
+}
+
+/**
+ * Whether the frame's move from `from` to `to` is only the page reflowing for
+ * a viewport resize the browser made: the same size, shifted no further than
+ * the viewport changed, in a normal tabbed window (whose size the page can't
+ * set). A centred login form moves by half an infobar when one comes or goes;
+ * that isn't the page moving the menu, so the dwell isn't restarted for it.
+ */
+function followedResize(from: Rect, to: Rect): boolean {
+  if (!resized || !window.toolbar.visible) return false
+  return Math.abs(to.width - from.width) <= 1 && Math.abs(to.height - from.height) <= 1 && Math.abs(to.left - from.left) <= Math.abs(resized.dw) + 1 && Math.abs(to.top - from.top) <= Math.abs(resized.dh) + 1
+}
+
+function onResize(event: Event) {
+  if (!event.isTrusted) return
+  const now = { w: innerWidth, h: innerHeight }
+  resized = { dw: (resized?.dw ?? 0) + now.w - viewport.w, dh: (resized?.dh ?? 0) + now.h - viewport.h }
+  viewport = now
+}
+
+function frameStyle(radius: number) {
+  return `all:initial;position:relative;width:100%;height:100%;border:0;border-radius:${radius}px;box-shadow:${SHADOW()};background:transparent;color-scheme:normal;`
+}
+
+/**
+ * Opens the surface: under `el` with the account list, or with no field, the
+ * save offer. `captioned` for an identity or card list, which says where a pick goes.
+ */
+function openMenu(el: FormControl | null, t: string, rows: number, as: SurfaceMode = "accounts", at?: Box, captioned = false) {
+  closeMenu()
+  anchor = el
+  anchorOwner = el instanceof HTMLInputElement ? ownerOf(el) : null
+  anchorBox = at ? { box: at, x: scrollX, y: scrollY, frame: frameAround(at) } : null
+  token = t
+  mode = as
+  closing = false
+  typedSinceOpen = false
+  wanted = { width: 0, height: 0 }
+  for (const s of Object.values(offset)) s.jump(0)
+  lastTarget = null
+  const shown = Math.min(Math.max(rows, 1), 5)
+  menuHeight = shown * MENU_ROW + MENU_CHROME + (captioned ? MENU_CAPTION : 0)
+  raises = 0
+  const box = (host = document.createElement(hostTag()))
+  box.setAttribute("popover", "manual")
+  // Hidden by the page, or by the browser for a modal dialog or full screen:
+  // that counts as a raise like any other.
+  box.addEventListener("beforetoggle", onHostToggle)
+  markOwnHost(box)
+  const root = box.attachShadow({ mode: "closed" })
+  // A closed popover isn't drawn, whatever its inline display says:
+  // important declarations from a shadow tree beat the light tree's, inline
+  // ones included. Out of the top layer the host would be an ordinary fixed
+  // box, which an ancestor's transform can move (see watchPaint).
+  const sheet = new CSSStyleSheet()
+  sheet.replaceSync(":host(:not(:popover-open)) { display: none !important }")
+  root.adoptedStyleSheets = [sheet]
+  frame = document.createElement("iframe")
+  // No token in the URL: the menu asks for it (see onMenuReady).
+  frame.src = chrome.runtime.getURL("menu.html")
+  frame.setAttribute("allow", "")
+  // A screen reader names the frame by this; it's all the page side says (nothing of the vault).
+  frame.title = "Deadbolt"
+  frame.style.cssText = frameStyle(RADIUS)
+  root.append(frame)
+  ;((el && modalAround(el)) ?? document.documentElement).append(box)
+  show(box)
+  placementObserver = new MutationObserver(placementChanges)
+  watchPlacement()
+  position()
+  // ResizeObserver runs after all rAF callbacks, including a page's later
+  // restyle. Observe physical pixels so zoom alone triggers it. Keep this
+  // verdict until another rendered size arrives: a task can restore layout
+  // before a press without undoing the scaled paint the user saw. A deeper
+  // page ResizeObserver can run later still: the menu's own observers cover
+  // that deferred-host-observation case (see readScale in menu.ts).
+  scaleObserver = new ResizeObserver(() => {
+    if (host !== box || !written) return
+    const r = box.getBoundingClientRect()
+    const zoom = (box as HTMLElement & { currentCSSZoom?: number }).currentCSSZoom
+    const matches = (a: number, b: number) => Math.abs(a - b) <= 2
+    const was = scaleVisible
+    scaleVisible =
+      typeof zoom === "number" && Math.abs(zoom - 1) < 0.001 &&
+      matches(r.left, written.left) && matches(r.top, written.top) && matches(r.width, written.width) && matches(r.height, written.height)
+    // Back to its own size after a scaled paint: that's a move too (the
+    // menu doesn't restart its wait for "visible" coming back alone).
+    if (scaleKnown && !was && scaleVisible) placementChanged()
+    scaleKnown = true
+    tellGeometry()
+  })
+  scaleObserver.observe(box, { box: "device-pixel-content-box" })
+  const cornerOffer = as === "save" || as === "signin"
+  if (cornerOffer) frame.style.borderRadius = `${SAVE_GUESS.height / 2}px`
+  // Shown once its frame first says its size (see reveal): until then it's
+  // blank, and an early entry played on an empty or guessed box.
+  const f = frame
+  f.style.opacity = "0"
+  revealTimer = setTimeout(() => reveal?.(), REVEAL_LATEST_MS)
+  reveal = () => {
+    reveal = null
+    clearTimeout(revealTimer)
+    if (frame !== f) return
+    cancelAnimationFrame(raf)
+    lastRect = null
+    position()
+    if (frame !== f) return
+    f.style.opacity = ""
+    // Entry runs inside the frame and on a temporary shadow layer so the
+    // frame itself stays opaque and still while the visibility dwell runs.
+    const r = anchor ? anchor.getBoundingClientRect() : boxNow()
+    const origin = !r || (lastTarget?.top ?? r.bottom) >= r.bottom ? "top left" : "bottom left"
+    port?.postMessage(cornerOffer ? { type: "db:reveal", corner: true } : { type: "db:reveal", origin })
+    const radius = cornerOffer ? SAVE_GUESS.height / 2 : RADIUS
+    const shadow = document.createElement("div")
+    shadow.style.cssText = `all:initial;position:absolute;inset:0;border-radius:${radius}px;box-shadow:${SHADOW()};pointer-events:none;${cornerOffer ? "" : `transform-origin:${origin};`}`
+    root.insertBefore(shadow, f)
+    f.style.boxShadow = "none"
+    const anim = shadow.animate(
+      reducedMotion()
+        ? [{ opacity: 0 }, { opacity: 1 }]
+        : cornerOffer
+          ? [
+              { opacity: 0, transform: "translate(17px, -17px)" },
+              { opacity: 1, transform: "none" },
+            ]
+          : [
+              { opacity: 0, transform: "scale(0.96)" },
+              { opacity: 1, transform: "none" },
+            ],
+      timing(cornerOffer ? MENU_MOTION.openCorner : MENU_MOTION.open),
+    )
+    const restore = () => {
+      revealAnim = null
+      shadow.remove()
+      if (frame === f) f.style.boxShadow = SHADOW()
+    }
+    revealAnim = anim
+    anim.finished.then(restore, restore)
+  }
+}
+
+/** Plays the open surface's grow-in, while its frame hasn't shown yet (see openMenu). */
+let reveal: (() => void) | null = null
+let revealAnim: Animation | null = null
+let revealTimer: ReturnType<typeof setTimeout> | undefined
+/** A frame that never says its size grows in anyway after this long. */
+const REVEAL_LATEST_MS = 500
+
+/**
+ * The frame asked for a size, and maybe a new mode. It can only fold either
+ * surface into a pill: the account list and the save offer are different
+ * surfaces with different tokens, and neither turns into the other.
+ */
+function resize(height: number, width: number | undefined, next: SurfaceMode | undefined) {
+  if (next !== undefined && next !== mode && next !== "pill") return
+  const changed = next !== undefined && next !== mode
+  const first = wanted.height === 0
+  if (changed) mode = next!
+  if (mode === "accounts") menuHeight = height
+  const same = !changed && wanted.width === (width ?? wanted.width) && wanted.height === height
+  wanted = { width: width ?? wanted.width, height }
+  // The surface's first size, before anything of it showed: it lands there,
+  // no spring from the guess, and enters now that it has its content.
+  if (reveal && (mode === "accounts" || first)) {
+    lastTarget = targetRect()
+    return reveal()
+  }
+  reveal?.()
+  if (same || !lastTarget) return
+  // The offer's first size isn't a change anyone made: it lands there.
+  if (first && (mode === "save" || mode === "signin")) return void (lastTarget = targetRect())
+  retarget(changed ? MENU_MOTION.frameMode : MENU_MOTION.frameSize)
+  // The pill inside keeps its place on the page while the frame moves around
+  // it: hand the frame the springs, which it steps on its own clock.
+  if (mode === "pill" && lastTarget)
+    port?.postMessage({
+      type: "db:fold",
+      width: lastTarget.width,
+      at: epochNow(),
+      springs: { left: offset.left.snapshot(), top: offset.top.snapshot(), width: offset.width.snapshot(), height: offset.height.snapshot() },
+    })
+  if (changed && frame) {
+    const radius = (targetRect()?.height ?? 2 * RADIUS) / 2
+    const anim = frame.animate([{ borderRadius: getComputedStyle(frame).borderRadius }, { borderRadius: `${radius}px` }], { ...timing(MENU_MOTION.frameMode), fill: "forwards" })
+    anim.finished.then(
+      () => {
+        if (frame) frame.style.borderRadius = `${radius}px`
+        anim.cancel()
+      },
+      () => {},
+    )
+  }
+}
+
+/**
+ * Fades the surface out, then removes it. `travel`: a saved login leaves
+ * toward the toolbar button at the top right, where it now lives.
+ */
+function leave(travel = false) {
+  if (closing) return
+  if (!host || !frame) return closeMenu()
+  closing = true
+  revealAnim?.cancel()
+  const f = frame
+  const done = () => {
+    if (frame === f) closeMenu()
+  }
+  if (typeof f.animate !== "function") return done()
+  const keyframes = reducedMotion()
+    ? [{ opacity: 1 }, { opacity: 0 }]
+    : travel
+      ? [
+          { opacity: 1, transform: "none" },
+          { opacity: 0, transform: `translate(${Math.min(40, innerWidth - (lastTarget?.left ?? 0) - (lastTarget?.width ?? 0))}px, -36px) scale(0.6)` },
+        ]
+      : [
+          { opacity: 1, transform: "none" },
+          { opacity: 0, transform: "scale(0.96)" },
+        ]
+  f.style.transformOrigin = travel ? "top right" : "center"
+  const anim = f.animate(keyframes, { ...timing(travel ? MENU_MOTION.leaveTravel : MENU_MOTION.leave), fill: "forwards" })
+  anim.finished.then(done, done)
+  // In case the page stops the animation from finishing (a hidden tab).
+  setTimeout(done, 900)
+}
+
+/**
+ * Takes the pill out of the top layer and out of sight (`on`), or puts it
+ * back. While anything shows in the top layer, Chromium's visibility
+ * readings say no field anywhere is fully visible, and a pill on a frame's
+ * field covers it, so the checks of a frame's fields (see Forms.menuPick and
+ * Autofill.measured) run with it put away for a moment. Only a pill.
+ */
+function hold(on: boolean): boolean {
+  if (!host || mode !== "pill" || closing) return false
+  held = on
+  raising = true
+  try {
+    if (on) {
+      host.hidePopover()
+      host.style.setProperty("display", "none", "important")
+    }
+  } catch {
+    // Not shown: nothing to put away.
+  } finally {
+    raising = false
+  }
+  if (!on) show(host)
+  return true
+}
+
+/** The element the open menu hangs from, if one is open. */
+export const menuHost = (): HTMLElement | null => host
+
+export function closeMenu(refocus = false, dismissed = false) {
+  cancelAnimationFrame(raf)
+  placementObserver?.disconnect()
+  placementObserver = null
+  placementAncestors = []
+  placementVersion = 0
+  placementChangedAt = -Infinity
+  paintObserver?.disconnect()
+  paintObserver = null
+  paintFor = null
+  paintKey = ""
+  paintSeen = true
+  lastToggle = null
+  scaleObserver?.disconnect()
+  scaleObserver = null
+  scaleVisible = false
+  scaleKnown = false
+  reveal = null
+  revealAnim = null
+  clearTimeout(revealTimer)
+  if (token) void send({ type: "db:menu-close", token, dismissed })
+  port?.close()
+  port = null
+  const field = anchor
+  const el = host
+  host = frame = anchor = null
+  anchorBox = null
+  held = false
+  el?.remove()
+  token = null
+  mode = "accounts"
+  closing = false
+  lastTarget = null
+  written = null
+  near = false
+  for (const t of saveTimers) clearTimeout(t)
+  saveTimers = []
+  menuOrigin = lastGeometry = ""
+  lastRect = null
+  if (refocus) field?.focus({ preventScroll: true })
+}
+
+/** The save offer, opened by the background after a confirmed sign-in. Top page only. */
+export function openSaveSurface(t: string) {
+  if (!isTop || document.hidden) return false
+  closeMenu()
+  openMenu(null, t, 0, "save")
+  // A frame that never says its size never loaded the offer (it expired, or
+  // the page got in the way): it doesn't stay. Nor does any offer for long,
+  // even one whose bar is paused under the pointer.
+  saveTimers = [
+    setTimeout(() => token === t && wanted.height === 0 && leave(), SAVE_LOAD_MS),
+    setTimeout(() => token === t && leave(), SAVE_CAP_MS),
+  ]
+  return true
+}
+
+/** Never replaces a menu, a save, or the person's typing; never focuses. */
+function openSignInSurface(t: string) {
+  const active = deepActiveElement()
+  if (!isTop || document.hidden || host || learning() || (active instanceof HTMLInputElement && active.value)) return false
+  // It stays until it's answered, dismissed or the page moves on: past its
+  // minute the background renews it on use while the page still qualifies,
+  // or takes it away (bg/universal.ts token).
+  openMenu(null, t, 0, "signin")
+  return true
+}
+
+/**
+ * The pill's host, if it's still exactly where and as big as this script put
+ * it, and no bigger than a pill: then it's Deadbolt's own and doesn't count
+ * as covering a field. The host is an element of the page, which can restyle
+ * it (a stylesheet with !important, say) to cover a field; then it counts as
+ * a cover like anything else, and the fill writes nothing there.
+ */
+export function ownPill(): Element | null {
+  if (!host || mode !== "pill" || !written || closing) return null
+  const r = host.getBoundingClientRect()
+  const near = (a: number, b: number) => Math.abs(a - b) <= 1
+  const placed = near(r.left, written.left) && near(r.top, written.top) && near(r.width, written.width) && near(r.height, written.height)
+  return placed && r.width <= PILL_MAX.width + 1 && r.height <= PILL_MAX.height + 1 ? host : null
+}
+
+/**
+ * Resolves once the surface has folded into its pill (or after `ms`, whatever
+ * happens): Deadbolt's own pill (see ownPill), within a pixel of its place.
+ * Its springs' last sub-pixel tail isn't waited out; that left the pill
+ * sitting there, landed, before anything was written.
+ */
+function pillSettled(ms: number): Promise<void> {
+  const until = performance.now() + ms
+  return new Promise((resolve) => {
+    const check = () => {
+      const still = mode === "pill" && Object.values(offset).every((s) => Math.abs(s.value - s.target) < 1) && ownPill() !== null
+      if (still || !host || performance.now() > until) return resolve()
+      requestAnimationFrame(check)
+    }
+    check()
+  })
+}
+
+let querying: Promise<void> | null = null
+/** Fields recently found to have no accounts, so rescans don't re-ask. */
+const emptyUntil = new WeakMap<Element, number>()
+
+/**
+ * How the field asks: it got focus ("focus"), the user clicked into it
+ * ("click"), or the user pressed ↓ in it or clicked it again while it had
+ * focus ("again"). A click or more counts as explicit for the locked row
+ * (see Autofill.query).
+ */
+type Asked = "focus" | "click" | "again"
+
+async function maybeOpen(el: FormControl, how: Asked = "focus") {
+  // The form as it is now, not as the last scan (up to 750 ms ago) saw it:
+  // a password box the page just showed, say. A menu opened on an older
+  // scan would fill nothing ("The page changed") once the next one runs.
+  if (el instanceof HTMLInputElement && !querying && !(anchor === el && host)) state.rescan()
+  if (!(el instanceof HTMLInputElement) || !targetFor(el)) return maybeOpenForms(el, how)
+  // While the tab learns its site, the user signs in by hand.
+  if (querying || dismissedFor === el || !recentGesture() || learning()) return
+  // The save offer stays until it's answered or its time runs out.
+  if (host && mode === "save") return
+  const explicit = how !== "focus"
+  if (!explicit && (emptyUntil.get(el) ?? 0) > Date.now()) return
+  // Out of the way while the user types for themselves (see onInput).
+  if (quiet.has(el) ? how === "focus" : byHand.has(formOf(el)) && how !== "again") return
+  const t = targetFor(el)
+  if (!t || !MENU_ROLES.includes(t.role)) return
+  const kind = state.kind()
+  const generating = t.role === "new-password"
+  if (generating && !(kind && GENERATE_KINDS.includes(kind))) return
+  // Open already; in a frame, the background opened it in the top page (a rescan mustn't open it again).
+  if ((anchor === el && host) || (framedFor === el && how === "focus")) return
+  querying = (async () => {
+    // In a frame, the background opens the menu in the top page, under where the field shows (see Autofill.query).
+    const at = isTop ? undefined : fillable(el) ? visibleBox(el) : null
+    if (at === null) return
+    const roles = [...new Set(state.targets().map((x) => x.role))]
+    // On a later step's field, the username the form holds: the menu narrows
+    // to the login it names, or stays away when it names none (see Autofill.query).
+    // Only a username the user typed (or Deadbolt filled) counts: one the
+    // page put there itself mustn't decide whether a menu shows.
+    const later = t.role === "password" || t.role === "otp"
+    const box = later ? state.targets().find((x) => IDENTIFIER_ROLES.includes(x.role))?.el : undefined
+    const named = box ? (await ownValue(box, box.value))?.slice(0, 500) : undefined
+    // On a provider's own password step (accounts.google.com), the account
+    // it shows narrows the menu too; the background checks the host again
+    // and never hides the menu for it.
+    const onPage = later && !named ? pageAccount(el, box) : undefined
+    // A pattern outside what generate.ts reads, or lengths that can't meet: no generated password.
+    const rules = generating ? fieldRules(state.targets()) : undefined
+    const reply =
+      rules === null
+        ? null
+        : await send<QueryReply>({ type: "db:query", roles, focused: t.role, form: state.form(), kind, rules, explicit, again: how === "again", ...(named ? { identifier: named } : {}), ...(onPage ? { pageAccount: onPage } : {}), ...(at ? { box: at } : {}), ...(asksNewPassword(state.targets()) ? { asksNew: true } : {}) })
+    if (!reply?.rows) emptyUntil.set(el, Date.now() + 15_000)
+    else if (!isTop) {
+      framedFor = el
+      const r = el.getBoundingClientRect()
+      framedAt = { left: r.left, top: r.top, width: r.width, height: r.height }
+      framedMoving = false
+      framedSeq++
+      watchFramed()
+    }
+    else if (reply.token && deepActiveElement() === el) openMenu(el, reply.token, reply.rows)
+  })().finally(() => (querying = null))
+}
+
+/**
+ * The account a provider's own password step shows, on a provider host whose
+ * page-set account is trusted (see isAccountPage): its visible account chip,
+ * else the hidden username box beside the field, else the form's own
+ * username box (`box`) the page filled in itself. Google's: a chip with
+ * `data-profile-identifier`, and `<input name="identifier" id="hiddenEmail">`
+ * in the same `<main>` as the password field (the page has no `<form>`).
+ * Apple's (idmsa.apple.com): the account box stays above the password box,
+ * holding the Apple Account it remembered.
+ */
+function pageAccount(field: HTMLInputElement, box?: HTMLInputElement): string | undefined {
+  if (!isAccountPage(location.href)) return undefined
+  const chip = [...document.querySelectorAll("[data-profile-identifier]")].find((c) => c.getClientRects().length > 0)
+  const shown = pageAccountOf(chip?.textContent?.slice(0, 501))
+  if (shown) return shown
+  const hidden = (field.closest("main") ?? document).querySelector<HTMLInputElement>('input[name="identifier"], input#hiddenEmail')
+  return pageAccountOf(hidden?.value) ?? pageAccountOf(box?.value.slice(0, 501))
+}
+
+/**
+ * An identity or card field: the identities or cards to fill its section
+ * with, on the same gesture rules as a login field. In a frame, the
+ * background opens the menu in the top page, under where the field shows
+ * (see Forms.query); the frame only says where that is.
+ */
+async function maybeOpenForms(el: FormControl, how: Asked) {
+  if (querying || dismissedFor === el || !recentGesture() || learning()) return
+  if (host && mode === "save") return
+  const explicit = how !== "focus"
+  if (!explicit && (emptyUntil.get(el) ?? 0) > Date.now()) return
+  if (quiet.has(el) && how === "focus") return
+  const f = state.formFields().find((x) => x.el === el)
+  if (!f || (anchor === el && host)) return
+  querying = (async () => {
+    const box = isTop ? undefined : fillable(el) ? visibleBox(el) : null
+    if (box === null) return
+    // What the menu says an identity fills: only the fields it would fill now, those on screen.
+    const fillsNow = (x: FormField) => f.kind !== "identity" || x.el === el || onScreen(x.el)
+    const roles = [...new Set(sectionFields(state.formFields(), f.section, f.kind).filter(fillsNow).map((x) => x.role))]
+    const reply = await send<QueryReply>({ type: "db:forms-query", kind: f.kind, form: state.formsForm(), section: f.section, roles, explicit, ...(box ? { box } : {}) })
+    if (!reply?.rows) emptyUntil.set(el, Date.now() + 15_000)
+    else if (isTop && reply.token && deepActiveElement() === el) openMenu(el, reply.token, reply.rows, "accounts", undefined, true)
+  })().finally(() => (querying = null))
+}
+
+const isControl = (el: unknown): el is FormControl => el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement
+
+function onFocusIn(event: FocusEvent) {
+  const el = eventTarget(event)
+  // Focus moved on from the menu's field, by the user or the page's own
+  // script (an identifier-first sign-in focusing the password box it just
+  // opened below): the list for the field it left goes, so it never sits
+  // over the field the user is about to type into. Not for focus going into
+  // the menu itself (↓), or into the frame its field is in.
+  if (!isTop && framedFor && el !== framedFor) framedGone(true)
+  if (isTop && host && mode === "accounts" && !closing && el !== anchor && !event.composedPath().includes(host) && (anchor ? true : isControl(el))) closeMenu()
+  if (!isControl(el)) return
+  const clicked = recentGesture() && (lastPointer === el || (lastPointer instanceof HTMLLabelElement && lastPointer.control === el))
+  void maybeOpen(el, clicked ? "click" : "focus")
+}
+
+/**
+ * The user's own typing (trusted input only; Deadbolt's fills dispatch
+ * untrusted events). In the field the menu is open on, an identifier narrows
+ * the list: the frame filters its rows by the text over the channel only it
+ * and this script hold, and says how many match (see onPortMessage). A
+ * password typed by hand puts the menu away.
+ */
+function onInput(event: Event) {
+  if (!event.isTrusted) return
+  const el = eventTarget(event)
+  if (!(el instanceof HTMLInputElement)) return
+  if (!el.value) {
+    quiet.delete(el)
+    byHand.delete(formOf(el))
+  }
+  // In a frame, the menu in the top page can't narrow as the user types: it
+  // goes, and stays away while they type (the rescan their typing sets off
+  // would otherwise bring the whole list back) until the field is cleared,
+  // clicked again, or ↓.
+  if (!isTop && el === framedFor) {
+    quiet.add(el)
+    return framedGone(true)
+  }
+  if (!host || mode !== "accounts" || el !== anchor || closing) return
+  typedSinceOpen = true
+  const role = targetFor(el)?.role
+  if (role && IDENTIFIER_ROLES.includes(role)) return void port?.postMessage({ type: "db:filter", query: el.value.slice(0, 200) })
+  quiet.add(el)
+  leave()
+}
+
+/** When the offer was last told the pointer is in the page, not over it. */
+let awaySaidAt = 0
+
+/**
+ * The pointer moving in the page: it isn't over the offer (the page gets no
+ * events over the frame), which the offer needs to know to close again (see
+ * menu.ts). Coming near pauses its bar, as being on it does.
+ */
+function onPointerMove(event: PointerEvent) {
+  if (!host || mode !== "save" || !lastTarget || !event.isTrusted) return
+  if (event.timeStamp - awaySaidAt > 120) {
+    awaySaidAt = event.timeStamp
+    port?.postMessage({ type: "db:away" })
+  }
+  const r = lastTarget
+  const dx = Math.max(r.left - event.clientX, 0, event.clientX - (r.left + r.width))
+  const dy = Math.max(r.top - event.clientY, 0, event.clientY - (r.top + r.height))
+  const now = Math.hypot(dx, dy) < 72
+  if (now === near) return
+  near = now
+  port?.postMessage({ type: "db:near", near })
+}
+
+function onPointerDown(event: PointerEvent) {
+  if (!event.isTrusted) return
+  lastGestureAt = Date.now()
+  const target = eventTarget(event)
+  lastPointer = target ?? null
+  if (!isTop && framedFor && target !== framedFor) framedGone(true)
+  // Clicking a field that already has focus (e.g. autofocus) opens the menu too.
+  if (isControl(target) && target === deepActiveElement() && !host) {
+    if (dismissedFor === target) dismissedFor = null
+    void maybeOpen(target, "again")
+  }
+  if (!host) return
+  // A click in the page while the offer shows: the user is getting on with
+  // it. The offer shrinks to a dot in the corner (as when its time runs
+  // out), still there to reopen for a while.
+  if (mode === "save") {
+    port?.postMessage({ type: "db:away" })
+    return port ? void port.postMessage({ type: "db:tuck" }) : leave(true)
+  }
+  const path = event.composedPath()
+  if (path.includes(host) || path.includes(anchor as EventTarget) || target === anchor) return
+  if (mode === "pill") return leave()
+  closeMenu()
+}
+
+function onKeyDown(event: KeyboardEvent) {
+  if (!event.isTrusted) return
+  if (mode === "signin" && event.key === "Escape") return closeMenu(false, true)
+  lastGestureAt = Date.now()
+  lastPointer = null
+  const target = eventTarget(event)
+  // Enter in a login field goes on with its form (Continue, sign in). The
+  // page's next step can open right below it, so a rescan doesn't bring the
+  // list back on the field while it still has focus.
+  if (event.key === "Enter" && !event.isComposing && target instanceof HTMLInputElement && targetFor(target)) quiet.add(target)
+  if (!isTop && event.key === "Escape" && framedFor && target === framedFor) {
+    dismissedFor = framedFor
+    return framedGone(true, true)
+  }
+  // Enter in the field goes on with the form (Continue, sign in): the list
+  // isn't what the user is answering, and the next step may open under it.
+  if (!isTop && event.key === "Enter" && !event.isComposing && framedFor && target === framedFor) return framedGone(true)
+  if (!host) {
+    // ↓ in a field that has no menu (dismissed, or focused from script) asks for one.
+    if (event.key === "ArrowDown" && target instanceof HTMLInputElement && (targetFor(target) || state.formFields().some((f) => f.el === target))) {
+      dismissedFor = null
+      emptyUntil.delete(target)
+      quiet.delete(target)
+      void maybeOpen(target, "again")
+    }
+    return
+  }
+  // Esc also when the page moved focus off the field onto nothing (Zoom's
+  // sign-in leaves it on <body>): the user is still answering this menu.
+  // The field isn't focused, so clicking it again is a fresh focus that
+  // opens the menu: it isn't marked dismissed.
+  // Like Esc in the field, it answers the menu only: the page doesn't also get it.
+  if (event.key === "Escape" && mode === "accounts" && (target === document.body || target === document.documentElement)) {
+    event.preventDefault()
+    event.stopPropagation()
+    return closeMenu(false, true)
+  }
+  if (target !== anchor || mode !== "accounts") return
+  if (event.key === "Escape") {
+    // Esc answers the menu only, as with the browser's own autofill: the
+    // page doesn't also get it, so a sign-in dialog doesn't close with it.
+    event.preventDefault()
+    event.stopPropagation()
+    dismissedFor = anchor
+    closeMenu(false, true)
+  } else if (event.key === "Enter" && !event.isComposing) {
+    // Enter in the field submits its form (Continue, sign in): the list goes
+    // with it, not left over the step that opens next.
+    closeMenu()
+  } else if (event.key === "ArrowDown") {
+    event.preventDefault()
+    port?.postMessage({ type: "db:menu-enter" })
+    frame?.focus()
+    frame?.contentWindow?.focus()
+  }
+}
+
+/**
+ * Fills only the form the login was chosen for (if the fields were replaced,
+ * added or removed since, nothing is written), and in it only the fields the
+ * background's db:approve fixed for this fill. Answers with what was written.
+ */
+async function applyFill(message: Extract<ToContent, { type: "db:fill" }>): Promise<FillAck> {
+  if (message.automatic && (!isTop || document.hidden || !(await signInEnabled()))) return { filled: [] }
+  // A sign-in session's step (no pick) fills nothing while the tab learns: the user signs in by hand.
+  if (message.notice && learning()) return { filled: [] }
+  // A pick from the menu folded it into a pill on the field, which stays to
+  // say how the fill went and goes by itself. Any other fill (the popup's,
+  // an email-first step) closes what's open.
+  if (mode !== "pill") closeMenu()
+  // Filling focuses each field. Without this, the keypress that chose the
+  // login would reopen the menu on the first field, covering the next one.
+  lastGestureAt = 0
+  // In a frame, the menu this fill was picked from is a pill now: Esc or a click here is about nothing of it.
+  framedGone(false)
+  state.rescan()
+  if (state.form() !== message.form) return { filled: [] }
+  // A generated password the boxes' pattern won't take (the page changed it since the menu opened).
+  const approved = approvals.get(String(message.approval), message.form)
+  if (message.values.newPassword && approved && !fitsPattern(approved, message.values.newPassword)) return { filled: [], rejected: true }
+  // Only the fields approved for this fill, never one that became fillable since.
+  const targets = approvals.take(String(message.approval), message.form, state.targets())
+  if (!targets?.length) return { filled: [] }
+  // Nothing is written while the surface is still folding over the form:
+  // only the settled pill, where this script put it, isn't taken for a cover
+  // (see ownPill). Each write checks again.
+  if (mode === "pill") await pillSettled(700)
+  if (state.form() !== message.form) return { filled: [] }
+  const { filled, last, written } = await fillFields(targets, message.values, (el) => (!message.automatic || !document.hidden) && fillable(el, ownPill()))
+  if (filled.includes("new-password") && message.values.newPassword && typeof message.generated === "string")
+    rememberGenerated(message.generated, message.values.newPassword)
+  if (filled.length) {
+    lastFilled = written
+    submittedSinceFill = false
+  }
+  last?.focus({ preventScroll: true })
+  // A sign-in session's step, filled without a pick: a pill on the field
+  // says so ("Password filled"), then goes (see menu.ts showNotice).
+  // On the last field written: for a code in one box per digit, beside the last box.
+  // In a frame, the background opens it in the top page, where the field shows (see Autofill.fill).
+  const on = [...lastFilled].reverse().find((el) => el.isConnected)
+  if (filled.length && typeof message.notice === "string" && on) {
+    if (isTop && !host) openMenu(on, message.notice, 0, "pill")
+    const box = isTop ? null : visibleBox(on)
+    if (box) return { filled, box }
+  }
+  return { filled }
+}
+
+const formsState = (): FormsState => ({ fields: () => state.formFields(), form: () => state.formsForm(), rescan: () => state.rescan() })
+
+/**
+ * Writes an identity or card into the fields db:forms-approve fixed for
+ * this fill, in the snapshot it was chosen for, as applyFill does for a login.
+ */
+async function applyFormsFill(message: Extract<ToContent, { type: "db:forms-fill" }>): Promise<FormsAck> {
+  if (mode !== "pill") closeMenu()
+  lastGestureAt = 0
+  const values = message.values && typeof message.values === "object" ? message.values : {}
+  const targets = takeApproved(formsState(), String(message.approval), message.form)
+  if (!targets?.length) return { filled: [] }
+  if (mode === "pill") await pillSettled(700)
+  if (state.formsForm() !== message.form) return { filled: [] }
+  const { filled } = await fillForm(targets, values, (el) => fillCheck(targets[0].kind, ownPill())(el))
+  return { filled }
+}
+
+export function markSubmitted() {
+  if (lastFilled.length) submittedSinceFill = true
+}
+
+/** When the user last clicked a submit control or pressed Enter in a field themselves (content.ts). */
+let submitGestureAt = -Infinity
+const GONE_COUNTS_MS = 2000
+export function noteSubmitGesture() {
+  submitGestureAt = performance.now()
+}
+
+/**
+ * Whether the page has moved on since the last fill here: the user submitted
+ * (content.ts counts only their own click or Enter), or, right after their
+ * own click or Enter, none of the filled fields is still in the login form.
+ * Only then does the background fill a sign-in session's next step into this
+ * document.
+ */
+export function stepped(): boolean {
+  if (!lastFilled.length) return false
+  if (submittedSinceFill) return true
+  // The filled fields going away counts only right after the user's own
+  // click or Enter: a page's script can take them away itself.
+  if (performance.now() - submitGestureAt > GONE_COUNTS_MS) return false
+  const now = state.targets()
+  return lastFilled.every((el) => !el.isConnected || !now.some((t) => t.el === el))
+}
+
+/** Springs the frame's corners to `radius`, from wherever they are now. */
+function roundTo(radius: number) {
+  const f = frame
+  if (!f) return
+  const anim = f.animate([{ borderRadius: getComputedStyle(f).borderRadius }, { borderRadius: `${radius}px` }], { ...timing(MENU_MOTION.frameSize), fill: "forwards" })
+  anim.finished.then(
+    () => {
+      f.style.borderRadius = `${radius}px`
+      anim.cancel()
+    },
+    () => {},
+  )
+}
+
+/** Whether the user typed in the menu's field since it opened. */
+let typedSinceOpen = false
+
+/** The frame, over the private channel: its pill or offer is done, or how many rows match what was typed. */
+function onPortMessage(e: MessageEvent<{ type?: unknown; travel?: unknown; count?: unknown; radius?: unknown; version?: unknown; check?: unknown }>) {
+  if (e.data?.type === "db:menu-check") {
+    placementChanges(placementObserver?.takeRecords() ?? [])
+    // Do not call position(): check the page's layout, not a restored one.
+    const ok = !!host?.matches(":popover-open") && e.data.version === placementVersion && placementSafe() && scaleVisible && paintSeen && placed()
+    port?.postMessage({ type: "db:menu-checked", check: e.data.check, ok })
+    return
+  }
+  if (e.data?.type === "db:surface-done") return leave(e.data.travel === true)
+  // The offer changing shape (pill, card, dot): its corners follow its frame's size.
+  if (e.data?.type === "db:radius" && mode === "save" && frame && typeof e.data.radius === "number") return roundTo(Math.min(Math.max(e.data.radius, 0), 20))
+  if (e.data?.type !== "db:matches" || mode !== "accounts" || !anchor || e.data.count !== 0) return
+  // Nothing saved matches what the user is typing: they're signing in by
+  // hand. Out of the way, here and on the rest of the form.
+  quiet.add(anchor)
+  byHand.add(formOf(anchor))
+  leave()
+}
+
+/**
+ * The menu frame says it's ready; hand it the token. Only that frame's own
+ * window can be the source, and the target origin keeps the token from a page
+ * that navigated the frame elsewhere. The background accepts the token only
+ * from a menu whose parent is this document's origin.
+ */
+function onMenuReady(event: MessageEvent<{ type?: unknown }>) {
+  const win = frame?.contentWindow
+  if (!frame || !token || port || !win || event.source !== win || event.data?.type !== "db:menu-ready") return
+  // getURL gives the per-session dynamic URL, but Chrome may load the frame
+  // under the extension id's origin.
+  if (event.origin !== new URL(frame.src).origin && event.origin !== `chrome-extension://${chrome.runtime.id}`) return
+  event.stopImmediatePropagation()
+  menuOrigin = event.origin
+  const channel = new MessageChannel()
+  port = channel.port1
+  // The frame's own word that its pill or offer is done, over the channel only it and this script hold.
+  port.onmessage = onPortMessage
+  tellGeometry()
+  if (!reveal) port.postMessage(mode === "save" || mode === "signin" ? { type: "db:reveal", corner: true } : { type: "db:reveal" })
+  // Typed before the frame was ready: narrow it now.
+  const typed = anchor && mode === "accounts" && anchor.value && typedSinceOpen ? anchor.value : ""
+  if (typed) port.postMessage({ type: "db:filter", query: typed.slice(0, 200) })
+  win.postMessage({ type: "db:menu-token", token }, event.origin, [channel.port2])
+}
+
+/**
+ * The top window lost focus. A click into one of the page's own frames (an
+ * ad, a captcha, an embedded panel) gives the page no pointerdown, only
+ * this: the user is elsewhere, and the account list goes, as for a click in
+ * the page. Not for the frame the menu's own field is in (that frame tells
+ * the background), nor when focus went into the menu itself.
+ */
+function onWindowBlur(event: FocusEvent) {
+  if (event.target !== window || !host || mode !== "accounts" || closing) return
+  const into = document.activeElement
+  if (!(into instanceof HTMLIFrameElement || into instanceof HTMLFrameElement)) return
+  const r = into.getBoundingClientRect()
+  const b = boxNow()
+  if (b && r.left <= b.left + 1 && r.top <= b.top + 1 && r.right >= b.right - 1 && r.bottom >= b.bottom - 1) return
+  closeMenu()
+}
+
+/** The page showed a popover, or a dialog through `beforetoggle`: once it's in the top layer, go back over it. */
+function onBeforeToggle(event: Event) {
+  if (host && event.isTrusted && event.target !== host && (event as ToggleEvent).newState === "open") queueMicrotask(raise)
+}
+
+/**
+ * A dialog opened. A modal one makes everything outside it inert, so a menu
+ * outside it closes; one the menu is in gets raised over again.
+ */
+function onDialogs(records: MutationRecord[]) {
+  for (const r of records) {
+    const dialog = r.target
+    if (!host || !(dialog instanceof HTMLDialogElement) || !dialog.matches(":modal")) continue
+    if (!within(host, dialog)) return closeMenu()
+    raise()
+  }
+}
+
+/**
+ * Full screen draws only the full-screen element. A menu outside it closes
+ * (the next focus opens one inside it); one inside it goes back on top.
+ */
+function onFullscreen() {
+  const full = document.fullscreenElement
+  if (!host || !full) return
+  if (!within(host, full)) return closeMenu()
+  raise()
+}
+
+export function initMenu(page: PageState) {
+  state = page
+  // Before any page script: see onHostToggle.
+  window.addEventListener("beforetoggle", onHostToggle, true)
+  window.addEventListener("toggle", onHostToggle, true)
+  if (isTop) {
+    document.addEventListener("beforetoggle", onBeforeToggle, true)
+    addEventListener("resize", onResize, true)
+    addEventListener("blur", onWindowBlur)
+    document.addEventListener("fullscreenchange", onFullscreen)
+    new MutationObserver(onDialogs).observe(document, { subtree: true, attributes: true, attributeFilter: ["open"] })
+  }
+  window.addEventListener("message", onMenuReady, true)
+  document.addEventListener("focusin", onFocusIn, true)
+  document.addEventListener("pointerdown", onPointerDown, true)
+  document.addEventListener("keydown", onKeyDown, true)
+  document.addEventListener("input", onInput, true)
+  window.addEventListener("pointermove", onPointerMove, { capture: true, passive: true })
+  if (!isTop) window.addEventListener("scroll", onFrameScroll, { capture: true, passive: true })
+  // Leaving the page (or entering the back/forward cache) takes the menu
+  // along; coming back is a new visit.
+  window.addEventListener("pagehide", () => {
+    closeMenu()
+    hideRing()
+    clearInterval(tileTimer)
+    dismissedFor = null
+    lastGestureAt = 0
+    lastPointer = null
+    lastFilled = []
+    submittedSinceFill = false
+  })
+  // Answering tells the background the message reached a live document.
+  chrome.runtime.onMessage.addListener((message: ToContent, sender, respond) => {
+    // Unlock's wait and return come only from the service worker: this extension, and not from a tab (a page's frame or an extension page).
+    const fromWorker = sender.id === chrome.runtime.id && !sender.tab && sender.url === chrome.runtime.getURL("background.js")
+    switch (message?.type) {
+      case "db:fill":
+        applyFill(message).then(respond, () => respond({ filled: [] }))
+        return true
+      case "db:forms-fill":
+        applyFormsFill(message).then(respond, () => respond({ filled: [] }))
+        return true
+      case "db:forms-approve":
+        approveForms(formsState(), message.form, message.kind === "card" ? "card" : "identity", typeof message.section === "string" ? message.section : undefined, message.measure === true, menuHost()).then(respond, () => respond(null))
+        return true
+      case "db:forms-approved":
+        approvedForms(formsState(), String(message.approval)).then((boxes) => respond(boxes ? { boxes } : null), () => respond(null))
+        return true
+      case "db:open-at":
+        return void respond(openAt(String(message.token), Number(message.rows), message.box, message.mode === "pill" ? "pill" : "accounts", message.captioned === true))
+      case "db:move-at":
+        return void respond(moveAt(String(message.token), message.box))
+      case "db:hold":
+        // Only the surface the asker owns. Asked about another, it says
+        // whether nothing of Deadbolt's shows, which the measuring needs.
+        if (message.token !== token) return void respond(!host)
+        if (!message.hold) return void respond(hold(false))
+        pillSettled(900).then(() => {
+          const ok = hold(true)
+          if (!ok || document.hidden) return respond(ok)
+          requestAnimationFrame(() => requestAnimationFrame(() => respond(ok)))
+        })
+        return true
+      case "db:generated":
+        keptGenerated(String(message.generated))
+        return void respond(true)
+      case "db:menu-gone":
+        framedGone(false)
+        return void respond(true)
+      case "db:close-menu":
+        if (message.token === token) {
+          if (message.unlock && fromWorker) unlockAnchor = anchor
+          if (mode === "accounts") {
+            dismissedFor = anchor
+            closeMenu(true)
+          } else leave()
+        }
+        return void respond(true)
+      case "db:unlock-wait":
+        if (!fromWorker) return void respond(false)
+        unlockAnchor = framedFor instanceof HTMLInputElement || framedFor instanceof HTMLTextAreaElement || framedFor instanceof HTMLSelectElement ? framedFor : anchor
+        return void respond(!!unlockAnchor)
+      case "db:unlock-return": {
+        if (!fromWorker) return void respond(false)
+        const el = unlockAnchor
+        unlockAnchor = null
+        if (!el?.isConnected || !fillable(el)) return void respond(false)
+        // Focus fires synchronously. Suppress its passive query so the
+        // explicit reopen below wins, including on previously empty fields.
+        dismissedFor = el
+        lastGestureAt = Date.now()
+        el.focus()
+        dismissedFor = null
+        void maybeOpen(el, "again")
+        return void respond(true)
+      }
+      case "db:resize-menu":
+        if (message.token === token) resize(message.height, message.width, message.mode)
+        return void respond(true)
+      case "db:surface":
+        return void respond(openSaveSurface(String(message.token)))
+      case "db:signin-offer":
+        return void respond(openSignInSurface(String(message.token)))
+      case "db:point":
+        return void respond(pointAtProvider(String(message.provider)))
+      case "db:chooser":
+        if (isTop) pointAtTile(String(message.account))
+        return void respond(true)
+      case "db:site-icon":
+        if (!isTop) return void respond(null)
+        readPageIcon().then(respond, () => respond(null))
+        return true
+    }
+  })
+}
+
+/**
+ * "Sign in with <provider>": ring the site's own button for it, if one
+ * shows, and say whether it did. The user clicks it; Deadbolt doesn't.
+ */
+function pointAtProvider(id: string): boolean {
+  if (!isTop) return false
+  const p = provider(id)
+  const button = findProviderButton(p)
+  if (!button) return false
+  closeMenu()
+  showRing(button, `Your ${p.name} sign-in`)
+  return true
+}
+
+let tileTimer: ReturnType<typeof setInterval> | undefined
+/**
+ * On the provider's account chooser: ring the tile for the linked account
+ * once it shows (choosers draw late), with a pill that names no one (the
+ * page shows the account itself). The user picks it.
+ */
+function pointAtTile(account: string) {
+  clearInterval(tileTimer)
+  let tries = 0
+  const look = () => {
+    const tile = findAccountTile(account)
+    if (tile) {
+      clearInterval(tileTimer)
+      showRing(tile, "Your linked account")
+    } else if (++tries > 25) clearInterval(tileTimer)
+  }
+  look()
+  tileTimer = setInterval(look, 300)
+}
+
+/**
+ * The menu for a field in a frame below, at `box` in this page (see
+ * Autofill.query and Forms.query), or a session step's pill on it (`as`
+ * "pill", see Autofill.fill). `captioned` for an identity or card list. Top page only.
+ */
+function openAt(t: string, rows: number, box: Box, as: "accounts" | "pill", captioned: boolean): boolean {
+  if (!isTop || document.hidden || (host && (mode === "save" || as === "pill"))) return false
+  if (as === "accounts" && !(Number.isFinite(rows) && rows >= 1)) return false
+  if (!box || ![box.left, box.top, box.right, box.bottom].every(Number.isFinite)) return false
+  openMenu(null, t, as === "pill" ? 0 : rows, as, box, captioned)
+  return true
+}
+
+/**
+ * The frame's field the open list is for moved inside its frame: it now
+ * shows at `box` in this page (see Autofill.menuMove). The list follows it
+ * there, and waits its dwell again before it takes a pick, as for any move.
+ * Top page only.
+ */
+function moveAt(t: string, box: Box): boolean {
+  if (!isTop || !host || t !== token || mode !== "accounts" || closing || !anchorBox) return false
+  if (!box || ![box.left, box.top, box.right, box.bottom].every(Number.isFinite)) return false
+  anchorBox = { box, x: scrollX, y: scrollY, frame: frameAround(box) }
+  placementChanged()
+  return true
+}
+
+/** Called after each page scan: offer the menu on an already-focused field. */
+export function refreshMenu(focused: HTMLInputElement) {
+  if (!host) void maybeOpen(focused, "focus")
+}

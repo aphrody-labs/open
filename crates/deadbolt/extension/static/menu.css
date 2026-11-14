@@ -1,0 +1,657 @@
+/* Deadbolt's surface in the page: the account list, the pill and the save
+   offer, drawn as the app's quick panel (a bg_base card with Rune's floating
+   elevation). One object with a 12px radius; the content script springs the
+   frame to each mode's size and draws the hairline and the shadow outside it.
+   Account rows are 46px, as the app's list rows, and 6px of padding sits
+   around them (plus a caption over identities and cards), which the content
+   script uses to size the frame before this page loads (MENU_ROW). */
+
+html,
+body {
+  overflow: hidden;
+  background: transparent;
+}
+
+body {
+  user-select: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.surface {
+  position: relative;
+  border-radius: 12px;
+  background: var(--bg);
+  overflow: hidden;
+  transition: border-radius 380ms var(--settle);
+}
+
+/* Folded into a pill: the surface fills whatever the frame is, as it springs smaller. */
+.surface.folded {
+  position: fixed;
+  inset: 0;
+  border-radius: 16px;
+}
+
+/* ---- The account list ---- */
+
+.list {
+  position: relative;
+  max-height: 258px;
+  overflow-y: auto;
+  padding: 6px;
+  scrollbar-width: none;
+}
+
+.caption {
+  height: 22px;
+  padding: 2px 10px 0;
+  font-size: 11px;
+  line-height: 20px;
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-small);
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.caption[hidden] {
+  display: none;
+}
+
+.rows {
+  position: relative;
+}
+
+/* The one highlight: it slides between rows instead of each row lighting up.
+   The app's selected row: the pressed overlay, an 8px radius. */
+.highlight {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 0;
+  height: 46px;
+  border-radius: var(--radius-lg);
+  background: var(--pressed);
+  pointer-events: none;
+}
+
+/* The list has keyboard focus (Tab or ↓ from the field): the highlight wears
+   the focus ring, and slides with it from row to row. */
+.rows:focus {
+  outline: none;
+}
+
+.list:has(.rows:focus) .highlight {
+  box-shadow: inset 0 0 0 2px var(--focus);
+}
+
+.row {
+  all: unset;
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 46px;
+  padding: 0 10px;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+}
+
+/* The unlock row, the one row that's a tab stop of its own. */
+.row:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.row.notice {
+  cursor: default;
+}
+
+/* The locked row (ui/unlock.ts): its line rolls while the toolbar panel is
+   up, so it clips only sideways, and nothing leaves the row. */
+.row.unlock {
+  overflow: hidden;
+}
+
+.row.unlock .sub {
+  overflow: clip visible;
+}
+
+/* "Site icons in the fill menu" off: a login's row is its title and username. */
+.rows.bare .row {
+  padding: 0 12px;
+}
+
+.row[hidden] {
+  display: none;
+}
+
+/* A press shows at once: the highlight darkens while the pick passes its checks. */
+.highlight {
+  transition: background-color 100ms ease-out;
+}
+
+.highlight.pressing {
+  background: var(--border-strong);
+  transition: none;
+}
+
+.row .avatar,
+.pill .avatar {
+  position: relative;
+}
+
+/* A provider's logo (menu.ts providerMark), on the tile's own ground. */
+.avatar.provider.mark > svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* The ring round a picked avatar while it fills (ui/ring.ts). It comes only
+   once the pick goes ahead: nothing in the frame may animate while a press
+   is checked, or the browser's visibility readings, which the check relies
+   on, pause. Its selectors outrank the tile's own `svg` rules. */
+.ring {
+  position: absolute;
+  inset: -4px;
+  pointer-events: none;
+}
+
+/* The track and the comet are both a 1.75px band: a disc masked to its rim. */
+.ring-track,
+.ring-spin,
+.ring-comet {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+
+/* Registered so the green comet's closing can animate them (ui/ring.ts closeNow). */
+@property --tail {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0turn;
+}
+
+/* Where the head is, once the turning stops and the closing draws it (ui/ring.ts closeNow). */
+@property --head {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0turn;
+}
+
+@property --solid {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+.ring-track,
+.ring-comet {
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2.25px), #000 calc(100% - 1.75px), #000 calc(100% - 0.5px), transparent 100%);
+}
+
+.ring-track {
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+}
+
+/* The head at the top, bright; the tail fading out behind it, the way it came.
+   Its own layer, so turning it never repaints the gradient. */
+.ring-spin,
+.ring-comet {
+  will-change: transform, opacity;
+}
+
+.ring-comet {
+  --ring-color: color-mix(in srgb, var(--text) 80%, transparent);
+  /* Behind the tail is clear while it turns; `--solid` fills it in as the ring closes. */
+  background: conic-gradient(from var(--head), color-mix(in srgb, var(--ring-color) calc(var(--solid) * 100%), transparent) calc(1turn - var(--tail)), var(--ring-color) 1turn);
+}
+
+.ring-comet.lit {
+  --ring-color: var(--text-success);
+}
+
+/* The light that runs round a closed ring. */
+.ring-comet.glint {
+  --ring-color: color-mix(in srgb, white 85%, var(--text-success));
+}
+
+/* While a press is checked, nothing transitions either. */
+body.held *,
+body.held *::after {
+  transition: none !important;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.title,
+.sub {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The app's row: the label in `ui` over the detail in its 11.5/440 `FACT`. */
+.title {
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: var(--weight);
+  color: var(--text);
+}
+
+.sub {
+  font-size: 11.5px;
+  line-height: 14px;
+  font-weight: var(--weight);
+  letter-spacing: 0;
+  color: var(--text-faint);
+}
+
+/* Only when there's something to say. */
+.foot {
+  margin: -2px 14px 10px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--muted);
+}
+
+.foot[hidden] {
+  display: none;
+}
+
+/* ---- The pill ---- */
+
+/* The whole pill, 32px tall: the frame contracts onto it and, at rest, is
+   exactly its size. It keeps its place on the page while the frame moves
+   (menu.ts sets right and top from the host's springs). */
+.pill {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  translate: 0 -50%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  width: max-content;
+  padding: 0 12px 0 5px;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: var(--weight-medium);
+  color: var(--text);
+}
+
+.pill.waiting {
+  opacity: 0;
+}
+
+.pill .avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+/* Room between the tile (and the ring just outside it) and the name. The slot
+   it travels into has the same, so nothing shifts when it lands. */
+.pill > :first-child:not(.pill-label) {
+  margin-right: 4px;
+}
+
+/* A pick from a row with no tile: only its ring shows. */
+.pill .avatar.bare {
+  background: none;
+}
+
+.pill .avatar > svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* The offer's Deadbolt mark, carried into the saved pill. */
+.pill .offer-mark {
+  width: 22px;
+  height: 22px;
+}
+
+/* The pill's flash as its fill lands, or fails (menu.ts land), under its content. */
+.pill-glow {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  --glow: var(--text-success);
+  border-radius: inherit;
+  /* The pill's edge lights up with it: a bright rim, and a little light just inside it. */
+  background: color-mix(in srgb, var(--glow) 16%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--glow) 75%, transparent),
+    inset 0 0 10px color-mix(in srgb, var(--glow) 30%, transparent);
+  pointer-events: none;
+  will-change: opacity;
+}
+
+.pill-glow.failed {
+  --glow: var(--danger);
+}
+
+.pill-label {
+  display: inline-flex;
+  /* Clipped across while its width springs, never up or down: the roll travels there. */
+  overflow: clip visible;
+  white-space: nowrap;
+  line-height: 16px;
+}
+
+/* The check takes no room until it comes in, then opens with the label's width. */
+.pill-mark {
+  display: grid;
+  place-items: center;
+  width: 0;
+  height: 14px;
+  margin-left: -8px;
+  overflow: hidden;
+  opacity: 0;
+  color: var(--text-success);
+  transition:
+    width 370ms var(--settle),
+    margin-left 370ms var(--settle),
+    opacity 200ms ease-out 120ms;
+}
+
+.pill-mark svg {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+
+.pill.ok .pill-mark {
+  width: 14px;
+  margin-left: -2px;
+  opacity: 1;
+}
+
+.pill.failed .pill-label {
+  color: var(--danger);
+}
+
+/* Only the new words turn: the old ones keep their colour as they go. */
+.pill.failed .pill-label .roll-out {
+  color: var(--text);
+}
+
+/* It draws itself in as it opens. */
+@media (prefers-reduced-motion: no-preference) {
+  .pill.ok .pill-mark path {
+    stroke-dasharray: 18;
+    animation: draw-check 320ms cubic-bezier(.3,0,.2,1) 140ms backwards;
+  }
+}
+
+@keyframes draw-check {
+  from {
+    stroke-dashoffset: 18;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pill-mark {
+    transition: opacity 180ms ease-out;
+  }
+}
+
+/* ---- The save offer ---- */
+
+/* In the top right corner. The card is laid out once at its open size and
+   anchored to the corner; the frame shows only as much as the shape needs:
+   the top row (the compact pill), the whole card (open), or the dot. */
+html:has(body.save),
+body.save {
+  height: 100%;
+}
+
+body.save .surface {
+  position: fixed;
+  inset: 0;
+  border-radius: 0;
+}
+
+.offer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: max-content;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  transition: opacity 260ms ease-out;
+}
+
+.offer-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  height: 36px;
+  padding: 0 4px 0 12px;
+}
+
+.offer-mark {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
+.offer-mark svg {
+  width: 100%;
+  height: 100%;
+}
+
+.offer-title {
+  margin: 0;
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: var(--weight-strong);
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.offer-row .btn.primary {
+  position: relative;
+  height: 28px;
+  min-width: 56px;
+  padding: 0 14px;
+  border-radius: 14px;
+}
+
+.offer-more {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 2px 12px 12px;
+}
+
+.offer-user {
+  max-width: 320px;
+  font-size: 11.5px;
+  line-height: 14px;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.offer-change {
+  max-width: 320px;
+  font-size: 11.5px;
+  line-height: 14px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.offer-status {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--danger);
+  display: inline-flex;
+  overflow: hidden;
+}
+
+.offer-status[hidden] {
+  display: none;
+}
+
+.offer-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.offer-actions .btn {
+  position: relative;
+  height: 28px;
+  padding: 0 14px;
+  border-radius: var(--radius-lg);
+}
+
+/* 44px targets around small controls. */
+.offer-row .btn::before,
+.offer-actions .btn::before,
+.never::before {
+  content: "";
+  position: absolute;
+  inset: -8px -4px;
+}
+
+/* Pressed: at once, before the press passes its checks. */
+.offer .btn.pressed {
+  transform: scale(0.97);
+  background-image: linear-gradient(var(--pressed), var(--pressed));
+  transition: none;
+}
+
+.offer .btn.primary.pressed {
+  background-image: linear-gradient(var(--contrast-pressed), var(--contrast-pressed)), linear-gradient(#ffffff33, #ffffff00);
+}
+
+.never {
+  position: relative;
+  font-size: 12px;
+  font-weight: var(--weight-medium);
+  color: var(--muted);
+}
+
+.never.pressed {
+  color: var(--text);
+}
+
+.roll-label {
+  display: inline-flex;
+  overflow: clip visible;
+  white-space: nowrap;
+}
+
+/* Time left: a 2px line along the compact pill's bottom edge, inside its
+   radius. menu.ts empties it frame by frame (not as a CSS animation: a
+   running animation in the frame pauses the visibility readings its buttons
+   rely on), paused while the offer is open, has the pointer or focus, or
+   the pointer is near it. */
+.bar {
+  position: absolute;
+  top: 34px;
+  right: 0;
+  height: 2px;
+  background: color-mix(in srgb, var(--text) 18%, transparent);
+  transform-origin: right;
+  pointer-events: none;
+}
+
+body[data-offer="open"] .bar {
+  visibility: hidden;
+}
+
+/* The dot: Deadbolt's mark in the corner, with a small badge, until it's
+   wanted again or its time is up. */
+.dot {
+  all: unset;
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 260ms ease-out;
+}
+
+.dot:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+  border-radius: 50%;
+}
+
+.dot svg {
+  width: 18px;
+  height: 18px;
+}
+
+.dot::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brand);
+  box-shadow: 0 0 0 1.5px var(--bg);
+}
+
+body[data-offer="dot"] .dot {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+body[data-offer="dot"] .offer {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .surface {
+    transition: none;
+  }
+
+  .offer .btn.pressed {
+    transform: none;
+  }
+}
+/* The proactive offer uses the existing surface, pinned to the corner by
+   inline.ts. Its top account's row; the others list below it on hover. */
+.universal { border-radius: 18px; padding-right: 26px; }
+/* Listed, one fixed height whatever the count (it scrolls inside), so the
+   frame's size says nothing of how many accounts there are. */
+.universal.expanded .list { height: 150px; max-height: none; }
+.universal .row .more { display: grid; place-items: center; margin-left: auto; flex: none; color: var(--text-faint); }
+.universal .signin-dismiss { position: absolute; right: 4px; top: 4px; width: 28px; height: 28px; border: 0; border-radius: 50%; background: transparent; color: inherit; font-size: 20px; cursor: pointer; }
+.universal .signin-dismiss:hover { background: light-dark(#00000012, #ffffff18); }

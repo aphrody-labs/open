@@ -1,0 +1,466 @@
+// Area D: Settings (every tab), the first run, Welcome, the connecting and
+// failed states, and About. src/areas/settings.rs fills this.
+//
+// Settings edits a draft of the live setup's name, canvas, recording,
+// audio and stream (and this viewer's snapping and preview rate); every
+// control shows the draft and changes it through `set-text`,
+// `set-number` or `set-flag` with the field's name (settings.rs maps the
+// names to the setup). Apply (or OK) sends what changed as one patch.
+
+import { DropdownOption, NavTab, Segment } from "../../kit.slint";
+import { PlatformText } from "../../state.slint";
+
+// A streaming service to choose (Stream, before streaming is set up).
+export struct ServiceChoice {
+    id: string,
+    label: string,
+    hint: string,
+}
+
+// A stream destination (Stream → Destinations, #73): its id, what to call
+// it ("YouTube", "backup"), a few words on its state ("Live", "Key saved",
+// "No key yet", "Own encoder") and whether `stream start` streams to it.
+export struct DestinationRow {
+    id: string,
+    label: string,
+    status: string,
+    enabled: bool,
+}
+
+// A video source the ISO files can record (Output → ISO Recording).
+// An audio source an ISO file can carry, and whether it does.
+export struct IsoTrack {
+    id: string,
+    name: string,
+    on: bool,
+}
+
+export struct IsoChoice {
+    id: string,
+    name: string,
+    on: bool,
+    // Its file's audio: the other ISO files' choice (no list of its own),
+    // and each audio source, checked when the file carries it.
+    shared-audio: bool,
+    tracks: [IsoTrack],
+}
+
+// An Audio Input Capture source and its device (Audio → Audio Devices).
+export struct MicRow {
+    id: string,
+    name: string,
+    value: string,
+    options: [DropdownOption],
+}
+
+// Hotkeys: what a key does and its keys ("–" between two is a range).
+export struct HotkeyRow {
+    what: string,
+    keys: [string],
+}
+
+export struct HotkeyGroup {
+    title: string,
+    rows: [HotkeyRow],
+}
+
+// A profile hotkey (docs/hotkeys.md): what it does, its chord (`chord`,
+// "ctrl+alt+cmd+r", and as keycaps), the API's refusal of the last change
+// (`error`, red) or the OS's warning (`warning`), and whether it is being
+// recorded. `key` names the row for the Rust side.
+export struct BindingRow {
+    key: string,
+    label: string,
+    chord: string,
+    caps: [string],
+    error: string,
+    warning: string,
+    recording: bool,
+}
+
+export struct BindingGroup {
+    title: string,
+    rows: [BindingRow],
+}
+
+// Report a Bug: a file the zip holds, and its size ("4.1 KB").
+export struct ReportFileRow {
+    name: string,
+    size: string,
+}
+
+// Diagnostics: one of doctor's checks, as a row: its title, status
+// ("ok", "warning", "problem"), what it found in one plain line, what to
+// do ("" for nothing) and the engine's own words behind Details ("" when
+// the plain line says it all).
+export struct DiagRow {
+    title: string,
+    status: string,
+    summary: string,
+    fix: string,
+    raw: string,
+}
+
+// Diagnostics: a group of checks (Capture, Encoding, Audio, Disk, Engine).
+export struct DiagGroup {
+    title: string,
+    rows: [DiagRow],
+}
+
+// First run: one choice of a device column.
+export struct DeviceChoice {
+    value: string,
+    title: string,
+    meta: string,
+    disabled: bool,
+}
+
+export global SettingsArea {
+    // ---- The Settings dialog
+    // Settings' pages, and the one showing.
+    in-out property <[NavTab]> tabs;
+    in-out property <string> tab: "output";
+    // The page's header: its name, one line of what it is for, and its
+    // glyph (by name).
+    in-out property <string> page-title;
+    in-out property <string> page-about;
+    in-out property <string> page-icon;
+    // A note at the top of Stream (why it opened: "Add your stream key
+    // first."), until the stream is ready.
+    in-out property <string> notice;
+    // Why isocastd refused the last Apply or OK ("" if it didn't).
+    in property <string> refused;
+    // The encoder chosen can be recorded in MP4 (ProRes can't): else MP4
+    // is greyed out.
+    in property <bool> program-mp4-ok: true;
+    in property <bool> iso-mp4-ok: true;
+    // There is a live setup to change (else the page says to make one).
+    in-out property <bool> has-draft;
+    // The draft differs from the live setup (or the viewer's settings
+    // changed): Apply is enabled.
+    in-out property <bool> dirty;
+    // Apply is under way.
+    in-out property <bool> applying;
+    callback apply();
+    callback ok();
+    callback cancel();
+    callback tab-chosen(string);
+    // A group's reset glyph: put its fields back as saved ("recording",
+    // "program", "iso").
+    callback revert-group(string);
+    // The sheet's summary (Paper's Settings footer): the canvas ("1920×1080
+    // | 30 fps"), the program's sound ("Stereo 48 kHz") and its files
+    // ("H.264 · MOV"), from the draft.
+    in-out property <string> summary-video;
+    in-out property <string> summary-audio;
+    in-out property <string> summary-codec;
+    // How fast the program file fills the disk at most ("~4.3 GB/h": the
+    // estimate the free-space check uses), "" when no program is recorded.
+    in-out property <string> summary-rate;
+    // The recording folder's disk ("212 GB free"), the summary's badge;
+    // "" when the engine hasn't said.
+    in-out property <string> summary-free;
+
+    // A field of the draft changed, by its name (settings.rs: FIELDS).
+    callback set-text(string, string);
+    callback set-number(string, float);
+    callback set-flag(string, bool);
+
+    // ---- General
+    in-out property <string> name;
+    // The file the daemon keeps the live setup in ("" if it says none).
+    in-out property <string> setup-file;
+    in-out property <bool> snapping;
+    in-out property <float> snap-distance;
+    in-out property <string> preview-rate;
+    in-out property <string> machine-summary;
+    in-out property <bool> machine-calibrating;
+    // App updates (Sparkle, src/update.rs): only a released app has them.
+    in-out property <bool> updates-available;
+    in-out property <bool> automatic-updates-available;
+    in-out property <bool> auto-updates;
+
+    // ---- Diagnostics (src/areas/diagnostics.rs): doctor's checks by
+    // group, a one-line summary ("1 problem, 2 warnings · Apple M2 · …"),
+    // whether it is running, why it couldn't, and whether Copy worked.
+    in property <[DiagGroup]> diag-groups;
+    in property <string> diag-summary;
+    in property <bool> diag-busy;
+    in property <string> diag-error;
+    in property <bool> diag-copied;
+    callback diag-refresh();
+    callback diag-copy();
+    callback diag-report();
+    // The encoder recording uses ("NVIDIA NVENC (hardware)") and why it
+    // isn't the first choice, for Recording's Program group ("" unknown).
+    in property <string> encoder-name;
+    in property <string> encoder-note;
+
+    // ---- Stream
+    // Which canvas's streams the page shows (#96): "main" ([stream]) or
+    // "vertical" ([vertical.stream], its own destinations and keys);
+    // the choice shows only with a vertical canvas.
+    in-out property <string> stream-canvas: "main";
+    in-out property <bool> stream-canvas-choice;
+    // Every canvas whose streams the Stream page can show (#84): main,
+    // vertical and the setup's [[canvases]].
+    in-out property <[Segment]> stream-canvas-options: [{ value: "main", label: "Main Canvas" }, { value: "vertical", label: "Vertical Canvas" }];
+    in-out property <bool> has-stream;
+    in-out property <[ServiceChoice]> services;
+    // Custom and Kick need a server first: which one is asking ("" for
+    // none).
+    in-out property <string> needs-server;
+    // Streaming now (changes apply next time; it can't be turned off).
+    in-out property <bool> stream-live;
+    in-out property <string> service;
+    in-out property <string> server;
+    in-out property <string> server-placeholder;
+    in-out property <string> server-hint;
+    // A key is kept in the Keychain for this service.
+    in-out property <bool> key-saved;
+    // Why the saved key can't be used ("" if it can): enter it again.
+    in property <string> key-problem;
+    in-out property <bool> key-busy;
+    in-out property <float> video-bitrate;
+    in-out property <string> rate-control;
+    in-out property <string> audio-bitrate;
+    in-out property <float> keyframe-interval;
+    // The stream has its own size (else the canvas, scaled to fit 1080p).
+    in-out property <bool> stream-custom-size;
+    in-out property <float> stream-width;
+    in-out property <float> stream-height;
+    callback choose-service(string);
+    callback server-chosen(string);
+    // A server address the setup can use (rtmp:// or rtmps://, host and
+    // app).
+    pure callback server-valid(string) -> bool;
+    callback server-back();
+    callback save-key(string);
+    callback clear-key();
+    // The destinations, the main one ([stream] itself) first; the one
+    // `destination` names is open below its row, and the Service, Server
+    // and Stream Key rows above are its. Adding one shows the services.
+    in-out property <[DestinationRow]> destinations;
+    in-out property <string> destination: "main";
+    in-out property <bool> adding-destination;
+    // The open destination streams now (it can't be removed).
+    in-out property <bool> destination-live;
+    // An added destination's own bitrate and size (else the main one's).
+    in-out property <bool> destination-own-bitrate;
+    in-out property <float> destination-bitrate;
+    in-out property <bool> destination-own-size;
+    in-out property <float> destination-width;
+    in-out property <float> destination-height;
+    callback select-destination(string);
+    callback add-destination();
+    callback remove-destination();
+    callback set-destination-enabled(string, bool);
+
+    // ---- Output
+    in-out property <string> folder;
+    // The same shortened in the middle, for the field at rest.
+    in property <string> folder-short;
+    // Recording Quality: the stop it is exactly (-1: Custom: none of the
+    // segments is chosen), and whether it can be chosen (not for ProRes).
+    in-out property <int> quality-stop: 2;
+    // Where a Custom quality sits among the stops (1.5: between Medium and
+    // High), so → and ← go to the next stop that way.
+    in-out property <float> quality-position: -1;
+    in-out property <bool> quality-disabled;
+    // Output's Advanced disclosure (each one's quality number) is open.
+    in-out property <bool> quality-advanced;
+    // The Advanced row's "Quality value" ("60"; "60 · ISO 50" when they
+    // differ; "Fixed" for ProRes).
+    in-out property <string> quality-value;
+    in-out property <float> program-quality;
+    in-out property <float> iso-quality;
+    in-out property <float> keep-free;
+    // The replay buffer's length (s) and memory limit (MB).
+    in-out property <float> replay-seconds: 30;
+    in-out property <float> replay-memory: 1024;
+    in-out property <bool> program-on;
+    in-out property <string> program-codec;
+    in-out property <string> program-container;
+    in-out property <string> program-depth;
+    in-out property <bool> program-shows-depth;
+    in-out property <bool> iso-on;
+    in-out property <[IsoChoice]> iso-sources;
+    in-out property <string> iso-codec;
+    in-out property <string> iso-container;
+    // Colour Depth ("8", "10"): every ISO file's without one of its own
+    // (a source's Properties); whether this codec and engine take 10,
+    // and why not.
+    in-out property <string> iso-depth;
+    in-out property <bool> iso-shows-depth;
+    in-out property <bool> iso-ten-ok: true;
+    in-out property <string> iso-depth-note;
+    in-out property <bool> iso-filtered;
+    in-out property <[DropdownOption]> codecs;
+    callback browse-folder();
+    callback choose-quality(int);
+    callback set-iso-source(string, bool);
+    // An ISO file's audio (source, audio source or "default").
+    callback set-iso-audio(string, string);
+
+    // ---- Audio
+    in-out property <[MicRow]> mics;
+    in-out property <string> monitoring-device;
+    in-out property <[DropdownOption]> outputs;
+    in-out property <string> pan-law;
+    in-out property <[DropdownOption]> pan-laws;
+    // Looking for devices again.
+    in-out property <bool> looking;
+    callback set-mic(string, string);
+    callback refresh-devices();
+
+    // ---- Video
+    in-out property <string> canvas-size;
+    in-out property <[DropdownOption]> canvas-sizes;
+    in-out property <float> canvas-width;
+    in-out property <float> canvas-height;
+    in-out property <string> fps;
+    in-out property <[DropdownOption]> fps-options;
+    // The vertical canvas (#86): on, its size, whether it follows the
+    // main canvas's scenes, and whether recordings write it too.
+    in-out property <bool> vertical-on;
+    in-out property <float> vertical-width: 1080;
+    in-out property <float> vertical-height: 1920;
+    in-out property <bool> vertical-follow: true;
+    in-out property <bool> vertical-record;
+    // Canvases besides the main one (#84): the vertical canvas and the
+    // setup's [[canvases]], as rows (id, label, summary). `edit-canvas` is
+    // the open one (its id; "" for none); the vertical-* fields above are
+    // its.
+    in-out property <[DropdownOption]> canvas-rows;
+    in-out property <string> edit-canvas;
+    in-out property <string> canvas-fps: "main";
+    in-out property <[DropdownOption]> canvas-fps-options;
+    in-out property <[DropdownOption]> canvas-presets;
+
+    // Recording now: scene linking keeps until it stops (#96).
+    in-out property <bool> recording;
+
+    // ---- Hotkeys: the profile's bindings by action group (they apply at
+    // once, through hotkeys_set), then Isocast's fixed keys.
+    in-out property <[BindingGroup]> bindings;
+    // Loading, or why the bindings can't be shown; the profile's own
+    // warnings (disabled entries, Input Monitoring for media keys).
+    in-out property <string> bindings-note;
+    in-out property <[string]> bindings-warnings;
+    // A change is on its way.
+    in-out property <bool> bindings-busy;
+    in-out property <[HotkeyGroup]> hotkeys;
+    // Record a chord for the row, clear it, stop recording.
+    callback record-binding(string);
+    callback clear-binding(string);
+    callback cancel-binding();
+
+    // ---- Help > Report a Bug… (dialog "bug-report"): what happened, the
+    // report's ISSUE.md (summary and triage block) and its files exactly
+    // as they will be shared, then the zip once written. Nothing is sent
+    // until Send Report.
+    in-out property <string> report-describe;
+    // ISSUE.md as it is (for screen readers), wrapped to the well's 84
+    // columns, and its line count.
+    in-out property <string> report-issue-text;
+    in-out property <string> report-issue;
+    in-out property <int> report-issue-lines;
+    in-out property <[ReportFileRow]> report-files;
+    in-out property <string> report-files-summary;
+    in-out property <string> report-archive;
+    // The issue page was opened and the triage block copied: say to paste.
+    in-out property <bool> report-copied;
+    in-out property <bool> report-busy;
+    in-out property <string> report-error;
+    // Send Report: posting it, then the issue it made (or added to).
+    in-out property <bool> report-sending;
+    in-out property <string> report-issue-url;
+    // Send Report failed: the zip is saved, and Retry Send is the main action.
+    in-out property <bool> report-send-failed;
+    callback report-preview();
+    callback report-create();
+    callback report-send();
+    callback report-open-issue();
+    callback report-reveal();
+    // Report a Bug… from a failure: its title and text fill "What happened".
+    callback report-open(/* title */ string, /* detail */ string);
+
+    // ---- Advanced
+    in-out property <bool> reconnect-on;
+    in-out property <float> reconnect-delay;
+    in-out property <float> reconnect-retries;
+    // Developer mode (the profile's `developer`).
+    in-out property <bool> developer-on;
+    in-out property <bool> developer-auto-off;
+    // "Turn Off After 24 Hours", or the profile's own hours.
+    in-out property <string> developer-auto-off-label: "Turn Off After 24 Hours";
+    // Automatic quality (the setup's `governor`, T.2): on unless turned
+    // off, and what it may never lower (its pins, by field path, changed
+    // through `set-flag("pin:PATH", on)`): the preview's refresh, every
+    // ISO file's frame rate or one source's, the vertical canvas's frame
+    // rate and the stream's bitrate.
+    in-out property <bool> governor-on: true;
+    // The user's explicit choice to let it skip ISO pictures under
+    // pressure (`governor.allow_iso_thinning`, off by default). Off, ISO
+    // files are never thinned by it, so the ISO pins only matter when on.
+    in-out property <bool> iso-thinning;
+    in-out property <bool> pin-preview;
+    in-out property <bool> pin-iso;
+    in-out property <bool> pin-vertical;
+    in-out property <bool> pin-stream;
+    // The ISO files recorded now, each kept at its frame rate when `on`
+    // (`id` is the source's).
+    in-out property <[IsoTrack]> pin-iso-sources;
+    // What it is doing now, in plain words ("" while nothing is lowered).
+    in-out property <string> governor-now;
+
+    // ---- Welcome (no setup yet) and the failed state
+    // Which choice is working ("obs", "file"; "" for none).
+    in-out property <string> welcome-busy;
+    callback start-with-this-mac();
+    callback open-setup-file();
+    callback import-obs();
+    callback retry();
+
+    // ---- The first run (Ui.onboarding shows it)
+    in-out property <int> step;
+    // The first step (permissions) is part of this run: always on macOS;
+    // on Windows only when a privacy switch blocks the camera or mic.
+    in-out property <bool> ob-access: true;
+    in-out property <string> ob-linux-hint;
+    // The doctor's own words behind the hint's Details ("" for none).
+    in-out property <string> ob-linux-details;
+    in-out property <string> ob-codec-hint;
+    // An X11 session: Isocast's own picker asks for the screen, not the
+    // desktop's sharing dialog.
+    in-out property <bool> ob-x11;
+    in-out property <bool> ob-pipewire-unavailable;
+    // A live setup exists: the first run can be closed.
+    in-out property <bool> can-close;
+    in-out property <bool> creating;
+    // Devices: listed at least once.
+    in-out property <bool> devices-listed;
+    in-out property <[DeviceChoice]> displays;
+    in-out property <string> displays-empty;
+    in-out property <[DeviceChoice]> cameras;
+    in-out property <[DeviceChoice]> microphones;
+    in-out property <string> display;
+    in-out property <string> camera;
+    in-out property <string> microphone;
+    in-out property <bool> system-audio: true;
+    // Layout.
+    in-out property <string> layout: "bottom_right";
+    in-out property <string> ob-canvas: "1920x1080";
+    in-out property <string> ob-fps: "60";
+    in-out property <string> ob-folder: PlatformText.engine-windows ? "~/Videos/Isocast" : "~/Movies/Isocast";
+    in-out property <string> ob-name: "My setup";
+    callback ob-close();
+    callback ob-back();
+    callback ob-next();
+    callback ob-create();
+    // A choice: the field ("display", "camera", "microphone",
+    // "system_audio", "layout", "canvas", "fps", "folder", "name") and
+    // its value.
+    callback ob-set(string, string);
+    callback ob-browse();
+}

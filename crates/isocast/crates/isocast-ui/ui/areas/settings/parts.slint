@@ -1,0 +1,68 @@
+// Pieces only Settings uses, built from the kit's grouped rows (Paper's
+// Settings sheet): a page's column, a group (its heading with the reset
+// glyph, its rows, its caption), a control centred in its row, and a
+// shortcut's keys.
+
+import { Theme } from "../../theme.slint";
+import { GroupHeading, GroupHint, Kbd, RowGroup } from "../../kit.slint";
+
+// A page's column under the sheet's header: 24px at the sides, groups
+// 10px apart, 20px below the last.
+export component SetPage inherits VerticalLayout {
+    padding-left: Theme.sheet-pad-wide;
+    padding-right: Theme.sheet-pad-wide;
+    padding-bottom: Theme.space-5;
+    spacing: 10px;
+    alignment: start;
+}
+
+// A group: its 32px heading (with the reset glyph when `resettable`), its
+// rows 1px apart (GroupRows, their `place` set by the caller), and its
+// caption 6px under them.
+export component SetGroup inherits VerticalLayout {
+    in property <string> title;
+    in property <string> hint;
+    in property <bool> resettable;
+    in property <string> reset-label;
+    callback reset();
+    spacing: 0;
+
+    if root.title != "": GroupHeading {
+        title: root.title;
+        resettable: root.resettable;
+        reset-label: root.reset-label;
+        reset => { root.reset(); }
+    }
+    RowGroup {
+        @children
+    }
+    if root.hint != "": GroupHint {
+        text: root.hint;
+    }
+}
+
+// A control in the middle of its 30px row (a layout puts a shorter item
+// at the top of its row).
+export component Centred inherits VerticalLayout {
+    alignment: center;
+}
+
+// A shortcut's keys on the right of its row ("–" between two is a range).
+export component ShortcutKeys inherits HorizontalLayout {
+    in property <[string]> keys;
+    spacing: Theme.space-1;
+    alignment: end;
+    for key in root.keys: VerticalLayout {
+        alignment: center;
+        if key == "–": Text {
+            text: "–";
+            color: Theme.text-3;
+            font-size: Theme.fs-xs;
+            letter-spacing: Theme.tracking-xs;
+            accessible-role: none;
+        }
+        if key != "–": Kbd {
+            text: key;
+        }
+    }
+}

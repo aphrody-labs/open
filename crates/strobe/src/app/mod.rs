@@ -1,0 +1,493 @@
+//! Commands: orchestration only. Each returns an `Output` that the CLI prints and MCP returns (SPEC §17).
+
+pub mod bench;
+pub mod bisect;
+pub mod card;
+pub mod config;
+pub mod family;
+pub mod fmt;
+pub mod helper;
+pub mod history;
+pub mod init;
+pub mod look;
+pub mod mcp;
+pub mod obstruction;
+pub mod open;
+pub mod outside;
+pub mod pr;
+pub mod prune;
+pub mod query;
+pub mod record;
+pub mod report;
+pub mod run;
+pub mod statcheck;
+pub mod status;
+pub mod top;
+pub mod track;
+pub mod up;
+pub mod update;
+pub mod video;
+
+use crate::cli::{Args, HELP};
+use crate::host;
+use crate::model::{Error, Result};
+use serde_json::{Value, json};
+use std::path::{Path, PathBuf};
+
+/// What a command produced: text for people and models, JSON for `--json` and MCP.
+pub struct Output {
+    pub text: String,
+    pub json: Value,
+    pub code: i32,
+}
+
+impl Output {
+    pub fn new(text: String, json: Value) -> Output {
+        Output { text, json, code: 0 }
+    }
+}
+
+pub fn main() -> i32 {
+    let code = cli_main();
+    // Killing the foreground command can wake the main thread before the stop worker finishes.
+    // Join the same serialized cleanup rather than exiting over its sweep or its report.
+    #[cfg(unix)]
+    if host::STOP_NOW.load(std::sync::atomic::Ordering::SeqCst) {
+        crate::target::isolate::exit_on_stop(None, None);
+    }
+    code
+}
+
+fn cli_main() -> i32 {
+    if let Some(code) = crate::host::answer_query() {
+        return code;
+    }
+    let args = match Args::parse(std::env::args().skip(1).collect()) {
+        Ok(a) => a,
+        Err(e) => return fail(&e, false),
+    };
+    if let Err(e) = progress_mode(&args) {
+        return fail(&e, args.json());
+    }
+    if args.has("version") {
+        // `update` reads the version as the second word; the commit and build tell local builds apart.
+        let commit = env!("STROBE_COMMIT");
+        println!("strobe {} ({}build {})", env!("CARGO_PKG_VERSION"), if commit.is_empty() { String::new() } else { format!("{commit}, ") }, mcp::build_id());
+        return 0;
+    }
+    if args.command.is_empty() || (args.has("help") && args.command.is_empty()) {
+        print!("{HELP}");
+        return 0;
+    }
+    let result = dispatch(&args);
+    match result {
+        Ok(out) => {
+            if args.json() {
+                println!("{}", serde_json::to_string_pretty(&out.json).unwrap_or_default());
+            } else if !args.has("quiet") || out.json["markdown"].is_string() {
+                // A report's Markdown is its output, quiet or not: quiet silences only the stderr line.
+                print!("{}", out.text);
+                if !out.text.ends_with('\n') {
+                    println!();
+                }
+            } else {
+                // Quiet: stdout is only the handles (a script reads them to query the run); a command that
+                // did not succeed says why on stderr.
+                let made = handles(&out.json);
+                for h in &made {
+                    println!("{h}");
+                }
+                // What strobe left alone is said under -q too, once, on stderr after why the command
+                // failed (stdout stays the handles); the failure is judged from the text before it.
+                let (text, left) = out.text.find(host::spawn::LEFT_ALONE_HEADER).map_or((out.text.as_str(), ""), |i| out.text.split_at(i));
+                if out.code != 0 {
+                    let why = if made.is_empty() { text.trim_end().to_string() } else { failure_summary(&out.json, text) };
+                    if !why.is_empty() {
+                        eprintln!("{why}");
+                    }
+                }
+                eprint!("{left}");
+            }
+            out.code
+        }
+        Err(e) => fail(&e, args.json()),
+    }
+}
+
+/// The recordings and experiments a command made: its `id` (`rec_…`, `exp_…`), or `record --bench`'s
+/// recordings.
+fn handles(out: &Value) -> Vec<String> {
+    let made = |v: &Value| v.as_str().filter(|s| s.starts_with("rec_") || s.starts_with("exp_")).map(str::to_string);
+    let mut out_ids: Vec<String> = made(&out["id"]).into_iter().collect();
+    out_ids.extend(out["recordings"].as_array().into_iter().flatten().filter_map(|r| made(&r["recording"])));
+    out_ids
+}
+
+/// Why a command that made a recording or experiment exited non-zero, for `-q`'s stderr, from its JSON
+/// and its text without what strobe left alone: what halted it, else its failed cases (a `FAIL` line and the indented lines under it), else its last line.
+fn failure_summary(json: &Value, text: &str) -> String {
+    if let Some(why) = json["stopped"]["why"].as_str() {
+        return format!("strobe: {why}");
+    }
+    let mut failed = Vec::new();
+    let mut taking = false;
+    for l in text.lines() {
+        if l.starts_with("FAIL") {
+            taking = true;
+        } else if !l.starts_with(' ') {
+            taking = false;
+        }
+        if taking {
+            failed.push(l);
+        }
+    }
+    if failed.is_empty() { text.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("").to_string() } else { failed.join("\n") }
+}
+
+/// Runs one invocation (the CLI's, an MCP call's, a command a command runs). The outermost one on its
+/// thread reports what strobe left alone while it ran (`host::spawn::left_alone`: a process it could
+/// not prove its own, a record it kept): one line per process at the end of the text, and
+/// `left_alone` in the JSON (absent when there is none).
+pub fn dispatch(args: &Args) -> Result<Output> {
+    let left = host::spawn::left_scope();
+    let out = run(args);
+    if !left.outermost() {
+        return out;
+    }
+    let notes = left.take();
+    if notes.is_empty() {
+        return out;
+    }
+    let field = serde_json::to_value(&notes).unwrap_or(Value::Null);
+    let text = host::spawn::left_alone_text(&notes);
+    match out {
+        Ok(mut o) => {
+            if !o.text.is_empty() && !o.text.ends_with('\n') {
+                o.text.push('\n');
+            }
+            o.text.push_str(&text);
+            match &mut o.json {
+                Value::Object(m) => {
+                    m.insert("left_alone".into(), field);
+                }
+                Value::Null => o.json = json!({ "left_alone": field }),
+                _ => {}
+            }
+            Ok(o)
+        }
+        Err(mut e) => {
+            e.message = format!("{}\n{}", e.message, text.trim_end());
+            e.left_alone = Some(Box::new(field));
+            Err(e)
+        }
+    }
+}
+
+fn run(args: &Args) -> Result<Output> {
+    if args.has("help") {
+        let help = crate::cli::help(&args.command);
+        return Ok(Output::new(help.clone(), json!({ "help": help })));
+    }
+    if !crate::cli::COMMANDS.contains(&args.command.as_str()) {
+        return Err(Error::usage(format!("unknown command {}; see strobe --help", args.command)));
+    }
+    // A flag of another command: refused before anything runs, from the CLI and MCP alike.
+    args.check_command()?;
+    // This invocation's unit for times: an MCP call's own on its thread (never the process's, which
+    // the daemon's other calls share); a command a command runs (a bisect's step, `record --bench`'s
+    // bench) keeps the one it runs in unless it names one.
+    let unit = match (args.get("unit"), crate::fmt::scoped()) {
+        (None, Some(c)) => c.unit,
+        _ => time_unit(args)?,
+    };
+    // `--json` is for programs: its bytes never depend on a display choice, so its prose fields
+    // (`text`, `says`, insights' titles) print in µs and UTF-8 whatever `--unit`, strobe.json or the
+    // locale say. Not a report's: its `markdown` is the file it wrote, in the unit asked for.
+    let fixed = args.json() && args.command != "report";
+    let unit = if fixed { crate::fmt::TimeUnit::default() } else { unit };
+    // The CLI's own command (the main thread) sets the process's too, so the threads it starts print
+    // alike. A report's files (Markdown, HTML, images) and the MCP servers' answers are UTF-8 whatever
+    // the terminal is.
+    let main = std::thread::current().name() == Some("main");
+    let ascii = main && !fixed && crate::fmt::ascii_locale() && !matches!(args.command.as_str(), "report" | "mcp" | "daemon");
+    let fmt_ctx = crate::fmt::FmtCtx { unit, ascii: crate::fmt::scoped().map_or(ascii, |c| c.ascii) && args.command != "report" };
+    if main && crate::fmt::scoped().is_none() {
+        crate::fmt::set_default(fmt_ctx);
+    }
+    let _fmt = crate::fmt::scope(fmt_ctx);
+    // Strictly read-only: it puts nothing back and makes no state folder.
+    if args.command == "config" {
+        return config::run(args);
+    }
+    // Writes the project's first files and nothing of strobe's own.
+    if args.command == "init" {
+        return init::run(args);
+    }
+    if args.command == "stats" {
+        return statcheck::run(args);
+    }
+    // A strobe killed mid-run left the user on its power plan: put theirs back first. Not from a
+    // command that only reads strobe's own files: a bench runs those as its commands, and they would
+    // read the bench's journal on every launch; the next command that measures puts it back.
+    if !matches!(args.command.as_str(), "query" | "report" | "history" | "plan" | "status" | "prune") {
+        crate::host::power::restore_stale();
+    }
+    // And the CPU sets of processes it moved off a timed block's CPUs (`--reserve-cpus`).
+    crate::host::reserve::restore_stale();
+    // And a phone's stay-awake setting and tunnels (free when no journal is there).
+    crate::host::adb::restore_stale();
+    // The cycle clock's check pins a thread to every CPU: before a bench narrows strobe's affinity
+    // and before any measured window opens.
+    if matches!(args.command.as_str(), "record" | "bench" | "run" | "status" | "top" | "track" | "mcp" | "daemon") {
+        crate::host::warm_cycle_clock();
+    }
+    let out = match args.command.as_str() {
+        "record" => record::run(args),
+        "bench" => bench::run(args),
+        "plan" => bench::plan::run(args),
+        "query" => query::run(args),
+        "report" => report::run(args),
+        "open" => open::run(args),
+        "look" => look::run(args),
+        "run" => run::run(args),
+        "status" => status::run(args),
+        "top" => top::run(args),
+        "track" => track::run(args),
+        "history" => history::run(args),
+        "prune" => prune::run(args),
+        "up" => up::run(args),
+        "update" => update::run(args),
+        "leave" => up::leave(args),
+        "helper" => helper::run(args),
+        "mcp" => mcp::stdio().map(|_| Output::new(String::new(), Value::Null)),
+        "daemon" => mcp::daemon(args).map(|_| Output::new(String::new(), Value::Null)),
+        other => Err(Error::usage(format!("unknown command {other}; see strobe --help"))),
+    };
+    // Caches unused for long go once a day, after the bench is done: nothing is measured any more
+    // (SPEC §5.14). The daemon does it on its own clock.
+    // Only after one that ran benches and succeeded: not a schedule made, listed or dropped, a stop
+    // asked, a plan.
+    if matches!(args.command.as_str(), "bench" | "track" | "run")
+        && out.as_ref().is_ok_and(|o| o.code == 0)
+        && !in_daemon()
+        && !["stop", "plan", "schedule", "schedules", "unschedule"].iter().any(|f| args.has(f))
+        && let Some(line) = prune::auto()
+    {
+        progress(line);
+    }
+    out
+}
+
+/// The unit a command prints times in: `--unit`, else `"unit"` in the nearest strobe.json above the
+/// project the command is about (`project_of`), else above the working folder, else the user's own,
+/// else µs. A command that prints no time takes none.
+fn time_unit(args: &Args) -> Result<crate::fmt::TimeUnit> {
+    if let Some(u) = args.get("unit") {
+        return crate::fmt::TimeUnit::parse(u).ok_or_else(|| Error::usage(format!("--unit is us, ms or s, not {u}")));
+    }
+    if !crate::cli::takes(&args.command, "unit") || args.has("help") {
+        return Ok(crate::fmt::TimeUnit::default());
+    }
+    let cwd = std::env::current_dir().unwrap_or_default();
+    // A strobe.json that is a regular file there (not followed through a link).
+    let nearest = |d: &Path| d.ancestors().find(|a| crate::store::regular(&a.join("strobe.json"))).map(Path::to_path_buf);
+    // The user's own file is read after the root's (`config::unit`): a root without one falls to it.
+    let root = nearest(project_of(args).as_deref().unwrap_or(&cwd));
+    Ok(crate::config::unit(root.as_deref())?.unwrap_or_default())
+}
+
+/// The folder of the project a command is about, when it names one: a bench file (`bench`, `plan`,
+/// `track`, `record --bench`), or the bench file an experiment ran (`query`, `report` of an `exp_…` or
+/// of a result.json's path). Through the daemon, whose working folder is strobe's own, this is how a
+/// project's `"unit"` is found at all.
+fn project_of(args: &Args) -> Option<PathBuf> {
+    let file_dir = |f: &str| {
+        let p = Path::new(f.split('#').next().unwrap_or(f));
+        p.is_file().then(|| std::path::absolute(p).ok()?.parent().map(Path::to_path_buf)).flatten()
+    };
+    match args.command.as_str() {
+        "bench" | "plan" | "track" => args.pos.first().and_then(|f| file_dir(f)),
+        "record" => args.get("bench").and_then(file_dir),
+        "query" | "report" => {
+            let handle = args.pos.iter().find(|p| !matches!(p.as_str(), "experiment" | "recording" | "history"))?;
+            // A result or recording named by its path: the project is above a recording's or a result's
+            // folder, never that folder (no project root, and nothing in it is read before `query::by_path`
+            // checks it); a result.json named alone, its own folder. What it says its bench file was is not
+            // followed. An id: the bench file its stored result ran.
+            let p = Path::new(handle);
+            if p.is_file() {
+                // A meta.json's folder is a recording's; a result.json named alone may lie in its project.
+                let dir = std::path::absolute(p).ok()?.parent()?.to_path_buf();
+                return if p.file_name().is_some_and(|n| n == "meta.json") { dir.parent().map(Path::to_path_buf) } else { Some(dir) };
+            }
+            if p.is_dir() && (p.join("result.json").is_file() || p.join("meta.json").is_file()) {
+                return std::path::absolute(p).ok()?.parent().map(Path::to_path_buf);
+            }
+            let dir = crate::store::find(handle.split("..").next().unwrap_or(handle)).ok().filter(|d| crate::store::is_experiment(d))?;
+            crate::store::read_json(&dir.join("result.json")).ok()?["file"].as_str().and_then(file_dir)
+        }
+        _ => None,
+    }
+}
+
+fn fail(e: &Error, json: bool) -> i32 {
+    if json {
+        let mut j = json!({ "error": e.message, "hint": e.hint, "code": e.code, "validator": e.validator() });
+        if let Some(rows) = &e.recording_errors {
+            j["recording_errors"] = (**rows).clone();
+        }
+        if let Some(l) = &e.left_alone {
+            j["left_alone"] = (**l).clone();
+        }
+        println!("{j}");
+    } else {
+        eprintln!("strobe: {}", e.message);
+        if let Some(h) = &e.hint {
+            eprintln!("  fix: {h}");
+        }
+    }
+    e.code
+}
+
+/// One invocation's progress log and stop requests. The daemon runs several invocations at once, each
+/// on its own thread (an MCP call), so neither is process-wide. Invocations nest (a bisect's steps, a
+/// track's benches, `record --bench`): the innermost one's log gets the progress lines, and a stop asked
+/// of any enclosing one stops it too.
+#[derive(Clone, Default)]
+struct RunScope {
+    progress: Option<PathBuf>,
+    stops: Vec<PathBuf>,
+}
+
+thread_local! {
+    static SCOPE: std::cell::RefCell<RunScope> = std::cell::RefCell::new(RunScope::default());
+}
+
+/// An entered scope; dropping it puts the enclosing one back, and lets go of the caches the
+/// experiment kept (`host::cache::keep`: its seed copies and GPU cache stores).
+pub struct Scope(Option<RunScope>, #[allow(dead_code)] host::cache::Scope);
+
+impl Drop for Scope {
+    fn drop(&mut self) {
+        if let Some(prev) = self.0.take() {
+            SCOPE.with(|s| *s.borrow_mut() = prev);
+        }
+    }
+}
+
+/// Enters an experiment's scope on this thread: progress lines also go to `<dir>/progress.log`, and
+/// `<dir>/stop` (`strobe bench --stop`) stops it. A stop file an earlier run of it left is removed first.
+pub fn experiment_scope(dir: &Path) -> Scope {
+    let _ = std::fs::remove_file(dir.join("stop"));
+    // Outside the daemon, from here a Ctrl-C stops the experiment instead of ending strobe.
+    if !in_daemon() {
+        host::ctrl_c();
+    }
+    SCOPE.with(|s| {
+        let mut s = s.borrow_mut();
+        let prev = s.clone();
+        s.progress = Some(dir.join("progress.log"));
+        s.stops.push(dir.join("stop"));
+        Scope(Some(prev), host::cache::scope())
+    })
+}
+
+static DAEMON: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// No progress on stderr or stdout: the MCP servers (stdio carries JSON-RPC; the daemon has no
+/// console). An invocation's progress log still gets every line.
+static QUIET: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// Whether this process is the daemon (`strobe daemon`), which runs MCP calls' benches.
+pub fn in_daemon() -> bool {
+    DAEMON.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+/// Whether this invocation should stop once the block that runs ends: `strobe bench --stop` of it or
+/// of an enclosing experiment, or (outside the daemon, where one process is one invocation) Ctrl-C,
+/// SIGINT or SIGTERM. Waits (a locked session, the slot, busy CPUs) end at once. The daemon never
+/// installs a signal handler: a SIGTERM ends it as the signal would.
+pub fn stop_requested() -> bool {
+    (!in_daemon() && host::ctrl_c().load(std::sync::atomic::Ordering::SeqCst)) || SCOPE.with(|s| s.borrow().stops.iter().any(|p| p.exists()))
+}
+
+pub fn stop_error() -> Error {
+    Error::new(130, "stopped (Ctrl-C, SIGTERM or strobe bench --stop)").hint("strobe bench --resume <exp> runs what is left")
+}
+
+/// A bench that ended before it finished, with what it finished written (a stop: exit 130; its
+/// `--unlock-wait` ran out: exit 124), as that error, for callers that run several (track, bisect):
+/// they must not read its partial result as an answer, and a stop ends them too.
+pub fn unless_halted(out: Output) -> Result<Output> {
+    match out.code {
+        130 => Err(stop_error()),
+        124 => {
+            // Typed by the validator whose state the bench waited out, as its result keeps it, so
+            // bisect, track and MCP say which one.
+            let why = out.json["stopped"]["why"].as_str().unwrap_or("the bench ended before it finished");
+            let validator = out.json["stopped"]["validator"].as_str().and_then(crate::model::ValidatorId::from_name);
+            let e = match validator {
+                Some(v) => Error::timeout_refused(crate::model::Refusal::new(v, why.strip_prefix(&format!("{v}: ")).unwrap_or(why))),
+                None => Error::timeout(why),
+            };
+            Err(match out.json["id"].as_str() {
+                Some(id) => e.hint(format!("strobe bench --resume {id} goes on")),
+                None => e,
+            })
+        }
+        _ => Ok(out),
+    }
+}
+
+/// Where progress lines go (`--progress`, else `STROBE_PROGRESS`): `stderr` (default), `stdout` or `off`.
+static PROGRESS: std::sync::OnceLock<&'static str> = std::sync::OnceLock::new();
+
+fn progress_mode(args: &Args) -> Result<()> {
+    let mode = match args.get("progress").map(str::to_string).or_else(|| std::env::var("STROBE_PROGRESS").ok()).as_deref() {
+        // `-q`: no progress either, unless `--progress` asks for it.
+        _ if args.has("quiet") && args.get("progress").is_none() => "off",
+        None | Some("stderr") => "stderr",
+        // Never into `--json` output: one document on stdout.
+        Some("stdout") if args.json() => "off",
+        Some("stdout") => "stdout",
+        Some("off") => "off",
+        Some(other) => return Err(Error::usage(format!("--progress is stderr, stdout or off, not {other}"))),
+    };
+    let _ = PROGRESS.set(mode);
+    Ok(())
+}
+
+/// Progress lines for long commands go to stderr so stdout stays the result; `--progress stdout`
+/// for shells that count any stderr line as a failure (Windows PowerShell 5.1 with `2>&1` or `*>`
+/// sets `$?` to false, and `powershell -Command` then exits 1, while strobe's own exit code,
+/// `$LASTEXITCODE`, is 0).
+pub fn progress(msg: impl AsRef<str>) {
+    print_progress(msg.as_ref());
+    if let Some(p) = SCOPE.with(|s| s.borrow().progress.clone())
+        && let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(p)
+    {
+        use std::io::Write;
+        let _ = writeln!(f, "{}", msg.as_ref());
+    }
+}
+
+/// Terminal only. Unlike `progress`, never copy this diagnostic to the experiment log.
+pub(crate) fn live_progress(msg: impl AsRef<str>) {
+    use std::io::IsTerminal;
+    if match *PROGRESS.get().unwrap_or(&"stderr") {
+        "stdout" => std::io::stdout().is_terminal(),
+        "off" => false,
+        _ => std::io::stderr().is_terminal(),
+    } {
+        print_progress(msg);
+    }
+}
+
+fn print_progress(msg: impl AsRef<str>) {
+    match *PROGRESS.get().unwrap_or(&"stderr") {
+        "off" => {}
+        _ if QUIET.load(std::sync::atomic::Ordering::Relaxed) => {}
+        "stdout" => println!("{}", msg.as_ref()),
+        _ => eprintln!("{}", msg.as_ref()),
+    }
+}

@@ -1,0 +1,1224 @@
+//! Encoders for streaming: H.264 with a VTCompressionSession (real time,
+//! on the media engines) and AAC-LC with an AudioToolbox AudioConverter.
+//! The engine wraps what they make in FLV and sends it over RTMP. The same
+//! H.264 encoder, in its low-latency form, makes monitors' video.
+
+use std::collections::VecDeque;
+use std::ffi::c_void;
+use std::mem::size_of;
+use std::ptr::{self, NonNull};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Condvar, Mutex, Weak};
+use std::thread;
+use std::time::{Duration, Instant};
+
+use anyhow::{Context, Result, anyhow, bail};
+use isocast_engine::{
+    AudioEncoder, EncodedVideo, LiveAudioSpec, LiveVideoSpec, ParameterSets, SAMPLE_RATE, Time,
+    VideoEncoder,
+};
+use isocast_protocol::api::H264Profile;
+use objc2_audio_toolbox::{
+    AudioConverterDispose, AudioConverterFillComplexBuffer, AudioConverterGetProperty,
+    AudioConverterNew, AudioConverterPrimeInfo, AudioConverterRef, AudioConverterSetProperty,
+    kAudioCodecBitRateControlMode_Constant, kAudioCodecPropertyBitRateControlMode,
+    kAudioConverterEncodeBitRate, kAudioConverterPrimeInfo,
+    kAudioConverterPropertyMaximumOutputPacketSize,
+};
+use objc2_core_audio_types::{
+    AudioBuffer, AudioBufferList, AudioStreamBasicDescription, AudioStreamPacketDescription,
+    MPEG4ObjectID, kAudioFormatFlagIsFloat, kAudioFormatFlagIsPacked, kAudioFormatLinearPCM,
+    kAudioFormatMPEG4AAC,
+};
+use objc2_core_foundation::{
+    CFArray, CFBoolean, CFDictionary, CFNumber, CFRetained, CFString, CFType,
+};
+use objc2_core_media::{
+    CMFormatDescription, CMSampleBuffer, CMTime, CMTimeFlags,
+    CMVideoFormatDescriptionGetH264ParameterSetAtIndex, kCMSampleAttachmentKey_NotSync,
+    kCMVideoCodecType_H264,
+};
+use objc2_core_video::{
+    kCVImageBufferColorPrimaries_ITU_R_709_2, kCVImageBufferTransferFunction_ITU_R_709_2,
+    kCVImageBufferYCbCrMatrix_ITU_R_709_2,
+};
+use objc2_video_toolbox::{
+    VTCompressionSession, VTEncodeInfoFlags, VTSessionSetProperty,
+    kVTCompressionPropertyKey_AllowFrameReordering, kVTCompressionPropertyKey_AverageBitRate,
+    kVTCompressionPropertyKey_BaseLayerFrameRateFraction, kVTCompressionPropertyKey_ColorPrimaries,
+    kVTCompressionPropertyKey_ConstantBitRate, kVTCompressionPropertyKey_DataRateLimits,
+    kVTCompressionPropertyKey_ExpectedFrameRate, kVTCompressionPropertyKey_H264EntropyMode,
+    kVTCompressionPropertyKey_MaxKeyFrameInterval,
+    kVTCompressionPropertyKey_MaxKeyFrameIntervalDuration,
+    kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality,
+    kVTCompressionPropertyKey_ProfileLevel, kVTCompressionPropertyKey_RealTime,
+    kVTCompressionPropertyKey_TransferFunction, kVTCompressionPropertyKey_YCbCrMatrix,
+    kVTEncodeFrameOptionKey_ForceKeyFrame, kVTH264EntropyMode_CABAC, kVTH264EntropyMode_CAVLC,
+    kVTProfileLevel_H264_ConstrainedBaseline_AutoLevel,
+    kVTProfileLevel_H264_ConstrainedHigh_AutoLevel, kVTProfileLevel_H264_High_AutoLevel,
+    kVTVideoEncoderSpecification_EnableHardwareAcceleratedVideoEncoder,
+    kVTVideoEncoderSpecification_EnableLowLatencyRateControl,
+    kVTVideoEncoderSpecification_RequireHardwareAcceleratedVideoEncoder,
+};
+
+use crate::writer::{
+    EncoderPressure, cancel_encoder_start, claim_encoder_start, encoder_start_rank,
+    request_encoder_start,
+};
+use crate::{PixelBuffer, from_cm_time};
+
+/// Nanoseconds: frame times go to the encoder exactly as the engine has
+/// them.
+const TIMESCALE: i32 = 1_000_000_000;
+/// Frames submitted to the encoder at once. Monitors discard at this
+/// limit; streams wait on their own worker, with a bounded tap backlog.
+const MAX_IN_FLIGHT: u64 = 8;
+/// Wait only on a stream's private encoder thread when its hardware stalls.
+/// The program tap absorbs the backlog; monitors still discard stale frames.
+const STALL_WAIT: Duration = Duration::from_millis(400);
+
+/// A live H.264 encoder: High profile (or Constrained Baseline when the
+/// spec asks), no B-frames (decode order is
+/// presentation order, so FLV needs no composition offsets), bitrate held
+/// to the target each second, keyframes when the engine asks.
+pub struct H264Encoder {
+    session: CFRetained<VTCompressionSession>,
+    /// Where the session's callback leaves frames. The callback holds a
+    /// raw pointer to it, so it lives as long as the session (see Drop).
+    output: Arc<Output>,
+    fps: u32,
+    /// The bitrate the session was last told, and how it holds it (fixed
+    /// when the session starts; a live change keeps it).
+    bitrate_kbps: u32,
+    rate_uncertain: bool,
+    rate_control: RateControl,
+    low_latency: bool,
+    force_keyframe: CFRetained<CFDictionary<CFString, CFBoolean>>,
+    priority: Option<EncoderPressure>,
+    /// The session has its first frame; until then `start_ticket` is its
+    /// place in the process's encoder start order (see
+    /// [`claim_encoder_start`]).
+    started: bool,
+    start_ticket: Option<u64>,
+    size: (u32, u32),
+}
+
+// SAFETY: VideoToolbox sessions may be used from any thread; this one is
+// used by one thread at a time.
+unsafe impl Send for H264Encoder {}
+
+/// How a session holds its bitrate, chosen when it starts. A live bitrate
+/// change sets the same properties again, never another policy.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RateControl {
+    /// `ConstantBitRate`: padded to the target every second.
+    Constant,
+    /// `AverageBitRate` capped by a one-second `DataRateLimits` (a stream
+    /// whose encoder refused constant bitrate).
+    Limited,
+    /// `AverageBitRate` alone (a monitor).
+    Average,
+}
+
+struct Output {
+    health: Arc<crate::pressure::EncodeHealth>,
+    sources: crate::frames::NativeFrames,
+    session_id: u64,
+    purpose: &'static str,
+    size: [u32; 2],
+    frames: Mutex<VecDeque<Result<EncodedVideo>>>,
+    /// Signalled when a frame is added.
+    ready: Condvar,
+    dropped: AtomicU64,
+    in_flight: AtomicU64,
+    latency_ns: AtomicU64,
+    callbacks: AtomicU64,
+    last_os_status: std::sync::atomic::AtomicI32,
+    /// Keyframes' parameter sets are checked against it as they come.
+    profile: H264Profile,
+}
+
+static ENCODERS: Mutex<Vec<Weak<Output>>> = Mutex::new(Vec::new());
+static NEXT_ENCODER: AtomicU64 = AtomicU64::new(1);
+
+pub(crate) fn diagnostics() -> serde_json::Value {
+    let mut encoders = ENCODERS.lock().unwrap();
+    encoders.retain(|e| e.strong_count() > 0);
+    serde_json::json!({"h264":encoders.iter().filter_map(Weak::upgrade).map(|e|serde_json::json!({
+        "session":e.session_id,"purpose":e.purpose,"size":e.size,"in_flight":e.in_flight.load(Ordering::Relaxed),"ready_packets":e.frames.lock().unwrap().len(),
+        "last_submit_to_callback_ns":e.latency_ns.load(Ordering::Relaxed),"callbacks":e.callbacks.load(Ordering::Relaxed),
+        "dropped":e.dropped.load(Ordering::Relaxed),"last_os_status":e.last_os_status.load(Ordering::Relaxed)
+    })).collect::<Vec<_>>(),"asset_writer_internal_queue":null,"asset_writer_queue_reason":"AVAssetWriter has no public queue-depth or encode-latency counter; per-file drops and disk latency are in recording"})
+}
+
+impl H264Encoder {
+    pub fn new(spec: &LiveVideoSpec) -> Result<Self> {
+        let output = Arc::new(Output {
+            health: crate::pressure::EncodeHealth::new(spec.fps, !spec.low_latency),
+            sources: crate::frames::NativeFrames::default(),
+            session_id: NEXT_ENCODER.fetch_add(1, Ordering::Relaxed),
+            purpose: if spec.low_latency {
+                "monitor"
+            } else {
+                "stream"
+            },
+            size: [spec.width, spec.height],
+            frames: Mutex::new(VecDeque::new()),
+            ready: Condvar::new(),
+            dropped: AtomicU64::new(0),
+            in_flight: AtomicU64::new(0),
+            latency_ns: AtomicU64::new(0),
+            callbacks: AtomicU64::new(0),
+            last_os_status: std::sync::atomic::AtomicI32::new(0),
+            profile: spec.profile,
+        });
+        ENCODERS.lock().unwrap().push(Arc::downgrade(&output));
+        // Monitors want each frame decoded as soon as it arrives: VideoToolbox's
+        // low-latency mode says in the stream that frames are never reordered
+        // (without it, decoders hold up to five frames back). Encoders without
+        // it get the usual mode.
+        let mut status = -1;
+        let mut session = ptr::null_mut();
+        isocast_diagnostics::fds::clear_os_error();
+        for low_latency in [true, false] {
+            if low_latency && !spec.low_latency {
+                continue;
+            }
+            status = unsafe { create_session(spec, &output, low_latency, &mut session) };
+            if status == 0 {
+                break;
+            }
+        }
+        let Some(session) = NonNull::new(session).filter(|_| status == 0) else {
+            let what = match spec.low_latency {
+                true => "a monitor",
+                false => "the stream",
+            };
+            // Out of descriptors, VideoToolbox also says -12908 (#92).
+            if let Some(out) = isocast_diagnostics::fds::exhausted() {
+                bail!("{out} (VideoToolbox error {status})");
+            }
+            crate::pressure::session_failed(status);
+            // kVTCouldNotFindVideoEncoderErr: no hardware encoder is free.
+            if status == -12908 {
+                bail!(
+                    "no hardware H.264 encoder is free for {what}: this Mac's video \
+                     encoders are busy with other recordings or streams (in Isocast or other \
+                     apps); stop one, or record fewer ISO files, and try again"
+                );
+            }
+            bail!(
+                "VideoToolbox could not start an H.264 encoder for {}×{} (error {status})",
+                spec.width,
+                spec.height
+            );
+        };
+        let session = unsafe { CFRetained::from_raw(session) };
+        isocast_diagnostics::debug!(
+            "encoder: h264 {} session {} {}x{} at {} kb/s",
+            output.purpose,
+            output.session_id,
+            spec.width,
+            spec.height,
+            spec.bitrate_kbps
+        );
+        let bits = i64::from(spec.bitrate_kbps) * 1000;
+        let set = |key: &CFString, value: &CFType| -> Result<()> {
+            let status = unsafe { VTSessionSetProperty(&session, key, Some(value)) };
+            if status != 0 {
+                bail!("the H.264 encoder refused {key} (error {status})");
+            }
+            Ok(())
+        };
+        let rate_control = unsafe {
+            set(kVTCompressionPropertyKey_RealTime, CFBoolean::new(true))?;
+            if spec.profile == H264Profile::ConstrainedBaseline {
+                // Exactly this, never a High fallback: whoever asked can
+                // decode nothing else.
+                set(
+                    kVTCompressionPropertyKey_ProfileLevel,
+                    kVTProfileLevel_H264_ConstrainedBaseline_AutoLevel,
+                )
+                .context("video.profile: this Mac's H.264 encoder refused constrained_baseline")?;
+            } else if spec.low_latency {
+                if let Err(error) = set(
+                    kVTCompressionPropertyKey_ProfileLevel,
+                    kVTProfileLevel_H264_ConstrainedHigh_AutoLevel,
+                ) {
+                    set(
+                        kVTCompressionPropertyKey_ProfileLevel,
+                        kVTProfileLevel_H264_High_AutoLevel,
+                    )
+                    .context("the H.264 monitor's High profile fallback also failed")?;
+                    static WARNED: std::sync::Once = std::sync::Once::new();
+                    WARNED.call_once(|| {
+                        isocast_diagnostics::diagnostic!("warn"; "H.264 monitor: Constrained High unavailable ({error}); using High profile");
+                    });
+                }
+            } else {
+                set(
+                    kVTCompressionPropertyKey_ProfileLevel,
+                    kVTProfileLevel_H264_High_AutoLevel,
+                )?;
+            }
+            set(
+                kVTCompressionPropertyKey_AllowFrameReordering,
+                CFBoolean::new(false),
+            )?;
+            if spec.profile == H264Profile::ConstrainedBaseline {
+                // Baseline is CAVLC anyway; the keyframes' PPS are checked
+                // for it, so an encoder refusing the explicit key is fine.
+                let _ = set(
+                    kVTCompressionPropertyKey_H264EntropyMode,
+                    kVTH264EntropyMode_CAVLC,
+                );
+            } else {
+                set(
+                    kVTCompressionPropertyKey_H264EntropyMode,
+                    kVTH264EntropyMode_CABAC,
+                )?;
+            }
+            // Every frame in the base layer: with the low-latency mode's
+            // default of half, every other frame came out ~35 ms late.
+            if spec.low_latency {
+                let _ = set(
+                    kVTCompressionPropertyKey_BaseLayerFrameRateFraction,
+                    &CFNumber::new_f64(1.0),
+                );
+            }
+            // Constant bitrate pads still pictures up to the target (YouTube
+            // flags streams far under it); if the encoder won't, average.
+            let constant = spec.constant_bitrate
+                && set(
+                    kVTCompressionPropertyKey_ConstantBitRate,
+                    &CFNumber::new_i64(bits),
+                )
+                .inspect_err(|err| {
+                    isocast_diagnostics::diagnostic!("warn";
+                        "isocastd: constant bitrate unavailable, using average: {err:#}"
+                    )
+                })
+                .is_ok();
+            if !constant {
+                set(
+                    kVTCompressionPropertyKey_AverageBitRate,
+                    &CFNumber::new_i64(bits),
+                )?;
+            }
+            // A stream may carry no more than the target in any second:
+            // near-constant bitrate, as services ask. A monitor's is an
+            // average.
+            if !constant && !spec.low_latency {
+                let limits = CFArray::<CFNumber>::from_retained_objects(&[
+                    CFNumber::new_i64(bits / 8),
+                    CFNumber::new_f64(1.0),
+                ]);
+                set(kVTCompressionPropertyKey_DataRateLimits, &limits)?;
+            }
+            let rate_control = match (constant, spec.low_latency) {
+                (true, _) => RateControl::Constant,
+                (false, false) => RateControl::Limited,
+                (false, true) => RateControl::Average,
+            };
+            set(
+                kVTCompressionPropertyKey_MaxKeyFrameInterval,
+                &CFNumber::new_i32(spec.keyframe_interval as i32),
+            )?;
+            // Half a frame over the interval: the engine forces each
+            // keyframe on time, and at exactly the interval VideoToolbox
+            // made one of its own a frame early whenever frame times
+            // rounded a nanosecond past it (every time at 30 fps).
+            set(
+                kVTCompressionPropertyKey_MaxKeyFrameIntervalDuration,
+                &CFNumber::new_f64((f64::from(spec.keyframe_interval) + 0.5) / f64::from(spec.fps)),
+            )?;
+            set(
+                kVTCompressionPropertyKey_ExpectedFrameRate,
+                &CFNumber::new_i32(spec.fps as i32),
+            )?;
+            set(
+                kVTCompressionPropertyKey_ColorPrimaries,
+                kCVImageBufferColorPrimaries_ITU_R_709_2,
+            )?;
+            set(
+                kVTCompressionPropertyKey_TransferFunction,
+                kCVImageBufferTransferFunction_ITU_R_709_2,
+            )?;
+            set(
+                kVTCompressionPropertyKey_YCbCrMatrix,
+                kCVImageBufferYCbCrMatrix_ITU_R_709_2,
+            )?;
+            // Speed over quality, so a busy media engine (recordings run
+            // on it too) keeps up in real time. Older encoders lack it.
+            let _ = set(
+                kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality,
+                CFBoolean::new(true),
+            );
+            session.prepare_to_encode_frames();
+            rate_control
+        };
+        let force_keyframe = unsafe {
+            CFDictionary::<CFString, CFBoolean>::from_slices(
+                &[kVTEncodeFrameOptionKey_ForceKeyFrame],
+                &[CFBoolean::new(true)],
+            )
+        };
+        Ok(Self {
+            session,
+            output,
+            fps: spec.fps,
+            bitrate_kbps: spec.bitrate_kbps,
+            rate_uncertain: false,
+            rate_control,
+            low_latency: spec.low_latency,
+            force_keyframe,
+            priority: (!spec.low_latency)
+                .then(|| EncoderPressure::new(isocast_protocol::CanvasId::Main)),
+            started: false,
+            start_ticket: None,
+            size: (spec.width, spec.height),
+        })
+    }
+}
+
+impl H264Encoder {
+    fn set(&self, key: &CFString, value: &CFType) -> Result<()> {
+        let status = unsafe { VTSessionSetProperty(&self.session, key, Some(value)) };
+        if status != 0 {
+            bail!("the H.264 encoder refused {key} (error {status})");
+        }
+        Ok(())
+    }
+
+    /// Tell the session `to_kbps` (it was told `from_kbps`) under its own
+    /// rate control. For [`RateControl::Limited`] the two properties are
+    /// ordered so the average never exceeds the cap in between.
+    fn apply_bitrate(&self, from_kbps: u32, to_kbps: u32) -> Result<()> {
+        let bits = i64::from(to_kbps) * 1000;
+        let average = || unsafe {
+            self.set(
+                kVTCompressionPropertyKey_AverageBitRate,
+                &CFNumber::new_i64(bits),
+            )
+        };
+        let limits = || unsafe {
+            let limits = CFArray::<CFNumber>::from_retained_objects(&[
+                CFNumber::new_i64(bits / 8),
+                CFNumber::new_f64(1.0),
+            ]);
+            self.set(kVTCompressionPropertyKey_DataRateLimits, &limits)
+        };
+        match self.rate_control {
+            RateControl::Constant => unsafe {
+                self.set(
+                    kVTCompressionPropertyKey_ConstantBitRate,
+                    &CFNumber::new_i64(bits),
+                )
+            },
+            RateControl::Average => average(),
+            RateControl::Limited if to_kbps > from_kbps => limits().and_then(|()| average()),
+            RateControl::Limited => average().and_then(|()| limits()),
+        }
+    }
+}
+
+impl Drop for H264Encoder {
+    fn drop(&mut self) {
+        if let (false, Some(ticket)) = (self.started, self.start_ticket) {
+            cancel_encoder_start(ticket);
+        }
+        // Drain while the callback's refcon (`output`) is still alive.
+        // Invalidation alone is not a documented callback-join barrier.
+        let invalid = CMTime {
+            value: 0,
+            timescale: 0,
+            flags: CMTimeFlags::empty(),
+            epoch: 0,
+        };
+        let status = unsafe { self.session.complete_frames(invalid) };
+        if status != 0 {
+            isocast_diagnostics::diagnostic!("warn";
+                "the H.264 encoder could not drain before invalidation (error {status})"
+            );
+        }
+        unsafe { self.session.invalidate() };
+        for source in self.output.sources.drain() {
+            self.output.health.complete(source.submitted);
+            self.output.in_flight.fetch_sub(1, Ordering::Relaxed);
+        }
+    }
+}
+
+impl VideoEncoder for H264Encoder {
+    type Frame = PixelBuffer;
+
+    fn intentional_video_drops(&self) -> u64 {
+        self.priority
+            .as_ref()
+            .map_or(0, |priority| priority.refused())
+    }
+
+    fn prioritize_video(&mut self, canvas: isocast_protocol::CanvasId) {
+        self.output.health.protect(canvas.is_main());
+        if self.priority.as_ref().is_some_and(|p| p.canvas == canvas) {
+            return;
+        }
+        self.priority = Some(EncoderPressure::new(canvas));
+    }
+
+    fn encode(&mut self, input: &PixelBuffer, pts: Time, keyframe: bool) -> Result<()> {
+        let Some(frame) = input.retain(isocast_engine::FrameUse::Auxiliary) else {
+            self.output.dropped.fetch_add(1, Ordering::Relaxed);
+            return Ok(());
+        };
+        if self.started && self.priority.as_mut().is_some_and(|p| !p.admit()) {
+            self.output.dropped.fetch_add(1, Ordering::Relaxed);
+            if let Some(priority) = &mut self.priority {
+                priority.set(false);
+            }
+            return Ok(());
+        }
+        // Apple's hardware encoder can expose MaxFrameDelayCount read-only.
+        // Bound outstanding submissions ourselves so a stalled callback
+        // cannot pin the compositor's entire surface pool.
+        if self.output.in_flight.load(Ordering::Relaxed) >= MAX_IN_FLIGHT {
+            if let Some(priority) = &mut self.priority {
+                priority.set(true);
+            }
+            if !self.low_latency {
+                let frames = self.output.frames.lock().unwrap();
+                let _ = self
+                    .output
+                    .ready
+                    .wait_timeout_while(frames, STALL_WAIT, |_| {
+                        self.output.in_flight.load(Ordering::Relaxed) >= MAX_IN_FLIGHT
+                    })
+                    .unwrap();
+            }
+            if self.output.in_flight.load(Ordering::Relaxed) >= MAX_IN_FLIGHT {
+                self.output.dropped.fetch_add(1, Ordering::Relaxed);
+                return Ok(());
+            }
+        }
+        let (time, duration) = unsafe {
+            (
+                CMTime::new(pts.as_nanos(), TIMESCALE),
+                CMTime::new(1, self.fps as i32),
+            )
+        };
+        let options = keyframe.then(|| self.force_keyframe.as_opaque());
+        let first = !self.started;
+        if first {
+            // The first frame starts the hardware session: in its turn, not
+            // within a few milliseconds of another session's start.
+            let (width, height) = self.size;
+            let ticket = *self.start_ticket.get_or_insert_with(|| {
+                request_encoder_start(encoder_start_rank(
+                    self.priority.as_ref().map(|p| p.canvas),
+                    width,
+                    height,
+                ))
+            });
+            while !claim_encoder_start(ticket) {
+                thread::sleep(Duration::from_millis(2));
+            }
+            self.started = true;
+        }
+        self.output.in_flight.fetch_add(1, Ordering::Relaxed);
+        let submitted = Instant::now();
+        let submitted_ns = self.output.health.submit();
+        let cookie = self.output.sources.insert(frame, submitted_ns);
+        let mut flags = VTEncodeInfoFlags(0);
+        if !self.low_latency && self.output.callbacks.load(Ordering::Relaxed) >= 2 {
+            crate::frames::stall_consumer("live");
+        }
+        let status = unsafe {
+            self.session
+                .encode_frame(&input.0, time, duration, options, cookie, &mut flags)
+        };
+        if let Some(priority) = &mut self.priority {
+            // VideoToolbox can wait inside encode_frame before our submission
+            // window fills (seven in flight on M2). Without this feedback the
+            // stream's tap pins the compositor's pool, dropping both protected
+            // outputs while the ISOs keep running. The first picture also
+            // initializes the session, even with spare capacity: that is not
+            // pressure. Keep pressure until a later submission fits its budget.
+            priority.set(!first && submitted.elapsed() >= Duration::from_secs(1) / self.fps);
+        }
+        if (status != 0 || flags.contains(VTEncodeInfoFlags::FrameDropped))
+            && let Some(source) = self.output.sources.take(cookie)
+        {
+            self.output.health.complete(source.submitted);
+            self.output.in_flight.fetch_sub(1, Ordering::Relaxed);
+            if status == 0 {
+                self.output.dropped.fetch_add(1, Ordering::Relaxed);
+            }
+            self.output.ready.notify_all();
+        }
+        if status != 0 {
+            self.output.last_os_status.store(status, Ordering::Relaxed);
+            bail!("the H.264 encoder refused a frame (error {status})");
+        }
+        Ok(())
+    }
+
+    fn receive(&mut self) -> Result<Option<EncodedVideo>> {
+        self.output.frames.lock().unwrap().pop_front().transpose()
+    }
+
+    fn receive_timeout(&mut self, timeout: Duration) -> Result<Option<EncodedVideo>> {
+        let frames = self.output.frames.lock().unwrap();
+        let (mut frames, _) = self
+            .output
+            .ready
+            .wait_timeout_while(frames, timeout, |frames| frames.is_empty())
+            .unwrap();
+        frames.pop_front().transpose()
+    }
+
+    fn dropped(&self) -> u64 {
+        self.output.dropped.load(Ordering::Relaxed)
+    }
+
+    fn rate_uncertain(&self) -> bool {
+        self.rate_uncertain
+    }
+
+    /// Only what changed is set, under the rate control the session started
+    /// with (constant, capped average or average); keyframe settings and the
+    /// session stay. VideoToolbox has no transaction: if a property is
+    /// refused, the ones already set are put back and the error says so; if
+    /// putting them back fails too, the error says the session's rate is
+    /// uncertain. Either way the encoder keeps its previous recorded rate.
+    fn set_rate(&mut self, fps: u32, bitrate_kbps: u32) -> Result<()> {
+        if bitrate_kbps == 0 || fps == 0 {
+            bail!("cannot set the H.264 encoder to {bitrate_kbps} kb/s at {fps} fps");
+        }
+        let (old_fps, old_kbps) = (self.fps, self.bitrate_kbps);
+        let uncertain = self.rate_uncertain;
+        let frame_rate = |fps: u32| unsafe {
+            self.set(
+                kVTCompressionPropertyKey_ExpectedFrameRate,
+                &CFNumber::new_i32(fps as i32),
+            )
+        };
+        if fps != old_fps || uncertain {
+            frame_rate(fps)?;
+        }
+        if (bitrate_kbps != old_kbps || uncertain)
+            && let Err(err) = self.apply_bitrate(old_kbps, bitrate_kbps)
+        {
+            let bitrate_restored = self.apply_bitrate(bitrate_kbps, old_kbps);
+            // A bitrate rollback failure must not skip the independent FPS
+            // rollback. Try both, then keep uncertainty until a full success.
+            let fps_restored = if fps != old_fps || uncertain {
+                frame_rate(old_fps)
+            } else {
+                Ok(())
+            };
+            let restored = bitrate_restored.and(fps_restored);
+            self.rate_uncertain = restored.is_err();
+            return Err(match restored {
+                Ok(()) => err.context(format!(
+                    "kept {old_kbps} kb/s at {old_fps} fps instead of {bitrate_kbps} kb/s"
+                )),
+                Err(again) => err.context(format!(
+                    "could not restore {old_kbps} kb/s at {old_fps} fps either ({again:#}); \
+                     the encoder's rate is uncertain"
+                )),
+            });
+        }
+        self.fps = fps;
+        self.bitrate_kbps = bitrate_kbps;
+        self.rate_uncertain = false;
+        Ok(())
+    }
+}
+
+/// Create a hardware H.264 session for `spec` delivering to `output`,
+/// in VideoToolbox's low-latency mode if asked. Returns its status.
+unsafe fn create_session(
+    spec: &LiveVideoSpec,
+    output: &Arc<Output>,
+    low_latency: bool,
+    session: &mut *mut VTCompressionSession,
+) -> i32 {
+    // Only the hardware encoder: when it is busy, VideoToolbox would
+    // otherwise fall back to a software encoder that takes most of the
+    // Mac's cores and starves everything else.
+    let mut keys = unsafe {
+        vec![
+            kVTVideoEncoderSpecification_EnableHardwareAcceleratedVideoEncoder,
+            kVTVideoEncoderSpecification_RequireHardwareAcceleratedVideoEncoder,
+        ]
+    };
+    if low_latency {
+        keys.push(unsafe { kVTVideoEncoderSpecification_EnableLowLatencyRateControl });
+    }
+    let values = vec![CFBoolean::new(true); keys.len()];
+    let specification = CFDictionary::<CFString, CFBoolean>::from_slices(&keys, &values);
+    unsafe {
+        VTCompressionSession::create(
+            None,
+            spec.width as i32,
+            spec.height as i32,
+            kCMVideoCodecType_H264,
+            Some(specification.as_opaque()),
+            None,
+            None,
+            Some(encoded),
+            Arc::as_ptr(output) as *mut c_void,
+            NonNull::from(session),
+        )
+    }
+}
+
+/// The session's output callback, on a VideoToolbox thread.
+unsafe extern "C-unwind" fn encoded(
+    refcon: *mut c_void,
+    frame: *mut c_void,
+    status: i32,
+    flags: VTEncodeInfoFlags,
+    sample: *mut CMSampleBuffer,
+) {
+    // SAFETY: the refcon is the encoder's `Output`, alive until the session
+    // is invalidated.
+    let output = unsafe { &*(refcon as *const Output) };
+    let Some(source) = output.sources.take(frame) else {
+        return;
+    };
+    output.health.complete(source.submitted);
+    output.latency_ns.store(
+        crate::pressure::monotonic_ns().saturating_sub(source.submitted),
+        Ordering::Relaxed,
+    );
+    output.callbacks.fetch_add(1, Ordering::Relaxed);
+    if status != 0 {
+        output.last_os_status.store(status, Ordering::Relaxed);
+    }
+    let result = match unsafe { sample.as_ref() } {
+        _ if status != 0 => Err(anyhow!("the H.264 encoder failed (error {status})")),
+        None => {
+            let _frames = output.frames.lock().unwrap();
+            output.dropped.fetch_add(1, Ordering::Relaxed);
+            output.in_flight.fetch_sub(1, Ordering::Relaxed);
+            output.ready.notify_all();
+            return;
+        }
+        Some(_) if flags.contains(VTEncodeInfoFlags::FrameDropped) => {
+            let _frames = output.frames.lock().unwrap();
+            output.dropped.fetch_add(1, Ordering::Relaxed);
+            output.in_flight.fetch_sub(1, Ordering::Relaxed);
+            output.ready.notify_all();
+            return;
+        }
+        Some(sample) => unsafe { encoded_frame(sample) }.and_then(|frame| {
+            if let Some(sets) = &frame.parameter_sets {
+                check_profile(sets, output.profile)?;
+            }
+            Ok(frame)
+        }),
+    };
+    let mut frames = output.frames.lock().unwrap();
+    frames.push_back(result);
+    output.in_flight.fetch_sub(1, Ordering::Relaxed);
+    drop(frames);
+    output.ready.notify_all();
+}
+
+/// A compressed frame's bytes, times, keyframe flag and parameter sets.
+unsafe fn encoded_frame(sample: &CMSampleBuffer) -> Result<EncodedVideo> {
+    let block = unsafe { sample.data_buffer() }.context("an encoded frame without data")?;
+    let len = unsafe { block.data_length() };
+    let mut data = vec![0u8; len];
+    if len > 0 {
+        let status = unsafe {
+            block.copy_data_bytes(0, len, NonNull::new(data.as_mut_ptr().cast()).expect("vec"))
+        };
+        if status != 0 {
+            bail!("could not read an encoded frame (CoreMedia error {status})");
+        }
+    }
+    let pts = unsafe { sample.presentation_time_stamp() };
+    let dts = unsafe { sample.decode_time_stamp() };
+    let valid = |t: &CMTime| t.flags.contains(CMTimeFlags::Valid);
+    let pts = from_cm_time(pts);
+    let dts = if valid(&dts) { from_cm_time(dts) } else { pts };
+    let keyframe = unsafe { is_sync(sample) };
+    let parameter_sets = match keyframe {
+        true => unsafe { sample.format_description() }
+            .map(|format| unsafe { parameter_sets(&format) })
+            .transpose()?,
+        false => None,
+    };
+    Ok(EncodedVideo {
+        data,
+        pts,
+        dts,
+        keyframe,
+        parameter_sets,
+    })
+}
+
+/// Fail unless the parameter sets really say the requested profile. High
+/// keeps whatever VideoToolbox made (as before); Constrained Baseline needs
+/// every SPS at profile_idc 66 with constraint_set1_flag and every PPS on
+/// CAVLC, never a stream merely asked for as baseline.
+fn check_profile(sets: &ParameterSets, profile: H264Profile) -> Result<()> {
+    if profile == H264Profile::High {
+        return Ok(());
+    }
+    for sps in &sets.sps {
+        match sps.get(1..3) {
+            Some(&[66, flags]) if flags & 0x40 != 0 => {}
+            Some(&[idc, flags]) => bail!(
+                "video.profile: constrained_baseline was requested, but VideoToolbox made \
+                 profile_idc {idc} with constraint flags {flags:#04x} (needs 66 with \
+                 constraint_set1); use high"
+            ),
+            _ => bail!("the encoder made an H.264 SPS that is too short"),
+        }
+    }
+    for pps in &sets.pps {
+        if pps_cabac(pps).context("the encoder made an H.264 PPS that is too short")? {
+            bail!(
+                "video.profile: constrained_baseline was requested, but VideoToolbox made a \
+                 CABAC picture parameter set; use high"
+            );
+        }
+    }
+    Ok(())
+}
+
+/// A PPS's entropy_coding_mode_flag: after pic_parameter_set_id and
+/// seq_parameter_set_id (both ue(v)), with emulation prevention removed.
+fn pps_cabac(pps: &[u8]) -> Option<bool> {
+    let mut bits = Vec::with_capacity(8);
+    let mut zeros = 0;
+    for &byte in pps.get(1..)?.iter().take(16) {
+        if zeros >= 2 && byte == 3 {
+            zeros = 0;
+            continue;
+        }
+        zeros = if byte == 0 { zeros + 1 } else { 0 };
+        bits.push(byte);
+    }
+    let bit = |n: usize| bits.get(n / 8).map(|byte| (byte >> (7 - n % 8)) & 1);
+    let mut at = 0;
+    for _ in 0..2 {
+        let mut leading = 0;
+        while bit(at)? == 0 {
+            leading += 1;
+            at += 1;
+            if leading > 31 {
+                return None;
+            }
+        }
+        at += 1 + leading;
+    }
+    Some(bit(at)? == 1)
+}
+
+/// A sample is a keyframe unless its attachments say "not sync".
+pub(crate) unsafe fn is_sync(sample: &CMSampleBuffer) -> bool {
+    let Some(attachments) = (unsafe { sample.sample_attachments_array(false) }) else {
+        return true;
+    };
+    if attachments.count() == 0 {
+        return true;
+    }
+    let first = unsafe { attachments.value_at_index(0) } as *const CFDictionary;
+    let Some(first) = (unsafe { first.as_ref() }) else {
+        return true;
+    };
+    let key: *const CFString = unsafe { kCMSampleAttachmentKey_NotSync };
+    let value = unsafe { first.value(key.cast()) } as *const CFBoolean;
+    match unsafe { value.as_ref() } {
+        Some(not_sync) => !not_sync.as_bool(),
+        None => true,
+    }
+}
+
+/// The SPS and PPS NAL units of an H.264 format description.
+unsafe fn parameter_sets(format: &CMFormatDescription) -> Result<ParameterSets> {
+    let mut count = 0usize;
+    let mut length_size = 0i32;
+    let status = unsafe {
+        CMVideoFormatDescriptionGetH264ParameterSetAtIndex(
+            format,
+            0,
+            ptr::null_mut(),
+            ptr::null_mut(),
+            &mut count,
+            &mut length_size,
+        )
+    };
+    if status != 0 {
+        bail!("the encoder's format has no H.264 parameter sets (CoreMedia error {status})");
+    }
+    if length_size != 4 {
+        bail!("the encoder used {length_size}-byte NAL lengths; streaming expects 4");
+    }
+    let mut sets = ParameterSets::default();
+    for index in 0..count {
+        let mut pointer = ptr::null();
+        let mut size = 0usize;
+        let status = unsafe {
+            CMVideoFormatDescriptionGetH264ParameterSetAtIndex(
+                format,
+                index,
+                &mut pointer,
+                &mut size,
+                ptr::null_mut(),
+                ptr::null_mut(),
+            )
+        };
+        if status != 0 || pointer.is_null() || size == 0 {
+            continue;
+        }
+        let nal = unsafe { std::slice::from_raw_parts(pointer, size) }.to_vec();
+        match nal[0] & 0x1f {
+            7 => sets.sps.push(nal),
+            8 => sets.pps.push(nal),
+            _ => {}
+        }
+    }
+    Ok(sets)
+}
+
+/// Samples per channel in one AAC frame.
+const AAC_FRAME: usize = 1024;
+/// The input callback's "nothing more right now", which ends a fill early
+/// without ending the stream.
+const NO_MORE_INPUT: i32 = 0x6d6f7265; // 'more'
+
+/// An AAC-LC encoder: 48 kHz interleaved floats in, raw 1024-sample AAC
+/// frames out.
+pub struct AacEncoder {
+    converter: AudioConverterRef,
+    channels: usize,
+    /// Samples given to `encode` and not yet handed to the converter.
+    pending: Vec<f32>,
+    /// What the converter is reading; it may keep reading it until it
+    /// next asks for input, so it stays put until then.
+    lent: Vec<f32>,
+    /// Reused output storage; completed packets are copied into owned frames.
+    packet: Vec<u8>,
+    delay: u32,
+}
+
+// SAFETY: an AudioConverter may be used from any thread, one at a time.
+unsafe impl Send for AacEncoder {}
+
+impl AacEncoder {
+    pub fn new(spec: &LiveAudioSpec) -> Result<Self> {
+        let channels = spec.channels.clamp(1, 2);
+        let input = AudioStreamBasicDescription {
+            mSampleRate: f64::from(SAMPLE_RATE),
+            mFormatID: kAudioFormatLinearPCM,
+            mFormatFlags: kAudioFormatFlagIsFloat | kAudioFormatFlagIsPacked,
+            mBytesPerPacket: 4 * channels,
+            mFramesPerPacket: 1,
+            mBytesPerFrame: 4 * channels,
+            mChannelsPerFrame: channels,
+            mBitsPerChannel: 32,
+            mReserved: 0,
+        };
+        let aac = AudioStreamBasicDescription {
+            mSampleRate: f64::from(SAMPLE_RATE),
+            mFormatID: kAudioFormatMPEG4AAC,
+            mFormatFlags: MPEG4ObjectID::AAC_LC.0 as u32,
+            mBytesPerPacket: 0,
+            mFramesPerPacket: AAC_FRAME as u32,
+            mBytesPerFrame: 0,
+            mChannelsPerFrame: channels,
+            mBitsPerChannel: 0,
+            mReserved: 0,
+        };
+        let mut converter: AudioConverterRef = ptr::null_mut();
+        let status = unsafe {
+            AudioConverterNew(
+                NonNull::from(&input),
+                NonNull::from(&aac),
+                NonNull::from(&mut converter),
+            )
+        };
+        if status != 0 || converter.is_null() {
+            bail!("AudioToolbox could not start an AAC encoder (error {status})");
+        }
+        // Owned from here, so errors below dispose of it.
+        let mut encoder = Self {
+            converter,
+            channels: channels as usize,
+            pending: Vec::new(),
+            lent: Vec::with_capacity(AAC_FRAME * channels as usize),
+            packet: Vec::new(),
+            delay: 0,
+        };
+        // Constant bitrate, as streaming services ask. In its default mode
+        // the encoder spends only what the sound needs (~2 kb/s for
+        // silence, ~20 for near silence at a 160 kb/s target), and ingests
+        // warn that the audio bitrate is far below what they recommend.
+        // Set before the bitrate, whose valid values depend on the mode.
+        let mode = kAudioCodecBitRateControlMode_Constant;
+        let status = unsafe {
+            AudioConverterSetProperty(
+                converter,
+                kAudioCodecPropertyBitRateControlMode,
+                size_of::<u32>() as u32,
+                NonNull::from(&mode).cast(),
+            )
+        };
+        if status != 0 {
+            bail!("the AAC encoder has no constant bitrate mode (error {status})");
+        }
+        let bitrate = spec.bitrate_kbps * 1000;
+        let status = unsafe {
+            AudioConverterSetProperty(
+                converter,
+                kAudioConverterEncodeBitRate,
+                size_of::<u32>() as u32,
+                NonNull::from(&bitrate).cast(),
+            )
+        };
+        if status != 0 {
+            bail!(
+                "the AAC encoder doesn't offer {} kb/s (error {status})",
+                spec.bitrate_kbps
+            );
+        }
+        let max_packet: u32 =
+            unsafe { get_property(converter, kAudioConverterPropertyMaximumOutputPacketSize) }
+                .context("could not ask the AAC encoder its largest frame")?;
+        encoder.packet.resize(max_packet.max(1) as usize, 0);
+        // Apple's AAC encoder starts with priming samples; the engine
+        // shifts frame times back by them so audio and video line up.
+        let prime: AudioConverterPrimeInfo =
+            unsafe { get_property(converter, kAudioConverterPrimeInfo) }.unwrap_or(
+                AudioConverterPrimeInfo {
+                    leadingFrames: 2112,
+                    trailingFrames: 0,
+                },
+            );
+        encoder.delay = prime.leadingFrames;
+        Ok(encoder)
+    }
+}
+
+impl Drop for AacEncoder {
+    fn drop(&mut self) {
+        unsafe { AudioConverterDispose(self.converter) };
+    }
+}
+
+/// What the input callback reads from.
+struct Feed<'a> {
+    pending: &'a [f32],
+    /// Frames of `pending` handed over so far.
+    taken: usize,
+    lent: &'a mut Vec<f32>,
+    channels: usize,
+}
+
+impl AudioEncoder for AacEncoder {
+    fn encode(&mut self, samples: &[f32]) -> Result<Vec<Vec<u8>>> {
+        self.pending.extend_from_slice(samples);
+        let mut frames = Vec::new();
+        let buffer = &mut self.packet;
+        while self.pending.len() >= AAC_FRAME * self.channels {
+            let mut feed = Feed {
+                pending: &self.pending,
+                taken: 0,
+                lent: &mut self.lent,
+                channels: self.channels,
+            };
+            let mut list = AudioBufferList {
+                mNumberBuffers: 1,
+                mBuffers: [AudioBuffer {
+                    mNumberChannels: self.channels as u32,
+                    mDataByteSize: buffer.len() as u32,
+                    mData: buffer.as_mut_ptr().cast(),
+                }],
+            };
+            let mut packets: u32 = 1;
+            let mut description = AudioStreamPacketDescription {
+                mStartOffset: 0,
+                mVariableFramesInPacket: 0,
+                mDataByteSize: 0,
+            };
+            let status = unsafe {
+                AudioConverterFillComplexBuffer(
+                    self.converter,
+                    Some(supply),
+                    (&mut feed as *mut Feed).cast(),
+                    NonNull::from(&mut packets),
+                    NonNull::from(&mut list),
+                    &mut description,
+                )
+            };
+            let taken = feed.taken;
+            if status != 0 && status != NO_MORE_INPUT {
+                bail!("the AAC encoder failed (error {status})");
+            }
+            self.pending.drain(..taken * self.channels);
+            if packets > 0 {
+                let size = list.mBuffers[0].mDataByteSize as usize;
+                frames.push(buffer[..size.min(buffer.len())].to_vec());
+            } else if taken == 0 {
+                break;
+            }
+        }
+        Ok(frames)
+    }
+
+    fn delay(&self) -> u32 {
+        self.delay
+    }
+}
+
+/// The converter's input callback: up to the frames it asks for from the
+/// pending samples, copied to `lent` where they stay until the next call.
+unsafe extern "C-unwind" fn supply(
+    _converter: AudioConverterRef,
+    count: NonNull<u32>,
+    data: NonNull<AudioBufferList>,
+    _descriptions: *mut *mut AudioStreamPacketDescription,
+    user: *mut c_void,
+) -> i32 {
+    let feed = unsafe { &mut *(user as *mut Feed) };
+    let available = feed.pending.len() / feed.channels - feed.taken;
+    let wanted = unsafe { *count.as_ptr() } as usize;
+    let n = wanted.min(available);
+    let list = unsafe { &mut *data.as_ptr() };
+    if n == 0 {
+        unsafe { *count.as_ptr() = 0 };
+        list.mBuffers[0].mDataByteSize = 0;
+        list.mBuffers[0].mData = ptr::null_mut();
+        return NO_MORE_INPUT;
+    }
+    let from = feed.taken * feed.channels;
+    feed.lent.clear();
+    feed.lent
+        .extend_from_slice(&feed.pending[from..from + n * feed.channels]);
+    feed.taken += n;
+    list.mNumberBuffers = 1;
+    list.mBuffers[0].mNumberChannels = feed.channels as u32;
+    list.mBuffers[0].mDataByteSize = (n * feed.channels * 4) as u32;
+    list.mBuffers[0].mData = feed.lent.as_mut_ptr().cast();
+    unsafe { *count.as_ptr() = n as u32 };
+    0
+}
+
+/// A fixed-size AudioConverter property.
+unsafe fn get_property<T: Copy>(converter: AudioConverterRef, id: u32) -> Result<T> {
+    let mut value = std::mem::MaybeUninit::<T>::zeroed();
+    let mut size = size_of::<T>() as u32;
+    let status = unsafe {
+        AudioConverterGetProperty(
+            converter,
+            id,
+            NonNull::from(&mut size),
+            NonNull::new(value.as_mut_ptr().cast()).expect("pointer"),
+        )
+    };
+    if status != 0 {
+        bail!("AudioToolbox error {status}");
+    }
+    Ok(unsafe { value.assume_init() })
+}
+
+#[cfg(test)]
+mod teardown_tests {
+    use super::*;
+    use isocast_engine::FramePool;
+
+    #[test]
+    #[ignore = "requires a hardware H.264 encoder; run on an idle test Mac"]
+    fn streaming_drop_completes_every_submitted_callback() {
+        let mut pool = crate::frames::FramePool::new(64, 64).unwrap();
+        let frame = pool.draw(&mut |pixels, _| pixels.fill(0)).unwrap().unwrap();
+        for _ in 0..16 {
+            let mut encoder = H264Encoder::new(&LiveVideoSpec {
+                profile: H264Profile::High,
+                width: 64,
+                height: 64,
+                fps: 30,
+                bitrate_kbps: 1000,
+                constant_bitrate: false,
+                keyframe_interval: 30,
+                low_latency: false,
+            })
+            .unwrap();
+            let output = encoder.output.clone();
+            for n in 0..8 {
+                encoder
+                    .encode(&frame, Time::from_nanos(0).add_ticks(n, 30), n == 0)
+                    .unwrap();
+            }
+            drop(encoder);
+            assert_eq!(output.in_flight.load(Ordering::Relaxed), 0);
+            assert_eq!(Arc::strong_count(&output), 1);
+        }
+    }
+}
+
+#[cfg(test)]
+mod profile_tests {
+    use super::*;
+    use isocast_engine::FramePool;
+
+    fn sets(sps: &[u8], pps: &[u8]) -> ParameterSets {
+        ParameterSets {
+            sps: vec![sps.to_vec()],
+            pps: vec![pps.to_vec()],
+        }
+    }
+
+    #[test]
+    fn constrained_baseline_is_checked_in_the_parameter_sets() {
+        let profile = H264Profile::ConstrainedBaseline;
+        // 42 e0 1f with pps_id 0, sps_id 0 ("1", "1") and CAVLC.
+        let cavlc = [0x68, 0b1100_0000];
+        check_profile(&sets(&[0x67, 66, 0xe0, 31], &cavlc), profile).unwrap();
+        // Plain Baseline (no constraint_set1), or High: refused.
+        let error = check_profile(&sets(&[0x67, 66, 0x80, 31], &cavlc), profile).unwrap_err();
+        assert!(error.to_string().contains("video.profile"), "{error}");
+        assert!(check_profile(&sets(&[0x67, 100, 0, 31], &cavlc), profile).is_err());
+        // A CABAC PPS: refused.
+        let cabac = [0x68, 0b1110_0000];
+        assert!(check_profile(&sets(&[0x67, 66, 0xe0, 31], &cabac), profile).is_err());
+        // pps_id 1 ("010"), sps_id 2 ("011"), then the flag.
+        assert_eq!(pps_cabac(&[0x68, 0b0100_1110, 0]), Some(true));
+        assert_eq!(pps_cabac(&[0x68, 0b0100_1100, 0]), Some(false));
+        assert_eq!(pps_cabac(&[0x68]), None);
+        // High keeps whatever was made, as before.
+        check_profile(&sets(&[0x67, 100, 0, 31], &cabac), H264Profile::High).unwrap();
+    }
+
+    #[test]
+    #[ignore = "requires a hardware H.264 encoder; run on an idle test Mac"]
+    fn constrained_baseline_monitor_makes_42_with_constraint_set1() {
+        let mut pool = crate::frames::FramePool::new(64, 64).unwrap();
+        let frame = pool.draw(&mut |pixels, _| pixels.fill(0)).unwrap().unwrap();
+        let mut encoder = H264Encoder::new(&LiveVideoSpec {
+            profile: H264Profile::ConstrainedBaseline,
+            width: 64,
+            height: 64,
+            fps: 30,
+            bitrate_kbps: 1000,
+            constant_bitrate: false,
+            keyframe_interval: 30,
+            low_latency: true,
+        })
+        .unwrap();
+        encoder.encode(&frame, Time::from_nanos(0), true).unwrap();
+        let packet = encoder
+            .receive_timeout(Duration::from_secs(2))
+            .unwrap()
+            .expect("a keyframe");
+        let sets = packet.parameter_sets.expect("parameter sets");
+        assert_eq!(sets.sps[0][1], 66);
+        assert_ne!(sets.sps[0][2] & 0x40, 0);
+        assert_eq!(pps_cabac(&sets.pps[0]), Some(false));
+    }
+}

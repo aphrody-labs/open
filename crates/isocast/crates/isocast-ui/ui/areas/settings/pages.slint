@@ -1,0 +1,1501 @@
+// Settings' pages (the web app's settings.js; Paper's Settings sheet,
+// Output): each shows the draft in SettingsArea as Console's grouped rows
+// (a group's heading with its reset glyph, 30px rows of label and 22px
+// control, a caption under the group) and changes it by field name; Apply
+// or OK sends the change. In the board's order: Output, Video, Audio
+// (Recording), Stream (Broadcast), General, Hotkeys, Advanced (System).
+
+import { Theme } from "../../theme.slint";
+import { Icons } from "../../icons.slint";
+import { Ui, PlatformText } from "../../state.slint";
+import { PermissionsArea } from "../permissions/state.slint";
+import {
+    Button, ButtonVariant, Callout, CalloutKind, ControlSize, Dropdown, FocusRing, GroupHint, GroupRow, IconButton,
+    Checkbox, NumberField, RowPlace, Segmented, Switch, TextField,
+} from "../../kit.slint";
+import { BindingRow, SettingsArea } from "state.slint";
+import { Centred, SetGroup, SetPage, ShortcutKeys } from "parts.slint";
+
+// A place in a group of `count` rows, for row `i`.
+export global Rows {
+    public pure function place(i: int, count: int) -> RowPlace {
+        if count <= 1 { return RowPlace.only; }
+        if i == 0 { return RowPlace.first; }
+        if i == count - 1 { return RowPlace.last; }
+        return RowPlace.middle;
+    }
+}
+
+// A number in a stepper (Paper's Keep Free: 96px, 22px, its unit dim).
+component Stepper inherits NumberField {
+    width: Theme.field-xs;
+    small: true;
+    stepper: true;
+    stepper-fill: Theme.control-hover;
+}
+
+// A switch's row: 8px from the edge, the switch in the middle.
+export component SwitchRow inherits GroupRow {
+    in-out property <bool> on;
+    callback toggled(bool);
+    trailing-pad: Theme.space-2;
+    Centred {
+        Switch {
+            on <=> root.on;
+            enabled: root.enabled;
+            label: root.label;
+            toggled(on) => { root.toggled(on); }
+        }
+    }
+}
+
+// ---------- General ----------
+
+export component GeneralPage inherits SetPage {
+    SetGroup {
+        title: "Setup";
+        hint: SettingsArea.setup-file != ""
+            ? "The name is shown in the title bar. Isocast saves the live setup to that file after every change (the one before as .bak)."
+            : "Shown in the title bar.";
+        GroupRow {
+            label: "Name";
+            place: SettingsArea.setup-file != "" ? RowPlace.first : RowPlace.only;
+            Centred {
+                TextField {
+                    width: Theme.field-l;
+                    small: true;
+                    text: SettingsArea.name;
+                    label: "Name";
+                    committed(text) => { SettingsArea.set-text("name", text); }
+                }
+            }
+        }
+        if SettingsArea.setup-file != "": GroupRow {
+            label: "Kept in";
+            place: RowPlace.last;
+            trailing-pad: Theme.space-3;
+            Text {
+                width: Theme.field-wide;
+                text: SettingsArea.setup-file;
+                color: Theme.text-2;
+                font-family: Theme.font-mono;
+                font-weight: Theme.weight-light;
+                font-size: Theme.fs-xs;
+                letter-spacing: Theme.tracking-mono;
+                horizontal-alignment: right;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+    }
+    SetGroup {
+        title: "Snapping";
+        hint: "Edges and centres snap to the canvas and to other sources; hold " + PlatformText.primary-key + " while dragging to place freely.";
+        SwitchRow {
+            label: "Enable";
+            place: RowPlace.first;
+            on <=> SettingsArea.snapping;
+            toggled(on) => { SettingsArea.set-flag("snapping", on); }
+        }
+        GroupRow {
+            label: "Snap Sensitivity";
+            place: RowPlace.last;
+            Centred {
+                Stepper {
+                    value: SettingsArea.snap-distance;
+                    minimum: 1;
+                    maximum: 40;
+                    unit: "px";
+                    label: "Snap Sensitivity";
+                    changed(value) => { SettingsArea.set-number("snap_distance", value); }
+                }
+            }
+        }
+    }
+    SetGroup {
+        title: "Preview";
+        hint: "Match canvas shows motion as recorded; 30 fps uses less power (monitors still follow the canvas rate while you drag).";
+        GroupRow {
+            label: "Preview Frame Rate";
+            place: RowPlace.only;
+            Centred {
+                Segmented {
+                    small: true;
+                    options: [{ value: "canvas", label: "Match canvas" }, { value: "30", label: "30 fps (saves power)" }];
+                    value <=> SettingsArea.preview-rate;
+                    label: "Preview Frame Rate";
+                    selected(value) => { SettingsArea.set-text("preview_rate", value); }
+                }
+            }
+        }
+    }
+    SetGroup {
+        title: "Machine Profile";
+        // The engine measures only on macOS so far: elsewhere no dead
+        // Calibrate, just what still adapts.
+        hint: PlatformText.engine-linux
+            ? "Machine calibration isn't available on Linux yet; Automatic Quality still adapts while recording."
+            : PlatformText.engine-windows
+            ? "Machine calibration isn't available on Windows yet; Automatic Quality still adapts while recording."
+            : SettingsArea.machine-summary;
+        if !PlatformText.engine-windows: GroupRow {
+            label: "Silent self-test";
+            place: RowPlace.only;
+            trailing-pad: Theme.space-2;
+            Centred {
+                Button {
+                    text: SettingsArea.machine-calibrating ? "Cancel" : "Calibrate";
+                    size: ControlSize.small;
+                    on-control: true;
+                    clicked => { Ui.menu(SettingsArea.machine-calibrating ? "machine_cancel" : "machine_calibrate"); }
+                }
+            }
+        }
+    }
+    SetGroup {
+        title: "Updates";
+        hint: SettingsArea.updates-available
+            ? (SettingsArea.automatic-updates-available
+                ? "Isocast checks once a day and asks before installing. An update never installs during a recording or stream; it waits until they stop."
+                : "Use Check for Updates when you're ready. Automatic notifications are disabled so they cannot appear in a recording or stream. Installation requires the engine to be idle.")
+            : "This build doesn't update itself. Released copies of Isocast check for updates.";
+        SwitchRow {
+            label: "Check Automatically";
+            place: RowPlace.first;
+            enabled: SettingsArea.automatic-updates-available;
+            on <=> SettingsArea.auto-updates;
+            toggled(on) => { SettingsArea.set-flag("auto_updates", on); }
+        }
+        GroupRow {
+            label: "Check Now";
+            place: RowPlace.last;
+            trailing-pad: Theme.space-2;
+            Centred {
+                Button {
+                    text: "Check for Updates…";
+                    size: ControlSize.small;
+                    on-control: true;
+                    enabled: SettingsArea.updates-available;
+                    clicked => { Ui.menu("check_updates"); }
+                }
+            }
+        }
+    }
+    SetGroup {
+        title: "Permissions";
+        hint: PlatformText.engine-linux ? "Pick which screen or window to share when you add it, or later with Choose screens and windows. Cameras need access for your user: Review shows whether it has it and, if not, a command to copy that fixes it. The microphone needs no permission."
+            : PlatformText.engine-windows ? "Windows asks no permission for screens and what this PC plays. Its privacy settings can turn off the camera and microphone for desktop apps; Review shows whether they do."
+            : PermissionsArea.unknown-access
+            ? "Access is checked when capture starts. Review the status here; allow access in System Settings › Privacy & Security."
+            : "What macOS lets Isocast record. Each is asked for once; what you skipped or turned off can be allowed here.";
+        GroupRow {
+            label: PlatformText.engine-linux ? "Camera" : PlatformText.engine-windows ? "Camera, Microphone" : "Screen, Camera, Microphone";
+            place: RowPlace.only;
+            trailing-pad: Theme.space-2;
+            Centred {
+                Button {
+                    text: "Review…";
+                    size: ControlSize.small;
+                    on-control: true;
+                    clicked => { Ui.menu("permissions"); }
+                }
+            }
+        }
+    }
+}
+
+// ---------- Stream ----------
+
+// No stream yet: choose a service. Custom servers and Kick need their
+// server address first.
+component ChooseService inherits VerticalLayout {
+    spacing: 10px;
+    alignment: start;
+    if SettingsArea.needs-server == "": SetGroup {
+        title: SettingsArea.adding-destination ? "Add Destination" : "Service";
+        hint: SettingsArea.adding-destination
+            ? "The program goes to this service too, at the same time, with its own key."
+            : SettingsArea.stream-canvas != "main"
+            ? "This canvas’s program goes out live, with the program mix, as H.264 and AAC over RTMP or RTMPS, to destinations of its own."
+            : "The program goes out live: the canvas and the program mix, as H.264 and AAC over RTMP or RTMPS.";
+        for service[i] in SettingsArea.services: GroupRow {
+            label: service.label;
+            description: service.hint;
+            place: Rows.place(i, SettingsArea.services.length);
+            clickable: true;
+            trailing-pad: Theme.space-3;
+            clicked => { SettingsArea.choose-service(service.id); }
+            Text {
+                text: service.hint;
+                color: Theme.text-3;
+                font-size: Theme.fs-sm;
+                letter-spacing: Theme.tracking-sm;
+                vertical-alignment: center;
+                accessible-role: none;
+            }
+            Centred {
+                IconButton {
+                    compact: true;
+                    icon: Icons.chevron-right;
+                    icon-size: Theme.icon-xs;
+                    rest-color: Theme.text-3;
+                    show-tooltip: false;
+                    label: "Choose " + service.label;
+                    clicked => { SettingsArea.choose-service(service.id); }
+                }
+            }
+        }
+    }
+    if SettingsArea.needs-server == "" && SettingsArea.adding-destination: HorizontalLayout {
+        alignment: end;
+        Button {
+            text: "Back";
+            clicked => { SettingsArea.server-back(); }
+        }
+    }
+    if SettingsArea.needs-server != "": VerticalLayout {
+        spacing: Theme.space-4;
+        SetGroup {
+            title: SettingsArea.needs-server == "kick" ? "Kick server" : "Custom server";
+            hint: SettingsArea.needs-server == "kick"
+                ? "Kick gives each channel its own server: copy the Stream URL from the Creator Dashboard (Channel → Stream URL and Key)."
+                : "The server’s address, without the stream key: like rtmp://host/app or rtmps://host/app.";
+            GroupRow {
+                label: "Server";
+                place: RowPlace.only;
+                Centred {
+                    server := TextField {
+                        width: Theme.field-wide;
+                        small: true;
+                        mono: true;
+                        placeholder: "rtmps://…";
+                        label: "Server";
+                        auto-focus: true;
+                        submits: false;
+                        accepted(text) => {
+                            if SettingsArea.server-valid(text) {
+                                SettingsArea.server-chosen(text);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        HorizontalLayout {
+            alignment: end;
+            spacing: Theme.space-2;
+            Button {
+                text: "Back";
+                clicked => { SettingsArea.server-back(); }
+            }
+            Button {
+                text: "Continue";
+                variant: ButtonVariant.primary;
+                enabled: SettingsArea.server-valid(server.text);
+                clicked => { SettingsArea.server-chosen(server.text); }
+            }
+        }
+    }
+}
+
+component StreamKeyRow inherits GroupRow {
+    label: "Stream Key";
+    Centred {
+        key := TextField {
+            width: Theme.field-path - 2 * Theme.space-1 - 80px - (SettingsArea.key-saved ? 72px : 0px);
+            small: true;
+            input-type: InputType.password;
+            placeholder: SettingsArea.key-problem != "" ? "Paste the key again" : SettingsArea.key-saved ? "••••••••••••  saved" : "Paste the key";
+            label: "Stream Key";
+            submits: false;
+            accepted(text) => {
+                if text != "" {
+                    SettingsArea.save-key(text);
+                    self.text = "";
+                }
+            }
+        }
+    }
+    Centred {
+        Button {
+            text: "Save Key";
+            size: ControlSize.small;
+            on-control: true;
+            enabled: key.text != "" && !SettingsArea.key-busy;
+            clicked => {
+                SettingsArea.save-key(key.text);
+                key.text = "";
+            }
+        }
+    }
+    if SettingsArea.key-saved: Centred {
+        Button {
+            text: "Remove";
+            size: ControlSize.small;
+            on-control: true;
+            clicked => { SettingsArea.clear-key(); }
+        }
+    }
+}
+
+export component StreamPage inherits SetPage {
+    // Which canvas's streams the page shows (#96), with a vertical canvas.
+    if SettingsArea.stream-canvas-choice && SettingsArea.needs-server == "": SetGroup {
+        title: "Canvas";
+        hint: "Each canvas streams its own program, to destinations and keys of its own. Start Streaming starts every canvas that’s set up.";
+        GroupRow {
+            label: "Streams of";
+            place: RowPlace.only;
+            Centred {
+                Segmented {
+                    small: true;
+                    options: SettingsArea.stream-canvas-options;
+                    value: SettingsArea.stream-canvas;
+                    label: "Streams of";
+                    selected(value) => { SettingsArea.set-text("stream_canvas", value); }
+                }
+            }
+        }
+    }
+    if SettingsArea.notice != "": Callout {
+        kind: CalloutKind.info;
+        title: SettingsArea.notice;
+    }
+    if SettingsArea.has-stream && SettingsArea.stream-live: Callout {
+        kind: CalloutKind.info;
+        title: "Changes apply the next time you start streaming.";
+    }
+    // A key this build's Keychain item holds but may not read (a copy of
+    // the same build signed differently): the engine's message says which
+    // item to delete in Keychain Access before saving the key again (#63).
+    if SettingsArea.has-stream && SettingsArea.key-problem != "": Callout {
+        kind: CalloutKind.error;
+        title: "The saved stream key can’t be used";
+        message: SettingsArea.key-problem;
+    }
+    if !SettingsArea.has-stream || SettingsArea.adding-destination: ChooseService { }
+    if SettingsArea.has-stream && !SettingsArea.adding-destination: SetGroup {
+        title: "Destinations";
+        hint: (SettingsArea.stream-canvas != "main" ? "This canvas’s destinations and keys are its own. " : "") + "Start Streaming sends the program to every destination that’s on, each with its own key and connection; one failing never stops the others. Those with the same bitrate and size share one encoder. " + SettingsArea.server-hint + " " + (SettingsArea.key-problem != "" ? "Once the old " + PlatformText.credential-store + " item is deleted, paste the key from your service’s dashboard and press Save Key." : SettingsArea.key-saved ? "The key is saved in the " + PlatformText.credential-store + "; paste a new one to replace it." : "The key comes from your service’s dashboard. It’s kept in the " + PlatformText.credential-store + " (saved at once), never in the setup or logs.");
+        for d[i] in SettingsArea.destinations: VerticalLayout {
+            spacing: 1px;
+            GroupRow {
+                label: d.label;
+                place: i == 0 ? RowPlace.first : RowPlace.middle;
+                clickable: true;
+                lead-icon: d.id == SettingsArea.destination ? Icons.chevron-down : Icons.chevron-right;
+                expandable: true;
+                expanded: d.id == SettingsArea.destination;
+                description: d.status;
+                trailing-pad: Theme.space-2;
+                clicked => { SettingsArea.select-destination(d.id); }
+                Text {
+                    text: d.status;
+                    color: d.status == "Live" ? Theme.onair-text
+                        : d.status == "Failed" ? Theme.danger-text
+                        : d.status == "No key yet" && d.enabled ? Theme.warning
+                        : Theme.text-3;
+                    font-size: Theme.fs-sm;
+                    letter-spacing: Theme.tracking-sm;
+                    vertical-alignment: center;
+                    accessible-role: none;
+                }
+                Centred {
+                    Switch {
+                        on: d.enabled;
+                        label: "Stream to " + d.label;
+                        tooltip: d.enabled ? "Start Streaming streams here" : "Start Streaming skips it";
+                        toggled(on) => { SettingsArea.set-destination-enabled(d.id, on); }
+                    }
+                }
+            }
+            if d.id == SettingsArea.destination: GroupRow {
+                label: "Service";
+                indent: Theme.space-4;
+                Centred {
+                    Dropdown {
+                        width: Theme.field-choice;
+                        on-control: true;
+                        options: [
+                            { value: "twitch", label: "Twitch" },
+                            { value: "youtube", label: "YouTube" },
+                            { value: "kick", label: "Kick" },
+                            { value: "facebook", label: "Facebook" },
+                            { value: "custom", label: "Custom server" },
+                        ];
+                        value <=> SettingsArea.service;
+                        label: "Service";
+                        selected(value) => { SettingsArea.set-text("service", value); }
+                    }
+                }
+            }
+            if d.id == SettingsArea.destination: GroupRow {
+                label: "Server";
+                indent: Theme.space-4;
+                Centred {
+                    TextField {
+                        width: Theme.field-path - Theme.space-4;
+                        small: true;
+                        mono: true;
+                        text: SettingsArea.server;
+                        placeholder: SettingsArea.server-placeholder;
+                        label: "Server";
+                        committed(text) => { SettingsArea.set-text("server", text); }
+                    }
+                }
+            }
+            if d.id == SettingsArea.destination: StreamKeyRow {
+                indent: Theme.space-4;
+            }
+            if d.id == SettingsArea.destination && d.id != "main": GroupRow {
+                label: "Video Bitrate";
+                indent: Theme.space-4;
+                if SettingsArea.destination-own-bitrate: Centred {
+                    Stepper {
+                        value: SettingsArea.destination-bitrate;
+                        minimum: 200;
+                        maximum: 50000;
+                        step: 100;
+                        unit: "kb/s";
+                        label: "Its own video bitrate";
+                        changed(value) => { SettingsArea.set-number("destination_bitrate", value); }
+                    }
+                }
+                Centred {
+                    Segmented {
+                        small: true;
+                        options: [{ value: "main", label: "Same as main" }, { value: "own", label: "Own" }];
+                        value: SettingsArea.destination-own-bitrate ? "own" : "main";
+                        label: "Video Bitrate";
+                        selected(value) => { SettingsArea.set-text("destination_bitrate", value); }
+                    }
+                }
+            }
+            if d.id == SettingsArea.destination && d.id != "main": GroupRow {
+                label: "Output Resolution";
+                indent: Theme.space-4;
+                if SettingsArea.destination-own-size: Centred {
+                    NumberField {
+                        width: Theme.field-xs;
+                        small: true;
+                        prefix: "W";
+                        value: SettingsArea.destination-width;
+                        minimum: 16;
+                        maximum: 4096;
+                        step: 2;
+                        label: "Its own output width";
+                        changed(value) => { SettingsArea.set-number("destination_width", value); }
+                    }
+                }
+                if SettingsArea.destination-own-size: Centred {
+                    NumberField {
+                        width: Theme.field-xs;
+                        small: true;
+                        prefix: "H";
+                        value: SettingsArea.destination-height;
+                        minimum: 16;
+                        maximum: 4096;
+                        step: 2;
+                        label: "Its own output height";
+                        changed(value) => { SettingsArea.set-number("destination_height", value); }
+                    }
+                }
+                Centred {
+                    Segmented {
+                        small: true;
+                        options: [{ value: "main", label: "Same as main" }, { value: "custom", label: "Custom" }];
+                        value: SettingsArea.destination-own-size ? "custom" : "main";
+                        label: "Output Resolution";
+                        selected(value) => { SettingsArea.set-text("destination_size", value); }
+                    }
+                }
+            }
+            if d.id == SettingsArea.destination && d.id != "main": GroupRow {
+                label: SettingsArea.destination-live ? "Stop it to remove it" : "";
+                indent: Theme.space-4;
+                Centred {
+                    Button {
+                        text: "Remove Destination";
+                        size: ControlSize.small;
+                        on-control: true;
+                        variant: ButtonVariant.danger;
+                        enabled: !SettingsArea.destination-live;
+                        clicked => { SettingsArea.remove-destination(); }
+                    }
+                }
+            }
+        }
+        GroupRow {
+            label: "Add Destination";
+            place: RowPlace.last;
+            clickable: true;
+            lead-icon: Icons.plus;
+            description: "Stream to another service at the same time";
+            clicked => { SettingsArea.add-destination(); }
+        }
+    }
+    if SettingsArea.has-stream && !SettingsArea.adding-destination: SetGroup {
+        title: "Output";
+        hint: (SettingsArea.destinations.length > 1 ? "Every destination uses these unless it has its own bitrate or size. " : "") + (SettingsArea.stream-custom-size ? "" : "The canvas, scaled down to fit 1080p if it is larger. ") + "Twitch suggests up to 6000 kb/s and YouTube 4500–9000 for 1080p; both ask for Constant (CBR) and a keyframe every 2 s.";
+        GroupRow {
+            label: "Video Bitrate";
+            place: RowPlace.first;
+            Centred {
+                Stepper {
+                    value: SettingsArea.video-bitrate;
+                    minimum: 200;
+                    maximum: 50000;
+                    step: 100;
+                    unit: "kb/s";
+                    label: "Video Bitrate";
+                    changed(value) => { SettingsArea.set-number("video_bitrate", value); }
+                }
+            }
+        }
+        GroupRow {
+            label: "Rate Control";
+            Centred {
+                Segmented {
+                    small: true;
+                    options: [{ value: "constant", label: "Constant (CBR)" }, { value: "average", label: "Average (VBR)" }];
+                    value <=> SettingsArea.rate-control;
+                    label: "Rate Control";
+                    selected(value) => { SettingsArea.set-text("rate_control", value); }
+                }
+            }
+        }
+        GroupRow {
+            label: "Audio Bitrate";
+            Centred {
+                Dropdown {
+                    width: Theme.field-s;
+                    on-control: true;
+                    options: [
+                        { value: "64", label: "64 kb/s" },
+                        { value: "96", label: "96 kb/s" },
+                        { value: "128", label: "128 kb/s" },
+                        { value: "160", label: "160 kb/s" },
+                        { value: "192", label: "192 kb/s" },
+                        { value: "256", label: "256 kb/s" },
+                        { value: "320", label: "320 kb/s" },
+                    ];
+                    value <=> SettingsArea.audio-bitrate;
+                    label: "Audio Bitrate";
+                    selected(value) => { SettingsArea.set-text("audio_bitrate", value); }
+                }
+            }
+        }
+        GroupRow {
+            label: "Keyframe Interval";
+            Centred {
+                Stepper {
+                    value: SettingsArea.keyframe-interval;
+                    minimum: 1;
+                    maximum: 10;
+                    unit: "s";
+                    label: "Keyframe Interval";
+                    changed(value) => { SettingsArea.set-number("keyframe_interval", value); }
+                }
+            }
+        }
+        GroupRow {
+            label: "Output Resolution";
+            place: RowPlace.last;
+            if SettingsArea.stream-custom-size: Centred {
+                NumberField {
+                    width: Theme.field-xs;
+                    small: true;
+                    prefix: "W";
+                    value: SettingsArea.stream-width;
+                    minimum: 16;
+                    maximum: 8192;
+                    step: 2;
+                    label: "Output width";
+                    changed(value) => { SettingsArea.set-number("stream_width", value); }
+                }
+            }
+            if SettingsArea.stream-custom-size: Centred {
+                NumberField {
+                    width: Theme.field-xs;
+                    small: true;
+                    prefix: "H";
+                    value: SettingsArea.stream-height;
+                    minimum: 16;
+                    maximum: 8192;
+                    step: 2;
+                    label: "Output height";
+                    changed(value) => { SettingsArea.set-number("stream_height", value); }
+                }
+            }
+            Centred {
+                Segmented {
+                    small: true;
+                    options: [{ value: "canvas", label: "Canvas" }, { value: "custom", label: "Custom" }];
+                    value: SettingsArea.stream-custom-size ? "custom" : "canvas";
+                    label: "Output Resolution";
+                    selected(value) => { SettingsArea.set-text("stream_size", value); }
+                }
+            }
+        }
+    }
+    if SettingsArea.has-stream && !SettingsArea.adding-destination: HorizontalLayout {
+        alignment: start;
+        Button {
+            text: "Turn off streaming";
+            variant: ButtonVariant.danger;
+            enabled: !SettingsArea.stream-live;
+            clicked => { SettingsArea.set-flag("stream", false); }
+        }
+    }
+}
+
+// ---------- Output ----------
+
+// The encoder and its format (8- or 10-bit for HEVC): a group's rows after
+// its switch.
+component EncoderRows inherits VerticalLayout {
+    in property <string> which;
+    in property <string> codec;
+    in property <string> container;
+    in property <bool> mp4-ok: true;
+    in property <string> depth;
+    in property <bool> shows-depth;
+    // The format row ends the group.
+    in property <bool> last: true;
+    spacing: 1px;
+    GroupRow {
+        label: "Encoder";
+        Centred {
+            Dropdown {
+                // Wide enough for the codec and "Apple VideoToolbox" where
+                // the sheet has room (#108), as narrow as the other choices
+                // where it hasn't.
+                width: max(Theme.field-choice, min(Theme.field-l, root.width - Theme.label-col - Theme.space-3 - Theme.space-1));
+                on-control: true;
+                show-detail: true;
+                options: SettingsArea.codecs;
+                value: root.codec;
+                label: "Encoder";
+                selected(value) => { SettingsArea.set-text(root.which + "_codec", value); }
+            }
+        }
+    }
+    GroupRow {
+        label: "Recording Format";
+        place: root.last ? RowPlace.last : RowPlace.middle;
+        if root.shows-depth: Centred {
+            Segmented {
+                small: true;
+                options: [{ value: "8", label: "8-bit" }, { value: "10", label: "10-bit" }];
+                value: root.depth;
+                label: "Bit depth";
+                selected(value) => { SettingsArea.set-text(root.which + "_depth", value); }
+            }
+        }
+        Centred {
+            Segmented {
+                small: true;
+                options: [{ value: "mov", label: "MOV" }, { value: "mp4", label: "MP4", disabled: !root.mp4-ok }];
+                value: root.container;
+                label: "Recording Format";
+                selected(value) => { SettingsArea.set-text(root.which + "_container", value); }
+            }
+        }
+    }
+}
+
+export component OutputPage inherits SetPage {
+    SetGroup {
+        title: "Recording";
+        resettable: true;
+        reset-label: "Put Recording back as saved";
+        reset => { SettingsArea.revert-group("recording"); }
+        hint: (SettingsArea.quality-disabled ? "ProRes files are made at a fixed quality. " : "") + (SettingsArea.quality-advanced ? "Quality is constant quality, 1–100: higher makes bigger files. " : "") + "A recording won’t start without room for it plus this, and stops cleanly when the disk gets this low.";
+        GroupRow {
+            label: "Recording Path";
+            place: RowPlace.first;
+            Centred {
+                TextField {
+                    width: Theme.field-path;
+                    small: true;
+                    mono: true;
+                    icon: Icons.folder;
+                    text: SettingsArea.folder;
+                    rest-text: SettingsArea.folder-short;
+                    label: "Recording Path";
+                    committed(text) => { SettingsArea.set-text("folder", text); }
+                }
+            }
+            Centred {
+                Button {
+                    text: "Browse…";
+                    size: ControlSize.small;
+                    on-control: true;
+                    accessible-name: "Choose the recording folder";
+                    clicked => { SettingsArea.browse-folder(); }
+                }
+            }
+        }
+        GroupRow {
+            label: "Recording Quality";
+            Centred {
+                Segmented {
+                    small: true;
+                    enabled: !SettingsArea.quality-disabled;
+                    options: [
+                        { value: "0", label: "Low" },
+                        { value: "1", label: "Medium" },
+                        { value: "2", label: "High" },
+                        { value: "3", label: "Very high" },
+                        { value: "4", label: "Incredible" },
+                    ];
+                    value: SettingsArea.quality-stop >= 0 ? "" + SettingsArea.quality-stop : "custom";
+                    position: SettingsArea.quality-position;
+                    label: "Recording Quality";
+                    selected(value) => { SettingsArea.choose-quality(value.to-float()); }
+                }
+            }
+        }
+        // "› Advanced": each one's quality number.
+        GroupRow {
+            label: "Advanced";
+            lead-icon: SettingsArea.quality-advanced ? Icons.chevron-down : Icons.chevron-right;
+            clickable: true;
+            expandable: true;
+            expanded: SettingsArea.quality-advanced;
+            trailing-pad: Theme.space-3;
+            clicked => { SettingsArea.quality-advanced = !SettingsArea.quality-advanced; }
+            HorizontalLayout {
+                spacing: Theme.space-2;
+                Text {
+                    text: "Quality value";
+                    color: Theme.text-3;
+                    font-size: Theme.fs-sm;
+                    letter-spacing: Theme.tracking-sm;
+                    vertical-alignment: center;
+                    accessible-role: none;
+                }
+                Text {
+                    text: SettingsArea.quality-value;
+                    color: Theme.text;
+                    font-family: Theme.font-mono;
+                    font-weight: Theme.weight-light;
+                    font-size: Theme.fs-xs;
+                    letter-spacing: Theme.tracking-mono;
+                    vertical-alignment: center;
+                    accessible-role: AccessibleRole.text;
+                    accessible-label: "Quality value " + SettingsArea.quality-value;
+                }
+            }
+        }
+        if SettingsArea.quality-advanced: GroupRow {
+            label: "Program Quality";
+            indent: Theme.space-4;
+            enabled: SettingsArea.program-on;
+            Centred {
+                Stepper {
+                    value: SettingsArea.program-quality;
+                    minimum: 1;
+                    maximum: 100;
+                    enabled: SettingsArea.program-on;
+                    label: "Program Quality";
+                    changed(value) => { SettingsArea.set-number("program_quality", value); }
+                }
+            }
+        }
+        if SettingsArea.quality-advanced: GroupRow {
+            label: "ISO Quality";
+            indent: Theme.space-4;
+            enabled: SettingsArea.iso-on;
+            Centred {
+                Stepper {
+                    value: SettingsArea.iso-quality;
+                    minimum: 1;
+                    maximum: 100;
+                    enabled: SettingsArea.iso-on;
+                    label: "ISO Quality";
+                    changed(value) => { SettingsArea.set-number("iso_quality", value); }
+                }
+            }
+        }
+        GroupRow {
+            label: "Keep Free";
+            place: RowPlace.last;
+            Centred {
+                Stepper {
+                    value: SettingsArea.keep-free;
+                    minimum: 0;
+                    maximum: 10000;
+                    step: 0.5;
+                    unit: "GB";
+                    label: "Keep Free";
+                    changed(value) => { SettingsArea.set-number("keep_free", value); }
+                }
+            }
+        }
+    }
+    SetGroup {
+        title: "Program";
+        resettable: true;
+        reset-label: "Put Program back as saved";
+        reset => { SettingsArea.revert-group("program"); }
+        hint: "Record Program writes the canvas as everyone sees it, with the program mix."
+            + (SettingsArea.encoder-name != "" ? "\nEncoder: " + SettingsArea.encoder-name + (SettingsArea.encoder-note != "" ? ". " + SettingsArea.encoder-note : "") : "");
+        SwitchRow {
+            label: "Record Program";
+            place: SettingsArea.program-on ? RowPlace.first : RowPlace.only;
+            on <=> SettingsArea.program-on;
+            toggled(on) => { SettingsArea.set-flag("program", on); }
+        }
+        if SettingsArea.program-on: EncoderRows {
+            which: "program";
+            codec: SettingsArea.program-codec;
+            container: SettingsArea.program-container;
+            mp4-ok: SettingsArea.program-mp4-ok;
+            depth: SettingsArea.program-depth;
+            shows-depth: SettingsArea.program-shows-depth;
+        }
+    }
+    SetGroup {
+        title: "ISO Recording";
+        resettable: true;
+        reset-label: "Put ISO Recording back as saved";
+        reset => { SettingsArea.revert-group("iso"); }
+        hint: SettingsArea.iso-on
+            ? "Each source switched on here is recorded to its own file, at its own size, on the program’s clock, with the audio chosen under it. Also in each source’s right-click menu.\n" + (SettingsArea.iso-shows-depth ? "Depth applies to all ISOs; Properties can override. 10-bit: more CPU, ~40% larger screen files. " + SettingsArea.iso-depth-note : "")
+            : "Each source chosen below in its own file, at its own size, on the program’s clock.\nAlso in each source’s right-click menu.";
+        SwitchRow {
+            label: "Record ISO Files";
+            place: SettingsArea.iso-on ? RowPlace.first : RowPlace.only;
+            on <=> SettingsArea.iso-on;
+            toggled(on) => { SettingsArea.set-flag("iso", on); }
+        }
+        if SettingsArea.iso-on && SettingsArea.iso-shows-depth: GroupRow {
+            label: "Screen / ISO Colour Depth";
+            Centred {
+                Segmented {
+                    small: true;
+                    options: [
+                        { value: "8", label: "8-bit · Smaller files" },
+                        { value: "10", label: "10-bit · Smoother gradients", disabled: !SettingsArea.iso-ten-ok },
+                    ];
+                    value: SettingsArea.iso-depth;
+                    label: "Screen / ISO Colour Depth";
+                    selected(value) => { SettingsArea.set-text("iso_depth", value); }
+                }
+            }
+        }
+        if SettingsArea.iso-on && SettingsArea.iso-sources.length == 0: GroupRow {
+            label: "No video sources yet.";
+            indent: Theme.space-4;
+            enabled: false;
+        }
+        if SettingsArea.iso-on: VerticalLayout {
+            spacing: 1px;
+            for source in SettingsArea.iso-sources: VerticalLayout {
+                spacing: 1px;
+                SwitchRow {
+                    label: source.name;
+                    indent: Theme.space-4;
+                    on: source.on;
+                    toggled(on) => { SettingsArea.set-iso-source(source.id, on); }
+                }
+                // Its file's audio, while it records.
+                if source.on: GroupRow {
+                    label: "Audio";
+                    indent: Theme.space-4 * 2;
+                    trailing-pad: Theme.space-2;
+                    HorizontalLayout {
+                        alignment: end;
+                        spacing: Theme.space-4;
+                        Checkbox {
+                            small: true;
+                            text: "Same as Others";
+                            checked: source.shared-audio;
+                            toggled => { SettingsArea.set-iso-audio(source.id, "default"); }
+                        }
+                        for track in source.tracks: Checkbox {
+                            small: true;
+                            text: track.name;
+                            checked: track.on;
+                            toggled => { SettingsArea.set-iso-audio(source.id, track.id); }
+                        }
+                    }
+                }
+            }
+        }
+        if SettingsArea.iso-on: EncoderRows {
+            which: "iso";
+            codec: SettingsArea.iso-codec;
+            container: SettingsArea.iso-container;
+            mp4-ok: SettingsArea.iso-mp4-ok;
+            // Its depth has a row of its own, Screen / ISO Colour Depth.
+            shows-depth: false;
+            last: false;
+        }
+        if SettingsArea.iso-on: SwitchRow {
+            label: "With Filters";
+            place: RowPlace.last;
+            on <=> SettingsArea.iso-filtered;
+            toggled(on) => { SettingsArea.set-flag("iso_filtered", on); }
+        }
+    }
+    SetGroup {
+        title: "Replay Buffer";
+        resettable: true;
+        reset-label: "Put Replay Buffer back as saved";
+        reset => { SettingsArea.revert-group("replay"); }
+        hint: "Replay Buffer in the Controls dock keeps the program’s last seconds in memory; Save Replay beside it writes them to the recordings folder. It shares the stream’s encoder when you stream. Changes apply at its next start.";
+        GroupRow {
+            label: "Maximum Replay Time";
+            place: RowPlace.first;
+            Centred {
+                Stepper {
+                    value: SettingsArea.replay-seconds;
+                    minimum: 5;
+                    maximum: 300;
+                    step: 5;
+                    unit: "s";
+                    label: "Maximum Replay Time";
+                    changed(value) => { SettingsArea.set-number("replay_seconds", value); }
+                }
+            }
+        }
+        GroupRow {
+            label: "Maximum Memory";
+            place: RowPlace.last;
+            Centred {
+                Stepper {
+                    value: SettingsArea.replay-memory;
+                    minimum: 16;
+                    maximum: 8192;
+                    step: 64;
+                    unit: "MB";
+                    label: "Maximum Memory";
+                    changed(value) => { SettingsArea.set-number("replay_memory", value); }
+                }
+            }
+        }
+    }
+}
+
+// ---------- Audio ----------
+
+component RefreshDevices inherits IconButton {
+    icon: Icons.refresh;
+    label: "Look for devices again";
+    compact: true;
+    icon-size: Theme.icon-xs;
+    spinning: SettingsArea.looking;
+    enabled: !SettingsArea.looking;
+    clicked => { SettingsArea.refresh-devices(); }
+}
+
+export component AudioPage inherits SetPage {
+    if SettingsArea.mics.length > 0: SetGroup {
+        title: "Audio Devices";
+        hint: "Your Audio Input Capture sources. Add more with + under Sources.";
+        for mic[i] in SettingsArea.mics: GroupRow {
+            label: mic.name;
+            place: Rows.place(i, SettingsArea.mics.length);
+            Centred {
+                Dropdown {
+                    width: Theme.field-l;
+                    on-control: true;
+                    options: mic.options;
+                    value: mic.value;
+                    show-detail: true;
+                    label: mic.name;
+                    selected(value) => { SettingsArea.set-mic(mic.id, value); }
+                }
+            }
+            Centred {
+                if i == 0: RefreshDevices { }
+                if i > 0: Rectangle {
+                    width: Theme.icon-button-xs;
+                }
+            }
+        }
+    }
+    SetGroup {
+        title: "Advanced";
+        hint: "Monitoring Device: where sources you monitor play (Audio Mixer → ⋮ → Audio Monitoring). Balance Law: how moving a source towards one side lowers the other.";
+        GroupRow {
+            label: "Monitoring Device";
+            place: RowPlace.first;
+            Centred {
+                Dropdown {
+                    width: Theme.field-l;
+                    on-control: true;
+                    options: SettingsArea.outputs;
+                    value <=> SettingsArea.monitoring-device;
+                    show-detail: true;
+                    label: "Monitoring Device";
+                    selected(value) => { SettingsArea.set-text("monitoring_device", value); }
+                }
+            }
+            Centred {
+                RefreshDevices { }
+            }
+        }
+        GroupRow {
+            label: "Balance Law";
+            place: RowPlace.last;
+            Centred {
+                Dropdown {
+                    width: Theme.field-l;
+                    on-control: true;
+                    options: SettingsArea.pan-laws;
+                    value <=> SettingsArea.pan-law;
+                    label: "Balance Law";
+                    selected(value) => { SettingsArea.set-text("pan_law", value); }
+                }
+            }
+            Rectangle {
+                width: Theme.icon-button-xs;
+            }
+        }
+    }
+}
+
+// ---------- Video ----------
+
+export component VideoPage inherits SetPage {
+    SetGroup {
+        title: "Video";
+        hint: "Recordings and the program are made at this size. Sources keep their pixel positions when it changes.";
+        GroupRow {
+            label: "Base (Canvas) Resolution";
+            place: RowPlace.first;
+            Centred {
+                Dropdown {
+                    width: 132px;
+                    on-control: true;
+                    options: SettingsArea.canvas-sizes;
+                    value <=> SettingsArea.canvas-size;
+                    label: "Base (Canvas) Resolution";
+                    selected(value) => { SettingsArea.set-text("canvas_size", value); }
+                }
+            }
+            Centred {
+                NumberField {
+                    width: Theme.field-xs;
+                    small: true;
+                    prefix: "W";
+                    value: SettingsArea.canvas-width;
+                    minimum: 16;
+                    maximum: 8192;
+                    step: 2;
+                    label: "Canvas width";
+                    changed(value) => { SettingsArea.set-number("canvas_width", value); }
+                }
+            }
+            Centred {
+                NumberField {
+                    width: Theme.field-xs;
+                    small: true;
+                    prefix: "H";
+                    value: SettingsArea.canvas-height;
+                    minimum: 16;
+                    maximum: 8192;
+                    step: 2;
+                    label: "Canvas height";
+                    changed(value) => { SettingsArea.set-number("canvas_height", value); }
+                }
+            }
+        }
+        GroupRow {
+            label: "Common FPS Values";
+            place: RowPlace.last;
+            Centred {
+                Dropdown {
+                    width: Theme.field-s;
+                    on-control: true;
+                    options: SettingsArea.fps-options;
+                    value <=> SettingsArea.fps;
+                    label: "Common FPS Values";
+                    selected(value) => { SettingsArea.set-text("fps", value); }
+                }
+            }
+        }
+    }
+    // Canvases besides the main one (#84): each a disclosure row with its
+    // size, rate and outputs; the open one's settings under it (as Stream's
+    // destinations).
+    SetGroup {
+        title: "Canvases";
+        hint: SettingsArea.canvas-rows.length == 0
+            ? "More canvases go out beside the main one, each its own shape: 9:16 for Shorts, Reels and TikTok, 1:1 or 4:5 for feeds. Each records and streams on its own (Stream › Streams of)."
+            : "Each canvas shows the main scene laid out for its shape (letterboxed until you edit its layout), or scenes of its own, and records and streams on its own: Stream › Streams of." + (SettingsArea.recording ? " Follow Main Scenes stays as it is while recording, so change it after you stop." : "");
+        for row[i] in SettingsArea.canvas-rows: VerticalLayout {
+            spacing: 1px;
+            GroupRow {
+                label: row.label;
+                place: i == 0 ? RowPlace.first : RowPlace.middle;
+                clickable: true;
+                lead-icon: row.value == SettingsArea.edit-canvas ? Icons.chevron-down : Icons.chevron-right;
+                expandable: true;
+                expanded: row.value == SettingsArea.edit-canvas;
+                description: row.detail;
+                trailing-pad: Theme.space-3;
+                clicked => { SettingsArea.set-text("canvas_pick", row.value == SettingsArea.edit-canvas ? "" : row.value); }
+                Text {
+                    text: row.detail;
+                    color: Theme.text-3;
+                    font-size: Theme.fs-sm;
+                    letter-spacing: Theme.tracking-sm;
+                    vertical-alignment: center;
+                    accessible-role: none;
+                }
+            }
+            if row.value == SettingsArea.edit-canvas: GroupRow {
+                label: "Resolution";
+                indent: Theme.space-4;
+                Centred {
+                    NumberField {
+                        width: Theme.field-xs;
+                        small: true;
+                        prefix: "W";
+                        value: SettingsArea.vertical-width;
+                        minimum: 16;
+                        maximum: 8192;
+                        step: 2;
+                        label: "Canvas width";
+                        changed(value) => { SettingsArea.set-number("vertical_width", value); }
+                    }
+                }
+                Centred {
+                    NumberField {
+                        width: Theme.field-xs;
+                        small: true;
+                        prefix: "H";
+                        value: SettingsArea.vertical-height;
+                        minimum: 16;
+                        maximum: 8192;
+                        step: 2;
+                        label: "Canvas height";
+                        changed(value) => { SettingsArea.set-number("vertical_height", value); }
+                    }
+                }
+            }
+            if row.value == SettingsArea.edit-canvas: GroupRow {
+                label: "Frame Rate";
+                indent: Theme.space-4;
+                Centred {
+                    Dropdown {
+                        width: Theme.field-s;
+                        on-control: true;
+                        options: SettingsArea.canvas-fps-options;
+                        value <=> SettingsArea.canvas-fps;
+                        label: "Frame Rate";
+                        selected(value) => { SettingsArea.set-text("canvas_fps", value); }
+                    }
+                }
+            }
+            if row.value == SettingsArea.edit-canvas: SwitchRow {
+                label: "Follow Main Scenes";
+                indent: Theme.space-4;
+                enabled: !SettingsArea.recording;
+                description: SettingsArea.recording ? "Changes once the recording stops" : "";
+                on <=> SettingsArea.vertical-follow;
+                toggled(on) => { SettingsArea.set-flag("vertical_follow", on); }
+            }
+            if row.value == SettingsArea.edit-canvas: SwitchRow {
+                label: "Record This Canvas";
+                indent: Theme.space-4;
+                on <=> SettingsArea.vertical-record;
+                toggled(on) => { SettingsArea.set-flag("vertical_record", on); }
+            }
+            if row.value == SettingsArea.edit-canvas: GroupRow {
+                label: "Remove This Canvas";
+                indent: Theme.space-4;
+                Centred {
+                    Button {
+                        text: "Remove";
+                        size: ControlSize.small;
+                        on-control: true;
+                        enabled: !SettingsArea.recording;
+                        clicked => { SettingsArea.set-text("canvas_remove", row.value); }
+                    }
+                }
+            }
+        }
+        GroupRow {
+            label: "Add a Canvas";
+            place: SettingsArea.canvas-rows.length == 0 ? RowPlace.only : RowPlace.last;
+            lead-icon: Icons.plus;
+            Centred {
+                Dropdown {
+                    width: Theme.field-m;
+                    on-control: true;
+                    show-detail: true;
+                    options: SettingsArea.canvas-presets;
+                    value: "";
+                    placeholder: "Choose a shape…";
+                    label: "Add a canvas";
+                    selected(value) => { SettingsArea.set-text("canvas_add", value); }
+                }
+            }
+        }
+    }
+}
+
+// ---------- Hotkeys ----------
+
+// A binding's chord: its keycaps (or "Record Shortcut"), a field you click
+// to type a new one (Escape cancels), and ✕ to clear it.
+component ChordField inherits Rectangle {
+    in property <BindingRow> binding;
+    in property <bool> enabled: true;
+    property <bool> keyboard;
+    width: Theme.field-m;
+    height: Theme.control-h-sm;
+    border-radius: Theme.r-compact;
+    background: root.binding.recording ? Theme.control-active : hit.has-hover && root.enabled ? Theme.control-hover : Theme.control-active;
+    border-width: root.binding.recording ? 1px : 0px;
+    border-color: Theme.accent;
+    accessible-role: button;
+    accessible-label: root.binding.label + ": " + (root.binding.recording ? "type the new shortcut, Escape to cancel" : root.binding.chord != "" ? root.binding.chord : "no shortcut");
+    accessible-description: root.binding.error != "" ? root.binding.error : root.binding.warning;
+    accessible-action-default => { SettingsArea.record-binding(root.binding.key); }
+
+    hit := TouchArea {
+        enabled: root.enabled;
+        clicked => {
+            keys.focus();
+            SettingsArea.record-binding(root.binding.key);
+        }
+    }
+    keys := FocusScope {
+        enabled: root.enabled;
+        focus-on-click: false;
+        focus-gained(reason) => { root.keyboard = reason == FocusReason.tab-navigation; }
+        focus-lost => {
+            root.keyboard = false;
+            if root.binding.recording {
+                SettingsArea.cancel-binding();
+            }
+        }
+        key-pressed(event) => {
+            if !root.binding.recording && (event.text == " " || event.text == "\n") {
+                SettingsArea.record-binding(root.binding.key);
+                return accept;
+            }
+            reject
+        }
+    }
+    HorizontalLayout {
+        padding-left: 6px;
+        padding-right: 6px;
+        spacing: Theme.space-1;
+        alignment: start;
+        if root.binding.recording: Text {
+            text: "Type a shortcut… (Esc cancels)";
+            color: Theme.accent-text;
+            font-size: Theme.fs-xs;
+            letter-spacing: Theme.tracking-xs;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        if !root.binding.recording && root.binding.chord == "": Text {
+            text: "Record Shortcut";
+            color: Theme.text-3;
+            font-size: Theme.fs-xs;
+            letter-spacing: Theme.tracking-xs;
+            vertical-alignment: center;
+        }
+        if !root.binding.recording: ShortcutKeys {
+            keys: root.binding.caps;
+            alignment: start;
+        }
+    }
+    FocusRing {
+        radius: Theme.r-compact;
+        shown: keys.has-focus && root.keyboard;
+    }
+}
+
+export component HotkeysPage inherits SetPage {
+    GroupHint {
+        text: SettingsArea.bindings-note != "" ? SettingsArea.bindings-note : PlatformText.engine-windows ? "Click a shortcut and type the keys. Windows or another app may reserve a shortcut; unavailable bindings are reported below. Changes apply at once to this profile." : "Click a shortcut and type the keys: they work everywhere (or, when macOS keeps a key for itself, while Isocast is in front). Changes apply at once to this profile.";
+    }
+    for warning in SettingsArea.bindings-warnings: Callout {
+        kind: CalloutKind.info;
+        message: warning;
+    }
+    for group in SettingsArea.bindings: SetGroup {
+        title: group.title;
+        for row[i] in group.rows: GroupRow {
+            label: row.label;
+            place: Rows.place(i, group.rows.length);
+            tall: row.error != "" || row.warning != "";
+            VerticalLayout {
+                alignment: center;
+                spacing: 2px;
+                HorizontalLayout {
+                    spacing: Theme.space-1;
+                    alignment: end;
+                    ChordField {
+                        binding: row;
+                        enabled: !SettingsArea.bindings-busy;
+                    }
+                    VerticalLayout {
+                        alignment: center;
+                        IconButton {
+                            compact: true;
+                            icon: Icons.x;
+                            label: "Clear the shortcut for " + row.label;
+                            enabled: row.chord != "" && !SettingsArea.bindings-busy;
+                            clicked => { SettingsArea.clear-binding(row.key); }
+                        }
+                    }
+                }
+                if row.error != "" || row.warning != "": Text {
+                    width: Theme.field-m + Theme.control-h-sm + Theme.space-1;
+                    text: row.error != "" ? row.error : row.warning;
+                    color: row.error != "" ? Theme.danger-text : Theme.warning;
+                    font-size: Theme.fs-xs;
+                    letter-spacing: Theme.tracking-xs;
+                    line-height-factor: Theme.leading-xs;
+                    wrap: word-wrap;
+                }
+            }
+        }
+    }
+    for group in SettingsArea.hotkeys: SetGroup {
+        title: group.title;
+        for row[i] in group.rows: GroupRow {
+            label: row.what;
+            place: Rows.place(i, group.rows.length);
+            ShortcutKeys {
+                keys: row.keys;
+            }
+        }
+    }
+}
+
+// ---------- Advanced ----------
+
+export component AdvancedPage inherits SetPage {
+    SetGroup {
+        title: "Automatically Reconnect";
+        hint: SettingsArea.has-stream ? "When the connection drops, Isocast tries again after the delay, up to the maximum." : "Set up streaming (Stream) to change how it reconnects.";
+        if SettingsArea.has-stream: SwitchRow {
+            label: "Enable";
+            place: RowPlace.first;
+            on <=> SettingsArea.reconnect-on;
+            toggled(on) => { SettingsArea.set-flag("reconnect", on); }
+        }
+        if SettingsArea.has-stream: GroupRow {
+            label: "Retry Delay";
+            enabled: SettingsArea.reconnect-on;
+            Centred {
+                Stepper {
+                    value: SettingsArea.reconnect-delay;
+                    minimum: 1;
+                    maximum: 600;
+                    unit: "s";
+                    enabled: SettingsArea.reconnect-on;
+                    label: "Retry Delay";
+                    changed(value) => { SettingsArea.set-number("reconnect_delay", value); }
+                }
+            }
+        }
+        if SettingsArea.has-stream: GroupRow {
+            label: "Maximum Retries";
+            place: RowPlace.last;
+            enabled: SettingsArea.reconnect-on;
+            Centred {
+                Stepper {
+                    value: SettingsArea.reconnect-retries;
+                    minimum: 1;
+                    maximum: 1000;
+                    enabled: SettingsArea.reconnect-on;
+                    label: "Maximum Retries";
+                    changed(value) => { SettingsArea.set-number("reconnect_retries", value); }
+                }
+            }
+        }
+    }
+    // Automatic quality (the setup's `governor`, T.2): what Isocast may
+    // lower for a while when this Mac can't keep up, and what it must
+    // keep (pins). Never the program recording, a file's size or codec,
+    // and ISO files only when the user allows ISO frame thinning.
+    SetGroup {
+        title: "Automatic Quality";
+        hint: (SettingsArea.governor-now != "" ? "Now: " + SettingsArea.governor-now + "\n" : "")
+            + "When this " + PlatformText.machine + " can't keep up, Isocast lowers the preview's refresh and the vertical frame rate, and the stream's bitrate when the upload falls behind, and puts them back once it can. It never lowers the program recording; ISO files stay at their requested frame rate unless you opt in below. "
+            + "Allowing ISO frame thinning lets it also skip ISO pictures; skipped pictures are gone from those files for good. "
+            + "What you keep is never lowered automatically, but the encoders' own overload protection can still drop frames, ISO first, to protect the program recording.";
+        SwitchRow {
+            label: "Adjust Automatically";
+            place: RowPlace.first;
+            on <=> SettingsArea.governor-on;
+            toggled(on) => { SettingsArea.set-flag("governor", on); }
+        }
+        SwitchRow {
+            label: "Keep Preview Refresh";
+            enabled: SettingsArea.governor-on;
+            on <=> SettingsArea.pin-preview;
+            toggled(on) => { SettingsArea.set-flag("pin:preview.fps", on); }
+        }
+        if SettingsArea.vertical-on: SwitchRow {
+            label: "Keep Vertical Frame Rate";
+            enabled: SettingsArea.governor-on;
+            on <=> SettingsArea.pin-vertical;
+            toggled(on) => { SettingsArea.set-flag("pin:vertical.fps", on); }
+        }
+        if SettingsArea.has-stream: SwitchRow {
+            label: "Keep Stream Bitrate";
+            enabled: SettingsArea.governor-on;
+            on <=> SettingsArea.pin-stream;
+            toggled(on) => { SettingsArea.set-flag("pin:stream.video_bitrate_kbps", on); }
+        }
+        // Off by default: the user's choice, at the cost of ISO pictures.
+        SwitchRow {
+            label: "Allow ISO Frame Thinning";
+            place: SettingsArea.iso-thinning ? RowPlace.middle : RowPlace.last;
+            enabled: SettingsArea.governor-on;
+            on <=> SettingsArea.iso-thinning;
+            toggled(on) => { SettingsArea.set-flag("iso_thinning", on); }
+        }
+        // With thinning allowed, every ISO or chosen ones can still be kept.
+        if SettingsArea.iso-thinning: SwitchRow {
+            label: "Keep ISO Frame Rates";
+            place: !SettingsArea.pin-iso && SettingsArea.pin-iso-sources.length > 0 ? RowPlace.middle : RowPlace.last;
+            enabled: SettingsArea.governor-on;
+            on <=> SettingsArea.pin-iso;
+            toggled(on) => { SettingsArea.set-flag("pin:recording.iso.fps", on); }
+        }
+        // Or one ISO file's, while the others may be lowered.
+        if SettingsArea.iso-thinning && !SettingsArea.pin-iso: VerticalLayout {
+            spacing: 1px;
+            for source[i] in SettingsArea.pin-iso-sources: SwitchRow {
+                label: source.name;
+                indent: Theme.space-4;
+                place: i == SettingsArea.pin-iso-sources.length - 1 ? RowPlace.last : RowPlace.middle;
+                enabled: SettingsArea.governor-on;
+                on: source.on;
+                toggled(on) => { SettingsArea.set-flag("pin:recording.iso.sources." + source.id + ".fps", on); }
+            }
+        }
+    }
+    // Developer mode (#47): the profile's; logs stay on this Mac.
+    SetGroup {
+        title: "Developer";
+        hint: "Logs every engine call and debug messages, and frame timing each second while recording, in logs of their own (up to 200 MB) on this " + PlatformText.machine + ". Adds the Developer menu and the stats overlay.";
+        SwitchRow {
+            label: "Developer Mode";
+            place: RowPlace.first;
+            on <=> SettingsArea.developer-on;
+            toggled(on) => { SettingsArea.set-flag("developer", on); }
+        }
+        SwitchRow {
+            label: SettingsArea.developer-auto-off-label;
+            place: RowPlace.last;
+            enabled: SettingsArea.developer-on;
+            on <=> SettingsArea.developer-auto-off;
+            toggled(on) => { SettingsArea.set-flag("developer_auto_off", on); }
+        }
+    }
+}

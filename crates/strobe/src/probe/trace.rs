@@ -1,0 +1,103 @@
+//! Browser-wide Chromium tracing into a Perfetto proto file.
+
+use super::Set;
+use crate::model::{Error, Refusal, Result, ValidatorId};
+use crate::target::cdp::{Cdp, wait_event};
+use base64::Engine;
+use serde_json::{Value, json};
+use std::io::Write;
+use std::path::Path;
+use std::sync::Arc;
+use std::sync::mpsc::Receiver;
+use std::time::Duration;
+
+/// Categories per probe set. Timing stays small: frames, input latency, renderer tasks, marks.
+pub fn categories(set: Set) -> Vec<&'static str> {
+    let mut c = vec!["benchmark", "devtools.timeline", "disabled-by-default-devtools.timeline", "blink.user_timing", "__metadata"];
+    match set {
+        // Only what bench metrics read: PipelineReporter (frames), EventLatency (input), marks, thread
+        // names. A tenth of the full set's slices, so less tracing in the target and a faster block;
+        // renderer main-thread busy comes from the Performance domain instead of RunTask slices.
+        Set::Lean => return vec!["disabled-by-default-devtools.timeline.frame", "input.scrolling", "blink.user_timing", "__metadata"],
+        Set::Timing => {}
+        // Only what attribution views read: JS stacks on layout and style events (`query layout`) and GC
+        // phases (`query gc`). Invalidation tracking, `blink` and `v8.execute` recorded a million slices
+        // nothing read and raised a profiled run's main-thread work by 40–50% against its timed pairs.
+        // `gpu.dawn`: the GPU process's WebGPU work (`query gpu`): shader and pipeline compiles, command
+        // decoding.
+        Set::Attribution => c.extend(["disabled-by-default-devtools.timeline.stack", "disabled-by-default-v8.gc", "gpu.dawn"]),
+        Set::Memory => c.extend(["disabled-by-default-memory-infra", "disabled-by-default-v8.gc"]),
+    }
+    c
+}
+
+pub struct Tracing {
+    cdp: Arc<Cdp>,
+    events: Receiver<Value>,
+}
+
+pub fn start(cdp: &Arc<Cdp>, set: Set) -> Result<Tracing> {
+    start_with(cdp, set, &[])
+}
+
+/// [`start`] plus `extra` categories a series asked for (`loading` for `layout.shift`).
+pub fn start_with(cdp: &Arc<Cdp>, set: Set, extra: &[&'static str]) -> Result<Tracing> {
+    let mut c = categories(set);
+    c.extend(extra.iter().filter(|e| !c.contains(e)).collect::<Vec<_>>());
+    // Attribution traces of long runs (stacks, invalidations) overflowed the default buffer.
+    start_categories(cdp, &c, if set == Set::Attribution || set == Set::Memory { 1_000_000 } else { 200_000 })
+}
+
+/// A browser-wide trace of exactly `categories` into a buffer of `buffer_kb`.
+pub fn start_categories(cdp: &Arc<Cdp>, categories: &[&str], buffer_kb: u64) -> Result<Tracing> {
+    let events = cdp.events();
+    cdp.send(
+        "Tracing.start",
+        json!({
+            "transferMode": "ReturnAsStream",
+            "streamFormat": "proto",
+            "traceConfig": { "recordMode": "recordAsMuchAsPossible", "includedCategories": categories, "traceBufferSizeInKb": buffer_kb },
+        }),
+        None,
+    )?;
+    Ok(Tracing { cdp: cdp.clone(), events })
+}
+
+impl Tracing {
+    /// Stops tracing and streams the trace into `path`; returns its size. A trace whose buffer filled
+    /// is written, then refused (`RunIncomplete`): Chromium drops what came after, so its frames,
+    /// tasks and marks of the later runs are missing, and every count from it would be short.
+    pub fn stop(self, path: &Path) -> Result<u64> {
+        self.cdp.send("Tracing.end", json!({}), None)?;
+        let done = wait_event(&self.events, "Tracing.tracingComplete", None, Duration::from_secs(120))?;
+        let lost = done.get("dataLossOccurred").and_then(Value::as_bool) == Some(true);
+        let stream = done["stream"].as_str().ok_or_else(|| Error::msg("tracing: no stream"))?;
+        let mut file = std::io::BufWriter::new(crate::store::create(path)?);
+        let mut total = 0u64;
+        loop {
+            let r = self.cdp.send("IO.read", json!({ "handle": stream, "size": 4 << 20 }), None)?;
+            let data = r["data"].as_str().unwrap_or("");
+            let bytes = if r["base64Encoded"].as_bool() == Some(true) {
+                base64::engine::general_purpose::STANDARD.decode(data).map_err(|e| Error::msg(format!("trace chunk: {e}")))?
+            } else {
+                data.as_bytes().to_vec()
+            };
+            total += bytes.len() as u64;
+            file.write_all(&bytes)?;
+            if r["eof"].as_bool() == Some(true) {
+                break;
+            }
+        }
+        let _ = self.cdp.send("IO.close", json!({ "handle": stream }), None);
+        file.into_inner().map_err(|e| e.into_error())?.commit()?;
+        if lost {
+            return Err(Refusal::new(
+                ValidatorId::RunIncomplete,
+                format!("the browser's trace buffer filled ({} MB written): Chromium dropped the events after that, so the trace lacks part of the runs", total / (1024 * 1024)),
+            )
+            .fix("record fewer or shorter runs (--runs, --for), or fewer probes, so the trace buffer holds them")
+            .into());
+        }
+        Ok(total)
+    }
+}

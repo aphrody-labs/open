@@ -1,0 +1,81 @@
+<!doctype html>
+<!-- Planted differences for paired known-answer runs (scripts/dev/known/planted.bench.ts). The query string plants
+them, so two targets that differ only in it differ by exactly that:
+  ?delay=<ms>  #ready appears after a task that busy-waits <ms>: launch.ready differs by it (a busy-wait, not a
+               timer of <ms>: a browser's timer fires late by its own slack)
+  ?vsyncs=<k>  the page first times the display's refresh (the median of 30 animation frames' gaps, V), then every
+               animation frame spins k × V on the main thread and moves #box: the same plant at any refresh rate
+               (k 1.5: Chromium starts each late frame at once, so 2 frames are presented in every 3 vsyncs);
+               #calibrated appears once V is timed
+  ?click=<ms>  a click on #btn asks for an animation frame, which spins <ms> and then changes #btn's colour: with
+               <ms> a whole number of vsyncs, interaction latency differs by exactly it (a spin in the click
+               handler itself read about 7 ms less on a 60 Hz Mac)
+  known.spin(ms) busy-waits <ms> on the main thread (page.eval)
+  known.work(n)  runs <n> iterations of one integer loop on the main thread: work by count, which preemption or a
+                 hypervisor's steal does not shorten (a wall-time spin does less CPU then) -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>planted</title>
+<style>
+  html, body { margin: 0; font: 13px/18px system-ui, sans-serif }
+  #box { width: 80px; height: 80px; background: #009fff }
+  #btn { width: 160px; height: 40px; background: #eee }
+</style>
+</head>
+<body>
+<div id="box"></div>
+<button id="btn">click</button>
+<script>
+const q = new URLSearchParams(location.search)
+const num = (k) => Number(q.get(k) ?? 0)
+function spin(ms) { const end = performance.now() + ms; while (performance.now() < end) {} }
+// A 32-bit linear congruential step (Math.imul keeps it in int32): the same work every iteration, nothing allocated,
+// and its result is returned so the loop cannot be dropped. With ?work, called 20 times at load (about 16 ms), so
+// V8 has optimized it before any run (its first calls run slower code: a 60 M call took 65 ms, then 46, in node).
+function work(n) { let x = 1; for (let i = 0; i < n; i++) x = (Math.imul(x, 1664525) + 1013904223) | 0; return x }
+if (q.has("work")) for (let i = 0; i < 20; i++) work(1e6)
+window.known = { spin, work }
+setTimeout(() => {
+  if (q.has("delay")) performance.mark("plant_start")
+  spin(num("delay"))
+  const main = document.createElement("main")
+  main.id = "ready"
+  main.textContent = "ready"
+  document.body.append(main)
+  if (q.has("delay")) performance.mark("plant_end")
+}, 0)
+if (q.has("vsyncs")) {
+  const box = document.getElementById("box")
+  const gaps = []
+  let last = 0
+  let work = 0
+  let i = 0
+  const tick = (t) => {
+    if (!work) {
+      if (last) gaps.push(t - last)
+      last = t
+      if (gaps.length === 30) {
+        work = num("vsyncs") * gaps.sort((a, b) => a - b)[15]
+        // The bench's setup waits for this, so no run sees the unspun frames that timed V.
+        document.body.append(Object.assign(document.createElement("div"), { id: "calibrated", textContent: "calibrated" }))
+      }
+    } else {
+      spin(work)
+    }
+    box.style.transform = `translateX(${++i % 40}px)`
+    requestAnimationFrame(tick)
+  }
+  requestAnimationFrame(tick)
+}
+const btn = document.getElementById("btn")
+let flip = 0
+btn.addEventListener("click", () => {
+  requestAnimationFrame(() => {
+    spin(num("click"))
+    btn.style.background = ++flip % 2 ? "#009fff" : "#eee"
+  })
+})
+</script>
+</body>
+</html>

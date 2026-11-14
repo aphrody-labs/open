@@ -1,0 +1,2412 @@
+//! `strobe record`: one recording of a target (SPEC §5.5).
+
+use super::{Output, fmt, progress};
+use crate::cli::{Args, duration_ms};
+use crate::driver::Driver;
+use crate::host;
+use crate::metrics;
+use crate::model::{Error, Result, WebEngine};
+use crate::probe::{self, Set};
+use crate::store;
+use crate::target::chromium::{self, Window};
+use crate::target::{electron, isolate, web};
+use crate::validity;
+use serde_json::{Value, json};
+use std::collections::BTreeMap;
+use std::time::Duration;
+
+/// Why a native app's window recorded on a locked Windows session has no frames or GPU use.
+const LOCKED_DRAWN: &str = "the session was locked while strobe recorded: nothing the window drew reached a display, and GPU use for a screen nobody sees describes none";
+
+/// `record --bench <file.bench.ts>#<case>`: one bench case on this checkout (or `--head <variant>`), recorded with
+/// the attribution probes (CPU and allocation profiles, forced layouts, GC, the GPU process's work, a heap
+/// snapshot). The case drives the page, so a flow behind a click or a key records as easily as a URL. It is a
+/// bench `--check` with an attribution block: setup, warmup until steady, then the measured runs under the
+/// profilers.
+fn bench_case(args: &Args, file: &str, case: &str) -> Result<Output> {
+    if args.has("gpu-cache") {
+        return Err(Error::usage("--gpu-cache is for a native app's record; with --bench the bench target's gpuCache decides (set it in the bench file)"));
+    }
+    if args.get("emulate").is_some() {
+        return Err(Error::usage("--emulate is for a page's record; with --bench the bench target decides what its page emulates"));
+    }
+    if args.has("windowless") {
+        return Err(Error::usage("--windowless is for a native app's record; with --bench the bench target decides (native(…, { window: false }))"));
+    }
+    let mut b = Args::parse(vec!["bench".into(), file.into(), "--head".into(), args.get("head").unwrap_or(".").into(), "--check".into(), "--why".into(), "always".into()])?;
+    b.set("filter", case);
+    // Recordings of one executable share its GPU caches, as `record` does.
+    b.set("gpu-store", "exe");
+    // `--mobile` too, bare (`""`) or naming a serial: the case's phone target on the phone.
+    for k in ["target", "params", "id", "pin", "power", "runs", "style", "headless", "wayland", "engine", "seed", "video", "mobile", "max-time"] {
+        if let Some(v) = args.get(k) {
+            b.set(k, v);
+        }
+    }
+    // The recording is the case's attribution block: only `waits` adds to it (`timing` or `memory`
+    // would skip it or make a leak run).
+    match args.get("probes") {
+        None | Some("attribution" | "deep") => {}
+        Some("waits") => b.set("probes", "waits"),
+        Some("memory") => {
+            return Err(Error::usage(format!(
+                "record --bench records the case's attribution block, which ends with a heap snapshot: strobe record --bench {file}#{case}; a leak run of the case (snapshots between runs) is strobe bench {file} --filter {case} --probes memory"
+            )));
+        }
+        Some(p) => return Err(Error::usage(format!("record --bench records the case's attribution block; --probes {p} does not apply (waits adds off-CPU waits to a native case)"))),
+    }
+    let out = super::bench::run(&b)?;
+    let attributed = || out.json["series"].as_array().into_iter().flatten().filter(|s| s["attribution"].is_string());
+    // The main thread's CPU each check line shows after its declared metrics (`bench::main_thread_shown`).
+    let mains: Vec<Vec<&'static str>> =
+        attributed().map(|s| super::bench::main_thread_shown(s, &s["declared"].as_array().into_iter().flatten().filter_map(Value::as_str).collect::<Vec<_>>())).collect();
+    let recordings: Vec<Value> = attributed()
+        .filter_map(|s| {
+            // The attribution block's recording (`kind`), beside the check run's own (`check_recording`).
+            Some(json!({
+                "case": s["label"], "recording": s["attribution"].as_str()?, "kind": "attribution", "check_recording": s["recording"], "values": s["values"], "refused": s["refused"], "declared": s["declared"],
+                "headless": s["headless"], "sampling": s["attribution_sampling"], "video": s["video"]["head"], "check_gpu_cache": s["gpu_cache"],
+            }))
+        })
+        .collect();
+    // A case that ran but whose engine strobe has no profiler for (a Firefox launch, a WebKit page) says so.
+    let unprofiled = out.json["warnings"].as_array().into_iter().flatten().find(|w| w["id"] == "Attribution" && w["text"].as_str().is_some_and(|t| t.contains("no attribution block")));
+    if let (true, Some(w)) = (recordings.is_empty(), unprofiled) {
+        return Err(Error::refused("EngineUnsupported", format!("{case}: no recording: {}", w["text"].as_str().unwrap_or("")), "record the case in Chromium (--engine chromium)"));
+    }
+    // Stopped before any recording (a stop, `--max-time` in a wait): that, not a failed case.
+    if recordings.is_empty() && matches!(out.code, 124 | 130) {
+        return super::unless_halted(out);
+    }
+    if recordings.is_empty() {
+        return Err(Error::msg(format!("{case}: no recording (the case failed or matched nothing):\n{}", out.text)));
+    }
+    let mut text = String::new();
+    for (r, main) in recordings.iter().zip(&mains) {
+        let rec = r["recording"].as_str().unwrap_or("");
+        text += &format!("{rec} · {} · attribution{}\n", r["case"].as_str().unwrap_or(""), if r["headless"] == true { " · headless: frames and input latency refused" } else { "" });
+        // The check run before it (one cold run, timed): its launch milestones and declared metrics, then
+        // the main thread's CPU of a target with no window.
+        text += &launch_line(&r["values"]);
+        let declared: Vec<String> = r["declared"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .filter(|m| !m.starts_with("launch."))
+            .chain(main.iter().copied())
+            .filter_map(|m| match r["values"][m].as_f64() {
+                Some(v) => Some(format!("{m} {}", fmt::value(v, crate::model::metric(m).map_or("", |d| d.unit)))),
+                None => r["refused"][m].is_string().then(|| format!("{m} refused")),
+            })
+            .collect();
+        if !declared.is_empty() {
+            text += &format!("check    {}   (one cold run before it: its own numbers, not this recording's runs)\n", declared.join(" · "));
+        }
+        // `--video`: the check run's video, in the check block's own recording.
+        if let Some(v) = r["video"].as_str() {
+            let meta = store::resolve(v).ok().and_then(|d| store::read_json(&d.join("meta.json")).ok()).unwrap_or(Value::Null);
+            text += &super::video::line(v, &meta["video"]);
+        }
+        let meta = store::resolve(rec).ok().and_then(|d| store::read_json(&d.join("meta.json")).ok()).unwrap_or(Value::Null);
+        // The check's launch compiled its shaders (cold caches) and this one found them: what the cold
+        // compile cost is in the check's numbers, not in this recording.
+        if r["check_gpu_cache"] == "cold" && meta["gpu_cache"] == "warm" {
+            text += "note     the check's launch found the GPU shader caches cold and this recording's launch warm, so a shader compile the check's numbers hold is not in this recording; record app:<id> --gpu-cache cold --probes attribution records a cold launch\n";
+        }
+        text += &sampling_line(&meta);
+        let native = meta["native"] == true;
+        text += &if native {
+            format!("next     strobe query {rec} threads · strobe query {rec} hotspots --by package · strobe query {rec} gpu · strobe query {rec} summary\n")
+        } else if meta["script"] == true {
+            // A script host: its profile and threads, no page to lay out or style.
+            format!("next     strobe query {rec} hotspots --by package · strobe query {rec} threads --timeline · strobe query {rec} summary (per run)\n")
+        } else if meta["engine"].as_str().is_some_and(|e| e != "chromium") {
+            // No style invalidation tracking outside Chromium's trace.
+            format!("next     strobe query {rec} hotspots --by package · strobe query {rec} layout · strobe query {rec} summary (per run) · strobe report recording {rec} --open\n")
+        } else {
+            format!("next     strobe query {rec} hotspots --by package · strobe query {rec} summary (per run) · strobe query {rec} style · strobe report recording {rec} --open\n")
+        };
+    }
+    // What the recordings are: a loaded machine's (other work on the CPUs; a slow speed check is said,
+    // never waited for), a profile that missed or failed (`Attribution`), one that cost the page its time
+    // (`ProbeOverhead`, `ObserverCost`), timers the target inherited coalesced (`TimerCoalescing`), or a
+    // check run that measured startup still running (`NotSteady`).
+    let shown = |id: Option<&str>| matches!(id, Some("Background" | "Throttled" | "Attribution" | "ProbeOverhead" | "ObserverCost" | "TimerCoalescing" | "NotSteady"));
+    let busy: Vec<Value> = out.json["warnings"].as_array().into_iter().flatten().filter(|w| shown(w["id"].as_str()) && w["level"] == "warn").cloned().collect();
+    for w in &busy {
+        text += &format!("! {:<24}{}\n", w["id"].as_str().unwrap_or(""), w["text"].as_str().unwrap_or(""));
+    }
+    Ok(Output::new(text, json!({ "recordings": recordings, "warnings": busy })))
+}
+
+pub fn run(args: &Args) -> Result<Output> {
+    if let Some(spec) = args.get("bench") {
+        let (file, case) = spec.rsplit_once('#').ok_or_else(|| Error::usage("--bench <file.bench.ts>#<case> (a case glob such as show* works)"))?;
+        return bench_case(args, file, case);
+    }
+    if args.has("seed") {
+        return Err(Error::usage("--seed seeds a bench file's ctx.random(): record --bench <file>#<case> --seed <n>"));
+    }
+    let target = args.pos.first().ok_or_else(|| Error::usage("record needs a target: strobe record https://… [--for 10s], or --bench <file>#<case>"))?.clone();
+    if let Some(id) = args.get("id") {
+        store::free_recording_id(id)?;
+    }
+    // A local page (`page.html` or `file:page.html`) opens in the browser as its file:// address;
+    // any other `file:` is a trace to import.
+    let page_file = |p: &str| {
+        let ext = std::path::Path::new(p).extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
+        matches!(ext.as_str(), "html" | "htm" | "xhtml" | "svg") && std::path::Path::new(p).is_file()
+    };
+    let target = if target == "wir" { "wir:".to_string() } else { target };
+    let is_wir = target.starts_with("wir:");
+    // `file:<path>`, `file:///<path>`, and on Windows `file:///C:/…`.
+    let local = target.strip_prefix("file://").or_else(|| target.strip_prefix("file:")).map(|p| if cfg!(windows) && p.len() > 2 && p.as_bytes()[2] == b':' { &p[1..] } else { p });
+    let target = match local {
+        Some(path) if page_file(path) => super::look::address(path),
+        Some(_) if args.has("video") => return Err(Error::usage("--video films a target as it runs; file:<trace> imports a capture taken already")),
+        Some(_) if args.has("max-time") => return Err(Error::usage("--max-time caps a recording's wait for the bench slot; file:<trace> imports a capture taken already, waiting for nothing")),
+        Some(path) => return super::query::import(path),
+        None if !target.contains(':') || std::path::Path::new(&target).is_file() => {
+            if page_file(&target) {
+                super::look::address(&target)
+            } else {
+                return Err(Error::usage(format!("{target}: a local target is an HTML page (page.html) or a trace to import (file:<path>)")));
+            }
+        }
+        None => target,
+    };
+    // An engine this OS cannot run refuses before anything changes (the power plan below).
+    let emulation = parse_emulation(args)?;
+    if args.has("windowless") && !target.starts_with("app:") && !target.starts_with("exe:") {
+        return Err(Error::usage(format!("--windowless launches a native app that shows no window (app:<id> of kind native, exe:<path> --native), not {target}")));
+    }
+    if args.has("mobile") {
+        mobile_usage(args, &target)?;
+    } else if !is_wir {
+        if let Some(e) = args.get("engine").map(WebEngine::parse).transpose()?.and_then(|e| crate::target::web::refusal_as(e, args.has("headless"), &emulation)) {
+            return Err(e);
+        }
+        if let Some(e) = phone_refusal(&emulation, args.has("headless")) {
+            return Err(e);
+        }
+    }
+    // A timed recording runs on the fastest power plan, as a bench does (SPEC §9.4); attribution,
+    // deep, memory and attached phone (`wir:`, `--mobile`) recordings do not switch this host's plan.
+    let timed = args.get("probes").unwrap_or("timing") == "timing" && !args.has("mobile") && !is_wir;
+    // Its numbers are timings: none holds on a shared CI runner (`SharedRunner`); attribution does.
+    if timed {
+        super::bench::refuse_shared("record --probes timing")?;
+    }
+    // A timed recording takes turns with benches for the device's slot (SPEC §10.1 `ConcurrentBench`),
+    // before its power plan: its numbers and a timed block never share the machine.
+    // `--max-time` caps that wait (exit 124, `ConcurrentBench`); a recording that takes no slot ends at --for.
+    let slotted = timed;
+    let deadline = match args.get("max-time") {
+        Some(_) if !slotted => return Err(Error::usage("--max-time caps a record --bench's waits, and a timed recording's wait for the bench slot; this recording takes no slot and ends at --for")),
+        Some(t) => Some(std::time::Instant::now() + Duration::from_millis(duration_ms(t)?)),
+        None => None,
+    };
+    let _slot = if slotted { Some(super::bench::slot::Registration::new(&store::new_id("rec"), &target).acquire_until(&format!("strobe record {target}"), deadline)?.0) } else { None };
+    let power = if timed { Some(super::bench::power_quiet(args, true, None)?) } else { None };
+    let mut out = recorded(args, target)?;
+    // The user's plan is put back (the guard dropped) before the result says so.
+    let switched = power.filter(|p| p.switched()).map(|p| p.used.clone());
+    if let Some(used) = switched
+        && !out.text.is_empty()
+    {
+        out.text += &format!("power    {used} for this recording; the user's own plan is back\n");
+    }
+    Ok(out)
+}
+
+fn recorded(args: &Args, target: String) -> Result<Output> {
+    video_refusal(args, &target)?;
+    if target.starts_with("wir:") {
+        return ios_wir(args, &target);
+    }
+    if target.starts_with("pid:") || target.starts_with("proc:") {
+        return super::outside::record(args, &target);
+    }
+
+    // `waits`: a native app's attribution recording with its off-CPU waits.
+    let set = match args.get("probes").unwrap_or("timing") {
+        "waits" => Set::Attribution,
+        p => Set::parse(p).ok_or_else(|| Error::usage("--probes: timing, attribution, memory or waits (a native app's attribution with off-CPU waits)"))?,
+    };
+    let for_ms = match args.get("for") {
+        Some(d) => duration_ms(d)?,
+        None => 10_000,
+    };
+    let attach = target.starts_with("cdp:") || target.starts_with("ws://");
+    for l in isolate::reap_dead_owners() {
+        progress(l);
+    }
+    let config = crate::config::load(&crate::config::project_root(&std::env::current_dir()?))?;
+    // `exe:<path> --app <id>` borrows an app profile for another build of that app.
+    let app = match (target.strip_prefix("app:"), target.strip_prefix("exe:"), args.get("app")) {
+        (Some(id), _, _) => Some(isolate::app(id, &config)?),
+        (_, Some(path), Some(id)) => Some(isolate::app(id, &config)?.with_exe(std::path::Path::new(path))),
+        (_, Some(path), None) => Some(isolate::App::bare(std::path::Path::new(path))),
+        _ => None,
+    };
+    // A native app (a profile of kind native, or `exe:<path> --native`): measured from outside.
+    if let Some(a) = app.clone().filter(|a| a.kind == isolate::AppKind::Native || args.has("native")) {
+        return native(args, &a.as_kind(isolate::AppKind::Native), &target, set, for_ms);
+    }
+    if args.has("wayland") {
+        return Err(Error::usage(format!("--wayland runs a native app (app:<id> of kind native, exe:<path> --native) on a Wayland compositor strobe starts, not {target}")));
+    }
+    if args.has("windowless") {
+        return Err(Error::usage(format!("--windowless records a native app that shows no window (app:<id> of kind native, exe:<path> --native), not {target}")));
+    }
+    if args.get("probes") == Some("waits") {
+        return Err(Error::usage(format!("--probes waits takes a native capture's off-CPU waits: a native app (app:<id> of kind native, exe:<path> --native) or pid:<n>, not {target}")));
+    }
+    // An app opens its own window: `--headless` would only skip the lock check on a headed app.
+    if args.has("headless") && app.is_some() {
+        return Err(Error::usage(format!("--headless runs a page in a headless browser; {target} draws its own window")));
+    }
+    if !attach && app.is_none() && !target.starts_with("http://") && !target.starts_with("https://") && !target.starts_with("file://") {
+        return Err(Error::usage(format!("unsupported target {target}: use https://…, a local page.html, app:<id>, exe:<path>, cdp:<port> or file:<trace>")));
+    }
+    let emulation = parse_emulation(args)?;
+    if (attach || app.is_some()) && args.get("emulate").is_some() {
+        return Err(Error::usage("--emulate makes a page strobe launches a phone or a touch screen (https://…, page.html); an attached endpoint or an app is what it is"));
+    }
+    let window = emulated_window(&emulation, args.has("headless"));
+    // `--engine`: a page in another browser engine; Chromium (the default) records below.
+    match args.get("engine").map(WebEngine::parse).transpose()? {
+        Some(_) if attach || app.is_some() => {
+            return Err(Error::usage("--engine picks the browser strobe launches for a page (https://…, page.html); an attached endpoint or app is the browser it is"));
+        }
+        Some(WebEngine::Chromium) | None => {}
+        Some(engine) => return engine_page(args, engine, &target, set, for_ms, &emulation),
+    }
+    let mut guard = None;
+    // `--mobile`: Chrome on a phone, its own screen and touch. A timed recording takes no emulator, no
+    // phone over Wi-Fi and no hot or saving phone (`android_chrome::launch`).
+    let mobile = args.get("mobile").map(str::to_string);
+    let target = if mobile.is_some() { crate::target::android_chrome::served(&target)? } else { target };
+    let browser = if let Some(serial) = &mobile {
+        let phone = crate::target::android_chrome::pick(serial)?;
+        progress(format!("recording on {} {} ({})", phone.facts.manufacturer, phone.facts.model, phone.device.label()));
+        let timed = set == Set::Timing && !args.has("video");
+        // A timed recording waits (up to 3 minutes) for a hot phone to cool; the launch reads it again.
+        if timed {
+            crate::validity::phone_timed(&phone.facts)?;
+            crate::target::android_chrome::cool(&phone.device)?;
+        }
+        crate::target::android_chrome::launch(&phone, &format!("record {target}"), timed, Duration::ZERO)?
+    } else if attach {
+        chromium::attach(&target)?
+    } else if let Some(app) = &app {
+        let app = &with_gpu_store(args, app)?;
+        progress(format!("launching {} in an isolated home", app.exe.display()));
+        let (b, g) = electron::launch(app, args.get("home").map(std::path::Path::new), &Window::default(), None)?;
+        guard = Some(g);
+        b
+    } else {
+        chromium::launch_as(&window, args.has("headless"), None, &[], &emulation)?
+    };
+    // A software rasterizer refuses what it drew, metric by metric, below (`SoftwareGpu`); headless, what
+    // reached no display goes anyway (`Headless`).
+    let gpu = browser.gpu();
+    let debug = app.as_ref().and_then(|a| host::debug_runtime(&a.exe));
+    let page = if app.is_some() { electron::main_page(&browser)? } else { browser.page()? };
+    if let Some(g) = &guard {
+        g.check("after the app opened its window")?;
+        // The app loads itself; give it time to settle before recording.
+        std::thread::sleep(Duration::from_secs(3));
+    } else if let Some(phone) = &browser.phone {
+        // The page's origin starts empty, as in a fresh desktop profile; a server on this computer's
+        // loopback is reversed to the phone's.
+        phone.load(&target)?;
+        crate::target::android_chrome::clear_origin(&page, &target)?;
+        progress(format!("loading {target} in {}", browser.version));
+        page.navigate(&target, Duration::from_secs(60))?;
+    } else if !attach {
+        // Touch and the user agent before anything loads; a phone's viewport once the window is its size.
+        page.emulate(&emulation)?;
+        if emulation.mobile {
+            // Headless (a phone is never headed here, `phone_refusal`): where the browser keeps a minimum
+            // window anyway (Chromium and Edge on Windows, 492 wide), the phone's metrics give the page its
+            // size once the window is as near it as it goes.
+            browser.fit_viewport(&page, PHONE.0, PHONE.1, None)?;
+            page.emulate_viewport(&emulation, PHONE, window.scale)?;
+            web::WebPage::from(page.clone()).check_device(PHONE, window.scale, "before it loads")?;
+        }
+        progress(format!("loading {target}{}", emulated_text(&meta_emulate(&emulation)).map(|t| format!(" as {t}")).unwrap_or_default()));
+        page.navigate(&target, Duration::from_secs(60))?;
+    }
+    // A page strobe launched sees its emulation's input (`DeviceMismatch`); an app's page or an attached
+    // browser the machine's, as it saw it.
+    let input = if browser.phone.is_some() {
+        // A phone's page sees a touch screen as its input.
+        Some(validity::phone_input(&page.clone().into())?.0)
+    } else if app.is_none() && !attach {
+        Some(validity::emulated_input(&page.clone().into(), &emulation)?.0)
+    } else {
+        let seen = validity::InputSeen::read(&page.clone().into()).ok().map(|s| s.class());
+        if seen == Some(validity::InputClass::None) {
+            progress("! NoPointer  the page sees no pointer ((hover: none), neither a fine nor a coarse one), as on a machine without a mouse: it runs its touch or no-hover paths");
+        }
+        seen
+    };
+    let gpu = gpu?;
+    // A phone's page runs on the phone: no process, priority or screen of this computer's is its.
+    let phone = browser.phone.is_some();
+    // A launched target inherits strobe's priority; an attached one runs as its user left it.
+    let qos = if attach || phone { None } else { host::background_qos(None).or_else(|| host::background_qos(Some(browser.pid))) };
+    validity::window_visible(&page.clone().into())?;
+    // A headless target draws off screen, so only a headed one cares about the lock screen.
+    let on_screen = !args.has("headless");
+    let host_screen = on_screen && !phone;
+    if host_screen && host::session_locked() {
+        return Err(validity::locked());
+    }
+    let awake = host::Awake::start();
+    // `--id`: a handle chosen up front, so an MCP call that outlives its timeout can be followed.
+    let (id, draft) = claim(args)?;
+    let dir = draft.dir().to_path_buf();
+    let token = id.trim_start_matches("rec_").to_string();
+    let driver = Driver::new(page.clone().into(), token.clone());
+    // Every top-level document marks its start in its renderer (`metrics::doc_mark_script`): one the
+    // page moves to in the recording stays the run's.
+    crate::target::web::WebPage::from(page.clone()).add_init_script(&metrics::doc_mark_script(&token))?;
+    if set == Set::Memory {
+        let phone_meta = browser.phone.as_ref().map(|p| p.meta(crate::target::android_chrome::screen(&page)));
+        let meta = memory(&page, &browser, &dir, &id, &target, for_ms, json!({ "input": input, "headless": !on_screen, "emulate": meta_emulate(&emulation), "phone": phone_meta }))?;
+        if host_screen && (awake.locks() > 0 || host::session_locked()) {
+            return Err(validity::locked());
+        }
+        draft.keep();
+        if !attach {
+            browser.close();
+        }
+        if let Some(g) = &guard {
+            g.check("after the app closed")?;
+        }
+        return Ok(Output::new(summary_text(&meta), meta));
+    }
+    let style = set == Set::Attribution && args.has("style");
+    let tracing = probe::trace::start_with(&browser.cdp, set, if style { &["disabled-by-default-devtools.timeline.invalidationTracking"] } else { &[] })?;
+    if set == Set::Attribution {
+        probe::cpu::start(&page)?;
+        probe::alloc::start(&page)?;
+    }
+    std::thread::sleep(Duration::from_millis(300));
+    let sampler = (!attach && !phone).then(|| probe::os::Sampler::start(browser.pid, browser.profile.clone()));
+    // `--os-frames`: the OS's present events beside the trace's frames, a cross-check of both.
+    let os_frames = (args.has("os-frames") && !attach).then(crate::probe::present::PresentCapture::start);
+    // `--video`: the window (headed) or the renderer's own frames (headless, and a phone's page), over the run.
+    let video = args.has("video").then(|| super::video::Recorder::start(host::main_window(&browser.pids()).filter(|_| host_screen).as_ref(), Some(&page), !host_screen)).transpose()?;
+    // CPU in cycles over the time stamp counter, as native targets read it: process times move in
+    // clock ticks (15.6 ms on Windows), so an idle page read 0.00% on one run and 0.52% on the next.
+    let cycles = || read_set(&browser.processes(), browser.profile.as_deref());
+    // The listed processes read again right at the window's edges, each by itself, beside the cycle
+    // clock: the end's listing (milliseconds) only finds those born meanwhile (`read_known`).
+    let mut cpu0 = cycles();
+    let at0 = read_known(cpu0.0.keys());
+    read_at(&mut cpu0.0, &at0);
+    let tsc0 = host::tsc();
+    let t0 = host::now_ns();
+    driver.mark("run:0:start")?;
+    progress(format!("recording {} for {}", id, fmt::ms_duration(for_ms)));
+    std::thread::sleep(Duration::from_millis(for_ms));
+    driver.mark("run:0:end")?;
+    let t1 = host::now_ns();
+    let at1 = read_known(cpu0.0.keys());
+    let tsc1 = host::tsc();
+    let mut cpu1 = cycles();
+    read_at(&mut cpu1.0, &at1);
+    let video = video.map(|v| v.finish(&dir, &[("run:0".into(), t0, t1, true)], &[], &[])).transpose()?;
+    let samples = sampler.map(probe::os::Sampler::stop);
+    let os = samples.as_ref().map(|s| s.window(t0, t1));
+    // The browser's process set (its tree, what carries its profile's stamp, its job), for the OS frames.
+    let tree = browser.pids();
+    // The adapter the page drew on, and the one driving its window's display (`screen.gpu`).
+    let display = host::main_window(&tree).filter(|_| host_screen).and_then(|w| host::display_of(w.hwnd));
+    let drawn_on = samples.as_ref().zip(os.as_ref()).and_then(|(s, o)| super::bench::drawing_gpu(s, &[o], display.as_ref()));
+    let os_frames = os_frames.map(|r| r.and_then(|c| c.stop()));
+    if host_screen && (awake.locks() > 0 || host::session_locked()) {
+        return Err(validity::locked());
+    }
+    let mut sampling = None;
+    if set == Set::Attribution {
+        let profile = probe::cpu::stop(&page)?;
+        sampling = probe::cpu::Sampling::of(probe::cpu::interval_us() as f64, probe::cpu::gaps(&profile));
+        let allocs = probe::alloc::stop(&page)?;
+        store::write_json(&dir.join("cpu-0.cpuprofile"), &profile)?;
+        store::write_json(&dir.join("alloc-0.heapprofile"), &allocs)?;
+        // `--served <dir>`: the folder the target's origin serves, to find original files on disk.
+        let mut scripts = std::collections::BTreeSet::new();
+        probe::symbols::urls(&profile, &mut scripts);
+        probe::symbols::urls(&allocs, &mut scripts);
+        probe::symbols::store_maps(&page.clone().into(), &scripts, &dir, args.get("served").map(std::path::Path::new))?;
+    }
+    let bytes = tracing.stop(&dir.join("trace.pftrace"))?;
+    if set == Set::Attribution {
+        // After tracing: a live trace subscription would copy every snapshot chunk (SPEC §8.6).
+        progress("taking a heap snapshot");
+        probe::heap::snapshot(&page, &dir.join("heap-0.heapsnapshot.gz"))?;
+    }
+    let version = browser.version.clone();
+    let phone_meta = browser.phone.as_ref().map(|p| p.meta(crate::target::android_chrome::screen(&page)));
+    // A timed recording whose phone got hot describes a throttling phone (`Thermal`).
+    let cooled = browser.phone.as_ref().filter(|_| set == Set::Timing && video.is_none()).map_or(Ok(()), |p| p.still_cool());
+    if !attach {
+        browser.close();
+    }
+    cooled?;
+    if let Some(g) = &guard {
+        g.check("after the app closed")?;
+    }
+    progress("reading the trace");
+    let data = metrics::read(&dir.join("trace.pftrace"), &token)?;
+    let mut extra: BTreeMap<String, BTreeMap<String, f64>> = BTreeMap::new();
+    let mut refused = serde_json::Map::new();
+    match (tsc0, tsc1) {
+        (Some(a), Some(b)) if !attach && b > a && cpu1.0.values().any(|c| *c > 0) => match set_used(&cpu0, &cpu1) {
+            Ok(used) => {
+                extra.entry("cpu.app.total".into()).or_default().insert("run:0".into(), 100.0 * used as f64 / (b - a) as f64);
+            }
+            Err(why) => {
+                refused.insert("cpu.app.total".into(), json!(cpu_lost_with("cpu.app.total", 1, 1, "the browser", [why]).message()));
+            }
+        },
+        _ if attach => {}
+        _ if phone => {
+            if let Some(r) = validity::phone_refusal("cpu.app.total") {
+                refused.insert("cpu.app.total".into(), json!(r.message()));
+            }
+        }
+        _ => {
+            let r = super::outside::not_on_this_os("cpu.app.total")
+                .unwrap_or_else(|| crate::model::Refusal::new(crate::model::ValidatorId::RunIncomplete, "cpu.app.total: no CPU of the browser's processes could be read"));
+            refused.insert("cpu.app.total".into(), json!(r.message()));
+        }
+    }
+    if let Some(p) = os.as_ref().and_then(|o| o.gpu_3d_pct) {
+        extra.entry("gpu.process.3d".into()).or_default().insert("run:0".into(), p);
+    }
+    let mut values = metrics::block_values(&data, "run", &extra);
+    if let Some(v) = os.as_ref().and_then(|o| o.vram_dedicated_mb) {
+        values.insert("gpu.vram".into(), v);
+    }
+    let drawn = drawn_state(&gpu, !on_screen, &mut values, &mut refused);
+    // The trace's mark times are its own clock; the OS window is the same span on QPC (§6).
+    let os_frames = match os_frames {
+        Some(_) if !on_screen => json!({ "refused": "Headless: the page ran headless, so nothing it drew reached a display" }),
+        Some(_) if gpu.software => json!({ "refused": format!("SoftwareGpu: {}", drawn.as_deref().unwrap_or("a software adapter drew the page")) }),
+        Some(Ok(p)) => {
+            let run = crate::probe::present::frames::from_presents(&p.presents, &tree, t0, t1);
+            let display = host::main_window(&tree).and_then(|w| host::display_of(w.hwnd));
+            let v = crate::probe::present::frames::values(&[run], crate::probe::present::frames::refresh_ms(&p.vsyncs, t0, t1, display.as_ref()));
+            crate::symbol::write_gz(&dir.join("presents.json.gz"), &p)?;
+            json!({ "values": v, "events": p.events, "events_lost": p.events_lost, "consumer_cpu_ms": p.consumer_cpu_ms, "pids": tree })
+        }
+        Some(Err(e)) => json!({ "refused": e.message }),
+        None => Value::Null,
+    };
+    let mut meta = json!({
+        "id": id, "kind": "record", "target": target, "probes": set, "token": token, "duration_ms": for_ms,
+        "browser": version, "gpu": gpu, "input": input, "env": host::env(), "trace_bytes": bytes, "values": values, "refused": refused, "os": os, "os_frames": os_frames,
+        "phases": metrics::phase_frames(&data).keys().collect::<Vec<_>>(),
+        // Rule 3: timing taken with profilers on describes the profiled target, not the target; an
+        // app with a debug C runtime is a debug build (`DevBuild`).
+        "timing": if set == Set::Attribution || video.is_some() { "perturbed" } else if debug.is_some() { "debug build" } else { "clean" }, "debug_runtime": debug,
+        "created": now_iso(), "valid": true, "sampling": sampling, "video": video,
+        "headless": !on_screen, "frames_refused": drawn, "emulate": meta_emulate(&emulation), "phone": phone_meta,
+    });
+    if let Some(g) = drawn_on {
+        meta["screen"] = json!({ "gpu": g });
+    }
+    refuse_background(&mut meta, qos);
+    store::write_json(&dir.join("meta.json"), &meta)?;
+    draft.keep();
+    Ok(Output::new(summary_text(&meta), meta))
+}
+
+/// `--mobile`: a page (an http(s) address or a local page) in Chrome on a phone, nothing that sets up a
+/// desktop browser's page.
+fn mobile_usage(args: &Args, target: &str) -> Result<()> {
+    if !(target.starts_with("http://") || target.starts_with("https://") || target.starts_with("file://")) {
+        return Err(Error::usage(format!("--mobile records a page in Chrome on a phone (https://…, a local page.html), not {target}")));
+    }
+    let why = [
+        ("headless", "a phone's Chrome draws on the phone's screen"),
+        ("emulate", "the phone is the device: nothing is emulated"),
+        ("os-frames", "the phone's frames come from Chrome's trace, not this computer's OS"),
+        ("app", "an app profile is a desktop app's"),
+        ("home", "a phone's Chrome keeps its own profile"),
+        ("gpu-cache", "a phone's Chrome keeps its own GPU caches"),
+    ];
+    if let Some((f, why)) = why.iter().find(|(f, _)| args.has(f)) {
+        return Err(Error::usage(format!("--{f} with --mobile: {why}")));
+    }
+    match args.get("engine").map(WebEngine::parse).transpose()? {
+        Some(WebEngine::Firefox | WebEngine::Webkit) => Err(Error::usage("--mobile drives Chrome on Android (Chromium): drop --engine")),
+        Some(WebEngine::Chromium) | None => Ok(()),
+    }
+}
+
+/// `--emulate mobile|touch`: what a page strobe launches emulates (a desktop without it).
+fn parse_emulation(args: &Args) -> Result<chromium::Emulation> {
+    Ok(match args.get("emulate") {
+        None => chromium::Emulation::default(),
+        Some("mobile") => chromium::Emulation { mobile: true, touch: true, user_agent: None },
+        Some("touch") => chromium::Emulation { touch: true, ..Default::default() },
+        Some(other) => return Err(Error::usage(format!("--emulate is mobile or touch, not {other} (a page is a desktop without it)"))),
+    })
+}
+
+/// The viewport an emulated phone shows (CSS pixels), at `PHONE_SCALE` headless.
+pub(crate) const PHONE: (u32, u32) = (390, 844);
+pub(crate) const PHONE_SCALE: f64 = 3.0;
+
+/// `DisplayTooSmall` for a headed phone: its 390-pixel viewport is narrower than a desktop browser's
+/// smallest window (500 in Chromium on Linux, 492 on Windows, read after the fit), so the page would be
+/// wider than the phone; headless, no window shows.
+pub(crate) fn phone_refusal(emulation: &chromium::Emulation, headless: bool) -> Option<Error> {
+    (emulation.mobile && !headless).then(|| {
+        crate::model::Refusal::new(
+            crate::model::ValidatorId::DisplayTooSmall,
+            format!("an emulated phone's viewport is {}×{}, narrower than a desktop browser's smallest window (500 pixels in Chromium on Linux, 492 on Windows)", PHONE.0, PHONE.1),
+        )
+        .fix("record the phone headless (--headless), which has no window to keep wide")
+        .into()
+    })
+}
+
+/// The window a page launches in: a phone's for `--emulate mobile` (at its scale headless; headed, the
+/// display's own), else strobe's default.
+fn emulated_window(emulation: &chromium::Emulation, headless: bool) -> Window {
+    if !emulation.mobile {
+        return Window::default();
+    }
+    Window { width: PHONE.0, height: PHONE.1, scale: headless.then_some(PHONE_SCALE), ..Window::default() }
+}
+
+/// What a recording keeps of its emulation (`emulate`): none for a desktop.
+fn meta_emulate(emulation: &chromium::Emulation) -> Value {
+    if emulation.touches() { json!(emulation.kind()) } else { Value::Null }
+}
+
+/// `emulated mobile (Android UA, touch)` or `emulated touch`, for a recording that emulated one.
+fn emulated_text(emulate: &Value) -> Option<String> {
+    match emulate.as_str()? {
+        "mobile" => Some("emulated mobile (Android UA, touch)".into()),
+        other => Some(format!("emulated {other}")),
+    }
+}
+
+/// What reached no display (`Headless`) or a software rasterizer drew (`SoftwareGpu`, per metric) leaves
+/// a recording's values: frames, input-to-screen latencies, scrolling, the display's rate and GPU use,
+/// with GPU memory too when no GPU held it. They show refused; CPU, main-thread work and memory stay.
+/// Returns why, for the summary, when anything went. Only catalog metrics are listed refused; the
+/// helper values beside them (`frames.split.n`, …) just go.
+fn drawn_state(gpu: &crate::target::chromium::Gpu, headless: bool, values: &mut BTreeMap<String, f64>, refused: &mut serde_json::Map<String, Value>) -> Option<String> {
+    let (gone, why): (Vec<(String, String)>, String) = if headless {
+        let drawn = |m: &str| validity::display_metric(m) || validity::gpu_use(m) || (gpu.software && matches!(m, "gpu.vram" | "gpu.shared"));
+        let gone = values.keys().filter(|m| drawn(m)).map(|m| (m.clone(), format!("Headless: {m}: the page ran headless, so nothing it drew reached a display"))).collect();
+        (gone, "Headless: the page ran headless, so nothing it drew reached a display".to_string())
+    } else {
+        let names: Vec<String> = values.keys().cloned().collect();
+        // No primary: a recording keeps whatever the rasterizer leaves meaning to.
+        let r = validity::software_refusals(gpu, false, None, names.iter().map(String::as_str)).unwrap_or_default();
+        if r.is_empty() {
+            return None;
+        }
+        let why = format!(
+            "SoftwareGpu: {} draws in software; the browser's CPU (cpu.*) includes the rasterization a GPU would do, so compare it only on this setup",
+            gpu.devices.first().map_or("the adapter", String::as_str)
+        );
+        (r.into_iter().map(|(m, refusal)| (m, refusal.message())).collect(), why)
+    };
+    for (m, text) in &gone {
+        values.remove(m);
+        if crate::model::metric(m).is_some() {
+            refused.insert(m.clone(), json!(text));
+        }
+    }
+    Some(why)
+}
+
+/// `app` with its GPU shader cache store: `--gpu-cache` (else the profile's `gpuCache`; default warm)
+/// lends each launch one store per executable, so a recording after the first runs with them warm,
+/// as for a person.
+fn with_gpu_store(args: &Args, app: &isolate::App) -> Result<isolate::App> {
+    let mut app = app.clone();
+    match args.get("gpu-cache").or(app.gpu_cache_mode.as_deref()).unwrap_or("warm") {
+        "warm" if !cfg!(target_os = "macos") => app.gpu_cache = Some(isolate::exe_gpu_store(&app.exe)),
+        "warm" | "cold" => {}
+        other => return Err(Error::usage(format!("--gpu-cache is warm or cold, not {other}"))),
+    }
+    Ok(app)
+}
+
+/// A page in an engine other than Chromium (`--engine firefox`) for `for_ms`: what needs no Chromium
+/// trace, from outside as for a native app: its processes' CPU in cycles, GPU use and memory from the OS,
+/// the DOM's size, and headed, the OS's presents of its processes (`frames.*`, SPEC §7.2).
+/// `--probes attribution` adds Firefox's own profiler (CPU samples, style, layout and GC markers) and
+/// about:memory (`probe::gecko`); a memory recording follows heap snapshots, which Firefox gives none of.
+fn engine_page(args: &Args, engine: WebEngine, target: &str, set: Set, for_ms: u64, emulation: &chromium::Emulation) -> Result<Output> {
+    // Attribution and memory need the engine's own profiler and census: Firefox's are built, a WebKit
+    // page's are not (an attribution recording without them would hold no data).
+    if let (WebEngine::Chromium | WebEngine::Webkit, Set::Attribution | Set::Memory) = (engine, set) {
+        return Err(Error::refused(
+            "EngineUnsupported",
+            format!("--probes {}: {engine} pages have no profilers or memory census in strobe", args.get("probes").unwrap_or("")),
+            "record the page in Chromium (drop --engine) or Firefox (--engine firefox) for attribution",
+        ));
+    }
+    if set == Set::Memory {
+        return Err(Error::refused(
+            "EngineUnsupported",
+            format!("--probes memory: a memory recording follows heap snapshots and their retainers; {engine} gives strobe none (its snapshots are taken inside the content process)"),
+            "leak-check the page with a bench leak run (strobe bench <file> --probes memory --engine firefox), which reads about:memory after every run; or record --probes attribution for one about:memory census",
+        ));
+    }
+    let headless = args.has("headless");
+    if headless && args.has("video") {
+        return Err(Error::refused(
+            "Headless",
+            format!(
+                "--video of a headless {engine} page: there is no window for the OS to film, and stock {engine} has no screencast (Playwright films its own patched builds through screencast commands it added)"
+            ),
+            "record it headed (drop --headless), or headless in Chromium (drop --engine)",
+        ));
+    }
+    let patched = web::patched(engine);
+    if let Some(why) = &patched {
+        progress(format!("! PatchedBrowser  {why}"));
+    }
+    let window = emulated_window(emulation, headless);
+    let browser = web::launch_as(engine, &window, headless, None, emulation, crate::target::motion::Motion::System)?;
+    // A software rasterizer refuses what it drew, metric by metric, below (`SoftwareGpu`).
+    let gpu = browser.gpu()?;
+    let page = browser.page()?;
+    // Firefox took the phone's input at launch; its viewport and device pixels come over BiDi, checked.
+    page.emulate(emulation)?;
+    if emulation.mobile {
+        page.emulate_viewport(emulation, PHONE, window.scale)?;
+        page.check_device(PHONE, window.scale, "before it loads")?;
+    }
+    progress(format!("loading {target} in {}{}", browser.version(), emulated_text(&meta_emulate(emulation)).map(|t| format!(" as {t}")).unwrap_or_default()));
+    page.navigate(target, Duration::from_secs(60))?;
+    let input = validity::emulated_input(&page, emulation)?.0;
+    let qos = host::background_qos(None).or_else(|| host::background_qos(Some(browser.pid())));
+    validity::window_visible(&page)?;
+    if !headless && host::session_locked() {
+        return Err(validity::locked());
+    }
+    let awake = host::Awake::start();
+    let (id, draft) = claim(args)?;
+    let dir = draft.dir().to_path_buf();
+    std::thread::sleep(Duration::from_millis(300));
+    let sampler = probe::os::Sampler::start_of(browser.pid(), browser.root_start(), browser.profile());
+    // The capture follows the browser's windows (macOS and X11 stream them by window).
+    let presents = (!headless).then(|| {
+        crate::probe::present::PresentCapture::start().map(|mut c| {
+            c.track(&browser.pids());
+            c
+        })
+    });
+    let cycles = || read_set(&browser.processes(), browser.profile().as_deref());
+    // Attribution: Firefox's profiler over the recording, which strobe's marks bracket in the page.
+    let token = id.trim_start_matches("rec_").to_string();
+    let firefox = match &browser {
+        web::WebBrowser::Firefox(b) if set == Set::Attribution => Some(b),
+        _ => None,
+    };
+    let driver = Driver::new(page.clone(), token.clone());
+    // about:memory before the profiler starts: its own memory would count as the page's.
+    let mut census = Vec::new();
+    if let Some(b) = firefox {
+        census.push(probe::gecko::census(b, &page, &dir.join("memory-0.json.gz"), "before the profiler started and the recording")?);
+    }
+    let profiler = firefox.map(probe::gecko::start).transpose()?;
+    if profiler.is_some() {
+        // Every top-level document marks its process too (`metrics::doc_mark_script`).
+        page.add_init_script(&metrics::doc_mark_script(&token))?;
+        driver.mark("run:0:start")?;
+    }
+    // `--video`: the browser's window from the OS (no stock engine but Chromium has a screencast).
+    let video = args.has("video").then(|| super::video::Recorder::start(host::main_window(&browser.pids()).filter(|_| !headless).as_ref(), None, headless)).transpose()?;
+    // As for Chromium: the listed processes read again right at the window's edges, with the clocks.
+    let mut cpu0 = cycles();
+    let at0 = read_known(cpu0.0.keys());
+    read_at(&mut cpu0.0, &at0);
+    let clock0 = Clock::now();
+    let t0 = host::now_ns();
+    progress(format!("recording {id} for {}", fmt::ms_duration(for_ms)));
+    std::thread::sleep(Duration::from_millis(for_ms));
+    let t1 = host::now_ns();
+    let at1 = read_known(cpu0.0.keys());
+    let clock1 = Clock::now();
+    let mut cpu1 = cycles();
+    read_at(&mut cpu1.0, &at1);
+    let video = video.map(|v| v.finish(&dir, &[("run:0".into(), t0, t1, true)], &[], &[])).transpose()?;
+    if profiler.is_some() {
+        driver.mark("run:0:end")?;
+    }
+    let samples = sampler.stop();
+    let os = samples.window(t0, t1);
+    let tree = browser.pids();
+    // The adapter the page drew on, and the one driving its window's display (`screen.gpu`).
+    let display = host::main_window(&tree).filter(|_| !headless).and_then(|w| host::display_of(w.hwnd));
+    let drawn_on = super::bench::drawing_gpu(&samples, &[&os], display.as_ref());
+    let presents = presents.map(|r| r.and_then(|c| c.stop()));
+    if !headless && (awake.locks() > 0 || host::session_locked()) {
+        return Err(validity::locked());
+    }
+    // The profiler ends here whatever happens, before the browser closes.
+    let profile = profiler.map(probe::gecko::Profiler::stop).transpose()?;
+    let mut sampling = None;
+    if let Some(raw) = profile {
+        progress("reading Firefox's profile");
+        let got = probe::gecko::convert(&raw, &token, &[("run:0".to_string(), t0, t1)], &[], &dir)?;
+        sampling = got.sampling;
+        probe::symbols::store_maps(&page, &got.scripts, &dir, args.get("served").map(std::path::Path::new))?;
+    }
+    let mut values: BTreeMap<String, f64> = BTreeMap::new();
+    let mut refused = serde_json::Map::new();
+    // Where cycles are not time on this machine (`outside::not_on_this_os`), both CPU metrics are refused.
+    match (clock0.per_ms(&clock1), super::outside::not_on_this_os("cpu.app.total")) {
+        (Some(rate), None) if cpu1.0.values().any(|c| *c > 0) => match set_used(&cpu0, &cpu1) {
+            Ok(used) => {
+                let cpu = used as f64 / rate;
+                values.insert("cpu.app.total".into(), 100.0 * cpu / ((t1 - t0) as f64 / 1e6));
+                values.insert("cpu.work".into(), cpu);
+            }
+            Err(why) => {
+                for m in ["cpu.app.total", "cpu.work"] {
+                    refused.insert(m.into(), json!(cpu_lost_with(m, 1, 1, "the browser", [why]).message()));
+                }
+            }
+        },
+        (_, why) => {
+            let r = why.unwrap_or_else(|| crate::model::Refusal::new(crate::model::ValidatorId::RunIncomplete, "no CPU of the browser's processes could be read"));
+            for m in ["cpu.app.total", "cpu.work"] {
+                refused.insert(m.into(), json!(r.message()));
+            }
+        }
+    }
+    if let Some(p) = os.gpu_3d_pct.filter(|_| !headless) {
+        values.insert("gpu.process.3d".into(), p);
+    }
+    // A headless browser that drew in software held no GPU memory: nothing to read there.
+    if let Some(v) = os.vram_dedicated_mb.filter(|_| !(headless && gpu.software)) {
+        values.insert("gpu.vram".into(), v);
+    }
+    values.insert("memory.app.private".into(), browser.processes().iter().map(|p| p.private_bytes).sum::<u64>() as f64 / (1024.0 * 1024.0));
+    if let Some(n) = page.eval("document.getElementsByTagName('*').length").ok().and_then(|v| v.as_f64()) {
+        values.insert("dom.nodes".into(), n);
+    }
+    let os_frames = match presents {
+        Some(Ok(p)) => {
+            let display = host::main_window(&tree).and_then(|w| host::display_of(w.hwnd));
+            let f = crate::probe::present::frames::native_values(&p, &tree, &[crate::metrics::Timed::whole(t0, t1)], display.as_ref());
+            // What `query <rec> frames` reads for a recording without a trace, as a native one's.
+            crate::symbol::write_gz(&dir.join("presents.json.gz"), &p)?;
+            store::write_json(&dir.join("frames.json"), &json!({ "pids": tree, "runs": { "run:0": { "t0_ns": t0, "t1_ns": t1, "inputs": [], "marks": [], "changes": [] } } }))?;
+            match f.refused {
+                Some(why) => json!({ "refused": why }),
+                None => {
+                    values.extend(f.values.clone());
+                    for (m, why) in &f.partial {
+                        refused.insert(m.clone(), json!(why));
+                    }
+                    json!({ "values": f.values, "events": p.events, "events_lost": p.events_lost, "consumer_cpu_ms": p.consumer_cpu_ms, "pids": tree })
+                }
+            }
+        }
+        Some(Err(e)) => json!({ "refused": e.message }),
+        None => json!({ "refused": "Headless: the page ran headless, so nothing it drew reached a display" }),
+    };
+    // Headless already kept nothing drawn; headed on a software rasterizer, what it drew goes now.
+    let os_frames = match (!headless).then(|| drawn_state(&gpu, false, &mut values, &mut refused)).flatten() {
+        Some(why) => json!({ "refused": why }),
+        None => os_frames,
+    };
+    let version = browser.version().to_string();
+    browser.own()?;
+    browser.close();
+    let attributed = set == Set::Attribution;
+    let mut meta = json!({
+        "id": id, "kind": "record", "target": target, "probes": set, "token": if attributed { token.as_str() } else { "" }, "duration_ms": for_ms, "engine": engine, "input": input, "headless": headless, "emulate": meta_emulate(emulation),
+        "browser": version, "gpu": gpu, "env": host::env(), "values": values, "refused": refused, "os": os, "os_frames": os_frames, "phases": [],
+        // Rule 3: timing taken with the profiler on describes the profiled page.
+        "timing": if attributed || video.is_some() { "perturbed" } else { "clean" }, "created": now_iso(), "valid": true, "patched_browser": patched, "video": video,
+    });
+    if attributed {
+        meta["runs"] = json!(1);
+        meta["census"] = json!(census);
+        meta["sampling"] = json!(sampling);
+    }
+    if let Some(g) = drawn_on {
+        meta["screen"] = json!({ "gpu": g });
+    }
+    refuse_background(&mut meta, qos);
+    store::write_json(&dir.join("meta.json"), &meta)?;
+    draft.keep();
+    Ok(Output::new(summary_text(&meta), meta))
+}
+
+/// A native app for `for_ms` (SPEC §13.7): launched isolated, left to settle for 3 s, then one run
+/// measured from outside: its processes' CPU in cycles, its threads' wakes (named in `threads.json`), IO,
+/// GPU, memory, the UI thread's CPU and what reached the screen; attribution adds native stacks (the deep helper).
+fn native(args: &Args, app: &isolate::App, target: &str, set: Set, for_ms: u64) -> Result<Output> {
+    use crate::probe::wakes;
+    use crate::target::native as nt;
+    if set == Set::Memory {
+        return Err(Error::usage("--probes memory follows a JS heap; a native app has none"));
+    }
+    // `--windowless`: an app that shows no window (a tray app, a service), as a bench file's
+    // `native(…, { window: false })` or a profile's `window: false`.
+    let mut windowless_app;
+    let app = if args.has("windowless") && !app.windowless {
+        windowless_app = app.clone();
+        windowless_app.windowless = true;
+        &windowless_app
+    } else {
+        app
+    };
+    if app.windowless && args.has("video") {
+        return Err(Error::refused("NotForTarget", format!("--video films a window, and {target} has none (window: false)"), "record an app that opens a window"));
+    }
+    // `--until-line`: start when the app prints a matching line, not after a fixed settle; `--stop-line`:
+    // end at one (`--for` caps it then).
+    let line = |k: &str| args.get(k).map(|r| regex_lite::Regex::new(r).map_err(|e| Error::usage(format!("--{k}: {e}")))).transpose();
+    let (until, stop) = (line("until-line")?, line("stop-line")?);
+    let app = &with_gpu_store(args, app)?.with_display(args.has("wayland").then_some(isolate::Display::Wayland));
+    let home = isolate::prepare_home(app, args.get("home").map(std::path::Path::new), None)?;
+    if let Some((what, _)) = home.headless() {
+        progress(format!("display: {what} (strobe's own Wayland compositor: frames and input latency are refused Headless)"));
+    }
+    match home.gpu_warm {
+        Some(true) => progress("GPU shader caches: warm, from earlier recordings of this executable"),
+        Some(false) => progress("GPU shader caches: cold, the first recording of this executable (the next one is warm; --gpu-cache cold keeps them cold)"),
+        None => {}
+    }
+    progress(format!("launching {} in an isolated home", app.exe.display()));
+    let (mut n, guard) = match nt::launch(app, &home, &[], until.is_some() || stop.is_some(), None) {
+        Ok(x) => x,
+        Err(e) => {
+            isolate::release_home(&home.dir);
+            isolate::remove_home(&home.dir);
+            return Err(e);
+        }
+    };
+    // A profile with `window: false` (a tray app) has no window to wait for, place or check, and
+    // nothing of it reaches the display: a locked session changes none of what is recorded.
+    let windowless = app.windowless;
+    let qos = host::background_qos(None).or_else(|| host::background_qos(Some(n.pid)));
+    // Each thread's CPU and wakes from the launch on (`query <rec> threads --timeline`).
+    let timeline = std::cell::RefCell::new(Some({
+        let (root, dir) = (n.pid, home.dir.clone());
+        wakes::Timeline::start(move || host::process_set(root, Some(&dir)).iter().map(|p| p.pid).collect())
+    }));
+    // The app's last output lines `wait_line` read, for a refusal when it exits.
+    let seen = std::cell::RefCell::new(std::collections::VecDeque::new());
+    let result = (|| -> Result<Value> {
+        if !windowless {
+            n.wait_window(Duration::from_secs(60), &guard)?;
+            n.place(&Window::default(), false);
+            guard.check("after the app opened its window")?;
+        }
+        // The app loads itself; give it time to settle before recording, or wait for the line that says it is ready.
+        match &until {
+            Some(re) => {
+                let l = wait_line(&n, re, Duration::from_secs(120), &seen)?;
+                progress(format!("start: {}", l.trim()));
+            }
+            None => std::thread::sleep(Duration::from_secs(3)),
+        }
+        app_gone(&mut n, "before the recording", |n| last_output(n, &seen, 5))?;
+        // Its process's CPU goes with it when it exits: one that ends inside the window refuses.
+        let running = n.exited().is_none();
+        // On strobe's headless compositor the session's lock screen covers nothing of the app.
+        let headless = n.headless.is_some();
+        if !windowless {
+            n.raise();
+            n.check_visible()?;
+            if host::session_locked() && !headless {
+                // Windows keeps drawing an app's window while the session is locked (its own rendering and
+                // the compositor's copy): what needs no display is recorded, and what reached the
+                // display refused (SessionLocked), as a bench's --check of a native case does.
+                if !cfg!(windows) {
+                    return Err(validity::locked());
+                }
+                progress("the session is locked: CPU, memory, IO and GPU memory are recorded; frames and GPU use are refused (SessionLocked)");
+            }
+        }
+        let awake = host::Awake::start();
+        let (id, draft) = claim(args)?;
+        let dir = draft.dir().to_path_buf();
+        let sampler = probe::os::Sampler::start(n.pid, Some(n.home.clone()));
+        // In attribution, native stacks first; what reached the screen (OS present events) beside them.
+        let waits = args.get("probes") == Some("waits");
+        let stacks =
+            (set == Set::Attribution && crate::probe::stacks::stacks_available()).then(|| crate::probe::stacks::StackCapture::start(crate::probe::stacks::Targets::new(n.pid, Some(&n.home)), waits));
+        let presents = (!windowless).then(|| {
+            let c = if set == Set::Attribution { attribution_presents(&home, stacks.as_ref()) } else { home.presents() };
+            c.map(|mut c| {
+                c.track(&n.pids());
+                c
+            })
+        });
+        let cycles = || read_set(&n.processes(), Some(&n.home));
+        progress(match &stop {
+            Some(re) => format!("recording {id} until the app prints a line matching {re}"),
+            None => format!("recording {id} for {}", fmt::ms_duration(for_ms)),
+        });
+        let video = args.has("video").then(|| super::video::Recorder::start(n.window.as_ref(), None, false)).transpose()?;
+        let snap0 = wakes::Snapshot::take(&n.pids());
+        let procs0 = (host::now_ns(), host::all_processes());
+        // The listed processes read again right at the window's edges, each by itself, with the clocks:
+        // the end's listing (milliseconds) only finds those born meanwhile (`read_known`).
+        let mut c0 = cycles();
+        let at0 = read_known(c0.0.keys());
+        read_at(&mut c0.0, &at0);
+        let clock0 = Clock::now();
+        let t0 = host::now_ns();
+        match &stop {
+            Some(re) => {
+                let cap = if args.get("for").is_some() { Duration::from_millis(for_ms) } else { Duration::from_secs(600) };
+                match wait_line(&n, re, cap, &seen) {
+                    Ok(l) => progress(format!("stop: {}", l.trim())),
+                    Err(e) if e.code == 124 => progress(format!("stop: no line matched in {} (the cap)", fmt::ms_duration(cap.as_millis() as u64))),
+                    Err(e) => return Err(e),
+                }
+            }
+            None => std::thread::sleep(Duration::from_millis(for_ms)),
+        }
+        let t1 = host::now_ns();
+        let at1 = read_known(c0.0.keys());
+        let clock1 = Clock::now();
+        let for_ms = (t1 - t0) / 1_000_000;
+        let mut c1 = cycles();
+        read_at(&mut c1.0, &at1);
+        let video = video.map(|v| v.finish(&dir, &[("run:0".into(), t0, t1, true)], &[], &[])).transpose()?;
+        let span = wakes::span(&snap0, &wakes::Snapshot::take(&n.pids()));
+        // A launcher that exits cleanly (code 0) and leaves the app running is not the app ending.
+        if let Some(code) = n.exited().filter(|&c| running && (c != 0 || n.processes().is_empty())) {
+            return Err(exited(code, "during the recording", last_output(&n, &seen, 5).as_deref()));
+        }
+        let mut screen = super::bench::screen_state(&procs0, &(host::now_ns(), host::all_processes()));
+        if let Some(t) = timeline.borrow_mut().take() {
+            let mut t = t.stop();
+            t.marks.push(("recording".into(), t0, t1));
+            crate::symbol::write_gz(&dir.join("timeline.json.gz"), &t)?;
+        }
+        let samples = sampler.stop();
+        let gpu_missing = (!super::outside::gpu_read(&samples)).then(|| samples.gpu_unreadable.clone());
+        let os = samples.window(t0, t1);
+        // The adapter the app drew on, and the one driving its window's display.
+        let display = n.window.as_ref().and_then(|w| host::display_of(w.hwnd));
+        if let Some(g) = super::bench::drawing_gpu(&samples, &[&os], display.as_ref()) {
+            screen["gpu"] = g;
+        }
+        let presents = presents.map(|r| r.and_then(|c| c.stop()));
+        let stacks = stacks.map(|r| r.and_then(|c| c.stop()));
+        let session_locked = awake.locks() > 0 || host::session_locked();
+        // Windows: frames and GPU use of a window on a locked session describe no screen (refused below).
+        let locked_window = session_locked && !windowless && !headless;
+        if locked_window && !cfg!(windows) {
+            return Err(validity::locked());
+        }
+        if !windowless {
+            n.check_visible()?;
+        }
+        let presents = if locked_window { Some(Err(Error::msg(format!("SessionLocked: {LOCKED_DRAWN}")))) } else { presents };
+        let mut frame_values = BTreeMap::new();
+        let unpaced = match &presents {
+            Some(Ok(p)) => {
+                let display = n.window.as_ref().and_then(|w| host::display_of(w.hwnd));
+                let hz = crate::probe::present::frames::refresh_ms(&p.vsyncs, t0, t1, display.as_ref()).map(|ms| 1000.0 / ms).or(display.map(|d| d.hz));
+                crate::probe::present::frames::spin(&p.presents, &n.pids(), &[crate::metrics::Timed::whole(t0, t1)], hz)
+            }
+            _ => None,
+        };
+        let os_frames = match &presents {
+            Some(Ok(p)) => {
+                let display = n.window.as_ref().and_then(|w| host::display_of(w.hwnd));
+                let f = crate::probe::present::frames::native_values(p, &n.pids(), &[crate::metrics::Timed::whole(t0, t1)], display.as_ref());
+                frame_values = f.values;
+                crate::symbol::write_gz(&dir.join("presents.json.gz"), p)?;
+                json!({ "events": p.events, "events_lost": p.events_lost, "consumer_cpu_ms": p.consumer_cpu_ms, "refused": f.refused, "refused_metrics": f.partial, "display": display })
+            }
+            Some(Err(e)) => json!({ "refused": e.message }),
+            None => Value::Null,
+        };
+        // Waits asked for and not taken refuse the recording, saying why (SPEC §11.1).
+        if waits {
+            match &stacks {
+                Some(Ok(d)) if d.waits.is_none() => return Err(d.waits_refused.clone().unwrap_or_else(|| crate::probe::stacks::no_waits("no waits were taken", "try again")).into()),
+                Some(Err(e)) => return Err(crate::probe::stacks::no_waits(format!("the native capture failed: {}", e.message), "fix what it names").into()),
+                None => return Err(crate::probe::stacks::no_waits(crate::probe::stacks::no_stacks(), "see strobe status").into()),
+                _ => {}
+            }
+        }
+        let stacks_note = match stacks {
+            Some(Ok(d)) => {
+                crate::symbol::write_gz(&dir.join("deep.json.gz"), &d)?;
+                format!(
+                    "native stacks: {} samples (query hotspots){}{}",
+                    d.samples.len(),
+                    crate::probe::stacks::stacks_how(&d),
+                    d.waits.as_ref().map(|w| format!("; {} off-CPU waits (query waits)", w.waits.len())).unwrap_or_default()
+                )
+            }
+            Some(Err(e)) => format!("native stacks failed: {}", e.message),
+            None => crate::probe::stacks::no_stacks().into(),
+        };
+        let ms = (t1 - t0) as f64 / 1e6;
+        let mut values: BTreeMap<&str, f64> = BTreeMap::new();
+        values.insert("run.duration", ms);
+        // A process of the app that ended in the window took its CPU there with it.
+        let set_cpu = timed_cpu(&[&c0.0, &c1.0], &[&c0.1, &c1.1]);
+        let reason = set_cpu.as_ref().err().copied();
+        let used = set_cpu.as_ref().ok().map(|c| c.total);
+        let lost = used.is_none();
+        // What ended processes used in the window, by executable (`ended_runs`, as a bench block's).
+        let ended = clock0.per_ms(&clock1).filter(|_| c1.0.values().any(|c| *c > 0)).map_or((f64::NAN, Vec::new()), |rate| {
+            let by = set_cpu.as_ref().map(|c| c.ended_by.iter().map(|(n, (cy, k))| (n.clone(), *cy as f64 / rate, *k)).collect()).unwrap_or_default();
+            (set_cpu.as_ref().map_or(0.0, |c| c.ended as f64 / rate), by)
+        });
+        let ended_runs = super::bench::ended_runs([("recording".to_string(), true, ended.0, lost, ended.1.as_slice())]);
+        if let (Some(rate), Some(used)) = (clock0.per_ms(&clock1), used)
+            && c1.0.values().any(|c| *c > 0)
+        {
+            let cpu = used as f64 / rate;
+            values.insert("cpu.work", cpu);
+            values.insert("cpu.app.total", 100.0 * cpu / ms);
+        }
+        if !span.threads.is_empty() {
+            if span.uncounted.is_none() {
+                values.insert("cpu.wakes", span.wakes_per_s());
+            }
+            values.insert("io.read", span.io_read as f64);
+            values.insert("io.write", span.io_write as f64);
+        }
+        values.extend(wakes::counter_values(&span.counted));
+        if let Some(p) = os.gpu_3d_pct {
+            values.insert("gpu.process.3d", p);
+        }
+        if let Some(v) = os.vram_dedicated_mb {
+            values.insert("gpu.vram", v);
+        }
+        if let Some(v) = os.vram_shared_mb {
+            values.insert("gpu.shared", v);
+        }
+        values.insert("memory.app.private", n.processes().iter().map(|p| p.private_bytes).sum::<u64>() as f64 / (1024.0 * 1024.0));
+        // What holds that memory (host, GPU, files, images), read after the window.
+        let reading = probe::memory::Reading::take(&n.processes(), "after the recording");
+        values.extend(reading.values());
+        store::write_json(&dir.join("memory.json"), &json!({ "readings": [&reading] }))?;
+        // The UI thread: the main window's, from its own cycle counter and context switches.
+        let ui_tid = n.window.as_ref().and_then(|w| host::window_thread(w.hwnd));
+        if let Some(t) = ui_tid.and_then(|tid| span.threads.iter().find(|t| t.tid == tid)) {
+            if let Some(c) = t.cpu_ms {
+                values.insert("ui.cpu", c);
+            }
+            if let Some(n) = t.switches.filter(|_| super::outside::not_on_this_os("ui.wakes").is_none()) {
+                values.insert("ui.wakes", n as f64 / (ms / 1e3));
+            }
+        }
+        let names: BTreeMap<u32, String> = span.threads.iter().filter_map(|t| Some((t.tid, host::thread_name(t.tid)?))).collect();
+        let spans = std::slice::from_ref(&span);
+        store::write_json(&dir.join("threads.json"), &json!(wakes::by_thread(spans, &names, &wakes::modules(spans))))?;
+        store::write_json(
+            &dir.join("runs.json"),
+            &json!([{ "run": "run:0", "ms": ms, "switches": span.uncounted.is_none().then_some(span.switches), "wakes_per_s": span.wakes_per_s(), "io_read": span.io_read, "io_write": span.io_write }]),
+        )?;
+        let debug = host::debug_runtime(&app.exe);
+        let mut refused = super::outside::os_refusals(&|m| values.contains_key(m), gpu_missing.as_deref());
+        if lost {
+            for m in ["cpu.work", "cpu.app.total"] {
+                refused.insert(m.into(), json!(cpu_lost_with(m, 1, 1, "the app", reason).message()));
+            }
+        }
+        super::outside::wakes_refused(&span, &mut refused);
+        // GPU use for a screen nobody sees describes no screen; GPU memory stays (bench's `session_state`).
+        if locked_window && values.remove("gpu.process.3d").is_some() {
+            refused.insert("gpu.process.3d".into(), json!(format!("SessionLocked: {LOCKED_DRAWN}")));
+        }
+        let mut meta = json!({
+            "id": id, "kind": "record", "native": true, "target": target, "exe": app.exe, "probes": set, "duration_ms": for_ms, "env": host::env(), "values": values, "refused": refused, "os": os,
+            "window": n.window, "ui_thread": ui_tid, "created": now_iso(), "valid": true, "os_frames": os_frames, "session_locked": session_locked,
+            "gpu_cache": home.gpu_warm.map(|w| if w { "warm" } else { "cold" }), "screen": screen,
+            "unpaced": unpaced.map(|(fps, hz)| json!({ "fps": fps, "hz": hz })),
+            // A debug build's times describe no build people run (`DevBuild`).
+            "timing": if video.is_some() { "perturbed" } else if debug.is_some() { "debug build" } else { "clean" }, "debug_runtime": debug, "video": video,
+            "note": if set == Set::Attribution { format!("native attribution: OS samples; {stacks_note}") } else { String::new() },
+            // macOS: the app's XPC services are missing from every number (SPEC §13.2).
+            "unattributed": n.unattributed(),
+            "ended_runs": ended_runs,
+        });
+        for (k, x) in frame_values {
+            meta["values"][k] = json!(x);
+        }
+        refuse_background(&mut meta, qos.clone());
+        store::write_json(&dir.join("meta.json"), &meta)?;
+        draft.keep();
+        Ok(meta)
+    })();
+    n.close(true);
+    guard.check("after the app closed")?;
+    let meta = result?;
+    Ok(Output::new(summary_text(&meta), meta))
+}
+
+/// CPU so far in cycles by process (pid and start time).
+pub type Cycles = BTreeMap<(u32, u64), u64>;
+
+pub fn per_process(procs: &[host::ProcTimes]) -> Cycles {
+    procs.iter().map(|p| ((p.pid, host::start_time(p.pid).unwrap_or(0)), p.cycles)).collect()
+}
+
+/// The processes `keys` names, each read by itself now (`host::process_cycles_at`, microseconds),
+/// never by a listing of the system's processes (milliseconds on Windows): read right at a window's
+/// edge, so the listing that found them is outside the window's CPU. One that ended is left out;
+/// each process is read once, however often `keys` names it.
+pub fn read_known<'a>(keys: impl IntoIterator<Item = &'a (u32, u64)>) -> Cycles {
+    let keys: std::collections::BTreeSet<(u32, u64)> = keys.into_iter().copied().collect();
+    keys.into_iter().filter_map(|k| Some((k, host::process_cycles_at(k.0, k.1)?))).collect()
+}
+
+/// A listing's readings with each process `at` read (`read_known`) at that reading: the processes are
+/// still the listing's (what tells one that ended is read against them, `host::EndedMarks`).
+pub fn read_at(listed: &mut Cycles, at: &Cycles) {
+    for (k, c) in listed.iter_mut() {
+        if let Some(v) = at.get(k) {
+            *c = *v;
+        }
+    }
+}
+
+/// The cycle clock (`host::tsc`) and the host clock read together. Cycles are ms at the cycle
+/// clock's rate between two of these, over their own span: a rate over any other span (a run's
+/// `t0`..`t1` against cycle clock readings taken after a listing) is off by what lies between.
+#[derive(Clone, Copy, Debug)]
+pub struct Clock {
+    pub tsc: Option<u64>,
+    pub ns: u64,
+}
+
+impl Clock {
+    pub fn now() -> Clock {
+        let tsc = host::tsc();
+        Clock { tsc, ns: host::now_ns() }
+    }
+
+    /// Cycle clock units per ms from `self` to `later`; None where the cycle clock gives none.
+    pub fn per_ms(&self, later: &Clock) -> Option<f64> {
+        match (self.tsc, later.tsc) {
+            (Some(a), Some(b)) if b > a && later.ns > self.ns => Some((b - a) as f64 / ((later.ns - self.ns) as f64 / 1e6)),
+            _ => None,
+        }
+    }
+
+    /// `cycles` in ms (`per_ms`); NaN without a rate.
+    pub fn ms(&self, later: &Clock, cycles: u64) -> f64 {
+        self.per_ms(later).map_or(f64::NAN, |r| cycles as f64 / r)
+    }
+}
+
+/// Cycles used between two readings, each process against its own earlier reading: one that started in
+/// between counts from zero, and one that exited takes its CPU with it instead of lowering the others'
+/// sum (a launcher that handed over, a utility process that ended).
+pub fn cycles_used(a: &Cycles, b: &Cycles) -> u64 {
+    cycles_timed(&[a, b], |_| true)
+}
+
+/// Cycles used over a run's timed parts, of the processes `keep` takes (by pid): `edges` are the
+/// readings at the run's start, at each untimed stretch's start and end (`ctx.untimed`), and at the
+/// run's end, so each pair is a timed part. Each part is `cycles_used` of its own readings: a process
+/// born in a stretch counts from the stretch's end, and one that exits in a stretch keeps what it used
+/// before it.
+pub fn cycles_timed(edges: &[&Cycles], keep: impl Fn(u32) -> bool) -> u64 {
+    edges.as_chunks::<2>().0.iter().map(|[a, b]| b.iter().filter(|(k, _)| keep(k.0)).map(|(k, c)| c.saturating_sub(a.get(k).copied().unwrap_or(0))).sum::<u64>()).sum()
+}
+
+/// A process set's CPU at one moment: each process's cycles, what tells one that ended
+/// (`host::ended_marks`), and the cycle clock.
+pub type SetReading = (Cycles, host::EndedMarks, Option<u64>);
+
+pub fn read_set(procs: &[host::ProcTimes], home: Option<&std::path::Path>) -> SetReading {
+    let pids: Vec<u32> = procs.iter().map(|p| p.pid).collect();
+    (per_process(procs), host::ended_marks(&pids, home), host::tsc())
+}
+
+/// Cycles the set used between two readings, each process against its own, with what the processes
+/// that ended in between used there (`timed_cpu`); None when that is not known.
+pub fn set_used(a: &SetReading, b: &SetReading) -> std::result::Result<u64, &'static str> {
+    timed_cpu(&[&a.0, &b.0], &[&a.1, &b.1]).map(|c| c.total)
+}
+
+/// Processes in a timed part's first reading that are gone at its last (`cycles_timed`'s edges, in
+/// pairs): what each used after the first reading went with it.
+pub fn gone(edges: &[&Cycles]) -> usize {
+    edges.as_chunks::<2>().0.iter().map(|[a, b]| a.keys().filter(|k| !b.contains_key(k)).count()).sum()
+}
+
+/// A set's CPU over a run's timed parts (`timed_cpu`).
+#[derive(Clone, Debug, Default)]
+pub struct SetCpu {
+    /// Cycles: each process against its own readings (`cycles_timed`), plus `ended`.
+    pub total: u64,
+    /// What the processes that ended inside a timed part used there, and those they started and that
+    /// ended (Linux's launch cgroups, Windows' jobs' processes held from their start,
+    /// `host::EndedMarks::dead_since`), in cycles.
+    pub ended: u64,
+    /// The processes in a part's first reading and gone at its last (by pid): their share of a role's
+    /// CPU (`cpu.renderer`, …) is in `ended`, which is no role's.
+    pub gone: std::collections::BTreeSet<u32>,
+    /// `ended` by the ended processes' executable (cycles, processes), where the OS names them
+    /// (Windows' jobs: `EndedCpu`).
+    pub ended_by: BTreeMap<String, (u64, u32)>,
+}
+
+/// The set's CPU over a run's timed parts: `cycles` and `ended` are the readings at the run's start,
+/// at each untimed stretch's edges and at its end (`cycles_timed`'s edges, with their
+/// `host::ended_marks`), in pairs. A part in which no process of the set ended (none gone, no mark
+/// moved) is `cycles_used` of its readings; one in which some did adds what they used there
+/// (`host::EndedMarks::dead_since`), and is None (the set's CPU is short by an unknown amount) where
+/// that is not known. One that ended inside a stretch took nothing of the timed parts.
+pub fn timed_cpu(cycles: &[&Cycles], ended: &[&host::EndedMarks]) -> std::result::Result<SetCpu, &'static str> {
+    let mut out = SetCpu::default();
+    for ([a, b], [x, y]) in cycles.as_chunks::<2>().0.iter().zip(ended.as_chunks::<2>().0) {
+        let gone: Vec<u32> = a.keys().filter(|k| !b.contains_key(k)).map(|k| k.0).collect();
+        out.total += cycles_used(a, b);
+        if gone.is_empty() && !y.ended_since(x) {
+            continue;
+        }
+        let dead = y.dead_since(x, a, b)?;
+        out.total += dead;
+        out.ended += dead;
+        out.gone.extend(gone);
+        for (name, (c, n)) in y.dead_by_name(x, a, b) {
+            let e = out.ended_by.entry(name).or_insert((0, 0));
+            e.0 += c;
+            e.1 += n;
+        }
+    }
+    Ok(out)
+}
+
+/// `RunIncomplete` for a CPU metric over a span some process of the set ended in, where what it used
+/// there is not known. A caller without a reading has no specific reason to attach.
+pub fn cpu_lost(metric: &str, runs: usize, of: usize, what: &str) -> crate::model::Refusal {
+    cpu_lost_with(metric, runs, of, what, [])
+}
+
+pub fn cpu_lost_with(metric: &str, runs: usize, of: usize, what: &str, reasons: impl IntoIterator<Item = &'static str>) -> crate::model::Refusal {
+    let why = reasons.into_iter().collect::<std::collections::BTreeSet<_>>().into_iter().collect::<Vec<_>>().join("; ");
+    // Windows reads what an ended process used from strobe's handle to it, held from its start in its
+    // launch's job: without a reason read, one it did not hold is what is lost.
+    let how = match why.is_empty() {
+        false => format!(" ({why})"),
+        true if cfg!(windows) => " (one strobe held no handle to: it ran outside its launch's job, it ended before strobe could open it, or strobe did not launch the target)".into(),
+        true => String::new(),
+    };
+    crate::model::Refusal::new(
+        crate::model::ValidatorId::RunIncomplete,
+        format!("{metric}: in {runs} of {of} measured runs a process of {what} ended inside the run, and the CPU it used there ended with it{how}, so the CPU of the process set is short"),
+    )
+    .fix(if cfg!(target_os = "linux") && why.contains("no launch cgroup") {
+        "let strobe launch the target (its launches' cgroups count what ended: under systemd strobe asks for a scope, so run it in a user session or as root), wrap processes the run starts but does not measure in ctx.untimed, keep the processes running until the run's end, or compare run.duration"
+    } else if cfg!(windows) && why.contains("no job of strobe's") {
+        "let strobe launch the target (its jobs hold each process from its start), wrap processes the run starts but does not measure in ctx.untimed, keep helpers running (warm them up, or end them in the reset), or compare run.duration"
+    } else if why.contains("listing") {
+        "a helper changed at a run edge: let startup helpers settle in setup, keep measured helpers running until reset, or compare run.duration"
+    } else {
+        "wrap processes the run starts but does not measure in ctx.untimed, keep the processes running until the run's end (warm up what the app starts and ends, or end it in the reset), or compare run.duration"
+    })
+}
+
+/// What reached the screen in an attribution recording, beside its native stacks (`stacks`, started
+/// first). Windows' deep helper serves one connection at a time: while the stacks hold it, present
+/// events come only from a session in this process, else they are refused rather than left waiting
+/// on the helper.
+pub fn attribution_presents(home: &isolate::Home, stacks: Option<&Result<probe::stacks::StackCapture>>) -> Result<probe::present::PresentCapture> {
+    #[cfg(windows)]
+    if let Some(Ok(probe::stacks::StackCapture::Helper(_))) = stacks {
+        if probe::present::access().token == "none" {
+            return Err(crate::model::Refusal::new(
+                crate::model::ValidatorId::NoPresentSource,
+                "the native stacks hold the deep helper's one connection, and this logon may not run a present session itself",
+            )
+            .fix("sign in as a member of Performance Log Users (strobe up adds you; sign out and in once), or read frames from a timing block")
+            .into());
+        }
+        return probe::present::windows::Capture::start().map(probe::present::PresentCapture::Local);
+    }
+    #[cfg(not(windows))]
+    let _ = stacks;
+    home.presents()
+}
+
+/// A new recording's id and folder, held as a draft until its meta.json is written: `--id` (a handle
+/// chosen up front, so an MCP call that outlives its timeout can be followed), else a fresh one.
+pub fn claim(args: &Args) -> Result<(String, store::Draft)> {
+    match args.get("id") {
+        Some(id) => Ok((id.to_string(), store::claim_recording(id)?)),
+        None => store::new_recording(),
+    }
+}
+
+/// `RunIncomplete` once a launched native app is gone: its process exited and nothing of its process
+/// set remains (a launcher that handed over to a process stamped with its home is not gone). `when`
+/// says when ("before the runs"); `last` is its last output lines, when strobe read its output.
+pub fn app_gone(n: &mut crate::target::native::Native, when: &str, last: impl FnOnce(&crate::target::native::Native) -> Option<Vec<String>>) -> Result<()> {
+    let Some(code) = n.exited() else { return Ok(()) };
+    // A process the app started just before it exited may show no stamp for a moment (a child between
+    // fork and exec): one more look before refusing.
+    if !n.processes().is_empty() {
+        return Ok(());
+    }
+    std::thread::sleep(Duration::from_millis(100));
+    if !n.processes().is_empty() {
+        return Ok(());
+    }
+    Err(exited(code, when, last(n).as_deref()))
+}
+
+/// The refusal for an app that exited with `code` `when`, with its last output lines (None: strobe
+/// did not read its output).
+pub fn exited(code: i32, when: &str, last: Option<&[String]>) -> Error {
+    exited_refusal(code, when, last).into()
+}
+
+/// `exited`'s refusal, for a caller that says more in its fix.
+pub fn exited_refusal(code: i32, when: &str, last: Option<&[String]>) -> crate::model::Refusal {
+    let r = crate::model::Refusal::new(crate::model::ValidatorId::RunIncomplete, format!("the app exited (code {code}) {when}, so there was no app left to measure"));
+    match last {
+        Some([]) => r.detail("it printed nothing").fix("run the app's command line by hand to see why it exits"),
+        Some(lines) => r.detail(format!("its last output: {}", lines.iter().map(|l| l.trim()).collect::<Vec<_>>().join(" | "))).fix("fix what made the app exit (its output above)"),
+        None => r.fix("run the app's command line by hand to see why it exits; output: true on the target keeps its last lines here"),
+    }
+}
+
+/// Up to the last `keep` lines of the app's output: those `wait_line` read (`seen`), then what its
+/// pipe still holds, read until the pipe closes or for half a second (a crash's last stderr lines come
+/// after its exit). None when its output is not read.
+fn last_output(n: &crate::target::native::Native, seen: &std::cell::RefCell<std::collections::VecDeque<String>>, keep: usize) -> Option<Vec<String>> {
+    let rx = n.output.as_ref()?;
+    let mut lines: Vec<String> = seen.borrow().iter().cloned().collect();
+    let deadline = std::time::Instant::now() + Duration::from_millis(500);
+    while let Some(left) = deadline.checked_duration_since(std::time::Instant::now()) {
+        match rx.recv_timeout(left.min(Duration::from_millis(100))) {
+            Ok((_, _, l)) => lines.push(l),
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
+        }
+    }
+    Some(lines[lines.len().saturating_sub(keep)..].to_vec())
+}
+
+/// The first line of the app's output (stdout and stderr) matching `re`, within `timeout`.
+fn wait_line(n: &crate::target::native::Native, re: &regex_lite::Regex, timeout: Duration, seen: &std::cell::RefCell<std::collections::VecDeque<String>>) -> Result<String> {
+    let rx = n.output.as_ref().ok_or_else(|| Error::msg("the app's output is not being read"))?;
+    let deadline = std::time::Instant::now() + timeout;
+    loop {
+        let left = deadline.saturating_duration_since(std::time::Instant::now());
+        if left.is_zero() {
+            return Err(Error::timeout(format!("no line of the app's output matched {re} in {} s", timeout.as_secs())).hint("check the pattern against what the app prints (stdout and stderr)"));
+        }
+        match rx.recv_timeout(left) {
+            Ok((_, _, line)) => {
+                let mut s = seen.borrow_mut();
+                if s.len() == 5 {
+                    s.pop_front();
+                }
+                s.push_back(line.clone());
+                if re.is_match(&line) {
+                    return Ok(line);
+                }
+            }
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => return Err(Error::msg(format!("the app's output ended before a line matched {re}"))),
+        }
+    }
+}
+
+/// `--probes memory`: does the target keep what it allocates? A census and a heap snapshot at the
+/// start, the middle and the end (S0, S1, S2), no trace (SPEC §8.6). Objects allocated between S0 and
+/// S1 that are still alive in S2 are the leak suspects. Each census comes before its snapshot, which
+/// raises the memory of the process it serializes; OS memory is reported from the first census only.
+/// `page_state` is how the page ran (`input`, `headless`, `emulate`), kept in the meta as it is.
+fn memory(page: &chromium::Page, browser: &chromium::Browser, dir: &std::path::Path, id: &str, target: &str, for_ms: u64, page_state: Value) -> Result<Value> {
+    page.send("HeapProfiler.enable", json!({}))?;
+    let started = std::time::Instant::now();
+    progress(format!("recording {id} for {}: a heap snapshot at the start, middle and end", fmt::ms_duration(for_ms)));
+    let mut census = Vec::new();
+    // Growth is measured only where strobe never stopped the page: each half's wait, from a baseline
+    // taken after the snapshot before it to the next census's reading, before that census's dump and
+    // snapshot. A snapshot freezes the page for seconds, and a page whose work is driven by time (a
+    // timer that runs its missed ticks, a socket's queued messages, a step scaled by elapsed time)
+    // makes up for the freeze afterwards: over a span holding a freeze, its growth per minute of wall
+    // time reads low, and per minute less the freeze reads high. So after each snapshot one macrotask
+    // runs first (what queued during the freeze runs before it), then the baseline (heap and nodes
+    // after a forced collection) is read. The leak suspects still compare S0, S1 and S2.
+    let mut base: Option<(Option<f64>, Option<f64>, std::time::Instant)> = None;
+    // (JS heap bytes, DOM nodes, time) the page grew by in each half's window.
+    type Grew = (Option<f64>, Option<f64>, Duration);
+    let mut grew: Vec<Grew> = Vec::new();
+    for (i, file) in ["heap-s0", "heap-s1", "heap-0"].iter().enumerate() {
+        if i > 0 {
+            std::thread::sleep(Duration::from_millis(for_ms / 2));
+        }
+        let (mut c, read) = probe::census::take_at(browser, page);
+        if let Some((heap, nodes, from)) = base.take() {
+            let delta = |b: Option<f64>, now: Option<f64>| Some(now? - b?);
+            grew.push((delta(heap, c["js_heap_bytes"].as_f64()), delta(nodes, c["dom"]["nodes"].as_f64()), read.saturating_duration_since(from)));
+        }
+        c["at_ms"] = json!(started.elapsed().as_millis() as u64);
+        c["dom_nodes"] = c["dom"]["nodes"].clone();
+        // OS memory of the snapshotted process is inflated after its first snapshot (CensusContaminated). A
+        // phone's Chrome has no process on this computer: none, never 0.
+        c["private_bytes"] = if i == 0 && browser.phone.is_none() { json!(browser.processes().iter().map(|p| p.private_bytes).sum::<u64>()) } else { Value::Null };
+        c["os_after_snapshot"] = json!(i > 0);
+        probe::census::add_allocators(&mut c, browser, page, &dir.join(format!("memdump-{i}.pftrace")));
+        census.push(c);
+        probe::heap::snapshot(page, &dir.join(format!("{file}.heapsnapshot.gz")))?;
+        if i < 2 {
+            page.send("Runtime.evaluate", json!({ "expression": "new Promise(r => setTimeout(r, 0))", "awaitPromise": true }))?;
+            base = Some(probe::census::page_reading(page));
+        }
+    }
+    let ran: Duration = grew.iter().map(|g| g.2).sum();
+    let sum = |f: fn(&Grew) -> Option<f64>| grew.iter().map(f).sum::<Option<f64>>().unwrap_or(f64::NAN);
+    let (heap_grew, nodes_grew) = (sum(|g| g.0), sum(|g| g.1));
+    progress("finding objects that outlived their half");
+    let leaks = crate::heapsnap::leaks(
+        &crate::heapsnap::ids(&dir.join("heap-s0.heapsnapshot.gz"))?,
+        &crate::heapsnap::ids(&dir.join("heap-s1.heapsnapshot.gz"))?,
+        &crate::heapsnap::read(&dir.join("heap-0.heapsnapshot.gz"))?,
+        25,
+        false,
+    );
+    store::write_json(&dir.join("leaks.json"), &leaks)?;
+    let at = |i: usize, k: &str| census[i][k].as_f64().unwrap_or(f64::NAN);
+    let minutes = ran.as_secs_f64() / 60.0;
+    let mut values = BTreeMap::new();
+    let mut refused = serde_json::Map::new();
+    values.insert("js.heap.used", at(2, "js_heap_bytes") / (1024.0 * 1024.0));
+    values.insert("dom.nodes", at(2, "dom_nodes"));
+    match probe::census::growth_refusal(ran) {
+        None => {
+            values.insert("js.heap.growth", heap_grew / (1024.0 * 1024.0) / minutes);
+            values.insert("dom.nodes.growth", nodes_grew / minutes);
+        }
+        Some(r) => {
+            for m in ["js.heap.growth", "dom.nodes.growth"] {
+                refused.insert(m.into(), json!(crate::model::Refusal { summary: format!("{m}: {}", r.summary), ..r.clone() }.message()));
+            }
+        }
+    }
+    values.insert("memory.app.private", at(0, "private_bytes") / (1024.0 * 1024.0));
+    if browser.phone.is_some() {
+        let r = crate::model::Refusal::new(crate::model::ValidatorId::NotForTarget, "memory.app.private: the page's processes are on the phone, and strobe reads private memory from this computer's")
+            .fix("read the page's own memory here (js.heap.used, its growth, the leak suspects), or the processes' memory in a desktop browser's memory recording");
+        refused.insert("memory.app.private".into(), json!(r.message()));
+    }
+    values.insert("leak.suspects.retained", leaks["retained_size"].as_f64().unwrap_or(0.0) / (1024.0 * 1024.0));
+    let values: BTreeMap<&str, f64> = values.into_iter().filter(|(_, v)| v.is_finite()).collect();
+    let mut meta = json!({
+        "id": id, "kind": "record", "target": target, "probes": "memory", "token": "", "duration_ms": for_ms, "growth_ms": ran.as_secs_f64() * 1e3,
+        "growth_windows": grew.iter().map(|g| json!({ "ms": g.2.as_secs_f64() * 1e3, "js_heap_bytes": g.0, "dom_nodes": g.1 })).collect::<Vec<_>>(),
+        "browser": browser.version, "env": host::env(), "values": values, "refused": refused, "census": census,
+        "leaks": { "count": leaks["count"], "self_size": leaks["self_size"], "retained_size": leaks["retained_size"], "classes_total": leaks["classes_total"] },
+        "created": now_iso(), "valid": true,
+    });
+    for (k, v) in page_state.as_object().into_iter().flatten() {
+        meta[k] = v.clone();
+    }
+    store::write_json(&dir.join("meta.json"), &meta)?;
+    Ok(meta)
+}
+
+/// `BackgroundPriority` (SPEC §10.1): a recording whose target ran at background priority keeps no
+/// frame or input-latency values; its summary says why.
+fn refuse_background(meta: &mut Value, why: Option<String>) {
+    let Some(why) = why else { return };
+    for path in ["/values", "/os_frames/values"] {
+        if let Some(o) = meta.pointer_mut(path).and_then(Value::as_object_mut) {
+            o.retain(|k, _| !super::bench::foreground_metric(k));
+        }
+    }
+    meta["background_priority"] = json!(why);
+}
+
+/// `samples  JavaScript sampled every 2.0 ms (asked 1 ms)`, where the recording profiled JavaScript.
+fn sampling_line(meta: &Value) -> String {
+    serde_json::from_value::<probe::cpu::Sampling>(meta["sampling"].clone()).map(|s| format!("samples  JavaScript {}\n", s.text())).unwrap_or_default()
+}
+
+fn background_line(meta: &Value) -> Option<String> {
+    meta["background_priority"]
+        .as_str()
+        .map(|why| format!("frames   refused (BackgroundPriority): the target ran at {why}; frames and input latencies there describe no person's machine (CPU is kept)\n"))
+}
+
+pub(super) fn frames_refused(meta: &Value) -> Option<&str> {
+    meta["frames_refused"].as_str().or_else(|| (meta["headless"] == true).then_some("Headless: the page ran headless, so nothing it drew reached a display"))
+}
+
+/// Also protect readers of older or copied metadata. The raw trace remains available for pipeline diagnostics.
+pub(super) fn omit_refused_display(meta: &mut Value) {
+    if let Some(why) = frames_refused(meta) {
+        let why = why.to_string();
+        meta["frames_refused"] = json!(why);
+        let strip = |m: &mut Value| {
+            if let Some(v) = m.get_mut("values").and_then(Value::as_object_mut) {
+                v.retain(|k, _| !validity::display_metric(k));
+            }
+        };
+        strip(meta);
+        if let Some(cases) = meta.get_mut("batch").and_then(Value::as_array_mut) {
+            cases.iter_mut().for_each(strip);
+        }
+        if meta["os_frames"]["values"].is_object() {
+            meta["os_frames"] = json!({"refused":why});
+        }
+    }
+}
+
+/// A page recorded in another engine than Chromium (`engine_page`): what it measured from outside.
+fn engine_summary(meta: &Value) -> String {
+    let v = &meta["values"];
+    let get = |k: &str| v.get(k).and_then(Value::as_f64).unwrap_or(f64::NAN);
+    let id = meta["id"].as_str().unwrap_or("");
+    let mut s = format!(
+        "{id} · {} · {} · {}{}{} · {}\n",
+        meta["target"].as_str().unwrap_or(""),
+        fmt::ms_duration(meta["duration_ms"].as_u64().unwrap_or(0)),
+        meta["browser"].as_str().unwrap_or(""),
+        if meta["headless"] == true { " · headless" } else { "" },
+        emulated_text(&meta["emulate"]).map(|t| format!(" · {t}")).unwrap_or_default(),
+        meta["probes"].as_str().unwrap_or("timing")
+    );
+    s += &format!("cpu      {} of one core (cpu.app.total) · {} in the window (cpu.work), all processes\n", fmt::value(get("cpu.app.total"), "%"), fmt::value(get("cpu.work"), "ms"));
+    s += &format!("memory   {} private · {} DOM nodes\n", fmt::value(get("memory.app.private"), "MB"), fmt::value(get("dom.nodes"), "count"));
+    match (background_line(meta), frames_refused(meta).or(meta["os_frames"]["refused"].as_str())) {
+        (Some(line), _) => s += &line,
+        (None, Some(why)) => s += &format!("frames   refused: {why}\n"),
+        (None, None) => {
+            s += &format!(
+                "frames   {} on screen (OS presents) · {} of refreshes dropped · display {}\n",
+                fmt::value(get("frames.presented.count"), "count"),
+                fmt::value(get("frames.dropped.pct"), "%"),
+                if get("display.hz").is_finite() { format!("{:.0} Hz", get("display.hz")) } else { "?".into() }
+            );
+            if get("gpu.process.3d").is_finite() {
+                s += &format!("gpu      {} of the 3D engine\n", fmt::value(get("gpu.process.3d"), "%"));
+            }
+        }
+    }
+    s += &refused_lines(meta);
+    s += &sampling_line(meta);
+    // A filmed recording says why in its own line (`summary_text`).
+    if meta["timing"] == "perturbed" && !meta["video"].is_object() {
+        s += "timing   perturbed: Firefox's profiler ran during this recording (a sampler in every process walks its threads' stacks), so its CPU and times are not the page's; take them with --probes timing\n";
+        s += &format!("next     strobe query {id} hotspots · strobe query {id} layout · strobe query {id} memory · strobe open {id}\n");
+    } else {
+        s += &format!("next     strobe report recording {id} --open\n");
+    }
+    s
+}
+
+pub fn summary_text(meta: &Value) -> String {
+    let mut s = summary_body(meta);
+    s += &batch_lines(meta);
+    s += &ended_lines(meta);
+    s += &context_lines(meta);
+    if meta["video"].is_object() {
+        s += &super::video::line(meta["id"].as_str().unwrap_or(""), &meta["video"]);
+        s += "timing   perturbed: a video was taken during this recording (its capture and encoder share the machine)\n";
+    }
+    s
+}
+
+/// A batch's recording (`--check --batch`, SPEC §5.6): one launch of several cases, each with its
+/// measured runs, its primary and the time and CPU of its runs, and what it refused.
+fn batch_lines(meta: &Value) -> String {
+    let Some(cases) = meta["batch"].as_array().filter(|a| !a.is_empty()) else { return String::new() };
+    let mut s = format!("cases    {} in this launch (--check --batch), in the order they ran:\n", cases.len());
+    for c in cases {
+        let v = &c["values"];
+        let primary = c["primary"].as_str().unwrap_or("");
+        let shown: Vec<String> = std::iter::once(primary)
+            .chain(["run.duration", "cpu.work"])
+            .filter(|m| !m.is_empty())
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
+            .filter_map(|m| v[m].as_f64().map(|x| format!("{m} {}", fmt::value(x, crate::model::metric(m).map_or("", |d| d.unit)))))
+            .collect();
+        let runs: Vec<&str> = c["runs"].as_array().into_iter().flatten().filter_map(Value::as_str).collect();
+        s += &format!("  {:>2}  {}  {}  {}\n", c["seq"], c["label"].as_str().unwrap_or(""), runs.join(" "), shown.join(" · "));
+        let refused: Vec<&String> = c["refused"].as_object().map(|o| o.keys().collect()).unwrap_or_default();
+        if !refused.is_empty() {
+            s += &format!("      refused {}\n", refused.iter().map(|k| k.as_str()).collect::<Vec<_>>().join(", "));
+        }
+    }
+    s
+}
+
+/// `ended    run:2 measured · 222,000 µs of CPU counted · chrome.exe 180,000 µs (2 processes) …`: the runs in
+/// which processes of the target ended inside the timed parts (`ended_runs` in meta.json), what they
+/// used there and which executables they were (where the OS names them); a run whose CPU was lost
+/// anyway (a process ended unread) says so.
+fn ended_lines(meta: &Value) -> String {
+    let Some(runs) = meta["ended_runs"].as_array().filter(|a| !a.is_empty()) else { return String::new() };
+    let mut s = String::new();
+    for (i, r) in runs.iter().enumerate() {
+        let used = match (r["cpu_lost"] == true, r["ended_ms"].as_f64()) {
+            (true, _) => "CPU lost (a process ended before strobe read it)".to_string(),
+            (false, Some(ms)) => format!("{} of CPU counted", fmt::value(ms, "ms")),
+            (false, None) => "CPU not read".to_string(),
+        };
+        let procs: Vec<String> = r["processes"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|p| {
+                let n = p["count"].as_u64().unwrap_or(0);
+                format!("{} {} ({n} process{})", p["exe"].as_str().unwrap_or("?"), fmt::value(p["cpu_ms"].as_f64().unwrap_or(f64::NAN), "ms"), if n == 1 { "" } else { "es" })
+            })
+            .collect();
+        s += &format!(
+            "{}{} {} · {used}{}\n",
+            if i == 0 { "ended    " } else { "         " },
+            r["run"].as_str().unwrap_or("?"),
+            if r["measured"] == true { "measured" } else { "not measured" },
+            if procs.is_empty() { String::new() } else { format!(" · {}", procs.join(", ")) }
+        );
+    }
+    s
+}
+
+/// `--video` on a record: refused where there is nothing to film, before anything launches.
+fn video_refusal(args: &Args, target: &str) -> Result<()> {
+    if !args.has("video") {
+        return Ok(());
+    }
+    if target.starts_with("pid:") || target.starts_with("proc:") || target.starts_with("cdp:") || target.starts_with("ws://") || target.starts_with("wir:") {
+        return Err(Error::refused(
+            "NotForTarget",
+            format!("--video films a window strobe launched; {target} is a process strobe attached to"),
+            "record the app as app:<id> or exe:<path>, or a page by its address",
+        ));
+    }
+    if args.get("probes") == Some("memory") {
+        return Err(Error::usage("--video records a recording's runs; a memory recording has none (it takes heap snapshots)"));
+    }
+    Ok(())
+}
+
+/// What a recording ran and in what state, where it kept them: the variant's commit, the screen
+/// (display, session, compositor), the GPU shader caches, and presents that never waited for the
+/// display.
+fn context_lines(meta: &Value) -> String {
+    let mut s = String::new();
+    let g = &meta["variant_git"];
+    if let Some(commit) = g["commit"].as_str() {
+        let changes = match (g["dirty"] == true, g["changes"].as_str()) {
+            (true, Some(h)) => format!(" with uncommitted changes (diff {h})"),
+            (true, None) => " with uncommitted changes".into(),
+            _ => String::new(),
+        };
+        s += &format!("variant  {} · {commit}{changes}\n", meta["variant"].as_str().unwrap_or(""));
+    }
+    if let Some(line) = super::bench::screen_line(&meta["screen"]) {
+        s += &format!("screen   {line}\n");
+    }
+    if let Some(line) = phone_line(&meta["phone"]) {
+        s += &format!("phone    {line}\n");
+    }
+    if let Some(c) = meta["gpu_cache"].as_str() {
+        s += &format!("gpu      shader caches {c} at the launch{}\n", if c == "cold" { " (the driver compiled them during it)" } else { "" });
+    }
+    if let (Some(fps), Some(hz)) = (meta["unpaced"]["fps"].as_f64(), meta["unpaced"]["hz"].as_f64()) {
+        s += &format!("! UnpacedSpin  the app presented {fps:.0} frames a second on a {hz:.0} Hz display: its presents finish without waiting for the display, so it draws as fast as it can\n");
+    }
+    if let Some(why) = meta["unattributed"].as_str() {
+        s += &format!("! Unattributed  {why}: cpu, memory, wakes and GPU cover the app's own processes only\n");
+    }
+    // A deep capture of a process: what it cost the target.
+    s += &super::outside::cost_lines(&meta["capture_cost"]);
+    s
+}
+
+/// `Google Pixel 8a · Android 15 · Chrome · 412×915 @2.625x · usb · 31.0 °C`: the phone a recording or
+/// block ran on (`android_chrome::Launch::meta`), the page's screen as it saw it; an emulator says so.
+pub(crate) fn phone_line(p: &Value) -> Option<String> {
+    if !p.is_object() {
+        return None;
+    }
+    let sc = &p["screen"];
+    if p["platform"] == "ios" {
+        let mut parts = vec![p["model"].as_str().unwrap_or("iPhone").to_string(), format!("iOS {}", p["ios"].as_str().unwrap_or("?")), p["app"].as_str().unwrap_or("Safari").to_string()];
+        if let (Some(w), Some(h)) = (sc["viewport"][0].as_f64(), sc["viewport"][1].as_f64()) {
+            parts.push(format!("{w}×{h} @{}x", sc["dpr"].as_f64().map_or("?".to_string(), |d| format!("{d}"))));
+        }
+        parts.push(p["transport"].as_str().unwrap_or("usb").to_string());
+        if let Some(pct) = p["battery"]["percent"].as_f64() {
+            parts.push(format!("{pct:.0}%{}", if p["battery"]["charging"] == true { " charging" } else { "" }));
+        }
+        if let Some(t) = p["battery"]["temperature_c"].as_f64() {
+            parts.push(format!("{t:.1} °C"));
+        }
+        return Some(parts.join(" · "));
+    }
+    let mut parts = vec![format!("{} {}", p["manufacturer"].as_str().unwrap_or(""), p["model"].as_str().unwrap_or("")).trim().to_string(), format!("Android {}", p["android"].as_str().unwrap_or("?"))];
+    parts.push(p["channel"].as_str().unwrap_or("Chrome").to_string());
+    if let (Some(w), Some(h)) = (sc["viewport"][0].as_f64(), sc["viewport"][1].as_f64()) {
+        parts.push(format!("{w}×{h} @{}x", sc["dpr"].as_f64().map_or("?".to_string(), |d| format!("{d}"))));
+    }
+    parts.push(p["transport"].as_str().unwrap_or("?").to_string());
+    if let Some(t) = p["battery"]["temp_c"].as_f64() {
+        parts.push(format!("{t:.1} °C"));
+    }
+    if let Some(e) = p["emulator"].as_str() {
+        parts.push(format!("an emulator ({e}): untimed only"));
+    }
+    if let Some(k) = p["command_line_kept"].as_str() {
+        parts.push(format!("its own chrome-command-line kept: {k}"));
+    }
+    Some(parts.join(" · "))
+}
+
+/// A script attribution block's recording, or an HTTP probe block's of its own: no page, so no frames;
+/// its values, what its profile missed or over-weighed, and the views that read it.
+fn script_summary(meta: &Value) -> String {
+    let id = meta["id"].as_str().unwrap_or("");
+    let v = &meta["values"];
+    let get = |k: &str| v.get(k).and_then(Value::as_f64).unwrap_or(f64::NAN);
+    let runtime = match (meta["runtime"]["name"].as_str(), meta["runtime"]["version"].as_str()) {
+        (Some(n), Some(ver)) => format!(" · {n} {ver}"),
+        (Some(n), None) => format!(" · {n}"),
+        _ => String::new(),
+    };
+    let mut s = format!(
+        "{id} · {} · {}{runtime} · {} · timing {}\n",
+        meta["series"].as_str().or(meta["target"].as_str()).unwrap_or(""),
+        meta["variant"].as_str().unwrap_or(""),
+        meta["probes"].as_str().unwrap_or(""),
+        meta["timing"].as_str().unwrap_or("?")
+    );
+    let shown: Vec<String> = [("run.duration", "ms"), ("cpu.work", "ms"), ("cpu.main", "ms"), ("cpu.main.busy", "%")]
+        .iter()
+        .filter(|(k, _)| get(k).is_finite())
+        .map(|(k, u)| format!("{k} {}", fmt::value(get(k), u)))
+        .collect();
+    if !shown.is_empty() {
+        let note = if meta["script"] == true { "a run's median; the profilers ran, so not compared" } else { "a run's median" };
+        s += &format!("values   {} ({note})\n", shown.join(" · "));
+    }
+    let http: Vec<String> = [("http.latency.p50", "ms"), ("http.timeouts", "count"), ("http.errors", "count"), ("http.missed_sends", "count")]
+        .iter()
+        .filter(|(k, _)| get(k).is_finite())
+        .map(|(k, u)| format!("{k} {}", fmt::value(get(k), u)))
+        .collect();
+    if meta["http_probe"].is_object() {
+        s += &format!("http     {}\n", if http.is_empty() { "the block's probes".to_string() } else { http.join(" · ") });
+    }
+    for t in crate::probe::cpu::missed_texts(&meta["missed"], meta["runtime"]["name"].as_str()) {
+        s += &format!("! {t}\n");
+    }
+    let mut next = Vec::new();
+    if meta["script"] == true {
+        next.extend([format!("strobe query {id} hotspots"), format!("strobe query {id} hotspots --source host"), format!("strobe query {id} threads --timeline")]);
+    }
+    if meta["http_probe"].is_object() {
+        next.push(format!("strobe query {id} http"));
+    }
+    next.push(format!("strobe open {id}"));
+    s += &format!("next     {}\n", next.join(" · "));
+    s
+}
+
+fn summary_body(meta: &Value) -> String {
+    let v = &meta["values"];
+    let get = |k: &str| v.get(k).and_then(Value::as_f64).unwrap_or(f64::NAN);
+    if meta["pid"].is_u64() && meta["probes"] == "timing" {
+        return super::outside::text(meta);
+    }
+    if meta["probes"] == "deep" {
+        let id = meta["id"].as_str().unwrap_or("");
+        // Both shares, as `query hotspots` says them: a leaf in a named system library resolves while
+        // its callers in an unsymbolized binary do not. A recording from before the all-frame share has none.
+        let all = meta["native"]["resolved_frame_share"].as_f64().map(|s| format!(", {:.1}% of all frames", 100.0 * s)).unwrap_or_default();
+        return format!(
+            "{id} · {} · deep · {} native samples · resolved: {:.1}% of leaf frames{all}\nnext     strobe query {id} hotspots · strobe query {id} hotspots --by package\n",
+            meta["target"].as_str().unwrap_or(""),
+            meta["samples"],
+            100.0 * meta["native"]["resolved_share"].as_f64().unwrap_or(0.0)
+        );
+    }
+    if meta["probes"] == "memory" {
+        let id = meta["id"].as_str().unwrap_or("");
+        let l = &meta["leaks"];
+        // A refused rate (`refused` says why) shows nothing per minute, never `+NaN B`.
+        let per_minute = |s: String, m: &str| if get(m).is_finite() { format!(" · {s} per minute") } else { String::new() };
+        let heap = per_minute(fmt::signed(get("js.heap.growth") * 1048576.0, "bytes"), "js.heap.growth");
+        let dom = per_minute(fmt::signed(get("dom.nodes.growth"), "count"), "dom.nodes.growth");
+        return format!(
+            "{id} · {} · {} · memory\njs heap  {} after GC{heap}\ndom      {} nodes{dom}\nsuspects {} objects allocated in the first half and alive at the end · {} retained\n{}next     strobe query {id} leaks · strobe query {id} heap\n",
+            meta["target"].as_str().unwrap_or(""),
+            fmt::ms_duration(meta["duration_ms"].as_u64().unwrap_or(0)),
+            fmt::bytes(get("js.heap.used") * 1048576.0),
+            fmt::value(get("dom.nodes"), "count"),
+            l["count"].as_u64().unwrap_or(0),
+            fmt::bytes(l["retained_size"].as_f64().unwrap_or(0.0)),
+            refused_lines(meta),
+        );
+    }
+    if meta["script"] == true || meta["probes"] == "http-probe" {
+        return script_summary(meta);
+    }
+    if meta["native"] == true {
+        return native_summary(meta);
+    }
+    if meta["wir"] == true {
+        return wir_summary(meta);
+    }
+    if meta["engine"].as_str().is_some_and(|e| e != "chromium") {
+        return engine_summary(meta);
+    }
+    let mut s = format!(
+        "{} · {} · {} · {}{}{}\n",
+        meta["id"].as_str().unwrap_or(""),
+        meta["target"].as_str().unwrap_or(""),
+        fmt::ms_duration(meta["duration_ms"].as_u64().unwrap_or(0)),
+        meta["probes"].as_str().unwrap_or(""),
+        if meta["headless"] == true { " · headless" } else { "" },
+        emulated_text(&meta["emulate"]).map(|t| format!(" · {t}")).unwrap_or_default()
+    );
+    if let Some(line) = background_line(meta) {
+        s += &line;
+    } else if let Some(why) = frames_refused(meta) {
+        s += &format!("frames   refused ({why})\n");
+    } else {
+        s += &format!(
+            "frames   {} presented · {} of vsyncs dropped · display {}\n",
+            fmt::value(get("frames.n"), "count"),
+            fmt::value(get("frames.dropped.pct"), "%"),
+            if get("display.hz").is_finite() { format!("{:.0} Hz", get("display.hz")) } else { "?".into() },
+        );
+        s += &format!(
+            "interval p50 {} · p95 {} · max {}   (gap between presented frames)\n",
+            fmt::value(get("frames.interval.p50"), "ms"),
+            fmt::value(get("frames.interval.p95"), "ms"),
+            fmt::value(get("frames.interval.max"), "ms"),
+        );
+        s += &format!(
+            "latency  p50 {} · p95 {} · max {}   (frame begin to presentation)\n",
+            fmt::value(get("frames.presented.p50"), "ms"),
+            fmt::value(get("frames.presented.p95"), "ms"),
+            fmt::value(get("frames.presented.max"), "ms"),
+        );
+    }
+    s += &format!(
+        "main     {} busy · {} long tasks{}\n",
+        fmt::value(get("main.busy"), "%"),
+        fmt::value(get("main.tasks.long"), "count"),
+        if get("main.paint").is_finite() { format!(" · {} prepaint and paint", fmt::value(get("main.paint"), "ms")) } else { String::new() }
+    );
+    if get("cpu.app.total").is_finite() {
+        s += &format!("cpu      {} of one core, all processes\n", fmt::value(get("cpu.app.total"), "%"));
+    }
+    if frames_refused(meta).is_none() && get("interaction.p95").is_finite() {
+        s += &format!("input    p95 {} input → presentation\n", fmt::value(get("interaction.p95"), "ms"));
+    }
+    let of = &meta["os_frames"];
+    if let Some(why) = of["refused"].as_str() {
+        s += &format!("os       refused: {why}\n");
+    } else if of["values"].is_object() {
+        let g = |k: &str| of["values"][k].as_f64().unwrap_or(f64::NAN);
+        s += &format!(
+            "os       {} displayed · interval p50 {} · p95 {} · {} dropped ({}) · display {:.1} Hz   (OS present events)\n",
+            fmt::value(g("frames.n"), "count"),
+            fmt::value(g("frames.interval.p50"), "ms"),
+            fmt::value(g("frames.interval.p95"), "ms"),
+            fmt::value(g("frames.dropped"), "count"),
+            fmt::value(g("frames.dropped.pct"), "%"),
+            g("display.hz")
+        );
+    }
+    s += &refused_lines(meta);
+    s += &sampling_line(meta);
+    if meta["timing"] == "perturbed" && !meta["video"].is_object() {
+        s += "timing   perturbed: profilers ran during this recording, so its times are not the target's; take times with --probes timing\n";
+    }
+    if meta["timing"] == "full-trace" {
+        s += "timing   full trace (--trace full): the browser traced every task of every thread, which costs the page main-thread time; compare it only with full-trace runs\n";
+    }
+    let id = meta["id"].as_str().unwrap_or("");
+    let view = if meta["frames_refused"].is_string() || meta["traced"] == false || meta["launch"] == true { (meta["probes"] == "attribution").then_some("hotspots") } else { Some("frames") };
+    let query = view.map(|v| format!("strobe query {id} {v} · ")).unwrap_or_default();
+    s += &format!("next     {query}strobe report recording {id} --open\n");
+    s
+}
+
+/// A native recording or block: what the OS saw of the app.
+fn native_summary(meta: &Value) -> String {
+    let v = &meta["values"];
+    let get = |k: &str| v.get(k).and_then(Value::as_f64).unwrap_or(f64::NAN);
+    let id = meta["id"].as_str().unwrap_or("");
+    let target = meta["target"].as_str().map(str::to_string).unwrap_or_else(|| meta["target"].to_string());
+    let mut s = format!("{id} · {target} · {} · {} · native\n", fmt::ms_duration(meta["duration_ms"].as_u64().unwrap_or(0)), meta["probes"].as_str().unwrap_or(""));
+    if meta["launch"] == true {
+        s += &launch_line(v);
+        s += &format!("cpu      {} from the spawn until ready, all processes\n", fmt::value(get("cpu.work"), "ms"));
+    } else {
+        s += &format!("cpu      {} of one core (cpu.app.total) · {} in the run (cpu.work), all processes\n", fmt::value(get("cpu.app.total"), "%"), fmt::value(get("cpu.work"), "ms"));
+    }
+    if get("cpu.wakes").is_finite() {
+        s += &format!("wakes    {} context switches of its threads\n", fmt::value(get("cpu.wakes"), "/s"));
+    }
+    if get("io.read").is_finite() {
+        s += &io_line(meta);
+    }
+    s += &fmt::counters(get);
+    s += &memory_lines(meta);
+    if get("ui.cpu").is_finite() {
+        s += &ui_line(meta);
+    }
+    if get("frames.n").is_finite() {
+        s += &format!(
+            "frames   {} on screen · interval p95 {} · {} dropped (OS present events)\n",
+            fmt::value(get("frames.n"), "count"),
+            fmt::value(get("frames.interval.p95"), "ms"),
+            fmt::value(get("frames.dropped"), "count")
+        );
+    } else if let Some(why) = meta["os_frames"]["refused"].as_str() {
+        s += &format!("frames   refused: {why}\n");
+    }
+    if meta["session_locked"] == true && meta["window"].is_object() {
+        s += "session  locked: an app on a locked screen may draw and work less; its CPU, memory and IO compare only with recordings taken locked\n";
+    }
+    if let Some(line) = background_line(meta) {
+        s += &line;
+    }
+    s += &refused_lines(meta);
+    if meta["timing"] == "perturbed" && !meta["video"].is_object() {
+        s += "timing   perturbed: take times with --probes timing\n";
+    }
+    s += &if meta["launch"] == true {
+        format!("next     strobe query {id} threads (spawn until ready) · strobe query {id} hotspots\n")
+    } else {
+        let frames = if get("frames.n").is_finite() && !meta["os_frames"]["refused"].is_string() { format!(" · strobe query {id} frames") } else { String::new() };
+        format!("next     strobe query {id} threads · strobe query {id} memory · strobe query {id} gpu{frames}\n")
+    };
+    s
+}
+
+/// A launch's milestones from the spawn, ready first: `launch   ready 412 ms · up 380 ms · painted 300 ms`.
+pub fn launch_line(v: &Value) -> String {
+    let mut ms: Vec<(&str, f64)> = v.as_object().into_iter().flatten().filter_map(|(k, x)| Some((k.strip_prefix("launch.")?, x.as_f64()?))).collect();
+    if ms.is_empty() {
+        return String::new();
+    }
+    ms.sort_by(|a, b| (a.0 != "ready").cmp(&(b.0 != "ready")).then(a.1.total_cmp(&b.1)));
+    format!("launch   {}   (from the spawn)\n", ms.iter().map(|(k, x)| format!("{k} {}", fmt::value(*x, "ms"))).collect::<Vec<_>>().join(" · "))
+}
+
+/// A native target's GPU use and memory: what the GPU's statistics say and what holds the processes'
+/// memory (`memory.app.host` beside `memory.app.private`).
+/// `io read … · written …`, and what those counts leave out when the recording's processes map data
+/// files (`memory.json`'s last reading): `io.*` counts read and write calls, never a mapped file's pages.
+pub fn io_line(meta: &Value) -> String {
+    let get = |k: &str| meta["values"].get(k).and_then(Value::as_f64).unwrap_or(f64::NAN);
+    let mut s = format!("io       read {} · written {}\n", fmt::bytes(get("io.read")), fmt::bytes(get("io.write")));
+    let mapped = meta["id"]
+        .as_str()
+        .and_then(|id| store::resolve(id).ok())
+        .and_then(|d| store::read_json(&d.join("memory.json")).ok())
+        .and_then(|m| m["readings"].as_array().and_then(|r| r.last().cloned()))
+        .and_then(|r| r["processes"].as_array().map(|ps| ps.iter().filter_map(|p| p["files"].as_f64()).sum::<f64>()))
+        .filter(|f| *f > 0.0);
+    if let Some(f) = mapped {
+        s += &format!("         (read and write calls only: the processes also map {} of data files, whose pages are in neither count)\n", fmt::bytes(f));
+    }
+    s
+}
+
+pub fn memory_lines(meta: &Value) -> String {
+    let v = &meta["values"];
+    let get = |k: &str| v.get(k).and_then(Value::as_f64).unwrap_or(f64::NAN);
+    // A value, or `refused` when the recording says why there is none (`refused_lines` says it).
+    let shown = |k: &str, unit: &str| if meta["refused"][k].is_string() { "refused".to_string() } else { fmt::value(get(k), unit) };
+    let mut s = String::new();
+    if get("gpu.process.3d").is_finite() || get("gpu.vram").is_finite() {
+        s += &format!("gpu      3D {} · VRAM {} · shared {}\n", shown("gpu.process.3d", "%"), shown("gpu.vram", "MB"), shown("gpu.shared", "MB"));
+    }
+    if get("memory.app.private").is_finite() {
+        s += &format!("memory   {} private", fmt::value(get("memory.app.private"), "MB"));
+        if get("memory.app.host").is_finite() {
+            s += &format!(" · {} host (what the processes allocated; private also counts GPU memory mapped into or charged to them)", fmt::value(get("memory.app.host"), "MB"));
+        }
+        s += "\n";
+    }
+    s
+}
+
+/// The UI thread's CPU and wakes (`refused` where the OS counts no wakes per thread).
+pub fn ui_line(meta: &Value) -> String {
+    let get = |k: &str| meta["values"].get(k).and_then(Value::as_f64).unwrap_or(f64::NAN);
+    let wakes = if meta["refused"]["ui.wakes"].is_string() { "wakes refused".to_string() } else { format!("{} wakes", fmt::value(get("ui.wakes"), "/s")) };
+    format!("ui       {} CPU on the UI thread (the main window's) · {wakes}\n", fmt::value(get("ui.cpu"), "ms"))
+}
+
+/// The recording's refused metrics, once per reason: `refused  gpu.vram, gpu.shared: macOS: …`.
+pub fn refused_lines(meta: &Value) -> String {
+    let mut reasons: Vec<(String, Vec<&str>)> = Vec::new();
+    for (m, why) in meta["refused"].as_object().into_iter().flatten() {
+        let line = why.as_str().unwrap_or("");
+        // `<validator>: <metric>: <why>` reads as `<validator>: <why>` under its metrics.
+        let why = match line.split_once(": ") {
+            Some((id, rest)) => format!("{id}: {}", rest.strip_prefix(&format!("{m}: ")).unwrap_or(rest)),
+            None => line.to_string(),
+        };
+        match reasons.iter_mut().find(|r| r.0 == why) {
+            Some(r) => r.1.push(m),
+            None => reasons.push((why, vec![m])),
+        }
+    }
+    reasons.iter().map(|(why, ms)| format!("refused  {}: {why}\n", ms.join(", "))).collect()
+}
+
+pub fn now_iso() -> String {
+    iso(now_secs())
+}
+
+pub fn now_secs() -> u64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0)
+}
+
+/// `secs` since the Unix epoch as `YYYY-MM-DDTHH:MM:SSZ`, which sorts like time.
+pub fn iso(secs: u64) -> String {
+    let (days, rem) = (secs / 86400, secs % 86400);
+    let (y, m, d) = civil(days as i64);
+    format!("{y:04}-{m:02}-{d:02}T{:02}:{:02}:{:02}Z", rem / 3600, rem % 3600 / 60, rem % 60)
+}
+
+fn civil(z: i64) -> (i64, u32, u32) {
+    let z = z + 719468;
+    let era = z.div_euclid(146097);
+    let doe = z.rem_euclid(146097);
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 } as u32;
+    (if m <= 2 { y + 1 } else { y }, m, d)
+}
+
+/// `strobe record wir:[selector] [--for 10s]`: strictly read-only WebKit Inspector attribution (or
+/// `--probes memory` S0/S1/S2 heap leak capture) of an open iOS Safari tab or WKWebView over USB, plus
+/// a network waterfall, allowlisted Safari/WebKit device logs, and read-only crash/jetsam reports.
+fn ios_wir(args: &Args, target: &str) -> Result<Output> {
+    use crate::host::ios::logs::{Allowlist, LogStream, collect_crashes};
+    use crate::probe::webkit_inspector as wki;
+    use crate::target::wir;
+
+    for bad in ["headless", "emulate", "os-frames", "app", "home", "gpu-cache", "wayland", "native", "mobile", "engine", "until-line", "stop-line"] {
+        if args.has(bad) {
+            return Err(Error::usage(format!("--{bad} does not apply to wir: (an open Safari tab on an iPhone over USB)")));
+        }
+    }
+    let set = match args.get("probes") {
+        None | Some("attribution") => Set::Attribution,
+        Some("memory") => Set::Memory,
+        Some("timing") => {
+            return Err(Error::refused(
+                "EngineUnsupported",
+                "--probes timing on wir:: attaching Web Inspector runs WebKit's attribution instruments, which perturb timing (SPEC §1 rule 3)",
+                "drop --probes to record attribution (Timeline, ScriptProfiler, Heap, Network, logs) with timing marked perturbed",
+            ));
+        }
+        Some("waits" | "deep") => {
+            return Err(Error::refused(
+                "NotOnThisOs",
+                format!("--probes {} needs kernel or OS stack sampling, which iOS does not expose over unprivileged USB", args.get("probes").unwrap_or("")),
+                "drop --probes to record WebKit ScriptProfiler, Timeline, Heap, Network and logs",
+            ));
+        }
+        Some(other) => return Err(Error::usage(format!("--probes on wir:: attribution (default) or memory, not {other}"))),
+    };
+
+    let for_ms = match args.get("for") {
+        Some(d) => duration_ms(d)?,
+        None => 10_000,
+    };
+
+    let mut session = wir::Session::attach(target, true, Duration::from_secs(15), super::stop_requested)?;
+    let handle = session.page.handle.clone();
+    let usb_dev = session.usb_device().clone();
+    let allowlist = Allowlist::new(&session.page.bundle_id, session.page.app_pid);
+    let wall0_s = session.wall_clock_s().or(session.phone.wall_clock_s);
+    let t0_ns = host::now_ns();
+
+    // Read viewport & DPR once without mutating anything on the page.
+    let screen = session
+        .eval("JSON.stringify({ viewport: [Math.round(innerWidth), Math.round(innerHeight)], dpr: devicePixelRatio || 1 })", Duration::from_secs(5))
+        .ok()
+        .and_then(|v| v.as_str().and_then(|s| serde_json::from_str(s).ok()))
+        .unwrap_or_else(|| json!({ "viewport": [null, null], "dpr": null }));
+
+    let (id, draft) = claim(args)?;
+    let dir = draft.dir().to_path_buf();
+    let token = id.trim_start_matches("rec_").to_string();
+
+    let log_stream = LogStream::start(&usb_dev, allowlist.clone(), t0_ns, wall0_s);
+    progress(format!("recording {id} on the selected page ({} over USB) for {}", session.phone.product_type.as_deref().unwrap_or("iPhone"), fmt::ms_duration(for_ms)));
+
+    if set == Set::Memory {
+        let mem_res = wki::record_memory(&mut session, &dir, for_ms, |m| progress(m));
+        session.refresh_battery();
+        let wall1_s = session.wall_clock_s();
+        let elapsed_s = host::now_ns().saturating_sub(t0_ns) as f64 / 1e9;
+        let phone_meta = wir_phone_meta(&session, &handle, &screen);
+        session.close();
+        let dev_logs = log_stream.stop();
+        let (crashes, crash_clock_note) = collect_crashes(&usb_dev, &allowlist, wall0_s, wall1_s, elapsed_s, Some(std::time::Instant::now() + Duration::from_secs(4)));
+        let clock_notes = merge_clock_notes(dev_logs.clock_note.as_deref(), crash_clock_note.as_deref());
+        let redacted_crashes = redact_crashes(&crashes);
+        let mem = mem_res.map_err(|e| attach_crash_detail(e, &crashes))?;
+        let (values, census, leaks, console) = (mem.values, mem.census, mem.leaks, mem.console);
+        wki::write_owner_gz(&dir.join(wki::DEVICE_LOG_FILE), &dev_logs)?;
+        wki::write_owner_gz(&dir.join(wki::CRASHES_FILE), &crashes)?;
+        let mut refused = wir_refusals();
+        refused.remove("js.heap.used");
+        refused.extend(mem.refused.into_iter().map(|(k, v)| (k, json!(v))));
+        let meta = json!({
+            "id": id,
+            "kind": "record",
+            "wir": true,
+            "engine": "webkit",
+            "target": handle,
+            "url": host::ios::logs::scrub_url(&session.page.url, false),
+            "probes": "memory",
+            "token": "",
+            "duration_ms": for_ms,
+            "browser": format!("Mobile Safari (iOS {})", phone_meta["ios"].as_str().unwrap_or("?")),
+            "env": host::env(),
+            "phone": phone_meta,
+            "values": values,
+            "refused": refused,
+            "census": census,
+            "leaks": { "count": leaks["count"], "self_size": leaks["self_size"], "retained_size": leaks["retained_size"], "classes_total": leaks["classes_total"] },
+            "logs": { "console": console.len(), "device": dev_logs.entries.len(), "device_dropped": dev_logs.dropped, "observer_dropped": dev_logs.observer_dropped, "device_source": dev_logs.source, "crashes": crashes.len(), "device_clock_note": dev_logs.clock_note, "crash_clock_note": crash_clock_note, "clock_notes": clock_notes },
+            "crashes": redacted_crashes,
+            "timing": "perturbed",
+            "created": now_iso(),
+            "valid": true,
+        });
+        store::write_json(&dir.join("meta.json"), &meta)?;
+        draft.keep();
+        return Ok(Output::new(summary_text(&meta), meta));
+    }
+
+    let cap_res = wki::record_attribution(&mut session, &dir, &token, for_ms, args.get("served").map(std::path::Path::new), |m| progress(m));
+    session.refresh_battery();
+    let wall1_s = session.wall_clock_s();
+    let elapsed_s = host::now_ns().saturating_sub(t0_ns) as f64 / 1e9;
+    let phone_meta = wir_phone_meta(&session, &handle, &screen);
+    // Detach Web Inspector immediately before collecting crash reports over AFC.
+    session.close();
+
+    let dev_logs = log_stream.stop();
+    let (crashes, crash_clock_note) = collect_crashes(&usb_dev, &allowlist, wall0_s, wall1_s, elapsed_s, Some(std::time::Instant::now() + Duration::from_secs(4)));
+    let clock_notes = merge_clock_notes(dev_logs.clock_note.as_deref(), crash_clock_note.as_deref());
+    let redacted_crashes = redact_crashes(&crashes);
+    let cap = cap_res.map_err(|e| attach_crash_detail(e, &crashes))?;
+
+    wki::write_owner_gz(&dir.join(wki::DEVICE_LOG_FILE), &dev_logs)?;
+    wki::write_owner_gz(&dir.join(wki::CRASHES_FILE), &crashes)?;
+
+    let refused = wir_refusals();
+    let meta = json!({
+        "id": id,
+        "kind": "record",
+        "wir": true,
+        "engine": "webkit",
+        "target": handle,
+        "url": host::ios::logs::scrub_url(&session.page.url, false),
+        "probes": "attribution",
+        "token": token,
+        "runs": 1,
+        "duration_ms": for_ms,
+        "browser": format!("Mobile Safari (iOS {})", phone_meta["ios"].as_str().unwrap_or("?")),
+        "env": host::env(),
+        "phone": phone_meta,
+        "values": cap.values,
+        "refused": refused,
+        "census": cap.census,
+        "sampling": cap.sampling,
+        "frames_refused": "EngineUnsupported: WebKit's Web Inspector reports main-thread RenderingFrame records, not screen presentation times or dropped refreshes",
+        "os_frames": { "refused": "EngineUnsupported: iOS screen presentation times are not exposed over Web Inspector" },
+        "logs": {
+            "console": cap.console_count,
+            "console_errors": cap.console_errors,
+            "device": dev_logs.entries.len(),
+            "device_dropped": dev_logs.dropped,
+            "observer_dropped": dev_logs.observer_dropped,
+            "device_source": dev_logs.source,
+            "crashes": crashes.len(),
+            "device_clock_note": dev_logs.clock_note,
+            "crash_clock_note": crash_clock_note,
+            "clock_notes": clock_notes,
+        },
+        "network": {
+            "requests": cap.network_requests,
+            "bytes": cap.network_bytes,
+            "pre_attach_resources": cap.pre_attach_resources,
+        },
+        "crashes": redacted_crashes,
+        "timing": "perturbed",
+        "created": now_iso(),
+        "valid": true,
+    });
+    store::write_json(&dir.join("meta.json"), &meta)?;
+    draft.keep();
+    Ok(Output::new(summary_text(&meta), meta))
+}
+
+fn merge_clock_notes(device_note: Option<&str>, crash_note: Option<&str>) -> Vec<String> {
+    let mut out = Vec::new();
+    for n in [device_note, crash_note].into_iter().flatten() {
+        if !n.is_empty() && !out.iter().any(|x| x == n) {
+            out.push(n.to_string());
+        }
+    }
+    out
+}
+
+fn wir_phone_meta(session: &crate::target::wir::Session, handle: &str, screen: &Value) -> Value {
+    json!({
+        "platform": "ios",
+        "udid": session.phone.udid,
+        "short_udid": host::ios::short_udid(&session.phone.udid),
+        "model": session.phone.product_type,
+        "ios": session.phone.ios,
+        "app": session.page.app_name,
+        "bundle_id": session.page.bundle_id,
+        "page_id": session.page.page_id,
+        "handle": handle,
+        "transport": "usb",
+        "battery": session.phone.battery,
+        "screen": screen,
+    })
+}
+
+fn redact_crashes(crashes: &[crate::host::ios::logs::CrashReport]) -> Vec<Value> {
+    use crate::host::ios::logs::redact_text;
+    crashes
+        .iter()
+        .map(|c| {
+            json!({
+                "kind": c.kind,
+                "process": c.process,
+                "pid": c.pid,
+                "timestamp": c.timestamp,
+                "summary": redact_text(&c.summary, false),
+                "exception": c.exception.as_deref().map(|s| redact_text(s, false)),
+                "termination": c.termination.as_deref().map(|s| redact_text(s, false)),
+                "memory_pages": c.memory_pages,
+                "frames": c.frames.iter().map(|f| redact_text(f, false)).collect::<Vec<_>>(),
+            })
+        })
+        .collect()
+}
+
+fn attach_crash_detail(err: Error, crashes: &[crate::host::ios::logs::CrashReport]) -> Error {
+    let Some(first) = crashes.first() else { return err };
+    let prev = err.hint.clone().unwrap_or_else(|| "the tab disconnected".into());
+    err.hint(format!("{prev}; device crash report in window: {}", host::ios::logs::redact_text(&first.summary, false)))
+}
+
+fn wir_refusals() -> serde_json::Map<String, Value> {
+    use crate::model::{Refusal, ValidatorId};
+    let mut r = serde_json::Map::new();
+    let cpu_why = Refusal::new(ValidatorId::NotOnThisOs, "iOS gives an unprivileged USB client no per-process CPU or wake counters for Safari").message();
+    for m in ["cpu.app.total", "cpu.work", "cpu.wakes"] {
+        r.insert(m.into(), json!(cpu_why));
+    }
+    let mem_why = Refusal::new(
+        ValidatorId::NotOnThisOs,
+        "iOS gives an unprivileged USB client no OS private-memory footprint for Safari (query memory and query heap read WebKit's page categories and JS heap)",
+    )
+    .message();
+    r.insert("memory.app.private".into(), json!(mem_why));
+    let gpu_why = Refusal::new(ValidatorId::NotOnThisOs, "iOS gives an unprivileged USB client no GPU utilization or VRAM counters").message();
+    for m in ["gpu.process.3d", "gpu.vram", "gpu.shared"] {
+        r.insert(m.into(), json!(gpu_why));
+    }
+    let frames_why = Refusal::new(ValidatorId::EngineUnsupported, "WebKit's Web Inspector reports main-thread RenderingFrame records, not screen presentation times or dropped refreshes").message();
+    for m in [
+        "frames.n",
+        "frames.presented.count",
+        "frames.dropped",
+        "frames.dropped.pct",
+        "frames.interval.p50",
+        "frames.interval.p95",
+        "frames.interval.max",
+        "frames.presented.p50",
+        "frames.presented.p95",
+        "frames.presented.max",
+    ] {
+        r.insert(m.into(), json!(frames_why));
+    }
+    r
+}
+
+fn wir_summary(meta: &Value) -> String {
+    let v = &meta["values"];
+    let get = |k: &str| v.get(k).and_then(Value::as_f64).unwrap_or(f64::NAN);
+    let id = meta["id"].as_str().unwrap_or("");
+    let mut s = format!(
+        "{id} · {} · {} · {} · {}\n",
+        meta["target"].as_str().unwrap_or(""),
+        fmt::ms_duration(meta["duration_ms"].as_u64().unwrap_or(0)),
+        meta["browser"].as_str().unwrap_or("Mobile Safari"),
+        meta["probes"].as_str().unwrap_or("attribution")
+    );
+    s += &format!("main     {} busy ({} work) · {} long tasks\n", fmt::value(get("main.busy"), "%"), fmt::value(get("main.work"), "ms"), fmt::value(get("main.tasks.long"), "count"));
+    s += &format!("heap     {} JS heap · {} DOM nodes\n", fmt::value(get("js.heap.used"), "MB"), fmt::value(get("dom.nodes"), "count"));
+    let net_reqs = meta["network"]["requests"].as_u64().unwrap_or(0);
+    let net_bytes = meta["network"]["bytes"].as_f64().unwrap_or(0.0);
+    let pre_res = meta["network"]["pre_attach_resources"].as_u64().unwrap_or(0);
+    let pre_note = if net_reqs == 0 && pre_res > 0 { format!(" ({pre_res} resources loaded before attach · query {id} network)") } else { String::new() };
+    s += &format!("network  {net_reqs} requests · {}{pre_note}\n", fmt::bytes(net_bytes));
+    let con = meta["logs"]["console"].as_u64().unwrap_or(0);
+    let con_err = meta["logs"]["console_errors"].as_u64().unwrap_or(0);
+    let dev = meta["logs"]["device"].as_u64().unwrap_or(0);
+    let cap_drop = meta["logs"]["device_dropped"].as_u64().unwrap_or(0);
+    let cap_note = if cap_drop > 0 { format!(" (+{cap_drop} dropped at cap)") } else { String::new() };
+    let obs = meta["logs"]["observer_dropped"].as_u64().unwrap_or(0);
+    let obs_note = if obs > 0 { format!(" ({obs} inspector IPC lines dropped)") } else { String::new() };
+    let crashes = meta["crashes"].as_array().map_or(0, Vec::len);
+    s += &format!("logs     {con} console ({con_err} errors) · {dev}{cap_note} Safari/WebKit device logs{obs_note} · {crashes} crashes/jetsams\n");
+    if let Some(notes) = meta["logs"]["clock_notes"].as_array() {
+        for note in notes.iter().filter_map(Value::as_str) {
+            s += &format!("! Clock  {note}\n");
+        }
+    } else if let Some(note) = meta["logs"]["clock_note"].as_str() {
+        s += &format!("! Clock  {note}\n");
+    }
+    for c in meta["crashes"].as_array().into_iter().flatten() {
+        s += &format!("! Crash  {}\n", c["summary"].as_str().unwrap_or("crash or jetsam"));
+    }
+    s += &refused_lines(meta);
+    s += &sampling_line(meta);
+    s += "timing   perturbed: WebKit Inspector Timeline, ScriptProfiler and Heap ran on the attached tab; device-tagged, never compared to desktop\n";
+    s += &format!("next     strobe query {id} hotspots · strobe query {id} layout · strobe query {id} heap · strobe query {id} log · strobe query {id} network\n");
+    s
+}

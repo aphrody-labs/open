@@ -1,0 +1,489 @@
+//! `isocast-ui`: the Isocast app in Slint. A portable native window laid
+//! out as OBS Studio's, a thin client of isocastd. How it is put together
+//! (the areas, the kit, the snapshot states) is in src/areas/mod.rs.
+//!
+//! ```text
+//! isocast-ui                         the app in a window, showing the
+//!                                    daemon's program picture
+//! isocast-ui --bench 30 [--check]    …measuring its CPU for 30 s (and
+//!                                    checking each frame), then quit
+//! isocast-ui --drag-test 6           …dragging the selected item for 6 s
+//!            [--drag-mode resize]    (or its corner, or a dock splitter:
+//!                                    columns, rows)
+//!                                    (--bench and --drag-test, and any run
+//!                                    with ISOCAST_BACKGROUND set, show the
+//!                                    window without taking focus)
+//! isocast-ui --snapshot out.png [--size 1280x800] [--scale 2]
+//!            [--state settings:output] [--state kit] [--a11y]
+//!            [--crop controls]       drawn offscreen, nothing on screen
+//!                                    (several --snapshot: one picture
+//!                                    after each one's states, one app)
+//! isocast-ui --snapshot-watch DIR [--state record] [--crop controls]
+//!                                    …redrawn on every ui/*.slint edit
+//!                                    (built with --features live-slint)
+//! isocast-ui --soak 600 [--no-check] offscreen at 60 fps for 10 minutes,
+//!                                    dragging the box and checking frames
+//! isocast-ui --motion SUITE.toml …   replay scripted pointer input
+//!                                    offscreen and check each frame
+//!                                    (src/motion, docs/motion-testing.md)
+//! ```
+//!
+//! On Windows it is a GUI program, so starting it (the Start menu, Explorer,
+//! the installer) opens no console window. Run from a terminal with
+//! arguments, it writes to that terminal (see `attach_console`).
+
+// No console window for the app; development modes attach to the caller's.
+#![cfg_attr(windows, windows_subsystem = "windows")]
+
+mod a11y;
+mod app;
+mod areas;
+mod background;
+#[cfg(windows)]
+mod chrome_windows;
+mod clock;
+mod codec;
+mod daemon;
+mod engine;
+mod form;
+mod frames;
+mod gpu;
+mod helper;
+mod keys;
+mod kit;
+#[cfg(target_os = "macos")]
+mod layers;
+#[cfg(windows)]
+#[path = "layers_windows.rs"]
+mod layers;
+mod model;
+// The motion harness (`--motion`): docs/motion-testing.md.
+mod motion;
+mod offscreen;
+mod picture;
+mod platform;
+mod prefs;
+mod preview;
+mod quit;
+// Settings forms from the setup's schema; the views (Properties,
+// Filters, Transition Properties) move onto it next.
+#[allow(dead_code)]
+mod session;
+mod toasts;
+mod update;
+mod usage;
+mod video;
+mod window;
+
+use std::path::PathBuf;
+
+use anyhow::{Context, Result, bail};
+
+// The interface (ui/*.slint), compiled in its own crate.
+use isocast_ui_interface::*;
+
+pub struct Options {
+    /// Each picture, after the first N of `states` (the states given
+    /// before the next `--snapshot`).
+    pub snapshots: Vec<(PathBuf, usize)>,
+    /// `--snapshot-watch DIR`: draw DIR/snapshot.png, then again whenever
+    /// a .slint file changes (a `live-slint` build reads them at run time).
+    pub watch: Option<PathBuf>,
+    /// `--crop`: only this part of the window in each picture.
+    pub crop: Option<String>,
+    pub size: (u32, u32),
+    pub scale: f32,
+    pub states: Vec<String>,
+    pub a11y: bool,
+    pub wait_ms: u64,
+    pub soak: Option<f64>,
+    pub check: bool,
+    pub still: bool,
+    pub bench: Option<f64>,
+    pub fps: u32,
+    pub preview: preview::Mode,
+    pub drag_test: Option<f64>,
+    /// What `--drag-test` drags.
+    pub drag_mode: window::DragMode,
+    /// The window reads each frame for black, stale or misplaced boxes.
+    pub frame_check: bool,
+    /// Measured windows float above others unless this is set (a window
+    /// capture only sees windows at the normal level).
+    pub no_float: bool,
+    /// `--engine`: the engine this window controls (`local`, a paired
+    /// engine's name or id, or host[:port]); `$ISOCAST_ENGINE` if absent,
+    /// else this machine's (src/engine.rs).
+    pub engine: Option<String>,
+}
+
+const USAGE: &str = "usage: isocast-ui [--bench SECONDS] [--check] [--drag-test SECONDS] [--fps N]
+                  [--drag-mode move|resize|resize-select|columns|rows] [--preview layers|image] [--no-float]
+                  [--engine local|NAME|ID|HOST[:PORT]]  (a window on another computer's engine)
+       isocast-ui --pair HOST[:PORT]       pair this app with an engine (its code on stdin;
+                                           for scripts; Settings → Remote pairs in the app)
+       isocast-ui --snapshot OUT.png [--size WxH] [--scale N] [--state STATE]… [--a11y] [--wait-ms MS]
+                  [--crop AREA|X,Y,W,H] [--snapshot OUT2.png [--state STATE]…]…
+       isocast-ui --snapshot-watch DIR [--size WxH] [--scale N] [--state STATE]… [--crop AREA|X,Y,W,H]
+                  (a `--features live-slint` build: redraws DIR/snapshot.png on every ui/*.slint edit)
+crop areas: an element id in ui/app.slint (scenes, sources, mixer, transitions, controls, stage,
+        bar), the first shown element of a component (ControlsDock), or X,Y,W,H in window points
+       isocast-ui --a11y [--state STATE]…
+       isocast-ui --soak SECONDS [--no-check] [--still] [--size WxH] [--scale N]
+states (in order, see src/offscreen.rs and each area's STATES):
+        dialog:KIND[:ARG], menu:OWNER, menu-bar:ID, menu-bar-open:TITLE,
+        toast:KIND:TITLE, kit,
+        kit-dialog, kit-menu, kit-dropdown, type:TEXT, key:NAME,
+        drag:X1,Y1,X2,Y2, hover:X,Y, press:LABEL, hide:DOCK, wait:MS, events:FILE, devices:FILE; select:PATH, rename,
+        cameras,
+        studio, record, stop-record, go-live, stop-stream, stream:KIND,
+        details:rec|live, toasts, toast-drops, transition:KIND, about,
+        settings[:TAB], box:X,Y, canvas-hover:PATH,
+        canvas-drag:X1,Y1,X2,Y2[,KEY], canvas-hold:…, preview-scale:MODE
+ISOCAST_BACKGROUND=1 shows the window without taking focus (always on for
+--bench and --drag-test)";
+
+fn parse() -> Result<Options> {
+    let mut options = Options {
+        snapshots: Vec::new(),
+        watch: None,
+        crop: None,
+        size: (1280, 800),
+        scale: 1.0,
+        states: Vec::new(),
+        a11y: false,
+        wait_ms: 300,
+        soak: None,
+        check: true,
+        still: false,
+        bench: None,
+        fps: 60,
+        preview: preview::Mode::default_for_platform(),
+        drag_test: None,
+        drag_mode: window::DragMode::Move,
+        frame_check: false,
+        no_float: false,
+        engine: None,
+    };
+    let mut args = std::env::args().skip(1);
+    while let Some(arg) = args.next() {
+        let mut value = |name: &str| {
+            args.next()
+                .with_context(|| format!("{name} needs a value\n{USAGE}"))
+        };
+        match arg.as_str() {
+            // A later picture is taken after the states that follow it;
+            // the first after every state before the second (so one
+            // `--snapshot` anywhere comes after all the states).
+            "--snapshot" => {
+                let path = value("--snapshot")?.into();
+                let states = options.states.len();
+                if let Some(last) = options.snapshots.last_mut() {
+                    last.1 = states;
+                }
+                options.snapshots.push((path, usize::MAX));
+            }
+            "--snapshot-watch" => options.watch = Some(value("--snapshot-watch")?.into()),
+            "--crop" => options.crop = Some(value("--crop")?),
+            "--size" => {
+                let size = value("--size")?;
+                let (w, h) = size
+                    .split_once('x')
+                    .and_then(|(w, h)| Some((w.parse().ok()?, h.parse().ok()?)))
+                    .with_context(|| {
+                        format!("--size takes WIDTHxHEIGHT, like 1280x800, not {size:?}")
+                    })?;
+                options.size = (w, h);
+            }
+            "--scale" => {
+                options.scale = value("--scale")?
+                    .parse()
+                    .context("--scale takes a number, like 2")?
+            }
+            "--state" => options.states.push(value("--state")?),
+            "--a11y" => options.a11y = true,
+            "--wait-ms" => {
+                options.wait_ms = value("--wait-ms")?
+                    .parse()
+                    .context("--wait-ms takes milliseconds")?
+            }
+            "--soak" => {
+                options.soak = Some(value("--soak")?.parse().context("--soak takes seconds")?)
+            }
+            "--no-check" => options.check = false,
+            "--still" => options.still = true,
+            "--bench" => {
+                options.bench = Some(value("--bench")?.parse().context("--bench takes seconds")?)
+            }
+            "--check" => options.frame_check = true,
+            "--no-float" => options.no_float = true,
+            "--engine" => options.engine = Some(value("--engine")?),
+            "--drag-test" => {
+                options.drag_test = Some(
+                    value("--drag-test")?
+                        .parse()
+                        .context("--drag-test takes seconds")?,
+                )
+            }
+            "--drag-mode" => {
+                options.drag_mode = match value("--drag-mode")?.as_str() {
+                    "move" => window::DragMode::Move,
+                    "resize" => window::DragMode::Resize,
+                    "resize-select" => window::DragMode::ResizeSelect,
+                    "columns" => window::DragMode::Columns,
+                    "rows" => window::DragMode::Rows,
+                    other => {
+                        bail!(
+                            "--drag-mode takes move, resize, resize-select, columns or rows, not {other:?}"
+                        )
+                    }
+                }
+            }
+            "--fps" => {
+                options.fps = value("--fps")?
+                    .parse::<u32>()
+                    .ok()
+                    .filter(|fps| (1..=60).contains(fps))
+                    .context("--fps takes a whole number from 1 to 60")?
+            }
+            "--preview" => {
+                options.preview = match value("--preview")?.as_str() {
+                    "layers" => preview::Mode::Layers,
+                    "image" => preview::Mode::Image,
+                    other => bail!("--preview takes layers or image, not {other:?}"),
+                }
+            }
+            "-h" | "--help" => {
+                println!("{USAGE}");
+                isocast_diagnostics::clean_exit();
+                std::process::exit(0);
+            }
+            other => bail!("unknown option {other:?}\n{USAGE}"),
+        }
+    }
+    let states = options.states.len();
+    if let Some(last) = options.snapshots.last_mut() {
+        last.1 = states;
+    }
+    Ok(options)
+}
+
+/// A GUI program has no console, so `isocast-ui --help`, `--snapshot` and
+/// the other development modes run from a terminal would print nowhere:
+/// with arguments, and when the output isn't already redirected (a pipe or
+/// file, as CI and packaging use), write to the terminal it was started
+/// from. Started from the Start menu there is none, and nothing happens.
+#[cfg(windows)]
+fn attach_console() {
+    use windows_sys::Win32::Foundation::{GENERIC_READ, GENERIC_WRITE, INVALID_HANDLE_VALUE};
+    use windows_sys::Win32::Storage::FileSystem::{
+        CreateFileW, FILE_SHARE_READ, FILE_SHARE_WRITE, OPEN_EXISTING,
+    };
+    use windows_sys::Win32::System::Console::{
+        ATTACH_PARENT_PROCESS, AttachConsole, GetStdHandle, STD_ERROR_HANDLE, STD_OUTPUT_HANDLE,
+        SetStdHandle,
+    };
+    if std::env::args_os().len() < 2 {
+        return;
+    }
+    let missing = |which| {
+        // SAFETY: plain queries of this process's standard handles.
+        let handle = unsafe { GetStdHandle(which) };
+        handle.is_null() || handle == INVALID_HANDLE_VALUE
+    };
+    let (out, err) = (missing(STD_OUTPUT_HANDLE), missing(STD_ERROR_HANDLE));
+    // SAFETY: attaching fails harmlessly when the parent has no console.
+    if !(out || err) || unsafe { AttachConsole(ATTACH_PARENT_PROCESS) } == 0 {
+        return;
+    }
+    let name: Vec<u16> = "CONOUT$".encode_utf16().chain(Some(0)).collect();
+    // SAFETY: a NUL-terminated name; the handle is kept for the process's
+    // life as its standard output and error (std reads them on each write).
+    let console = unsafe {
+        CreateFileW(
+            name.as_ptr(),
+            GENERIC_READ | GENERIC_WRITE,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            std::ptr::null(),
+            OPEN_EXISTING,
+            0,
+            std::ptr::null_mut(),
+        )
+    };
+    if console == INVALID_HANDLE_VALUE {
+        return;
+    }
+    for (which, set) in [(STD_OUTPUT_HANDLE, out), (STD_ERROR_HANDLE, err)] {
+        if set {
+            // SAFETY: a valid console handle for an unset standard handle.
+            unsafe { SetStdHandle(which, console) };
+        }
+    }
+}
+
+#[cfg(target_os = "linux")]
+mod x11_pick;
+#[cfg(target_os = "linux")]
+#[path = "../../isocast-platform-linux/src/x11_session.rs"]
+mod x11_session;
+
+fn main() {
+    #[cfg(target_os = "linux")]
+    if std::env::var_os("WAYLAND_DISPLAY").is_some() && x11_session::x11_session() {
+        // SAFETY: before logging, Slint, or any application threads start.
+        unsafe { std::env::remove_var("WAYLAND_DISPLAY") };
+    }
+    #[cfg(windows)]
+    attach_console();
+    // A Windows VM can have only Microsoft's CPU/WARP adapter, and a Linux
+    // VM or a PC without Vulkan drivers only Mesa's llvmpipe. Our device
+    // selection already permits that fallback, but Slint otherwise rejects
+    // it before opening any window. Permit CPU adapters, not force them: a
+    // hardware adapter remains preferred on ordinary PCs.
+    #[cfg(any(windows, target_os = "linux"))]
+    if std::env::var_os("SLINT_WGPU_CPU").is_none() {
+        // SAFETY: the first operation in main, before logging, updater or
+        // worker threads start. The setting is process-local, not persisted.
+        unsafe { std::env::set_var("SLINT_WGPU_CPU", "1") };
+    }
+    #[cfg(windows)]
+    if let Some(result) = update::command_line(&std::env::args().skip(1).collect::<Vec<_>>()) {
+        match result {
+            Ok(()) => exit(0),
+            Err(error) => {
+                eprintln!("updates: {error:#}");
+                exit(1);
+            }
+        }
+    }
+    let _logs = isocast_diagnostics::init("isocast-ui", true);
+    #[cfg(target_os = "linux")]
+    if std::env::args().nth(1).as_deref() == Some("--x11-pick") {
+        exit(match x11_pick::run() {
+            Ok(()) => 0,
+            Err(error) => {
+                eprintln!("X11 picker: {error:#}");
+                1
+            }
+        });
+    }
+    // Interim, until the Settings → Remote pairing screen (R2 UI lane):
+    // pair this app's own identity (its key is the app's, in the Keychain or
+    // Credential Manager, which the CLI's pairing can't hand it) with an
+    // engine showing a code (`isocast remote pair --show` there), the code
+    // on stdin. Prints the paired engine as JSON.
+    if std::env::args().nth(1).as_deref() == Some("--pair") {
+        let result = (|| -> Result<serde_json::Value> {
+            let target = std::env::args()
+                .nth(2)
+                .context("--pair needs the engine's address: --pair HOST[:PORT] (code on stdin)")?;
+            let mut code = String::new();
+            std::io::stdin().read_line(&mut code)?;
+            let peer = isocast_client::remote::pair(&target, code.trim(), None)?;
+            Ok(serde_json::to_value(peer)?)
+        })();
+        exit(match result {
+            Ok(peer) => {
+                println!("{peer}");
+                0
+            }
+            Err(error) => {
+                eprintln!("Error: {error:#}");
+                1
+            }
+        });
+    }
+    if std::env::args().nth(1).as_deref() == Some("--motion") {
+        exit(match motion::main(std::env::args().skip(1).collect()) {
+            Ok(true) => 0,
+            Ok(false) => 3,
+            Err(error) => {
+                isocast_diagnostics::diagnostic!("error"; "Error: {error:?}");
+                1
+            }
+        });
+    }
+    let result = parse().and_then(|options| {
+        engine::select(options.engine.as_deref())?;
+        if !options.snapshots.is_empty()
+            || options.watch.is_some()
+            || options.a11y
+            || options.soak.is_some()
+        {
+            refuse_real_engine()?;
+            offscreen::run(&options)
+        } else {
+            window::run(&options)
+        }
+    });
+    let code = match result {
+        Ok(()) => 0,
+        Err(error) => {
+            isocast_diagnostics::diagnostic!("error"; "Error: {error:?}");
+            1
+        }
+    };
+    exit(code)
+}
+
+/// Offscreen runs drive the app's states for real (`record` starts a
+/// recording, `go-live` a stream), so they must never reach the user's own
+/// engine: one did, and recorded Ryan's camera, mic and screen for three
+/// hours. They need `ISOCAST_SOCKET` pointing at a throwaway engine, as
+/// scripts/snapshot.sh and scripts/visual-shots.sh set up.
+fn refuse_real_engine() -> Result<()> {
+    if !engine::is_local() {
+        bail!(
+            "offscreen runs (--snapshot, --snapshot-watch, --a11y, --soak) never use another \
+             computer's engine: their states start recordings and streams for real"
+        );
+    }
+    let socket = isocast_protocol::api::socket_path();
+    let own = isocast_protocol::api::default_socket_path();
+    // The same folder reached through a symlink still counts as the same.
+    let folder = |p: &std::path::Path| p.parent().and_then(|p| p.canonicalize().ok());
+    let same = socket == own
+        || (socket.file_name() == own.file_name()
+            && folder(&socket).is_some()
+            && folder(&socket) == folder(&own));
+    let default = std::env::var_os("ISOCAST_SOCKET").is_none() || same;
+    if default {
+        bail!(
+            "offscreen runs (--snapshot, --snapshot-watch, --a11y, --soak) never use your own \
+             engine at {}: their states start recordings and streams for real. Use \
+             scripts/snapshot.sh, which starts a throwaway engine with synthetic sources, or set \
+             ISOCAST_SOCKET to an engine of your own in a scratch folder",
+            socket.display()
+        );
+    }
+    Ok(())
+}
+
+/// Leaves without running thread-local destructors. Slint keeps its
+/// platform, and with it the GPU device, in a thread-local that is dropped
+/// after wgpu's own; a debug build then aborts at exit, and macOS shows a
+/// crash dialog that comes to the front over whatever Ryan is working in.
+fn exit(code: i32) -> ! {
+    isocast_diagnostics::clean_exit();
+    use std::io::Write;
+    let _ = std::io::stdout().flush();
+    let _ = std::io::stderr().flush();
+    #[cfg(unix)]
+    // SAFETY: ends the process; nothing runs after it.
+    unsafe {
+        libc::_exit(code)
+    }
+    #[cfg(windows)]
+    // SAFETY: the event loop has returned and logs were flushed above;
+    // recording belongs to the separate daemon. Like _exit on Unix, bypass
+    // native exit callbacks after an observed exit-phase status override.
+    unsafe {
+        windows_sys::Win32::System::Threading::TerminateProcess(
+            windows_sys::Win32::System::Threading::GetCurrentProcess(),
+            code as u32,
+        );
+        // Only reached if terminating this process failed.
+        std::process::exit(code)
+    }
+    #[cfg(not(any(unix, windows)))]
+    std::process::exit(code)
+}

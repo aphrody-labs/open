@@ -1,0 +1,23 @@
+[package]
+name = "isocast-platform-credentials"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "The shared OS credential-store seam, without a media backend dependency."
+
+[dependencies]
+anyhow = "1.0.104"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+security-framework = "3.7.0"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62.2", features = ["Win32_Foundation", "Win32_Security_Credentials"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+libc = "0.2"
+sha2 = "0.10.9"
+# The desktop keyring through the Secret Service D-Bus API (pure Rust).
+tokio = { version = "1", features = ["rt", "time"] }
+zbus = { version = "=5.19.0", default-features = false, features = ["tokio"] }

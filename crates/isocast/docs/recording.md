@@ -1,0 +1,506 @@
+# Recording encoders
+
+The program and ISO files each have an `encoder` under `recording.program`
+and `recording.iso`. The app, CLI and MCP use these same settings.
+
+```toml
+[recording.iso]
+enabled = true
+sources = ["screen", "camera"]
+audio = ["mic"]
+encoder = { codec = "hevc", quality = "high", container = "mov" }
+```
+
+On Windows, before opening any take file, Isocast encodes three test pictures
+with each recording encoder and decodes the first keyframe to check its two
+gray bars. It checks brightness (luma) in either full or limited range, not
+chroma. Once the decoder accepts the input and output formats, a failed IDR
+submission, missing or unreadable picture, or wrong luma rejects that encoder.
+Isocast then tries the next eligible encoder without
+changing codec or bit depth. If Windows lacks a compatible decoder, the
+bitstream checks still apply: recording can proceed, status and the manifest
+note the skipped pixel check, and doctor reports a warning. Every encoder
+still encodes the pattern. Within one take start, identical first keyframes
+with the same headers, provider and settings share a single pixel check. A
+different keyframe is decoded even if the settings match. This preflight
+applies to recording outputs, **not live outputs** such as streams or previews.
+
+For HEVC, Isocast prefers Microsoft's H.265 decoder when registered. Other
+installed synchronous Media Foundation decoders can be used if it is absent
+or cannot negotiate the requested format. These native decoders run in the
+recorder process; a decoder crash can terminate it.
+
+## Program size
+
+The program is drawn at the canvas size. `recording.program.width` and
+`height` (both or neither, even, at most the canvas's) write the program
+file smaller, like OBS's Output (Scaled) Resolution: the encoder scales each
+frame (keeping its shape; another shape is letterboxed). ISO files keep their
+sources' own sizes, and monitors, snapshots and the stream still get the
+canvas. A 4K canvas with a 1080p program keeps the 4K screen in its ISO file
+for editing while the hardware encoders do a quarter of the program's work:
+
+```sh
+isocast plan --patch '{"recording":{"program":{"width":1920,"height":1080}}}'
+```
+
+On a base M2 (isocast-m2-a, macOS 27.0, 2026-10-13) the synthetic flagship
+(4K60 desktop and 1080p60 camera ISOs, 4K60 program) kept 1044–1054 of
+1440 frames per file in 24 s; with a 1920×1080 program file from the same
+4K canvas, all three files had 1440/1440.
+
+## Will this Mac keep up? (`isocast tune`)
+
+`isocast tune` (MCP `tune_encoders`) encodes hard, noisy content for every
+file of the setup at once, as fast as the hardware encoders take it, and
+judges the speed:
+
+| `capacity` | Real time | Meaning |
+|---|---|---|
+| `fits` | 1.25× or more | Keeps up with room for a busy Mac |
+| `no_margin` | 1× to 1.25× | Keeps up; a stream or a call may cost frames |
+| `cannot_keep_up` | under 1× | A recording drops about the share it falls short by |
+
+If the setup doesn't fit, tune tries changes closest first and stops at the
+first that fits: the program file at 1440p, then 1080p; one quality preset
+lower; half the frame rate; one ISO file fewer; then combinations. Every
+file and frame rate is kept before anything else, and dropping a file comes
+last. `variants` lists what was tried, each with its patch; `change` is the
+closest that fits (or, if none does, the closest that keeps up), ready for
+`isocast plan --patch`. Changes the pixel rate says can neither fit nor be
+the closest that keeps up are skipped; tune takes up to about a minute.
+
+Tune keeps what it measured beside the live setup's file
+(`setup.toml` → `setup.tune.json`), per Mac and macOS version. `start` then
+warns (a note in its result and a warning event) when the recording's files
+are ones tune measured as `cannot_keep_up` on this Mac, or ask at least as
+much file for file, naming the fix tune recommended.
+
+On a base M2 (macOS 27.0), the synthetic flagship measured 0.71×
+(`cannot_keep_up`); a 1080p program file 1.04× (`no_margin`, and 1440/1440
+frames in a 24 s take); 30 fps 1.75× (`fits`, recommended, 720/720). A lower
+quality preset barely changes VideoToolbox HEVC's speed (1.02× vs 1.04×), so
+it helps the disk, not the encoders.
+
+## A quick answer without benchmarking (`isocast capacity`)
+
+`isocast capacity [SETUP] [--stream|--no-stream] [--add-iso SOURCE] [--json]`
+(MCP `estimate_capacity`, method `estimate_capacity`) predicts instantly
+from per-chip data (`crates/isocast-engine/src/media_engines.json`): each
+H.264/HEVC encoder (program, stream, every ISO file) runs on one of the
+chip's encode engines for its whole life, the largest first on the least
+busy engine, and `load` is the busiest engine's pixel rate over what one
+engine encodes in real time. Up to 0.85 `fits`, up to 1 `no_margin`, over 1
+`cannot_keep_up` (ISO files drop first; `iso_drop_percent` is a floor).
+ProRes runs on engines of its own and isn't counted. A tune measurement
+that couldn't keep up overrules it.
+
+`suggestions` lists the closest changes that fit (a camera or test pattern
+captured smaller or slower, the program or stream smaller, half the frame
+rate, the stream stopped, an ISO file off), each a patch for `plan` or a
+method; `after_take` ones wait for the recording to end. `--add-iso`
+answers "how do I turn this ISO file on so it still fits": as is, at a
+smaller size or rate, or not at all, with the reason. `setup check` and
+`doctor` print it as the "encoder capacity" check (a warning, never a
+failure), `start` notes it when nothing was measured and it can't keep
+up, and while recording the engine sends `encoder_overload` once per take
+when files drop because the encoders fell behind.
+
+On a base M2 (isocast-m2-b, 25 s synthetic takes, 2026-10-15): a 4K60 ISO
+plus a 1080p60 program, 0.78 `fits`, dropped nothing; adding a 1080p60
+ISO, 0.93 `no_margin`, dropped nothing; adding a 1080p60 stream, 1.23
+`cannot_keep_up`, dropped half the ISO frames (and `encoder_overload`
+came); the first suggestion (the 4K ISO at 1920×1080, 0.76) dropped
+nothing. H.264 counts 1.9× HEVC per picture: `tune` on the same Mac ran
+the same ISO files about 1.8× slower as H.264, so H.264 files are offered
+HEVC, never the reverse.
+
+## Quality
+
+`quality` accepts exactly these five names, or an integer from **1–100**.
+Names stay names in saved TOML, JSON, `get`, `plan` and MCP replies; numbers
+stay numbers. Omitted quality now defaults to `"high"`, the same constant
+quality 70 used previously.
+
+| Name | VideoToolbox quality | HEVC depth |
+|---|---:|---|
+| `low` | 30 | Configured depth (8 by default) |
+| `medium` | 50 | Configured depth |
+| `high` (default) | 70 | Configured depth |
+| `very_high` | 85 | Configured depth |
+| `incredible` | 100 | 10-bit Main 10 (ISO: only with `bit_depth` left out) |
+
+These are constant-quality settings: resolution and frame rate stay the
+same, and busy pictures use more space. For the program, `incredible`
+promotes HEVC `bit_depth = 8` to 10 in the setup. Returning to a lower
+preset keeps that explicit 10-bit setting; set `bit_depth = 8` to return to
+8-bit. ISO files at `incredible` are 10-bit only while
+`recording.iso.encoder.bit_depth` is left out; a set 8 stays 8 (written at
+quality 100). Numeric quality remains the manual option and never changes
+depth.
+
+## Colour depth (8 or 10 bits)
+
+ISO files are **8-bit by default on every platform**: smaller files and less
+encoder work. 10-bit HEVC (Main 10) retains more gradient detail and reduces
+banding: on a base M2 at 4K, about 4.5–5 points more of one core and files
+about 40% larger on real screen content. Choose it in two places, both the
+same setup fields the CLI and MCP change:
+
+| Where | Field | Values |
+|---|---|---|
+| Settings → Recording → ISO Recording → **Screen / ISO Colour Depth** | `recording.iso.encoder.bit_depth` | `8`, `10`; left out is 8 (10 at `incredible` HEVC) |
+| A video source's Properties → **ISO Colour Depth** | `sources[].encoder.bit_depth` | `8`, `10`; left out follows the row above ("Follow Recording Settings") |
+
+`recording.iso.encoder.bit_depth` is every ISO file's depth, cameras and
+media included, unless a source sets its own; while ISO recording is enabled,
+a set 10 also captures every display, window and application in 10 bits.
+With ISO recording disabled, screens capture in 8 bits without changing the saved depth.
+A source's own depth beats it either way (its 8 under a set 10, its 10
+under the default 8, its 8 or 10 at `incredible`), and a screen with its own
+10 captures 10 bits only when ISO recording is enabled and it is selected. Use a source's own
+10 to get 10-bit screens without making camera files bigger. Cameras keep
+their device's native capture format whatever the depth; a 10-bit file
+can't restore precision an 8-bit camera never delivered.
+
+Both are checked when the setup changes: 8 or 10 only; 10 needs HEVC or
+ProRes (`h264` can only be 8-bit); `encoder` only on a video source. Screens
+are captured in 10 bits only on macOS: the Windows engine refuses a 10-bit
+screen capture when the source opens rather than recording 8 bits, so the
+app offers 10-bit only where it works. No platform automatically promotes
+screen files: a setup that leaves depth out records 8 bits (10 at `incredible` HEVC).
+Setups saved before have `bit_depth = 8` (or 10) set and keep it: a set
+depth always wins, 8 at `incredible` included.
+
+The same change through the CLI or MCP (`plan_change`, then
+`apply_change` with the same `patch`):
+
+```sh
+# Every ISO file 10-bit (Settings → Recording → Screen / ISO Colour Depth):
+isocast plan --patch '{"recording":{"iso":{"encoder":{"bit_depth":10}}}}' --json
+isocast apply --revision N --patch '{"recording":{"iso":{"encoder":{"bit_depth":10}}}}' --json
+# Only the screen source "screen" 10-bit (its Properties → ISO Colour Depth):
+isocast apply --revision N --patch '{"sources":[{"id":"screen","encoder":{"bit_depth":10}}]}' --json
+# Back to following the recording settings:
+isocast apply --revision N --patch '{"sources":[{"id":"screen","encoder":null}]}' --json
+# Back to the default 8 for every file:
+isocast apply --revision N --patch '{"recording":{"iso":{"encoder":{"bit_depth":8}}}}' --json
+```
+
+In a setup file:
+
+```toml
+[[sources]]
+id = "screen"
+kind = "display"
+display = "main"
+encoder = { bit_depth = 10 }
+```
+
+A depth change applies to the next recording. While idle, a screen whose
+capture depth changes reopens (only that screen); a recording keeps its
+captures and its files' depths until it stops, splits included. `tune`,
+`capacity`, `doctor` and the disk check count each file at its own depth.
+`tune` measures each codec candidate with the sources' own depths kept,
+and its change sets only `recording.iso.encoder`, leaving them; H.264 is
+not a candidate while an ISO source has its own 10 (the reason names it).
+The program compositor and filtered ISO stage currently produce 8-bit
+pictures; Main 10 doesn't turn that processing into native 10-bit precision.
+As-captured screen ISOs can retain 10-bit detail end to end.
+
+For example, this preserves the old encoder configuration exactly:
+
+```toml
+encoder = { codec = "hevc", quality = 70, bit_depth = 8 }
+```
+
+And a quality change through the shared engine API:
+
+```sh
+isocast plan --patch '{"recording":{"iso":{"encoder":{"quality":"incredible"}}}}' --json
+isocast apply --revision N --patch '{"recording":{"iso":{"encoder":{"quality":"incredible"}}}}' --json
+```
+
+### Measured tradeoffs
+
+Calibrated on an M5 Max with AVAssetWriter's recording settings,
+hardware-only HEVC with the real-time hint, and offline 4-second 60 fps input
+samples. Whole-flagship recording is checked separately in real time. The real desktop
+and Studio Video camera were captured as ProRes 422 HQ references. The
+synthetic clips are the benchmark's 4K test pattern and noisy 1080p camera
+stand-in. Sizes are **video-only decimal MB/minute**; audio adds about
+1.92 MB/minute per stereo track. These are examples, not size guarantees.
+
+| Preset (default depth) | Synthetic 4K desktop | Real 4K desktop | Synthetic noisy 1080p | Real 1080p camera |
+|---|---:|---:|---:|---:|
+| low (8-bit) | 33 | 4.7 | 13 | 1.9 |
+| medium (8-bit) | 106 | 6.8 | 42 | 2.7 |
+| high (8-bit) | 469 | 12 | 207 | 9.7 |
+| very_high (8-bit) | 835 | 22 | 864 | 103 |
+| incredible (10-bit) | 2532 | 148 | 6290 | 3080 |
+
+| Preset | Real desktop SSIM / PSNR dB | Real camera SSIM / PSNR dB |
+|---|---|---|
+| low | .981773 / 38.65 | .974584 / 41.76 |
+| medium | .992673 / 43.65 | .982709 / 44.87 |
+| high | .997933 / 50.34 | .990632 / 48.75 |
+| very_high | .998963 / 54.13 | .993940 / 51.24 |
+| incredible | .999687 / 59.99 | .999648 / 63.87 |
+
+All five numeric values were also measured at both depths. At Q85, Main 10
+improved the real camera to .998417 SSIM / 57.22 dB, but used 446 MB/minute.
+Q100 Main 10 preserves still more fine detail and is the near-transparent
+stop; it is not mathematically lossless. On the synthetic 8-bit source,
+Q100 Main was pixel-exact, whereas Main 10 had measurable error concentrated
+in chroma (.998808 desktop SSIM and .995460 noisy-camera SSIM).
+
+Full-resolution VMAF, sampled every sixth frame, rose from 76.00 to 99.36
+for the synthetic desktop and 82.34 to 99.95 for the noisy camera. Real
+desktop/camera scores rose from 79.68/68.38 to 97.38/97.61. A VMAF score is
+not a percentage of quality or a guarantee of invisibility; even the
+pixel-exact synthetic Q100 Main encode scored 98.76.
+
+HEVC Main 10 was retained for `incredible`: the real desktop reference used
+about 7099 MB/minute in ProRes 422 HQ versus 148 in HEVC. The real camera
+used 2782 versus 3080 respectively, so ProRes can be smaller for noisy camera
+footage at the highest setting, but the combined desktop-and-camera workload
+strongly favors HEVC's size. Noise is exceptionally expensive at Q100.
+
+Each preset also completed a 12-second full flagship run with both the
+synthetic clips and the real rig: 4K60 desktop ISO, 1080p60 camera ISO and
+4K60 program, 720 frames per file, zero reported video/audio drops, with
+ffprobe confirming counts and profiles. These short checks do not resolve
+the separately reproduced, intermittent raw-ISO video stalls under contention.
+
+## Codecs and containers
+
+- `hevc`: hardware HEVC, 8-bit Main or 10-bit Main 10; the default.
+- `h264`: hardware H.264, 8-bit only. The quality names select the same
+  numeric values; the HEVC depth promotion does not apply.
+- `prores422_proxy`, `prores422_lt`, `prores422`, `prores422_hq`,
+  `prores4444`: ProRes quality is selected by the codec; `quality` is ignored.
+  ProRes uses substantially more disk bandwidth.
+
+`container` is `mov` (default) or `mp4`. Video is tagged SDR Rec.709.
+Files use 2-second movie fragments so completed fragments survive a crash
+or kill of the recording process (the last seconds are lost; see
+[Getting started](getting-started.md) for the limits). Power loss is not
+covered: the writer doesn't force data to the disk, so it can lose more
+than the last fragment.
+H.264 and HEVC require the hardware encoder instead of falling back to a
+CPU-heavy software encoder under contention. All recording outputs use
+AVAssetWriter's asynchronous encoding path. The earlier direct HEVC ISO path
+was removed: synchronous `VTCompressionSessionCompleteFrames` calls could
+stall an ISO file's audio and video together on the M4 Max.
+Independent bounded video/audio queues let ready audio pass stalled video.
+Capture pixel buffers are retained, not copied; constant-quality settings,
+the shared clock and movie-fragment policy are unchanged.
+
+The M4 Max synthetic flagship is not yet qualified for zero-drop recording:
+video-input back-pressure can still fill these queues when recording two
+4K60 outputs and a 1080p60 ISO together. The original M5 Max qualification
+predates the direct-path removal and needs a new hardware run.
+The calibration tables are representative measurements, not promised rates.
+
+The recording disk check is a capacity/speed budget, not a prediction of
+typical file size. Constant-quality rates depend strongly on motion, noise,
+fine detail, codec, depth and the Mac's encoder. Measure a representative
+take before budgeting a long recording.
+
+## If a Windows window capture stops
+
+If the capture helper exits, Isocast retries the original window, not another
+window with the same title. The replacement helper has five seconds to deliver
+a fresh picture. A minimized window may not deliver one: restore it before
+that deadline or its capture ends for this take. After Stop, the setup can
+attach to a matching window again without restarting the engine.
+
+The first ISO picture after a gap must be independently decodable (a closed
+IDR). Media Foundation hardware encoders that ignore a forced keyframe are
+not qualified for this recovery: Isocast ends that ISO with its verified
+prefix rather than writing a dependent picture. Other files keep recording.
+
+## Windows desktop audio exclusions
+
+With monitoring off and `exclude = []`, `kind = "system_audio"` records the
+**default render endpoint** using `endpoint-loopback`. Its real endpoint
+timestamps drive rate correction against the video clock. An app playing
+only to another device isn't captured.
+
+Starting with monitoring on or an exclusion configured selects
+`process-loopback-exclude`. This excludes the engine tree, including monitor
+playback. Enabling monitoring while an endpoint-loopback source is running is
+refused: stop the engine after recording, then enable monitoring before
+reopening desktop audio. A take keeps the capture it started with; switching
+monitoring off doesn't replace a source pinned by that take.
+
+**Clock reference and default-output changes:** `process-loopback-exclude` runs
+in its own `isocast-capture` helper, follows the **default `eConsole` render
+endpoint's** hardware DMA clock into the rate follower, and splices to a fresh
+helper session before 15 ms of cumulative drift. Audio played to the default
+output stays aligned with video across long takes without `audiodg`'s 200 ms
+ring-buffer wrap (measured on Windows 10 19045 over 20 minutes on an HDMI
+output at +42.7 ppm: 0.15 ms peak-to-peak excursion against video, 3
+sample-match splices, 0 dropouts, and 107–112 dB monitor rejection). When the
+Windows default render output changes mid-take, both the passive clock
+reference and monitor playback switch automatically to the new default output,
+and any `audiodg` handover packet gap is reported in `audio_dropouts`.
+
+**Apps rendering to a non-default output:** Unlike `endpoint-loopback`,
+Windows's exclude stream mixes non-excluded audio from **all active render
+endpoints** onto one virtual 48 kHz stream without exposing per-device clocks
+(while still excluding the recorder/monitor and any named tree across all
+outputs). Audio played directly to a non-default device is included in the
+recorded mix, resampled at the **default** output's clock rate rather than its
+own device's rate: **it drifts against video at the difference between the two
+devices' oscillators** (measured over 20 minutes with a USB output at ~+85.4 ppm
+while the default HDMI output ran at +42.6 ppm: −42.8 ppm = −50.5 ms drift
+against video across 3 clean splices, because both active and standby exclude
+sessions see the same secondary stream and sample-match without counting a
+fallback). If the default output's oscillator is closer to QPC than a secondary
+output's so splices occur less often than the secondary output's ~35–40 ms
+`audiodg` buffer margin fills, secondary-output audio can also wrap and repeat
+200 ms. `isocast doctor` and live source `status` warn whenever a non-excluded
+app is actively playing to a non-default output. Route apps to the default
+output, use `endpoint-loopback` (monitoring off and `exclude = []`) to omit
+other outputs, or use `application_audio` sources to follow individual apps on
+non-default outputs with their own endpoint clocks.
+
+In exclude mode, `exclude = []` excludes only the engine tree. One additional running app can
+be named (use its executable path or a name from `isocast devices`) **only
+when its tree and the engine fit inside one of those two trees**. For
+example, if a playback app launches the engine, excluding that app leaves
+out both. `isocast doctor` reports the planned tree. This selects the
+running tree, including future children, not future independent instances;
+if the selected root exits, reopen the source. An unrelated app, an absent
+app or multiple entries are refused. To record selected independent apps,
+use `application_audio` sources for the ones you want to hear instead.
+
+[WASAPI process loopback](https://learn.microsoft.com/en-us/samples/microsoft/windows-classic-samples/applicationloopbackaudio-sample/)
+accepts one target PID per stream. Excluding a common parent would drop
+unrequested siblings. Subtracting separately captured app streams isn't an
+exact filter: they aren't guaranteed sample alignment or identical gains.
+Isocast never falls back to capturing the unfiltered mix.
+
+## Audio interface inputs
+
+A microphone source records its device's inputs 1 and 2 as left and
+right (a 1-input device's one input as one channel). On an interface
+with more than two inputs that is its first pair too, not macOS's mix of
+every input (since 0.0.6); if such an interface later drops to one input
+while recording, the source records input 1 in both channels instead of
+stopping, and says so in the diagnostics. `channels` picks inputs instead, numbered
+from 1 as `isocast devices` lists them (with the names the device gives
+them):
+
+```toml
+[[sources]]
+id = "vocal"
+kind = "microphone"
+device = "Scarlett 4i4"
+channels = [1]        # the mic on input 1: centred mono at full level
+
+[[sources]]
+id = "keys"
+kind = "microphone"
+device = "Scarlett 4i4"
+channels = [3, 4]     # inputs 3 and 4 as left and right
+```
+
+One channel is a mono source: the program and monitoring hear it in both
+sides at its own level (no −6 dB, unlike downmixing a stereo pair), and
+its ISO track is mono. Two channels are a stereo source and a stereo ISO
+track. The device is read whole (AVFoundation mixes when asked for fewer
+channels than a device has) and only the picked channels go on: the ISO
+track holds exactly those, before gain, mute,
+balance and Mono (which apply to the program and monitoring). `isocast
+doctor` and opening the source check that the device has the channels in
+the format it runs now (an ADAT interface at 88.2 or 96 kHz has fewer
+inputs) and list the valid ones. If the device loses a picked input while
+recording (its sample rate or format changes), that source stops with the
+reason, like a disconnected microphone, and the rest of the take records
+on; a change that keeps the picked inputs records on. (Without `channels`
+nothing stops: see above.) In the app: the
+source's Properties (Channels).
+
+## An audio source that stops while recording
+
+A microphone unplugged, a picked input gone or an app's audio tap ending
+stops that source; the take records on, and the tracks that carried it
+lose it from then on. The take's manifest says so in each such file's
+entry, the stop reply (and `status.last`) in the same entry of `files`,
+and both in `errors` (the take's status is then `failed`, like a file
+that stopped early):
+
+```json
+"audio_stops": [
+  {
+    "source": "mic",
+    "track": 0,
+    "time_seconds": 4.9385,
+    "reason": "the device was disconnected"
+  }
+]
+```
+
+`track` is the file's audio track (from 0, in `audio` order): the
+source's own track in an ISO file, or the program mix it was mixed into
+(the program and vertical program files). `time_seconds` is on the take's
+timeline, like markers: the end of the last audio it delivered. A take
+split off after it began holds it from 0, its reason starting "it stopped
+before this take began". The engine opens a failed source again only if
+the recording didn't list it for an ISO file; the program mix then plays
+it again from `resumed_seconds`. The field is absent when nothing
+stopped, so other manifests are unchanged. The app shows a notice when
+the recording stops.
+
+`audio.mono` (the app's Mono, in Advanced Audio Properties and each mixer
+strip's menu) downmixes a stereo source to (left + right) / 2 in the
+program and monitoring; ISO files keep it as captured.
+
+## Replay buffer
+
+Like OBS's: while it runs, the buffer keeps the last
+`recording.replay.seconds` (30 by default, 5–300) of the program, its
+picture and the program mix, in memory as compressed H.264 and AAC, apart
+from any recording or stream. A save writes them, up to the moment it was
+asked for, to a new file without encoding again.
+
+```sh
+isocast replay start          # Controls dock: Replay Buffer
+isocast replay save --json    # Save Replay, or the replay.save hotkey
+isocast replay status
+isocast replay stop
+```
+
+MCP has `start_replay`, `save_replay`, `replay_status` and `stop_replay`;
+hotkey actions are `replay.start`, `replay.stop`, `replay.toggle` and
+`replay.save` (suggested: ctrl+alt+cmd+Y saves).
+
+- **The file** is `Replay <date> <time>.mov` (or `.mp4`, as
+  `recording.program.encoder.container`) in the running recording's project
+  folder, or else the recordings folder. It starts on a keyframe at or
+  before `seconds` ago, so it is up to a keyframe interval longer, and ends
+  at the save. It is written under a hidden temporary name and named when
+  complete, and needs room for itself plus `recording.keep_free_gb`.
+  Saving never touches a recording or a stream; saves can follow each
+  other at once.
+- **The encoder.** While the setup has a `[stream]`, the buffer encodes as
+  the stream does (its size, bitrate and 2 s keyframes), so a running
+  stream and the buffer share one hardware encoder session. Otherwise it
+  encodes on its own: the program file's size, 1 s keyframes, about 0.1
+  bit per pixel (12 Mb/s at 1080p60, at most 40 Mb/s) unless
+  `recording.replay.video_bitrate_kbps` says. Recordings encode inside
+  their file writers, so the buffer can't share theirs yet.
+- **Memory** is the bitrate times `seconds`, plus up to 3 s and a
+  keyframe interval; `recording.replay.max_memory_mb` (1024 by default)
+  caps it, and `replay_status` reports `memory_bytes` and says
+  `memory_limited` when the cap keeps it short. Frames the buffer missed
+  are counted in `dropped_frames` (warned about like the stream's), and a
+  saved file reports its own.
+
+```toml
+[recording.replay]
+seconds = 60
+max_memory_mb = 512
+```

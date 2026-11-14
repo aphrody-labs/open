@@ -1,0 +1,570 @@
+/* Deadbolt's extension pages, drawn like the Deadbolt app (crates/app), which
+   is built on Rune with rune-theme-opencode. Every value below is copied by
+   hand from the Rune pin in crates/app/Cargo.toml (rev 29b1361, 2026-10-30):
+
+   - colours and shadows: themes/opencode/assets/theme.json (the `v2-*`
+     tokens, as themes/opencode/src/lib.rs maps them onto rune-kit's Palette
+     and Elevation);
+   - type, radii and motion: themes/opencode/src/lib.rs (`Type`, `Radius`,
+     `Motion`), and crates/app/src/view/theme.rs for the app's own styles;
+   - controls: crates/rune-kit/src (actions.rs buttons, text_input.rs,
+     switch.rs, radio.rs) and the app's rows (crates/app/src/vault/mod.rs).
+
+   The fonts are the app's: Inter (rune-theme-opencode's InterVariable.ttf,
+   pinned at its 14pt optical size and subset to Latin, Greek and Cyrillic)
+   and IBM Plex Mono (converted to WOFF2, otherwise unchanged), both under the
+   SIL Open Font License (fonts/*-LICENSE.txt). On a Rune bump, re-read those
+   files and update this block. */
+
+@font-face {
+  font-family: "Inter";
+  src: url("fonts/Inter-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("fonts/IBMPlexMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("fonts/IBMPlexMono-Medium.woff2") format("woff2");
+  font-weight: 500 600;
+  font-display: block;
+}
+
+:root {
+  color-scheme: light dark;
+  /* Surfaces: the window behind (bg_deep), the card (bg_base), then layers. */
+  --bg-deep: #fafafa;
+  --bg: #ffffff;
+  --layer-01: #fafafa;
+  --layer-02: #f2f2f2;
+  --layer-03: #eeeeee;
+  --layer-04: #dbdbdb;
+  --border: #0000001a;
+  --border-muted: #00000014;
+  --border-strong: #00000033;
+  --border-weak: #dbdbdb;
+  /* Rune's border_focus is #7698fd, 2.7:1 on white: a little deeper here, so
+     the focus ring has 3:1 against the light surfaces (WCAG 1.4.11). */
+  --focus: #5b7ef9;
+  --hover: #0000000a;
+  --pressed: #00000014;
+  --text: #161616;
+  --text-strong: #171717;
+  --muted: #5c5c5c;
+  --faint: #808080;
+  /* Text in the faint tone: Rune's text_faint (#808080) is under 4.5:1 on
+     white and on a selected row, so text takes these instead (WCAG AA). */
+  --text-faint: #666666;
+  --icon: #3a3a3a;
+  --icon-muted: #808080;
+  --icon-faint: #aeaeae;
+  --accent: #3b5cf6;
+  --text-accent: #3b5cf6;
+  /* The Contrast button (bg_contrast, text_contrast) and its overlays. */
+  --contrast: #242424;
+  --on-contrast: #ffffff;
+  --contrast-hover: #ffffff1f;
+  --contrast-pressed: #ffffff3d;
+  /* The Neutral button and text field fill (bg_button_neutral). */
+  --button: #ffffff;
+  --knob: #f2f2f2;
+  --danger: #b82d35;
+  --danger-bg: #fcecebff;
+  --danger-border: #f2bbb7;
+  --success: #198b43;
+  /* Success as text: #198b43 is under 4.5:1 on success_bg. */
+  --text-success: #167a3b;
+  --success-bg: #e7f9ea;
+  --warning: #cb9f34;
+  --warning-bg: #fefaec;
+  --brand: #f02e29;
+  /* Elevation (v2-elevation-*). */
+  --shadow-xs: #0000000a 0 1px 2px -0.5px, #00000006 0 0.5px 1.5px 0, #0000000d 0 1px 3px 0;
+  --elevation-raised: #0000000a 0 2px 4px 0, #00000014 0 1px 2px -1px, #0000001f 0 0 0 0.5px;
+  --elevation-floating: #0000000a 0 8px 16px 0, #00000014 0 4px 8px 0, #0000001f 0 0 0 0.5px;
+  --elevation-overlay: #0000000a 0 16px 32px 0, #00000014 0 8px 16px 0, #0000001f 0 0 0 0.5px;
+  --elevation-button: #0000001a 0 1px 1.5px 0, #00000024 0 0 0 0.5px;
+  --elevation-contrast: #00000033 0 1px 1.5px 0, #3a3a3a 0 0 0 0.5px, inset #ffffff24 0 1px 2px 0, inset #0000000f 0 -1px 2px 0;
+  --elevation-switch-off: inset #00000014 0 1px 1px 0, inset #00000014 0 0.5px 0.5px 0, inset #0000001a 0 0 0 0.5px;
+  --elevation-switch-on: inset #0000001a 0 2px 2px 0, inset #0000001a 0 1px 1px 0, inset #00000033 0 0 0 0.5px;
+  --elevation-elements: #00000066 0 0.5px 0.5px 0;
+  /* Radius: xs 2, sm 4, md 6, lg 8, xl 10. */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  /* Type: Inter at Rune's variable weights, with its tracking. */
+  --sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --weight: 440;
+  --weight-medium: 530;
+  --weight-strong: 600;
+  --tracking: -0.04px;
+  --tracking-small: 0.05px;
+  /* Motion: Rune's controls settle in about 200 ms, overlays 240, disclosures
+     300 (critically damped springs); this curve is that shape. */
+  --settle: cubic-bezier(0.2, 0.9, 0.3, 1);
+  --control: 200ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-deep: #080808;
+    --bg: #161616;
+    --layer-01: #242424;
+    --layer-02: #2e2e2e;
+    --layer-03: #3a3a3a;
+    --layer-04: #5c5c5c;
+    --border: #ffffff1a;
+    --border-muted: #ffffff14;
+    --border-strong: #ffffff33;
+    --border-weak: #282828;
+    --hover: #ffffff0f;
+    --pressed: #ffffff1a;
+    --text: #fafafa;
+    --text-strong: #ededed;
+    --muted: #aeaeae;
+    --faint: #808080;
+    --text-faint: #a3a3a3;
+    --icon: #dbdbdb;
+    --icon-muted: #808080;
+    --icon-faint: #5c5c5c;
+    --text-accent: #a2bcff;
+    --contrast: #5c5c5c;
+    --on-contrast: #ffffff;
+    --contrast-hover: #0000003d;
+    --contrast-pressed: #00000066;
+    --button: #ffffff0f;
+    --danger: #f17471;
+    --danger-bg: #461516;
+    --danger-border: #97252b;
+    --success: #6bd586;
+    --text-success: #6bd586;
+    --focus: #7698fd;
+    --success-bg: #14361d;
+    --warning: #f2cf76;
+    --warning-bg: #4b4025;
+    --shadow-xs: #0000000f 0 1px 2px -0.5px, #00000014 0 0.5px 1.5px 0, #0000001a 0 1px 3px 0;
+    --elevation-raised: #0000004d 0 2px 4px 0, #0000004d 0 1px 2px 0, #ffffff29 0 0 0 0.5px, #ffffff0f 0 -0.5px 0 0;
+    --elevation-floating: #0000004d 0 8px 16px 0, #0000004d 0 4px 8px 0, #ffffff29 0 0 0 0.5px, #ffffff0f 0 -0.5px 0 0;
+    --elevation-overlay: #0000004d 0 16px 32px 0, #0000004d 0 8px 16px 0, #ffffff29 0 0 0 0.5px, #ffffff0f 0 -0.5px 0 0;
+    --elevation-button: #00000066 0 1px 2px 0, #ffffff33 0 0 0 0.5px, #ffffff1a 0 -0.5px 0 0;
+    --elevation-contrast: #00000066 0 1px 2px 0, #ffffff66 0 0 0 0.5px, #ffffff4d 0 -0.5px 0 0;
+    --elevation-switch-off: inset #ffffff1a 0 -0.5px 0 0, inset #ffffff29 0 0 0 0.5px;
+    --elevation-switch-on: inset #ffffff1a 0 -0.5px 0 0, inset #ffffff29 0 0 0 0.5px;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Rune's `ui` style: Inter 13 at 440, a 20px line, -0.04px tracking. */
+html {
+  font: var(--weight) 13px/20px var(--sans);
+  letter-spacing: var(--tracking);
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Chrome gives extension pages a default body font (and size) of its own:
+   take the page's instead. */
+body {
+  margin: 0;
+  font: inherit;
+}
+
+button {
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+}
+
+input,
+textarea,
+select {
+  letter-spacing: inherit;
+}
+
+p {
+  margin: 0;
+}
+
+svg {
+  display: block;
+}
+
+.mono,
+code,
+kbd {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+code {
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  background: var(--layer-02);
+  color: var(--text);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.faint {
+  color: var(--text-faint);
+}
+
+/* There for screen readers only. Its 1px box sits inside what's around it,
+   not a pixel past the page's end, where it would scroll the popup. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* A section's name: Rune's `small_medium` (11/530), muted, as the app's
+   "Security" and vault headings. */
+.label {
+  font-size: 11px;
+  line-height: 12px;
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-small);
+  color: var(--muted);
+}
+
+.error {
+  color: var(--danger);
+  font-size: 12px;
+}
+
+/* Buttons: rune-kit's Large push button (28 tall, 14 across, an 8px radius,
+   `ui_medium`). Neutral is the default; primary is Contrast, with its sheen.
+   Hover and press lay the theme's overlays over the fill. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 14px;
+  border-radius: var(--radius-lg);
+  border: 0;
+  background-color: var(--button);
+  box-shadow: var(--elevation-button);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease-out,
+    transform var(--control) var(--settle);
+}
+
+.btn:hover {
+  background-image: linear-gradient(var(--hover), var(--hover));
+}
+
+.btn:active {
+  background-image: linear-gradient(var(--pressed), var(--pressed));
+  transform: scale(0.98);
+}
+
+.btn.primary {
+  background-color: var(--contrast);
+  background-image: linear-gradient(#ffffff33, #ffffff00);
+  box-shadow: var(--elevation-contrast);
+  color: var(--on-contrast);
+}
+
+.btn.primary:hover {
+  background-image: linear-gradient(var(--contrast-hover), var(--contrast-hover)), linear-gradient(#ffffff33, #ffffff00);
+}
+
+.btn.primary:active {
+  background-image: linear-gradient(var(--contrast-pressed), var(--contrast-pressed)), linear-gradient(#ffffff33, #ffffff00);
+}
+
+.btn[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.btn.primary[disabled] {
+  opacity: 0.4;
+}
+
+.link {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: var(--weight-medium);
+  color: var(--muted);
+  border-radius: var(--radius-sm);
+  transition: color 120ms ease-out;
+}
+
+.link svg {
+  width: 13px;
+  height: 13px;
+}
+
+.link:hover {
+  color: var(--text);
+}
+
+/* rune-kit's ghost IconButton: a muted glyph, the hover overlay behind it. */
+.icon-button {
+  all: unset;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-lg);
+  display: grid;
+  place-items: center;
+  color: var(--icon-muted);
+  cursor: pointer;
+  transition:
+    background-color 120ms ease-out,
+    color 120ms ease-out;
+}
+
+.icon-button svg {
+  width: 16px;
+  height: 16px;
+  animation: settle-in 180ms var(--settle);
+}
+
+.icon-button:hover {
+  background: var(--hover);
+  color: var(--icon);
+}
+
+.icon-button:active {
+  background: var(--pressed);
+}
+
+.icon-button[disabled] {
+  opacity: 0.35;
+  cursor: default;
+  background: none;
+}
+
+.icon-button.confirmed {
+  color: var(--text-success);
+}
+
+/* Rune's focus ring: 2px of border_focus, clear of the control. */
+.btn:focus-visible,
+.link:focus-visible,
+.icon-button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* A kind's glyph tile, as the app's (view/theme.rs glyph_tile): layer_02, one tone. */
+.tile {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-lg);
+  display: grid;
+  place-items: center;
+  background: var(--layer-02);
+  color: var(--icon);
+  font-size: 13px;
+  font-weight: var(--weight-medium);
+}
+
+.tile svg {
+  width: 14px;
+  height: 14px;
+}
+
+.tile.soft {
+  color: var(--icon-muted);
+}
+
+/* A login's avatar: its letter in the app's glyph tile, quiet and one tone. */
+.avatar {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-lg);
+  display: grid;
+  place-items: center;
+  background: var(--layer-02);
+  color: var(--icon);
+  font-size: 13px;
+  font-weight: var(--weight-medium);
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.avatar svg {
+  width: 14px;
+  height: 14px;
+}
+
+.avatar.neutral {
+  color: var(--icon-muted);
+}
+
+/* A login's site icon over its letter (ui/site-icon.ts): a canvas the tile's
+   size, dithered in while the letter dithers out under it, then the letter
+   goes. */
+/* No overflow clip: the menu's press ring sits just outside the tile. */
+.avatar.site {
+  position: relative;
+}
+
+.avatar.site canvas.site-icon {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}
+
+/* The tile keeps its ink (the icon is drawn in it), only the letter goes. */
+.avatar.site.resolved {
+  font-size: 0;
+}
+
+.avatar.brand {
+  background: none;
+}
+
+.avatar.brand svg {
+  width: 100%;
+  height: 100%;
+}
+
+.logo svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* A setting's row: its title and hint, by its switch. */
+.switch-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 -12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-xl);
+  cursor: pointer;
+  transition: background-color 120ms ease-out;
+}
+
+.switch-row:hover,
+.switch-row:has(input:focus-visible) {
+  background: var(--layer-02);
+}
+
+.switch-row .text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.switch-row .title {
+  font-size: 13px;
+  font-weight: var(--weight-medium);
+}
+
+.switch-row .sub {
+  font-size: 12px;
+  line-height: 18px;
+  letter-spacing: 0;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+
+/* rune-kit's Switch, Mini (NSSwitch's measure): a 36x16 capsule, layer_04
+   off and the accent on, each with its sheen and inset elevation, and a 21x14
+   pill knob. */
+input[role="switch"] {
+  appearance: none;
+  flex-shrink: 0;
+  position: relative;
+  width: 36px;
+  height: 16px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--layer-04) linear-gradient(#ffffff00, #ffffff33);
+  box-shadow: var(--elevation-switch-off);
+  cursor: pointer;
+  transition: background-color var(--control) var(--settle);
+}
+
+input[role="switch"]::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 21px;
+  height: 14px;
+  border-radius: 7px;
+  background: var(--knob) linear-gradient(#ffffff, #ffffff00);
+  box-shadow: var(--elevation-elements), inset 0 0 0 0.5px #ffffff;
+  transition:
+    transform var(--control) var(--settle),
+    width var(--control) var(--settle);
+}
+
+input[role="switch"]:checked {
+  background: var(--accent) linear-gradient(#ffffff00, #ffffff1a);
+  box-shadow: var(--elevation-switch-on);
+}
+
+input[role="switch"]:checked::after {
+  transform: translateX(13px);
+}
+
+@keyframes settle-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-name: fade-in !important;
+    transition-property: opacity, color, background-color !important;
+  }
+}

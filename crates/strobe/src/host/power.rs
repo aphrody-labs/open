@@ -1,0 +1,356 @@
+//! The power plan for a timed run (SPEC §9.4): High performance by default, the user's own plan back
+//! afterwards. The plan to restore is journaled in `<state>/power.json` before anything changes, so a
+//! strobe that was killed mid-run puts it back the next time any strobe starts (`restore_stale`).
+
+use serde_json::Value;
+
+/// Windows' own schemes and Windows 11 power modes (overlays on Balanced).
+#[cfg(windows)]
+const BALANCED: &str = "381b4222-f694-41f0-9685-ff5bb260df2e";
+#[cfg(windows)]
+const HIGH: &str = "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c";
+#[cfg(windows)]
+const ULTIMATE: &str = "e9a42b02-d5df-448d-aa00-03f14749eb61";
+#[cfg(windows)]
+const BEST_PERFORMANCE: &str = "ded574b5-45a0-4f42-8737-46345c09c238";
+
+/// While alive, the run's power plan; dropping it restores the user's.
+pub struct Power {
+    /// The plan the run uses, as the env line shows it.
+    pub used: String,
+    /// Why the user's plan was kept, when it was (a context note).
+    pub kept: Option<String>,
+    saved: Option<Saved>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct Saved {
+    scheme: String,
+    overlay: Option<String>,
+}
+
+fn journal() -> std::path::PathBuf {
+    super::paths::state_dir().join("power.json")
+}
+
+// Serialize the switch and its undo. At immediate exit use only the plan this process changed,
+// never the contents of a journal another strobe might own.
+#[cfg(any(windows, target_os = "linux"))]
+static ACTIVE: std::sync::Mutex<(bool, Option<Saved>)> = std::sync::Mutex::new((false, None));
+pub fn restore_on_stop() {
+    #[cfg(any(windows, target_os = "linux"))]
+    {
+        let mut active = ACTIVE.lock().unwrap_or_else(|e| e.into_inner());
+        active.0 = true;
+        if let Some(s) = active.1.take() {
+            imp::restore(&s);
+            let _ = std::fs::remove_file(journal());
+        }
+    }
+}
+
+impl Power {
+    /// Switches to the fastest plan this device offers unless `keep` (`--power keep`) or on battery:
+    /// a High performance scheme (the active vendor's, else Windows', else Ultimate performance), or
+    /// on a device with only Balanced, Windows 11's Best performance power mode. Already on one: kept.
+    pub fn for_run(keep: bool) -> Power {
+        let plan = super::env_power_plan();
+        let kept = |why: String| Power { used: plan.clone(), kept: Some(why), saved: None };
+        if keep {
+            return kept(format!("{plan} (kept: --power keep)"));
+        }
+        if super::on_battery() {
+            return kept(format!("{plan} (kept: on battery, where a faster plan drains it and clocks follow the battery anyway)"));
+        }
+        #[cfg(any(windows, target_os = "linux"))]
+        {
+            let mut active = ACTIVE.lock().unwrap_or_else(|e| e.into_inner());
+            if active.0 || active.1.is_some() {
+                return kept(format!("{plan} (kept)"));
+            }
+            let power = imp::switch(&plan);
+            active.1.clone_from(&power.saved);
+            power
+        }
+        #[cfg(target_os = "macos")]
+        {
+            kept(format!("{plan} (kept: macOS has no power plan to switch; Low Power Mode off is its fastest)"))
+        }
+    }
+}
+
+impl Power {
+    /// Whether this run switched the plan (and puts the user's back when dropped).
+    pub fn switched(&self) -> bool {
+        self.saved.is_some()
+    }
+}
+
+impl Drop for Power {
+    fn drop(&mut self) {
+        if let Some(s) = self.saved.take() {
+            #[cfg(any(windows, target_os = "linux"))]
+            {
+                let mut active = ACTIVE.lock().unwrap_or_else(|e| e.into_inner());
+                if active.1.take().is_some() {
+                    imp::restore(&s);
+                    let _ = std::fs::remove_file(journal());
+                }
+            }
+            let _ = s;
+        }
+    }
+}
+
+/// After a plan switch, until the target's CPUs' speed holds: a fixed integer workload of about 4.5 ms
+/// (sized by a first short burst) on a thread on `cpus` (the target's pin; strobe's mask is widened to
+/// them for it and comes back after), read every 100 ms until three reads in a row agree within 1.5%.
+/// Before timed blocks (`timed`) at least 200 ms and at most 3 s; before untimed ones (a check, a leak
+/// run) at most 250 ms, since nothing they measure is a time a verdict reads. Returns how long it waited
+/// and whether the reads agreed.
+pub fn wait_settled(timed: bool, cpus: Option<u64>) -> (std::time::Duration, bool) {
+    use std::time::{Duration, Instant};
+    let (min, cap) = if timed { (Duration::from_millis(200), Duration::from_secs(3)) } else { (Duration::ZERO, Duration::from_millis(250)) };
+    let previous = cpus.and_then(super::set_affinity);
+    let settled = std::thread::spawn(move || {
+        if let Some(m) = cpus {
+            super::set_thread_affinity(m);
+        }
+        let started = Instant::now();
+        let burst = |n: u64| {
+            let t = Instant::now();
+            let mut x = 0u64;
+            for i in 0..n {
+                x = x.rotate_left(5) ^ i.wrapping_mul(2_654_435_761);
+            }
+            std::hint::black_box(x);
+            t.elapsed().as_secs_f64()
+        };
+        let n = (1_000_000.0 * 0.0045 / burst(1_000_000).max(1e-6)).clamp(1e5, 1e9) as u64;
+        let mut reads: Vec<f64> = vec![burst(n)];
+        loop {
+            std::thread::sleep(Duration::from_millis(100));
+            reads.push(burst(n));
+            let last = &reads[reads.len().saturating_sub(3)..];
+            let (lo, hi) = last.iter().fold((f64::INFINITY, 0.0f64), |(lo, hi), r| (lo.min(*r), hi.max(*r)));
+            let agree = last.len() == 3 && hi - lo <= 0.015 * lo;
+            if (agree && started.elapsed() >= min) || started.elapsed() >= cap {
+                return (started.elapsed(), agree);
+            }
+        }
+    })
+    .join()
+    .unwrap_or((Duration::ZERO, false));
+    if let Some(p) = previous {
+        super::set_affinity(p);
+    }
+    settled
+}
+
+/// Puts back a plan a strobe that is no longer running switched away from (killed mid-run).
+pub fn restore_stale() {
+    let Some(v) = std::fs::read_to_string(journal()).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()) else { return };
+    // One process's name, not the system's process tree: every strobe command a bench runs reads this
+    // journal while the bench holds it, and the tree walk (all processes and threads) was 4-5 ms of each.
+    let pid = v["pid"].as_u64().unwrap_or(0) as u32;
+    let alive = pid != 0 && (pid == std::process::id() || super::exe_of(pid).and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_lowercase())).is_some_and(|n| n.starts_with("strobe")));
+    if alive {
+        return;
+    }
+    let s = Saved { scheme: v["scheme"].as_str().unwrap_or("").to_string(), overlay: v["overlay"].as_str().map(str::to_string) };
+    #[cfg(any(windows, target_os = "linux"))]
+    if !s.scheme.is_empty() {
+        imp::restore(&s);
+    }
+    let _ = s;
+    let _ = std::fs::remove_file(journal());
+}
+
+#[cfg(any(windows, target_os = "linux"))]
+fn save(s: &Saved) -> bool {
+    std::fs::write(journal(), serde_json::json!({ "pid": std::process::id(), "scheme": s.scheme, "overlay": s.overlay }).to_string()).is_ok()
+}
+
+#[cfg(windows)]
+mod imp {
+    use super::*;
+    use std::process::{Command, Stdio};
+    use windows_sys::core::GUID;
+
+    /// `powercfg /list`: (GUID, name) of every scheme.
+    fn schemes() -> Vec<(String, String)> {
+        let text = super::super::output(Command::new("powercfg").arg("/list")).unwrap_or_default();
+        text.lines()
+            .filter_map(|l| {
+                let guid = l.split_whitespace().find(|w| w.len() == 36 && w.matches('-').count() == 4)?.to_lowercase();
+                let name = l.split_once('(').and_then(|(_, r)| r.rsplit_once(')')).map(|(n, _)| n.trim().to_string()).unwrap_or_default();
+                Some((guid, name))
+            })
+            .collect()
+    }
+
+    fn active() -> Option<String> {
+        let text = super::super::output(Command::new("powercfg").arg("/getactivescheme"))?;
+        text.split_whitespace().find(|w| w.len() == 36 && w.matches('-').count() == 4).map(str::to_lowercase)
+    }
+
+    fn set_scheme(guid: &str) -> bool {
+        Command::new("powercfg").args(["/setactive", guid]).stdout(Stdio::null()).stderr(Stdio::null()).status().is_ok_and(|s| s.success())
+    }
+
+    fn text(g: &GUID) -> String {
+        format!("{:08x}-{:04x}-{:04x}-{:02x}{:02x}-{}", g.data1, g.data2, g.data3, g.data4[0], g.data4[1], g.data4[2..].iter().map(|b| format!("{b:02x}")).collect::<String>())
+    }
+
+    fn parse(s: &str) -> Option<GUID> {
+        let h: String = s.chars().filter(|c| c.is_ascii_hexdigit()).collect();
+        (h.len() == 32).then(|| GUID::from_u128(u128::from_str_radix(&h, 16).unwrap_or(0)))
+    }
+
+    /// powrprof's power-mode calls (Windows 10 1709 and later), looked up at run time.
+    fn proc(name: &[u8]) -> Option<unsafe extern "system" fn() -> isize> {
+        use windows_sys::Win32::System::LibraryLoader::{GetProcAddress, LoadLibraryW};
+        let lib: Vec<u16> = "powrprof.dll\0".encode_utf16().collect();
+        unsafe {
+            let h = LoadLibraryW(lib.as_ptr());
+            if h.is_null() {
+                return None;
+            }
+            GetProcAddress(h, name.as_ptr())
+        }
+    }
+
+    /// The power mode in effect (an overlay GUID; all zeros is Balanced's own "Balanced" mode).
+    pub fn overlay() -> Option<String> {
+        let f = proc(b"PowerGetEffectiveOverlayScheme\0").or_else(|| proc(b"PowerGetActualOverlayScheme\0"))?;
+        let f: unsafe extern "system" fn(*mut GUID) -> u32 = unsafe { std::mem::transmute(f) };
+        let mut g = GUID::from_u128(0);
+        (unsafe { f(&mut g) } == 0).then(|| text(&g))
+    }
+
+    fn set_overlay(guid: &str) -> bool {
+        let (Some(f), Some(g)) = (proc(b"PowerSetActiveOverlayScheme\0"), parse(guid)) else { return false };
+        let f: unsafe extern "system" fn(GUID) -> u32 = unsafe { std::mem::transmute(f) };
+        unsafe { f(g) == 0 }
+    }
+
+    /// The Windows 11 power mode's name, for the env line.
+    pub fn mode_name(guid: &str) -> Option<&'static str> {
+        match guid {
+            BEST_PERFORMANCE => Some("Best performance"),
+            "961cc777-2547-4f9d-8174-7d86181b8a7a" => Some("Best power efficiency"),
+            "3af9b8d9-7c97-431d-ad78-34a8bfea439f" => Some("Battery saver"),
+            _ => None,
+        }
+    }
+
+    pub fn switch(plan: &str) -> Power {
+        let kept = |why: String| Power { used: plan.to_string(), kept: Some(why), saved: None };
+        let Some(current) = active() else { return kept(format!("{plan} (kept: powercfg could not read the active plan)")) };
+        let list = schemes();
+        let name_of = |g: &str| list.iter().find(|(x, _)| x == g).map(|(_, n)| n.clone()).unwrap_or_default();
+        let fast = |g: &str| g == HIGH || g == ULTIMATE || name_of(g).to_lowercase().contains("high performance");
+        if fast(&current) {
+            return Power { used: plan.to_string(), kept: None, saved: None };
+        }
+        let saved = Saved { scheme: current.clone(), overlay: overlay() };
+        // The active vendor's own (AMD Ryzen Balanced → AMD Ryzen High Performance), else Windows'.
+        let vendor = name_of(&current).to_lowercase().replace("balanced", "high performance");
+        let target = list
+            .iter()
+            .find(|(g, n)| *g != current && n.to_lowercase() == vendor)
+            .or_else(|| list.iter().find(|(g, _)| g == HIGH))
+            .or_else(|| list.iter().find(|(g, _)| g == ULTIMATE))
+            .or_else(|| list.iter().find(|(_, n)| n.to_lowercase().contains("high performance")))
+            .cloned();
+        if !save(&saved) {
+            return kept(format!("{plan} (kept: strobe could not journal it to put it back)"));
+        }
+        let done = match &target {
+            Some((g, _)) => set_scheme(g),
+            // Only Balanced here (modern standby devices): Windows 11's Best performance mode.
+            None if current == BALANCED => set_overlay(BEST_PERFORMANCE),
+            None => false,
+        };
+        if !done {
+            let _ = std::fs::remove_file(journal());
+            return kept(format!("{plan} (kept: this device offers no High performance plan or power mode strobe could switch to)"));
+        }
+        Power { used: super::super::env_power_plan(), kept: None, saved: Some(saved) }
+    }
+
+    pub fn restore(s: &Saved) {
+        if active().as_deref() != Some(s.scheme.as_str()) {
+            set_scheme(&s.scheme);
+        }
+        if let Some(o) = &s.overlay
+            && overlay().as_deref() != Some(o.as_str())
+        {
+            set_overlay(o);
+        }
+    }
+}
+
+/// Linux: the cpufreq governor of every CPU policy. `performance` is the "High performance" plan; it
+/// needs root (the files are root's), so an unprivileged strobe keeps the user's governor and says so.
+/// The journal's `scheme` holds each policy's governor (`policy0=schedutil,…`).
+#[cfg(target_os = "linux")]
+mod imp {
+    use super::*;
+
+    fn policies() -> Vec<std::path::PathBuf> {
+        std::fs::read_dir("/sys/devices/system/cpu/cpufreq").into_iter().flatten().flatten().map(|e| e.path()).filter(|p| p.join("scaling_governor").is_file()).collect()
+    }
+
+    fn governor(p: &std::path::Path) -> String {
+        std::fs::read_to_string(p.join("scaling_governor")).map(|s| s.trim().to_string()).unwrap_or_default()
+    }
+
+    pub fn switch(plan: &str) -> Power {
+        let kept = |why: String| Power { used: plan.to_string(), kept: Some(why), saved: None };
+        let list = policies();
+        if list.is_empty() {
+            return kept(format!("{plan} (kept: no frequency policy to switch, as in most virtual machines)"));
+        }
+        if list.iter().all(|p| governor(p) == "performance") {
+            return Power { used: plan.to_string(), kept: None, saved: None };
+        }
+        let offers = std::fs::read_to_string(list[0].join("scaling_available_governors")).unwrap_or_default();
+        if !offers.split_whitespace().any(|g| g == "performance") {
+            return kept(format!("{plan} (kept: this cpufreq driver offers no performance governor)"));
+        }
+        let saved = Saved { scheme: list.iter().map(|p| format!("{}={}", p.file_name().unwrap_or_default().to_string_lossy(), governor(p))).collect::<Vec<_>>().join(","), overlay: None };
+        if std::fs::OpenOptions::new().write(true).open(list[0].join("scaling_governor")).is_err() {
+            return kept(format!("{plan} (kept: switching the governor needs root; run as root or set it to performance yourself)"));
+        }
+        if !save(&saved) {
+            return kept(format!("{plan} (kept: strobe could not journal it to put it back)"));
+        }
+        if !list.iter().all(|p| std::fs::write(p.join("scaling_governor"), "performance").is_ok()) {
+            restore(&saved);
+            let _ = std::fs::remove_file(journal());
+            return kept(format!("{plan} (kept: the governor did not switch)"));
+        }
+        Power { used: super::super::env_power_plan(), kept: None, saved: Some(saved) }
+    }
+
+    pub fn restore(s: &Saved) {
+        for part in s.scheme.split(',') {
+            if let Some((policy, gov)) = part.split_once('=') {
+                let _ = std::fs::write(std::path::Path::new("/sys/devices/system/cpu/cpufreq").join(policy).join("scaling_governor"), gov);
+            }
+        }
+    }
+}
+
+/// The power mode on top of the plan, for the env line ("Balanced · Best performance").
+pub fn mode() -> Option<&'static str> {
+    #[cfg(windows)]
+    {
+        imp::overlay().and_then(|g| imp::mode_name(&g))
+    }
+    #[cfg(not(windows))]
+    {
+        None
+    }
+}

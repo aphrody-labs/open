@@ -1,0 +1,422 @@
+// Checkbox, radio and switch (Paper "Components" › Choices): 14px boxes
+// with 6px corners on the inset black with an `outline` edge, the yellow
+// LED when on (a near-black check; a radio's bone centre in a 4px yellow
+// ring); a 30×18 switch, yellow when on, with a bone knob. The segmented
+// control (also the kit's tabs) is a capsule: a 24px inset pill with an
+// 18px `control-active` pill behind the chosen choice.
+
+import { Theme, Motion } from "../theme.slint";
+import { Icon, Icons, SvgPath } from "../icons.slint";
+import { FocusRing, ShownState } from "focus.slint";
+import { Tip } from "tooltip.slint";
+
+// A checkbox and its label (the label starts 24px in: a 14px box in a
+// 16px lane and an 8px gap). Without `text` it is just the box.
+export component Checkbox inherits Rectangle {
+    in-out property <bool> checked;
+    in property <string> text;
+    in property <bool> enabled: true;
+    // Control type (12px) rather than body type (13px), as in a form's
+    // value column.
+    in property <bool> small;
+    // What screen readers call it when there is no `text`.
+    in property <string> label;
+    in property <string> tooltip;
+    // Its text in `text-3` (a choice that matters only once something
+    // else is on, like ISO audio while ISO recording is off).
+    in property <bool> faint;
+    // Draw a state regardless of the keyboard (the kit gallery).
+    in property <ShownState> shown: ShownState.live;
+    callback toggled(bool);
+
+    forward-focus: fs;
+    property <bool> keyboard;
+
+    function toggle() {
+        if root.enabled {
+            root.checked = !root.checked;
+            root.toggled(root.checked);
+        }
+    }
+
+    min-height: max(Theme.icon, row.preferred-height);
+    preferred-width: row.preferred-width;
+    min-width: row.min-width;
+    opacity: root.enabled ? 1 : Theme.disabled-opacity;
+    accessible-role: checkbox;
+    accessible-label: root.text != "" ? root.text : root.label;
+    accessible-checkable: true;
+    accessible-checked: root.checked;
+    accessible-enabled: root.enabled;
+    accessible-action-default => { root.toggle(); }
+
+    TouchArea {
+        enabled: root.enabled;
+        clicked => { root.toggle(); }
+    }
+
+    fs := FocusScope {
+        enabled: root.enabled;
+        focus-on-click: false;
+        focus-gained(reason) => { root.keyboard = reason == FocusReason.tab-navigation; }
+        focus-lost => { root.keyboard = false; }
+        key-pressed(event) => {
+            if event.text == " " {
+                root.toggle();
+                return accept;
+            }
+            reject
+        }
+    }
+
+    row := HorizontalLayout {
+        spacing: Theme.space-2;
+        alignment: start;
+        Rectangle {
+            width: Theme.icon;
+            box := Rectangle {
+                x: 1px;
+                y: (parent.height - self.height) / 2;
+                width: Theme.check;
+                height: Theme.check;
+                border-radius: Theme.r;
+                border-width: 1px;
+                border-color: root.checked ? Theme.accent : Theme.outline;
+                background: root.checked ? Theme.accent : Theme.surface-inset;
+                if root.checked: SvgPath {
+                    x: (parent.width - 10px) / 2;
+                    y: (parent.height - 10px) / 2;
+                    width: 10px;
+                    height: 10px;
+                    commands: Icons.check;
+                    stroke: Theme.on-accent;
+                    stroke-width: 1.25px;
+                    stroke-line-cap: round;
+                    stroke-line-join: round;
+                    fill: transparent;
+                }
+                FocusRing {
+                    shown: (fs.has-focus && root.keyboard) || root.shown == ShownState.focus;
+                }
+            }
+        }
+        if root.text != "": Text {
+            text: root.text;
+            color: root.faint ? Theme.text-3 : Theme.text;
+            font-size: root.small ? Theme.fs-sm : Theme.fs;
+            letter-spacing: Theme.tracking-for(root.small ? Theme.fs-sm : Theme.fs);
+            vertical-alignment: center;
+            wrap: word-wrap;
+            accessible-role: none;
+        }
+    }
+
+    if root.tooltip != "": Tooltip {
+        Tip { text: root.tooltip; }
+    }
+}
+
+// A radio button and its label. The group is the caller's: set `checked`
+// from the chosen value and choose in `clicked`. ↑ ↓ ← → between the
+// buttons of a group are the caller's too (`step`).
+export component Radio inherits Rectangle {
+    in property <bool> checked;
+    in property <string> text;
+    in property <bool> enabled: true;
+    in property <bool> small;
+    in property <string> label;
+    // Draw a state regardless of the keyboard (the kit gallery).
+    in property <ShownState> shown: ShownState.live;
+    callback clicked();
+    // An arrow key: -1 for the previous button of the group, 1 for the next.
+    callback step(int);
+
+
+    forward-focus: fs;
+    property <bool> keyboard;
+
+    min-height: max(Theme.icon, row.preferred-height);
+    preferred-width: row.preferred-width;
+    min-width: row.min-width;
+    opacity: root.enabled ? 1 : Theme.disabled-opacity;
+    accessible-role: radio-button;
+    accessible-label: root.text != "" ? root.text : root.label;
+    accessible-checkable: true;
+    accessible-checked: root.checked;
+    accessible-enabled: root.enabled;
+    accessible-action-default => {
+        if root.enabled {
+            root.clicked();
+        }
+    }
+
+    TouchArea {
+        enabled: root.enabled;
+        clicked => { root.clicked(); }
+    }
+
+    fs := FocusScope {
+        enabled: root.enabled;
+        focus-on-click: false;
+        focus-gained(reason) => { root.keyboard = reason == FocusReason.tab-navigation || root.keyboard; }
+        focus-lost => { root.keyboard = false; }
+        key-pressed(event) => {
+            if event.text == " " {
+                root.clicked();
+                return accept;
+            }
+            if event.text == Key.DownArrow || event.text == Key.RightArrow {
+                root.step(1);
+                return accept;
+            }
+            if event.text == Key.UpArrow || event.text == Key.LeftArrow {
+                root.step(-1);
+                return accept;
+            }
+            reject
+        }
+    }
+
+    row := HorizontalLayout {
+        spacing: Theme.space-2;
+        alignment: start;
+        Rectangle {
+            width: Theme.icon;
+            Rectangle {
+                x: 1px;
+                y: (parent.height - self.height) / 2;
+                width: Theme.check;
+                height: Theme.check;
+                border-radius: self.width / 2;
+                border-width: root.checked ? 4px : 1px;
+                border-color: root.checked ? Theme.accent : Theme.outline;
+                background: root.checked ? Theme.bone : Theme.surface-inset;
+                FocusRing {
+                    shown: (fs.has-focus && root.keyboard) || root.shown == ShownState.focus;
+                    radius: parent.width / 2;
+                }
+            }
+        }
+        if root.text != "": Text {
+            text: root.text;
+            color: Theme.text;
+            font-size: root.small ? Theme.fs-sm : Theme.fs;
+            letter-spacing: Theme.tracking-for(root.small ? Theme.fs-sm : Theme.fs);
+            vertical-alignment: center;
+            wrap: word-wrap;
+            accessible-role: none;
+        }
+    }
+}
+
+// An on/off switch, 30×18: `line-strong` off, yellow on, a 14px bone knob
+// with a soft shadow, 2px in.
+export component Switch inherits Rectangle {
+    in-out property <bool> on;
+    in property <bool> enabled: true;
+    // What screen readers call it (the form label beside it).
+    in property <string> label;
+    in property <string> tooltip;
+    // Draw a state regardless of the keyboard (the kit gallery).
+    in property <ShownState> shown: ShownState.live;
+    callback toggled(bool);
+
+    forward-focus: fs;
+    property <bool> keyboard;
+
+    function toggle() {
+        if root.enabled {
+            root.on = !root.on;
+            root.toggled(root.on);
+        }
+    }
+
+    width: Theme.switch-w;
+    height: Theme.switch-h;
+    border-radius: self.height / 2;
+    background: root.on ? Theme.accent : Theme.line-strong;
+    opacity: root.enabled ? 1 : Theme.disabled-opacity;
+    animate background { duration: Theme.fast; easing: Motion.ease; }
+    accessible-role: switch;
+    accessible-label: root.label;
+    accessible-checkable: true;
+    accessible-checked: root.on;
+    accessible-enabled: root.enabled;
+    accessible-action-default => { root.toggle(); }
+
+    Rectangle {
+        x: root.on ? parent.width - self.width - 2px : 2px;
+        y: (parent.height - self.height) / 2;
+        width: Theme.knob;
+        height: Theme.knob;
+        border-radius: self.width / 2;
+        background: Theme.bone;
+        drop-shadow-color: Theme.shadow-knob-color;
+        drop-shadow-blur: Theme.shadow-knob-blur;
+        drop-shadow-offset-y: Theme.shadow-knob-y;
+        animate x { duration: Theme.med; easing: Motion.ease; }
+    }
+
+    TouchArea {
+        enabled: root.enabled;
+        clicked => { root.toggle(); }
+    }
+
+    fs := FocusScope {
+        enabled: root.enabled;
+        focus-on-click: false;
+        focus-gained(reason) => { root.keyboard = reason == FocusReason.tab-navigation; }
+        focus-lost => { root.keyboard = false; }
+        key-pressed(event) => {
+            if event.text == " " || event.text == "\n" {
+                root.toggle();
+                return accept;
+            }
+            reject
+        }
+    }
+
+    FocusRing {
+        shown: (fs.has-focus && root.keyboard) || root.shown == ShownState.focus;
+        radius: root.height / 2;
+    }
+
+    if root.tooltip != "": Tooltip {
+        Tip { text: root.tooltip; }
+    }
+}
+
+// One choice of a segmented control.
+export struct Segment {
+    value: string,
+    label: string,
+    // Shown but not clickable (greyed): MP4 for a ProRes encoder. (Arrow
+    // keys can still reach it; the owner refuses it.)
+    disabled: bool,
+}
+
+// A capsule of choices, one chosen (`value`); the kit's tabs too. 24px:
+// the inset black with a `line` edge, 2px in, 18px pills 14px in, the
+// chosen one on `control-active` in `text`, the rest `text-3`; 12px
+// medium. `small` (in grouped rows): 22px, no edge, pills 12px in.
+// ← → move the choice.
+export component Segmented inherits Rectangle {
+    in property <[Segment]> options;
+    in-out property <string> value;
+    // While no segment is the value: where the value sits among them
+    // (1.5: between the second and the third), so → and ← choose the
+    // next one that way. -1: from the first.
+    in property <float> position: -1;
+    in property <bool> enabled: true;
+    in property <string> label;
+    in property <bool> small;
+    callback selected(string);
+
+    forward-focus: fs;
+    property <bool> keyboard;
+    // The chosen segment's index, kept by the segments themselves (Slint
+    // can't search a model).
+    property <int> current: -1;
+
+    function choose(value: string) {
+        if root.enabled && value != root.value {
+            root.value = value;
+            root.selected(value);
+        }
+    }
+
+    height: root.small ? Theme.control-h-sm : Theme.capsule-h;
+    min-width: segments.min-width;
+    preferred-width: segments.preferred-width;
+    horizontal-stretch: 0;
+    border-radius: self.height / 2;
+    background: Theme.surface-inset;
+    border-width: root.small ? 0px : 1px;
+    border-color: Theme.line;
+    opacity: root.enabled ? 1 : Theme.disabled-opacity;
+    accessible-role: tab-list;
+    accessible-label: root.label;
+
+    fs := FocusScope {
+        enabled: root.enabled;
+        focus-on-click: false;
+        focus-gained(reason) => { root.keyboard = reason == FocusReason.tab-navigation; }
+        focus-lost => { root.keyboard = false; }
+        key-pressed(event) => {
+            if event.text == Key.RightArrow || event.text == Key.LeftArrow {
+                root.keyboard = true;
+                root.move-choice(event.text == Key.RightArrow ? 1 : -1);
+                return accept;
+            }
+            reject
+        }
+    }
+
+    function move-choice(by: int) {
+        if root.current >= 0 {
+            root.choose(root.options[max(0, min(root.options.length - 1, root.current + by))].value);
+        } else if root.options.length > 0 {
+            root.choose(root.options[max(0, min(root.options.length - 1, by > 0 ? ceil(root.position) : floor(root.position)))].value);
+        }
+    }
+
+    segments := HorizontalLayout {
+        padding: 2px;
+        spacing: 2px;
+        for option[i] in root.options: seg := Rectangle {
+            property <bool> on: option.value == root.value;
+            changed on => {
+                if self.on {
+                    root.current = i;
+                } else if root.current == i {
+                    root.current = -1;
+                }
+            }
+            init => {
+                if self.on {
+                    root.current = i;
+                }
+            }
+            height: 18px;
+            horizontal-stretch: 1;
+            min-width: segment-label.preferred-width + 2 * (root.small ? Theme.space-3 : 14px);
+            border-radius: self.height / 2;
+            background: self.on ? Theme.control-active : segment-ta.has-hover && root.enabled ? Theme.control : transparent;
+            animate background { duration: Theme.fast; easing: Motion.ease; }
+            accessible-role: tab;
+            accessible-label: option.label;
+            accessible-enabled: !option.disabled;
+            accessible-item-selectable: true;
+            accessible-item-selected: self.on;
+            accessible-item-index: i;
+            accessible-item-count: root.options.length;
+            accessible-action-default => { root.choose(option.value); }
+
+            segment-ta := TouchArea {
+                enabled: root.enabled && !option.disabled;
+                clicked => { root.choose(option.value); }
+            }
+            segment-label := Text {
+                text: option.label;
+                color: option.disabled ? Theme.text-disabled : seg.on ? Theme.text : segment-ta.has-hover ? Theme.text-2 : Theme.text-3;
+                font-size: Theme.fs-sm;
+                letter-spacing: Theme.tracking-sm;
+                font-weight: Theme.weight-medium;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                accessible-role: none;
+            }
+            FocusRing {
+                inset: true;
+                radius: seg.height / 2;
+                shown: fs.has-focus && root.keyboard && seg.on;
+            }
+        }
+    }
+    // No segment is the value (a Custom quality): the ring goes round the
+    // whole capsule.
+    FocusRing {
+        radius: root.height / 2;
+        shown: fs.has-focus && root.keyboard && root.current < 0;
+    }
+}

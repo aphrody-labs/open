@@ -1,0 +1,41 @@
+{
+  "name": "@hona/strobe",
+  "version": "0.44.0",
+  "description": "Measure and explain performance: the strobe CLI and the types and helpers for its bench files",
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "strobe": "bin/strobe.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json",
+    "./schema/*": "./schema/*"
+  },
+  "files": ["dist", "bin", "schema", "README.md"],
+  "sideEffects": false,
+  "scripts": {
+    "build": "bun build src/index.ts --outdir dist --target node --format esm && tsc -p tsconfig.json && bun -e \"const fs = require('node:fs'); fs.rmSync('schema', { recursive: true, force: true }); fs.cpSync('../../schema', 'schema', { recursive: true })\""
+  },
+  "optionalDependencies": {
+    "@hona/strobe-darwin-arm64": "0.44.0",
+    "@hona/strobe-darwin-x64": "0.44.0",
+    "@hona/strobe-linux-arm64": "0.44.0",
+    "@hona/strobe-linux-x64": "0.44.0",
+    "@hona/strobe-win32-arm64": "0.44.0",
+    "@hona/strobe-win32-x64": "0.44.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0"
+  },
+  "keywords": ["benchmark", "performance", "strobe", "playwright", "electron", "chromium"],
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/anomalyco/strobe.git" },
+  "publishConfig": {
+    "access": "public"
+  }
+}

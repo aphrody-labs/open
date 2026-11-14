@@ -1,0 +1,56 @@
+/* Stories: an SVG stage with a light canvas added over it, captions in an HTML layer, a step bar under it. The
+   stage always fits its column; below 720px the captions move to a rail under it. */
+.story { margin: var(--s4) 0 0; container: story / inline-size; }
+.story-stage { position: relative; container-type: inline-size; }
+.story-stage svg { position: relative; display: block; width: 100%; height: 100%; overflow: visible; }
+.story-stage text { font-family: var(--font-text); }
+.story-light { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; mix-blend-mode: screen; mix-blend-mode: plus-lighter; }
+
+/* One caption at a time, beside the thing it's about. The leader line ends where the text begins. Captions wrap
+   into balanced lines no wider than 30 characters (a caption can ask for another width). */
+.story-caption {
+  position: absolute; left: var(--x); top: var(--y); margin: 0; padding: 2px 6px; width: max-content; max-width: var(--w, 30ch);
+  font-size: clamp(9.5px, 1.36cqw, 13px); line-height: 1.4; letter-spacing: .01em; color: var(--light);
+  text-wrap: balance; pointer-events: none; background: #000c; will-change: opacity, filter, scale;
+}
+.story-caption[data-align="start"] { translate: 4px -50%; transform-origin: 0 50%; }
+.story-caption[data-align="end"] { translate: calc(-100% - 4px) -50%; transform-origin: 100% 50%; text-align: right; }
+.story-caption[data-align="above"] { translate: -50% calc(-100% - 2px); transform-origin: 50% 100%; text-align: center; }
+.story-caption[data-align="below"] { translate: -50% 2px; transform-origin: 50% 0; text-align: center; }
+.story-leader line { stroke: #8d8d8d; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.story-leader circle { fill: #c8c4bc; }
+
+/* The step bar: one tick per step, as long as its step. No text; the caption is on the stage. */
+.story-bar { display: flex; gap: 4px; width: min(100%, 66ch); margin: var(--s2) auto 0; padding: 9px 0; cursor: pointer; touch-action: none; outline: none; }
+.story-tick { position: relative; flex-basis: 0; height: 2px; background: #222; overflow: hidden; transition: scale .15s cubic-bezier(.2, .8, .2, 1); }
+.story-tick i { position: absolute; inset: 0; background: #e8e4dc; transform-origin: 0 50%; }
+.story-tick[data-state="past"] i { background: #5a5a5a; }
+.story-bar:hover .story-tick { scale: 1 1.5; }
+.story-bar:focus-visible { outline: 1px dotted #ffffff66; outline-offset: 2px; }
+
+/* A narrow stage: the diagram shrinks to fit, and the caption sits on a rail under it at a readable size. The
+   leader keeps only its anchor dot, grown so it still marks the spot. Words riding the light are too small to
+   read at this size, so they go. */
+@container story (max-width: 720px) {
+  .story-stage { margin-bottom: calc(3 * 1.45em + 16px); font-size: 13px; }
+  .story .story-caption[data-align] {
+    left: 50%; top: calc(100% + 10px); max-width: min(100%, 44ch); font-size: 13px; line-height: 1.45;
+    translate: -50% 0; transform-origin: 50% 0; text-align: center; background: none;
+  }
+  .story-leader line { display: none; }
+  .story-leader circle { r: 7px; }
+  .story-carried { display: none; }
+}
+
+/* Reduced motion: no travel. Poses change with a short fade. */
+.story[data-reduced] .story-stage svg * { transition: opacity .18s, fill .18s, stroke .18s; }
+.story[data-reduced] .story-caption { transition: opacity .18s; }
+
+/* Scene type, in scene units so it scales with the stage. */
+.story-entry { font-size: 11px; font-weight: 500; letter-spacing: .04em; }
+.story-lane { font-size: 12px; letter-spacing: .02em; }
+.story-carried { font-size: 9.5px; letter-spacing: .04em; }
+.story-card-label { font-size: 12.5px; font-weight: 500; letter-spacing: .01em; }
+.story-card-detail { font-size: 10.5px; letter-spacing: .02em; }
+.story-note { font-size: 10.5px; letter-spacing: .01em; }
+.story-code { font-size: 23px; font-weight: 500; letter-spacing: .08em; }

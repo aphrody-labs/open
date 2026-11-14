@@ -1,0 +1,389 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Existing version tag (X.Y.Z or vX.Y.Z); must match Cargo.toml'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# Serialize tag pushes and manual reruns together; never interrupt signing.
+concurrency:
+  group: isocast-release
+  cancel-in-progress: false
+
+jobs:
+  # Decide before the approval gate and without secrets: a missing tag or a
+  # version mismatch fails here, and an already published version ends the
+  # run green with nothing to do instead of asking for an approval.
+  preflight:
+    if: github.repository == 'anomalyco/isocast' && (github.event_name == 'push' || github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      commit: ${{ steps.version.outputs.commit }}
+      version: ${{ steps.version.outputs.version }}
+      proceed: ${{ steps.version.outputs.proceed }}
+    steps:
+      - name: Validate the version, its tag and its release state
+        id: version
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+          REF_NAME: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import base64, json, os, re, subprocess, sys, tomllib
+          value = os.environ['REF_NAME'] if os.environ['EVENT'] == 'push' else os.environ['INPUT_VERSION']
+          if not re.fullmatch(r'v?[0-9]+\.[0-9]+\.[0-9]+', value):
+              sys.exit('version must be X.Y.Z or vX.Y.Z')
+          version = value.removeprefix('v')
+          tag = f'v{version}'
+          repo = os.environ['REPO']
+          def api(path):
+              result = subprocess.run(['gh', 'api', f'repos/{repo}/{path}'], capture_output=True, text=True, timeout=60)
+              if result.returncode == 0:
+                  return 200, json.loads(result.stdout)
+              try:
+                  status = int(json.loads(result.stdout)['status'])
+              except (ValueError, KeyError, TypeError):
+                  sys.exit(f'GitHub API call failed for {path}: {result.stderr.strip()}')
+              return status, None
+          status, _ = api(f'git/ref/tags/{tag}')
+          if status == 404:
+              sys.exit(f'{tag} does not exist in {repo}; push the tag from the public snapshot checkout first')
+          if status != 200:
+              sys.exit(f'could not resolve {tag} (HTTP {status})')
+          status, commit = api(f'commits/refs/tags/{tag}')
+          if status != 200 or not re.fullmatch(r'[0-9a-f]{40}', commit['sha']):
+              sys.exit(f'could not resolve the commit at {tag}')
+          status, cargo = api(f'contents/Cargo.toml?ref=refs/tags/{tag}')
+          if status != 200:
+              sys.exit(f'could not read Cargo.toml at {tag} (HTTP {status})')
+          try:
+              crate = tomllib.loads(base64.b64decode(cargo['content']).decode())['workspace']['package']['version']
+          except (tomllib.TOMLDecodeError, KeyError, TypeError, UnicodeDecodeError):
+              sys.exit(f'Cargo.toml at {tag} has no [workspace.package] version')
+          if crate != version:
+              sys.exit(f'{tag} does not match workspace.package.version {crate} at that tag')
+          # This endpoint lists published releases only; drafts stay the
+          # finalizer's business, which reuses a matching draft.
+          status, release = api(f'releases/tags/{tag}')
+          if status not in (200, 404):
+              sys.exit(f'could not read the release state of {tag} (HTTP {status})')
+          proceed = status == 404
+          # The release notes (#106): docs/releases/X.Y.Z.md at the tag is
+          # what the update window and the GitHub release show. Same rules
+          # as release_notes() in scripts/release-finalize.py.
+          if proceed:
+              notes_path = f'docs/releases/{version}.md'
+              status, notes = api(f'contents/{notes_path}?ref=refs/tags/{tag}')
+              if status == 404:
+                  sys.exit(f'{notes_path} is missing at {tag}: write the release notes, commit them and tag again (docs/releasing.md, "Cut a release")')
+              if status != 200:
+                  sys.exit(f'could not read {notes_path} at {tag} (HTTP {status})')
+              try:
+                  text = base64.b64decode(notes['content']).decode().strip()
+              except (KeyError, TypeError, ValueError):
+                  sys.exit(f'{notes_path} at {tag} is not a UTF-8 file')
+              if not text:
+                  sys.exit(f'{notes_path} is empty at {tag}: write the release notes before tagging')
+              if '**Full Changelog**' in text:
+                  sys.exit(f'{notes_path}: leave out the **Full Changelog** line; the GitHub release adds it')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write(f'commit={commit["sha"]}\n')
+              out.write(f'tag={tag}\nversion={version}\nproceed={str(proceed).lower()}\n')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as out:
+              if proceed:
+                  out.write(f'## {tag}\n\nNot published yet; the release job builds it after approval.\n')
+              else:
+                  out.write(f'## {tag}\n\nAlready published: {release["html_url"]}\n\nNothing to build or draft; a published release is never changed.\n')
+          if not proceed:
+              print(f'::notice::{tag} is already published; nothing to build or draft')
+          PY
+
+  linux-packages:
+    needs: preflight
+    if: needs.preflight.outputs.proceed == 'true'
+    uses: ./.github/workflows/windows.yml
+    permissions:
+      contents: read
+      actions: read
+    with:
+      linux_release_commit: ${{ needs.preflight.outputs.commit }}
+
+  release:
+    needs: preflight
+    if: needs.preflight.outputs.proceed == 'true'
+    runs-on: macos-26
+    timeout-minutes: 90
+    # Ryan approves every release: the required reviewer is the gate, and the
+    # signing credentials are in AWS behind the environment's own role.
+    environment: release
+    permissions:
+      id-token: write
+      contents: write
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: always
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
+      # Icon Composer needs Xcode 26 on a macOS 26 host: on the macos-15 image
+      # actool's AssetCatalogAgent crashed compiling Isocast.icon (0.0.3 run).
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+      TAG: ${{ needs.preflight.outputs.tag }}
+      VERSION: ${{ needs.preflight.outputs.version }}
+    steps:
+      - name: Scratch locations
+        run: printf 'ISOCAST_SCRATCH=%s\nRELEASE_OUTPUT=%s/isocast-release\n' "$RUNNER_TEMP" "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.preflight.outputs.tag }}
+          persist-credentials: false
+      # The release credentials are in AWS Secrets Manager as
+      # isocast/release/<NAME>, read by this environment's own role
+      # (`isocast-release`); the GitHub environment holds no secrets.
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: arn:aws:iam::604439173067:role/github/isocast-release
+          role-session-name: isocast-release-secrets-${{ github.run_id }}
+          aws-region: us-east-1
+      - name: Fetch the release secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@2297f9a879480a9e3af9b293ed15c70caf8e1c88 # v3.0.2
+        with:
+          secret-ids: |
+            APPLE_API_ISSUER_ID,isocast/release/APPLE_API_ISSUER_ID
+            APPLE_API_KEY_ID,isocast/release/APPLE_API_KEY_ID
+            APPLE_API_KEY_P8_BASE64,isocast/release/APPLE_API_KEY_P8_BASE64
+            CAMERA_PROVISIONING_PROFILE_B64,isocast/release/CAMERA_PROVISIONING_PROFILE_B64
+            DEVELOPER_ID_P12_BASE64,isocast/release/DEVELOPER_ID_P12_BASE64
+            DEVELOPER_ID_P12_PASSWORD,isocast/release/DEVELOPER_ID_P12_PASSWORD
+            ENGINE_PROVISIONING_PROFILE_B64,isocast/release/ENGINE_PROVISIONING_PROFILE_B64
+            SPARKLE_ED_PRIVATE_KEY,isocast/release/SPARKLE_ED_PRIVATE_KEY
+          parse-json-secrets: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Installer DMG tool (pinned dmgbuild)
+        run: python3 -m pip install --disable-pip-version-check --no-deps --require-hashes -r scripts/dmg/requirements.txt
+      - name: Check release source, architecture and release state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$(uname -m)" = arm64
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "$TAG^{commit}")"
+          test "$(git rev-parse HEAD)" = "${{ needs.preflight.outputs.commit }}"
+          python3 - <<'PY'
+          import os, tomllib
+          with open('Cargo.toml', 'rb') as file:
+              version = tomllib.load(file)['workspace']['package']['version']
+          if version != os.environ['VERSION']:
+              raise SystemExit('tag/input version does not match workspace.package.version')
+          PY
+          # Published since preflight (for example while waiting for approval):
+          # stop before any secret is decoded. Only a 404 (no published
+          # release) continues; an API failure is not "unpublished".
+          python3 - <<'PY'
+          import json, os, subprocess, sys
+          tag, repo = os.environ['TAG'], os.environ['GITHUB_REPOSITORY']
+          result = subprocess.run(['gh', 'api', f'repos/{repo}/releases/tags/{tag}'], capture_output=True, text=True, timeout=60)
+          if result.returncode == 0:
+              sys.exit(f'{tag} is already published ({json.loads(result.stdout).get("html_url", "")}); a published release is never changed')
+          try:
+              status = int(json.loads(result.stdout)['status'])
+          except (ValueError, KeyError, TypeError):
+              sys.exit(f'could not read the release state of {tag}: {result.stderr.strip()}')
+          if status != 404:
+              sys.exit(f'could not read the release state of {tag} (HTTP {status})')
+          PY
+          python3 scripts/release-finalize.py --check-notes "$VERSION"
+          xcrun --find actool
+          xcrun --find notarytool
+          # The app's Sparkle public key must be the real one (not the placeholder).
+          scripts/sparkle/sparkle.sh public-key >/dev/null
+      # The virtual camera extension (#67) ships only with its two Developer ID
+      # provisioning profiles; fail here, before the long build, while they're
+      # missing. release.sh checks them again against the signing certificate.
+      - name: Virtual camera provisioning profiles
+        env:
+          ENGINE_PROVISIONING_PROFILE_B64: ${{ env.ENGINE_PROVISIONING_PROFILE_B64 }}
+          CAMERA_PROVISIONING_PROFILE_B64: ${{ env.CAMERA_PROVISIONING_PROFILE_B64 }}
+        run: |
+          python3 - <<'PY'
+          import base64, binascii, os, sys
+          from pathlib import Path
+          os.umask(0o077)
+          root = Path(os.environ['RUNNER_TEMP']) / 'isocast-release-signing'
+          root.mkdir(exist_ok=True)
+          paths = {}
+          for secret, name in [('ENGINE_PROVISIONING_PROFILE_B64', 'isocast-engine.provisionprofile'),
+                               ('CAMERA_PROVISIONING_PROFILE_B64', 'isocast-camera.provisionprofile')]:
+              try:
+                  data = base64.b64decode(os.environ.get(secret, '').strip(), validate=True)
+              except (binascii.Error, ValueError):
+                  data = b''
+              if not data:
+                  sys.exit(f'{secret} is missing or not base64: add the Developer ID provisioning profile (docs/releasing.md, step 4a)')
+              (root / name).write_bytes(data)
+              paths[secret] = root / name
+          with open(os.environ['GITHUB_ENV'], 'a') as out:
+              out.write(f"ISOCAST_ENGINE_PROFILE={paths['ENGINE_PROVISIONING_PROFILE_B64']}\n")
+              out.write(f"ISOCAST_CAMERA_PROFILE={paths['CAMERA_PROVISIONING_PROFILE_B64']}\n")
+          PY
+          python3 scripts/vcam-package.py release-profiles "$RUNNER_TEMP/isocast-release-signing/isocast-engine.provisionprofile" "$RUNNER_TEMP/isocast-release-signing/isocast-camera.provisionprofile"
+      - name: Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustc --version
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          shared-key: release-arm64
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/Library/Caches/Homebrew
+          key: release-brew-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/workflows/release.yml') }}
+          restore-keys: release-brew-${{ runner.os }}-${{ runner.arch }}-
+      - name: Runtime verification tools
+        run: brew list ffmpeg >/dev/null 2>&1 || brew install ffmpeg
+      - name: Import signing identity and notarization key
+        env:
+          DEVELOPER_ID_P12_BASE64: ${{ env.DEVELOPER_ID_P12_BASE64 }}
+          DEVELOPER_ID_P12_PASSWORD: ${{ env.DEVELOPER_ID_P12_PASSWORD }}
+          APPLE_API_KEY_P8_BASE64: ${{ env.APPLE_API_KEY_P8_BASE64 }}
+          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+        run: |
+          python3 - <<'PY'
+          import base64, json, os, re, secrets, shlex, subprocess, sys
+          from pathlib import Path
+          os.umask(0o077)
+          root = Path(os.environ['RUNNER_TEMP']) / 'isocast-release-signing'
+          root.mkdir(exist_ok=True)
+          team = os.environ['APPLE_TEAM_ID']
+          if not re.fullmatch(r'[A-Z0-9]{10}', team):
+              sys.exit('APPLE_TEAM_ID must be a 10-character team id')
+          def run(label, *args):
+              try:
+                  result = subprocess.run(args, capture_output=True, text=True, timeout=60)
+              except subprocess.TimeoutExpired:
+                  sys.exit(f'{label} timed out; signing data is not logged')
+              if result.returncode:
+                  sys.exit(f'{label} failed (exit {result.returncode}); signing data is not logged')
+              return result.stdout
+          original = shlex.split(run('keychain inventory', 'security', 'list-keychains', '-d', 'user'))
+          (root / 'search-list.json').write_text(json.dumps(original))
+          for name, secret in [('certificate.p12', 'DEVELOPER_ID_P12_BASE64'), ('AuthKey.p8', 'APPLE_API_KEY_P8_BASE64')]:
+              try:
+                  data = base64.b64decode(os.environ[secret], validate=True)
+                  if not data: raise ValueError()
+              except ValueError:
+                  sys.exit(f'{secret} must be nonempty single-line base64')
+              (root / name).write_bytes(data)
+          password = secrets.token_urlsafe(32)
+          print(f'::add-mask::{password}', flush=True)
+          keychain = str(root / 'signing.keychain-db')
+          run('keychain creation', 'security', 'create-keychain', '-p', password, keychain)
+          run('keychain settings', 'security', 'set-keychain-settings', '-lut', '21600', keychain)
+          run('keychain unlock', 'security', 'unlock-keychain', '-p', password, keychain)
+          run('certificate import', 'security', 'import', str(root / 'certificate.p12'), '-P', os.environ['DEVELOPER_ID_P12_PASSWORD'], '-t', 'cert', '-f', 'pkcs12', '-k', keychain, '-T', '/usr/bin/codesign', '-T', '/usr/bin/security')
+          run('key access', 'security', 'set-key-partition-list', '-S', 'apple-tool:,apple:', '-s', '-k', password, keychain)
+          run('keychain search list', 'security', 'list-keychains', '-d', 'user', '-s', keychain, *original)
+          identities = re.findall(r'([0-9A-F]{40}) "(Developer ID Application: [^"\n]+)"', run('signing identity', 'security', 'find-identity', '-v', '-p', 'codesigning', keychain))
+          identities = [fingerprint for fingerprint, name in identities if name.endswith(f'({team})')]
+          if len(identities) != 1: sys.exit('expected exactly one Developer ID Application identity for APPLE_TEAM_ID')
+          print(f'::add-mask::{identities[0]}', flush=True)
+          with open(os.environ['GITHUB_ENV'], 'a') as out:
+              out.write(f'ISOCAST_SIGN_KEYCHAIN={keychain}\nISOCAST_SIGN_IDENTITY={identities[0]}\nAPPLE_API_KEY_PATH={root / "AuthKey.p8"}\n')
+          (root / 'certificate.p12').unlink()
+          PY
+      - name: Check the Sparkle update signing key
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ env.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          python3 - <<'PY'
+          import base64, binascii, os, sys
+          try:
+              key = base64.b64decode(os.environ.get('SPARKLE_ED_PRIVATE_KEY', '').strip(), validate=True)
+          except (binascii.Error, ValueError):
+              key = b''
+          # generate_keys -x: a 32-byte seed (current) or 96 bytes (older keys).
+          if len(key) not in (32, 96):
+              sys.exit('SPARKLE_ED_PRIVATE_KEY is missing or not a Sparkle EdDSA private key (generate_keys -x); its value is not logged')
+          print('Sparkle signing key present')
+          PY
+      - name: Build and Developer ID-sign native app and DMG
+        run: scripts/release.sh --output "$RELEASE_OUTPUT"
+      - name: Notarize, verify mounted runtime, create or refresh one draft
+        timeout-minutes: 40
+        env:
+          APPLE_API_KEY_ID: ${{ env.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ env.APPLE_API_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+          SPARKLE_ED_PRIVATE_KEY: ${{ env.SPARKLE_ED_PRIVATE_KEY }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          scripts/release.sh --notarize --verify-runtime --hosted \
+            --draft-release --verify-tag --replace-draft \
+            --output "$RELEASE_OUTPUT"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          draft = json.loads((Path(os.environ['RELEASE_OUTPUT']) / 'draft.json').read_text())
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as out:
+              out.write(f'## Unpublished release draft\n\n{draft["url"]}\n')
+          PY
+      - name: Remove temporary signing material
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json, os, shutil, subprocess
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP']) / 'isocast-release-signing'
+          if not root.exists(): raise SystemExit(0)
+          errors = []
+          try:
+              saved = root / 'search-list.json'
+              if saved.exists():
+                  result = subprocess.run(['security', 'list-keychains', '-d', 'user', '-s', *json.loads(saved.read_text())], capture_output=True, timeout=30)
+                  if result.returncode: errors.append('keychain search-list restore failed')
+              keychain = root / 'signing.keychain-db'
+              if keychain.exists():
+                  result = subprocess.run(['security', 'delete-keychain', str(keychain)], capture_output=True, timeout=30)
+                  if result.returncode: errors.append('temporary keychain deletion failed')
+          finally:
+              shutil.rmtree(root)
+          if errors: raise SystemExit('; '.join(errors))
+          print('Temporary keychain, API key and certificate removed')
+          PY
+
+  attach-linux:
+    needs: [preflight, release, linux-packages]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.preflight.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: 'isocast-{deb-*,linux-*}'
+          path: ${{ runner.temp }}/isocast-linux-packages
+      - name: Attach Linux packages to the existing unpublished draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.preflight.outputs.version }}
+          ISOCAST_LINUX_ARTIFACTS: ${{ runner.temp }}/isocast-linux-packages
+        run: python3 scripts/release-finalize.py --attach-linux "$VERSION" --output "$RUNNER_TEMP/staged"

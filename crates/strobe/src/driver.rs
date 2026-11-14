@@ -1,0 +1,2410 @@
+//! The `page` driver (SPEC §9.6): inputs over CDP or WebDriver BiDi, event-driven waits, run and phase
+//! marks.
+
+pub mod native;
+pub mod os;
+pub mod pixels;
+pub mod touch;
+pub mod tty;
+pub mod window;
+
+use crate::model::{Error, Refusal, Result, ValidatorId};
+use crate::probe::present::frames::Sent;
+use crate::store::actions::Hit;
+use crate::target::a11y::keys::{self, Button, Key, Mods, Named};
+use crate::target::a11y::{Dialect, Selector};
+use crate::target::bidi;
+use crate::target::chromium;
+use crate::target::web::WebPage as Page;
+use serde_json::{Value, json};
+use std::cell::{Cell, RefCell};
+use std::time::{Duration, Instant};
+
+/// What one driver call sent, for the block's action log (SPEC §14.1 `actions.json.gz`): when its
+/// first measured input went out (a click's release, a key press, a scroll's first step; else its
+/// first input of any kind), that input's press (a single click), and what its aim found. Each driver
+/// says it as it sends, from what it already knows (its own clock reads, the aim's one look at the
+/// target): no extra call to the target. The runner takes it after each call (`take_sending`).
+#[derive(Clone, Debug, Default)]
+pub struct Sending {
+    pub t_ns: Option<u64>,
+    /// `t_ns` is an input a latency sample may come from.
+    pub measured: bool,
+    pub press_ns: Option<u64>,
+    pub hit: Option<Hit>,
+    /// The call's pointer input was a finger's (an emulated phone's page), not a mouse's.
+    pub touch: bool,
+}
+
+thread_local! {
+    /// The current call's `Sending`: the drivers run on the thread that serves the runner.
+    static SENDING: RefCell<Sending> = RefCell::default();
+}
+
+/// An input went out at `t_ns` (`measured`: one a latency sample may come from, with a single
+/// click's `press`). The call keeps its first measured input, else its first input; a press given
+/// later for the kept input fills it in.
+pub(crate) fn sent(t_ns: u64, measured: bool, press: Option<u64>) {
+    SENDING.with_borrow_mut(|s| {
+        if measured && !s.measured {
+            (s.t_ns, s.measured, s.press_ns) = (Some(t_ns), true, press);
+        } else if measured && s.t_ns == Some(t_ns) && press.is_some() {
+            s.press_ns = press;
+        } else if s.t_ns.is_none() {
+            s.t_ns = Some(t_ns);
+        }
+    });
+}
+
+/// The call's inputs are none a sample may come from after all (keys typed in a burst).
+pub(crate) fn unmeasured() {
+    SENDING.with_borrow_mut(|s| s.measured = false);
+}
+
+/// The call's pointer input went out as touch.
+pub(crate) fn touched() {
+    SENDING.with_borrow_mut(|s| s.touch = true);
+}
+
+/// The element the call's input aims at (its first aim).
+pub(crate) fn aimed(hit: Hit) {
+    SENDING.with_borrow_mut(|s| {
+        s.hit.get_or_insert(hit);
+    });
+}
+
+/// The last call's `Sending`, taken (the runner clears it before a call, and reads it after).
+pub fn take_sending() -> Sending {
+    SENDING.take()
+}
+
+/// `page.query`'s hit tests (`actionable`) at most, per call: an element costs up to five.
+pub(crate) const QUERY_HITS: u32 = 500;
+
+/// The longest strobe waits for a target to settle before a measured input: a target still drawing
+/// then (an animation, a caret, a press ripple) is not at rest, and the input is no sample (SPEC 7.4).
+const SETTLE_MAX: Duration = Duration::from_millis(300);
+
+/// How late a present's event may reach strobe after it began or reached the screen (a flush of the
+/// session's events), allowed for before quiet is called quiet, as `idle` does.
+const PRESENT_DELIVERY_NS: u64 = 30_000_000;
+
+/// Before a measured input (a click's release, a key press, a scroll's first step) and before a press
+/// whose frame must not overlap what came before: at least `min`, then until no present of `pids`
+/// began or reached the screen in the last two refreshes plus the events' delivery time, at most
+/// `SETTLE_MAX` (SPEC 7.4). A click's press is held this way, so its pressed look is on the screen
+/// and settled before the release, as an earlier step's last frame is before the next press. Reads
+/// strobe's own copy of the present events; without a capture it waits `min` alone. Returns whether
+/// the target went quiet (false: still drawing at the cap).
+pub(crate) fn settle(presents: &RefCell<Option<crate::probe::present::PresentCapture>>, pids: &[u32], min: Duration, refresh: Duration) -> Result<bool> {
+    settle_by(presents, pids, min, refresh, Instant::now() + SETTLE_MAX.max(min))
+}
+
+/// `settle`, ending by `until`.
+fn settle_by(presents: &RefCell<Option<crate::probe::present::PresentCapture>>, pids: &[u32], min: Duration, refresh: Duration, until: Instant) -> Result<bool> {
+    std::thread::sleep(min);
+    let quiet = (refresh * 2).as_nanos() as u64 + PRESENT_DELIVERY_NS;
+    while let Some(p) = presents.borrow_mut().as_mut() {
+        let last = p.last_ns(pids)?;
+        let now = crate::host::now_ns();
+        if last + quiet <= now {
+            break;
+        }
+        if Instant::now() >= until {
+            return Ok(false);
+        }
+        std::thread::sleep(Duration::from_nanos(last + quiet - now).min(Duration::from_millis(20)));
+    }
+    Ok(true)
+}
+
+/// Between the keys of `type` (SPEC 7.4): the next key is at rest only once what the last one drew is on
+/// the screen. Waits for the first present of `pids` begun after `sent` to reach it, then for quiet as
+/// `settle` does, both inside one `SETTLE_MAX` (or `min`, a `delay` counted from the key, when longer):
+/// a key that draws nothing, or nothing that soon, waits no longer. Without a capture it waits `min`
+/// alone. Returns whether the target went quiet; a caller stops pacing once it did not (an animation
+/// that never rests would hold each key the whole budget).
+pub(crate) fn settle_key(presents: &RefCell<Option<crate::probe::present::PresentCapture>>, pids: &[u32], sent: u64, min: Duration, refresh: Duration) -> Result<bool> {
+    let since = Instant::now();
+    let until = since + SETTLE_MAX.max(min);
+    if let Some(p) = presents.borrow_mut().as_mut() {
+        p.live(pids, sent, until.saturating_duration_since(Instant::now()))?;
+    }
+    settle_by(presents, pids, min.saturating_sub(since.elapsed()), refresh, until)
+}
+
+/// How `type` sends its keys: paced (each waits for the last one to show and the target to rest,
+/// `settle_key`, until one finds it never rests) or in a burst (`burst: true`: `delay` alone, and no key
+/// a latency sample).
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Typing {
+    Paced,
+    Burst,
+}
+
+impl Typing {
+    pub(crate) fn of(o: &Value) -> Typing {
+        if o["burst"] == true { Typing::Burst } else { Typing::Paced }
+    }
+}
+
+/// `type(…, { paste: true })` is a terminal's (one bracketed paste): a page or an app takes keys.
+pub(crate) fn no_paste(o: &Value) -> Result<()> {
+    if o["paste"] != true {
+        return Ok(());
+    }
+    Err(crate::model::Refusal::new(
+        crate::model::ValidatorId::NotForTarget,
+        "page.type(…, { paste: true }): a paste is a terminal target's (tty(): the text in one bracketed paste); a page or an app is typed one key event per character",
+    )
+    .fix("drop paste: true here: type sends the text key by key (burst: true for a throughput run)")
+    .into())
+}
+
+/// Installed in every document before its scripts run: the browser's own rAF, which a page may replace (a game
+/// frame pacer does) and so delay the driver's waits on its own schedule.
+/// And its timers and listener calls, which a page's fake timers (a test clock) may replace: what the
+/// driver's frame waits arm (`frames_or_hidden!`).
+pub const NATIVE_RAF: &str = "window.__strobeRaf ??= window.requestAnimationFrame.bind(window), window.__strobeTimers ??= { set: setTimeout.bind(window), clear: clearTimeout.bind(window), on: EventTarget.prototype.addEventListener, off: EventTarget.prototype.removeEventListener }";
+
+/// A page function of `n`: a promise of the page's next `n` animation frames (`true`, or their times when
+/// `n` > 2), or "hidden" once the page has been hidden for 200 ms without a break. A visible page arms no
+/// timer: a `visibilitychange` listener (removed at the end) arms one 200 ms timer while the page is
+/// hidden and clears it when it shows again, so a flicker is not hidden. Timers and listener calls are
+/// the browser's own, bound before the page's scripts (`NATIVE_RAF`), else the page's.
+macro_rules! frames_or_hidden {
+    () => {
+        "((n) => new Promise((r) => { const raf = window.__strobeRaf ?? window.requestAnimationFrame.bind(window); const T = window.__strobeTimers ?? { set: setTimeout.bind(window), clear: clearTimeout.bind(window), on: EventTarget.prototype.addEventListener, off: EventTarget.prototype.removeEventListener }; const ts = []; let done = false, t = 0; const vis = () => { if (t) { T.clear(t); t = 0 } if (document.hidden) t = T.set(() => end(\"hidden\"), 200) }; const end = (v) => { if (done) return; done = true; if (t) T.clear(t); T.off.call(document, \"visibilitychange\", vis); r(v) }; T.on.call(document, \"visibilitychange\", vis); vis(); const f = (at) => { if (done) return; ts.push(at); if (ts.length < n) raf(f); else end(n > 2 ? ts : true) }; raf(f) }))"
+    };
+}
+
+/// `__strobe.frame()` for a page evaluated without strobe's helper (any engine): the next frame, or
+/// "hidden" once the page has been hidden for 200 ms.
+pub const NEXT_FRAME: &str = concat!(frames_or_hidden!(), "(2)");
+
+/// Whether a frame wait answered that the page is hidden (`__strobe.frame`, `NEXT_FRAME`).
+pub fn hidden(v: &Value) -> bool {
+    v.as_str() == Some("hidden")
+}
+
+/// `WindowHidden` for a frame wait on a page that became hidden (`document.hidden`): the browser draws
+/// it no frames, so the wait would never end (macOS Chromium hides a popup's opener; it hung 60 s).
+pub fn page_hidden(what: &str) -> Error {
+    Refusal::window_hidden(
+        crate::model::Hidden::Other,
+        format!("{what}: the page became hidden (document.visibilityState is \"hidden\": a popup or another window over it, minimized, a background tab, or the display off), and a hidden page draws no frames"),
+    )
+    .fix("keep the page visible while strobe waits for its frames: close a popup the case opened before such a wait, or measure the case without frame metrics")
+    .into()
+}
+
+/// Installed in every document of a page strobe drives over DevTools or WebDriver on this computer (not
+/// through the OS, not on a phone) before its scripts run: when a key last went down or up in it, on the
+/// document's own monotonic clock (`performance.now`, bound before the page's scripts could replace it;
+/// -1 before any), so a wait after keys sent to no element can tell whether any reached the page
+/// (`Driver::unfocused`). Two passive listeners at the window's capture phase of the top document, under
+/// the driver's source URL, so a profile folds their ticks into strobe's, counted in
+/// `window.__strobeListeners` (a memory census takes them off the page's listeners).
+pub const KEYS_SEEN: &str = r#"window.__strobeKeys ??= (() => {
+  if (window !== window.top) return
+  const now = performance.now.bind(performance)
+  const s = { at: -1, now }
+  for (const e of ["keydown", "keyup"]) addEventListener(e, (ev) => { if (ev.isTrusted) s.at = now() }, { capture: true, passive: true })
+  window.__strobeListeners = (window.__strobeListeners ?? 0) + 2
+  return s
+})(), true
+//# sourceURL=strobe-driver.js"#;
+
+/// The probe's script as a profile names it (`HELPER`'s `sourceURL`).
+pub const SOURCE_URL: &str = "strobe-driver.js";
+
+/// Installed lazily in the page (it disappears on navigation): the one DOM probe every page reader uses (the
+/// driver's selectors and waits, `look`, a block's screen and `expect`), so they agree on what is visible, what a
+/// selector matches and what the headings are. Observers only: nothing polls, except a wait's check per frame while
+/// an element it matches is there but hidden and a CSS animation or transition runs, since those change what is
+/// visible without a mutation. Its work during a run (a wait's checks) is the bench's own and shows in a profile
+/// under `strobe-driver.js`, its source URL (`query hotspots` names it `(strobe driver)`).
+pub(crate) const HELPER: &str = concat!(
+    r#"window.__strobe ??= (() => {
+  const s = {}
+  const raf = window.__strobeRaf ?? window.requestAnimationFrame.bind(window)
+  // What a person could see: a box, and not hidden by `visibility`, `opacity: 0` or `content-visibility` on it or an ancestor.
+  const visible = (el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && (el.checkVisibility?.({ checkOpacity: true, checkVisibilityCSS: true }) ?? true) }
+  // Shadow roots (a diff or code viewer renders into one): every observer below watches them too, so `idle` and
+  // `waitFor` see what changes inside, and `host >>> inner` selects across them. Roots attached before this helper
+  // are found once; later ones are caught where they are created.
+  const roots = new Set()
+  const observers = new Set()
+  const watch = (root) => {
+    if (roots.has(root)) return
+    roots.add(root)
+    for (const o of observers) o.mo.observe(root, o.opts)
+    for (const el of root.querySelectorAll("*")) if (el.shadowRoot) watch(el.shadowRoot)
+  }
+  for (const el of document.querySelectorAll("*")) if (el.shadowRoot) watch(el.shadowRoot)
+  const attach = Element.prototype.attachShadow
+  Element.prototype.attachShadow = function (init) { const root = attach.call(this, init); watch(root); return root }
+  const observe = (fn, opts) => {
+    const o = { mo: new MutationObserver(fn), opts, fn }
+    o.mo.observe(document, opts)
+    for (const r of roots) o.mo.observe(r, opts)
+    observers.add(o)
+    return () => { o.mo.disconnect(); observers.delete(o) }
+  }
+  // Declarative shadow roots: the parser attaches them without attachShadow. While the document still loads (the
+  // helper went in from its first script: a launch's observer), each batch of parsed nodes is looked at for roots,
+  // with the node before it (a host whose template has just been parsed), and the whole document once more when it
+  // has loaded. A root found counts as a change to every observer.
+  if (document.readyState === "loading") {
+    const adopt = (n, deep) => {
+      if (n?.nodeType !== 1) return
+      if (n.shadowRoot) watch(n.shadowRoot)
+      if (deep) for (const el of n.querySelectorAll("*")) if (el.shadowRoot) watch(el.shadowRoot)
+    }
+    const found = (scan) => {
+      const before = roots.size
+      scan()
+      if (roots.size > before) for (const o of observers) o.fn([])
+    }
+    const parsed = new MutationObserver((records) => found(() => { for (const r of records) { adopt(r.previousSibling, false); for (const n of r.addedNodes) adopt(n, true) } }))
+    parsed.observe(document, { childList: true, subtree: true })
+    document.addEventListener("DOMContentLoaded", () => { parsed.disconnect(); found(() => adopt(document.documentElement, true)) }, { once: true })
+  }
+  const query = (root, [first, ...rest]) => {
+    const found = [...root.querySelectorAll(first)]
+    return rest.length ? found.flatMap((host) => (host.shadowRoot ? query(host.shadowRoot, rest) : [])) : found
+  }
+  // An element's ARIA role: its own `role`, else the one its HTML implies.
+  const implicit = (el) => {
+    const type = (el.getAttribute("type") ?? "").toLowerCase()
+    switch (el.localName) {
+      case "a": case "area": return el.hasAttribute("href") ? "link" : ""
+      case "button": case "summary": return "button"
+      case "input": return { button: "button", submit: "button", reset: "button", image: "button", checkbox: "checkbox", radio: "radio", range: "slider", number: "spinbutton", search: "searchbox" }[type]
+        ?? (["hidden", "file", "color", "date", "datetime-local", "month", "time", "week"].includes(type) ? "" : "textbox")
+      case "textarea": return "textbox"
+      case "select": return el.multiple || el.size > 1 ? "listbox" : "combobox"
+      case "option": return "option"
+      case "h1": case "h2": case "h3": case "h4": case "h5": case "h6": return "heading"
+      case "img": return el.getAttribute("alt") === "" ? "presentation" : "img"
+      case "ul": case "ol": case "menu": return "list"
+      case "li": return "listitem"
+      case "nav": return "navigation"
+      case "main": return "main"
+      case "aside": return "complementary"
+      case "header": return "banner"
+      case "footer": return "contentinfo"
+      case "dialog": return "dialog"
+      case "table": return "table"
+      case "tr": return "row"
+      case "td": return "cell"
+      case "th": return "columnheader"
+      case "progress": return "progressbar"
+      case "hr": return "separator"
+      case "form": return "form"
+      case "article": return "article"
+      case "output": return "status"
+    }
+    return ""
+  }
+  const roleOf = (el) => (el.getAttribute("role") ?? "").trim().split(/\s+/)[0].toLowerCase() || implicit(el)
+  // The roles a native app's tree names otherwise.
+  const alias = { image: "img", edit: "textbox" }
+  const isRole = (el, want) => { const r = roleOf(el), w = alias[want] ?? want; return r === w || (w === "textbox" && r === "searchbox") }
+  // `text` matches a substring of the element's text, label or value, or all of one (trimmed) when `exact`.
+  const has = (el, text, exact) => text == null || [el.textContent ?? "", el.getAttribute("aria-label") ?? "", typeof el.value === "string" ? el.value : ""].some((t) => (exact ? t.trim() === text.trim() : t.includes(text)))
+  const up = (el) => el.parentElement ?? el.getRootNode().host ?? null
+  // The elements a text alone can match: those with a text node of their own that holds it, and those whose label or
+  // value does, in tree order. A walk of the text nodes, not of every element's whole text (the page's, its body's, each
+  // container's: large strings on a large page, built on its main thread on every check of a wait).
+  const holders = (text, exact) => {
+    const out = new Set()
+    const w = document.createTreeWalker(document, NodeFilter.SHOW_TEXT)
+    for (let n = w.nextNode(); n; n = w.nextNode()) if (n.parentElement && (exact ? n.data.trim() === text.trim() : n.data.includes(text))) out.add(n.parentElement)
+    for (const el of document.querySelectorAll("[aria-label], input, textarea, select")) out.add(el)
+    return [...out].sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1))
+  }
+  // A selector as strobe parsed it (`{ css, role, text, exact, index, focus }`): CSS (every element without), then
+  // its filters, the cheap ones first. With a text, only the innermost visible matches count: every ancestor's text
+  // holds it too, and a hidden descendant's (an icon's title, a screen-reader label) must not hide the element. It
+  // runs on the page's main thread inside a run whenever a wait checks, so without a text it stops at the match it
+  // needs and measures the layout of no element past it. `{ el, near }`: the element (or null), and whether any
+  // element matched in the DOM, shown or not (only then can one show without a mutation).
+  const pick = (q) => {
+    const bare = q.css == null && q.role == null && q.text != null
+    const all = bare ? holders(q.text, q.exact) : query(document, (q.css ?? "*").split(">>>").map((p) => p.trim()))
+    const found = all.filter((el) => (q.role == null || isRole(el, q.role)) && (!q.focus || el.matches(":focus")) && has(el, q.text, q.exact))
+    return { el: found.length ? shownOf(q, found, bare) : null, near: found.length > 0 }
+  }
+  const shownOf = (q, found, bare) => {
+    // A negative index counts from the last match (-1): the walk goes backwards and stops there too.
+    let left = q.index ?? 0
+    if (q.text == null) {
+      if (left < 0) { for (let i = found.length - 1; i >= 0; i--) if (visible(found[i]) && ++left === 0) return found[i]; return null }
+      for (const el of found) if (visible(el) && left-- === 0) return el
+      return null
+    }
+    // An icon's text (an SVG <title>, drawn nowhere) stands for the nearest visible element around it that holds it
+    // too; any other hidden holder (opacity 0, display: none) matches nothing, not an ancestor such as the body.
+    const lift = (el) => {
+      if (visible(el)) return el
+      if (el.namespaceURI !== "http://www.w3.org/2000/svg") return null
+      for (let p = up(el); p; p = up(p)) if (visible(p)) return has(p, q.text, q.exact) ? p : null
+      return null
+    }
+    const shown = [...new Set(bare ? found.map(lift).filter(Boolean) : found.filter(visible))]
+    const outer = new Set()
+    for (const el of shown) for (let p = up(el); p && !outer.has(p); p = up(p)) outer.add(p)
+    return shown.filter((el) => !outer.has(el)).at(left) ?? null
+  }
+  const focusedIn = (el) => el.contains(document.activeElement) || el.matches(":focus-within")
+  s.focused = (q) => { const el = s.find(q); return !!el && focusedIn(el) }
+  // Armed before a tap into a field (`waitFocus`), read once after it: whether focus came into the element within
+  // `timeout` ms, from the page's own focusin, with no polling and no layout after the tap.
+  s.armFocus = (q, timeout) => {
+    const el = s.find(q)
+    s.focusWait = !el ? Promise.resolve(false) : focusedIn(el) ? Promise.resolve(true) : new Promise((res) => {
+      const done = (v) => { removeEventListener("focusin", on, true); clearTimeout(t); res(v) }
+      const on = () => { if (focusedIn(el)) done(true) }
+      addEventListener("focusin", on, true)
+      const t = setTimeout(() => done(focusedIn(el)), timeout)
+    })
+    return true
+  }
+  // `armFocus` for a tap at a point, which names no element: whether focus left the body (a focusin
+  // elsewhere) within `timeout` ms.
+  s.armFocusAny = (timeout) => {
+    const away = () => !!document.activeElement && document.activeElement !== document.body
+    s.focusWait = new Promise((res) => {
+      const done = (v) => { removeEventListener("focusin", on, true); clearTimeout(t); res(v) }
+      const on = () => { if (away()) done(true) }
+      addEventListener("focusin", on, true)
+      const t = setTimeout(() => done(away()), timeout)
+    })
+    return true
+  }
+  // The flat tree's parent, which layout follows: a slotted element's slot, else its parent, else a shadow root's host.
+  const flatUp = (el) => el.assignedSlot ?? el.parentElement ?? el.getRootNode().host ?? null
+  // Whether an element is a containing block for fixed descendants (and so for absolute ones).
+  const holds = (cs) => cs.transform !== "none" || cs.perspective !== "none" || cs.filter !== "none" || (cs.backdropFilter ?? "none") !== "none"
+    || (cs.translate ?? "none") !== "none" || (cs.scale ?? "none") !== "none" || (cs.rotate ?? "none") !== "none"
+    || /paint|layout|strict|content/.test(cs.contain) || (cs.containerType ?? "normal") !== "normal"
+    || /transform|perspective|filter|translate|scale|rotate|contain/.test(cs.willChange)
+  // What clips an element, in viewport CSS pixels: the viewport without its scroll bars, and each ancestor in the flat
+  // tree whose overflow clips it, per axis (an absolutely positioned element from its containing block up, a fixed one
+  // only by the viewport unless an ancestor holds it). A box with no overflow of its own (inline, `display: contents`)
+  // clips nothing; the root's overflow is the viewport's, and the body's too while the root's is visible. A transformed
+  // or zoomed clipper's client box is scaled with it; an SVG clipper clips by its box. `by`: the ancestor that left
+  // none of the element, if one did.
+  const clipOf = (el) => {
+    const de = document.documentElement, vp = document.compatMode === "BackCompat" && document.body ? document.body : de
+    const c = { x0: 0, y0: 0, x1: vp?.clientWidth || innerWidth, y1: vp?.clientHeight || innerHeight, by: null }
+    const r = el.getBoundingClientRect()
+    const rs = getComputedStyle(de), rootVisible = rs.overflowX === "visible" && rs.overflowY === "visible"
+    let pos = getComputedStyle(el).position
+    for (let p = flatUp(el); p && p !== de; p = flatUp(p)) {
+      const cs = getComputedStyle(p)
+      const holder = holds(cs)
+      if (pos === "fixed" ? !holder : pos === "absolute" ? cs.position === "static" && !holder : false) continue
+      pos = cs.position
+      if (cs.display === "contents" || cs.display === "inline" || (p === document.body && rootVisible)) continue
+      const cx = cs.overflowX !== "visible", cy = cs.overflowY !== "visible"
+      if (!cx && !cy) continue
+      const b = p.getBoundingClientRect()
+      let left = b.left, top = b.top, w = b.width, h = b.height
+      if (p instanceof HTMLElement && p.offsetWidth > 0 && p.offsetHeight > 0) {
+        const sx = b.width / p.offsetWidth, sy = b.height / p.offsetHeight
+        left += p.clientLeft * sx; top += p.clientTop * sy; w = p.clientWidth * sx; h = p.clientHeight * sy
+      }
+      if (cx) { c.x0 = Math.max(c.x0, left); c.x1 = Math.min(c.x1, left + w) }
+      if (cy) { c.y0 = Math.max(c.y0, top); c.y1 = Math.min(c.y1, top + h) }
+      if (!c.by && (Math.min(r.right, c.x1) - Math.max(r.left, c.x0) < 1 || Math.min(r.bottom, c.y1) - Math.max(r.top, c.y0) < 1)) c.by = p
+    }
+    return c
+  }
+  const cut = (r, c) => ({ x0: Math.max(r.left, c.x0), y0: Math.max(r.top, c.y0), x1: Math.min(r.right, c.x1), y1: Math.min(r.bottom, c.y1) })
+  const shows = (a) => a.x1 - a.x0 >= 1 && a.y1 - a.y0 >= 1
+  // A part's centre, strictly inside the viewport (a WebDriver browser refuses a point on its edge).
+  const mid = (a) => [Math.min(Math.max((a.x0 + a.x1) / 2, 0), innerWidth - 1), Math.min(Math.max((a.y0 + a.y1) / 2, 0), innerHeight - 1)]
+  const partOf = (el) => cut(el.getBoundingClientRect(), clipOf(el))
+  // At once: a page's `scroll-behavior: smooth` would leave the box where the scroll began.
+  const bring = (el, at) => { const o = { block: at, inline: at }; try { el.scrollIntoView({ ...o, behavior: "instant" }) } catch { el.scrollIntoView(o) } }
+  // What input at a viewport point reaches, through open shadow roots, and whether that is `el`: the element there or one
+  // of its flat-tree ancestors, or a label of it.
+  const under = (x, y) => { let h = document.elementFromPoint(x, y); while (h?.shadowRoot) { const i = h.shadowRoot.elementFromPoint(x, y); if (!i || i === h) break; h = i } return h }
+  const reaches = (el, x, y) => {
+    const h = under(x, y)
+    if (h && h.control === el) return null
+    for (let p = h; p; p = flatUp(p)) if (p === el) return null
+    return h ?? document.documentElement
+  }
+  // Where input aims at an element (one rule in every engine): the centre of its visible part, so a box taller than the
+  // viewport (a long editor) is aimed at the middle of what shows of it, scrolled into view first when none of it shows
+  // (`scrolled`). The point must reach the element (hit-tested): while something covers it, each of its line boxes (a
+  // link wrapped over two lines has a gap at its box's centre), then the element centred in the viewport, then the
+  // centres of its visible part's quarters. Else no point, and why (`hidden`: nothing shows; `covered`: what covers it).
+  s.box = (el) => {
+    let scrolled = false, part = partOf(el)
+    if (!shows(part)) { bring(el, "nearest"); scrolled = true; part = partOf(el) }
+    const r = el.getBoundingClientRect(), box = { w: r.width, h: r.height }
+    if (!shows(part)) {
+      const at = Math.round(r.width) + "x" + Math.round(r.height) + " at (" + Math.round(r.left) + ", " + Math.round(r.top) + ")"
+      const by = clipOf(el).by
+      return { ...box, scrolled, x: null, y: null, hidden: "its box (" + at + ") shows nowhere in the " + innerWidth + "x" + innerHeight + " viewport even scrolled into view" + (by ? ": " + name(by) + " clips it away" : "") }
+    }
+    const clip = clipOf(el)
+    let cover = null
+    for (const [x, y] of [mid(part), ...[...el.getClientRects()].map((q) => cut(q, clip)).filter(shows).map(mid)]) {
+      const h = reaches(el, x, y)
+      if (!h) return { ...box, scrolled, x, y }
+      cover ??= h
+    }
+    bring(el, "center"); scrolled = true
+    const p = partOf(el)
+    if (shows(p)) {
+      const [x, y] = mid(p), qx = (p.x1 - p.x0) / 4, qy = (p.y1 - p.y0) / 4
+      for (const [ax, ay] of [[x, y], [x - qx, y - qy], [x + qx, y - qy], [x - qx, y + qy], [x + qx, y + qy]]) if (!reaches(el, ax, ay)) return { ...box, scrolled, x: ax, y: ay }
+    }
+    return { ...box, scrolled, x: null, y: null, covered: name(cover) }
+  }
+  // Where a finger starts a swipe that scrolls by (dx, dy): on the trailing side of the element's visible part, `edge`
+  // inside it and the viewport (its bottom for a scroll down, where the finger has the most room to travel up), then
+  // stepping toward its centre until a hit test finds the element there; with the viewport's size. No point when none does.
+  s.trail = (q, dx, dy, edge) => {
+    const el = s.find(q), size = [innerWidth, innerHeight]
+    if (!el) return [null, null, ...size]
+    const p = partOf(el), w = p.x1 - p.x0, h = p.y1 - p.y0
+    const at = (d, lo, hi, len, f) => (d > 0 ? hi - edge - f * len : d < 0 ? lo + edge + f * len : (lo + hi) / 2)
+    for (const f of [0, 0.1, 0.2, 0.3, 0.4, 0.5]) {
+      const x = Math.min(Math.max(at(dx, p.x0, p.x1, w, f), edge), size[0] - edge), y = Math.min(Math.max(at(dy, p.y0, p.y1, h, f), edge), size[1] - edge)
+      if (!reaches(el, x, y)) return [x, y, ...size]
+    }
+    return [null, null, ...size]
+  }
+  // The page's time in strobe's element lookups (`driver.read_ms`): what a read costs its main thread,
+  // never the time a wait spends waiting for the page.
+  s.spent = 0
+  const timed = (q) => { const t = performance.now(); try { return pick(q) } finally { s.spent += performance.now() - t } }
+  s.find = (q) => timed(q).el
+  const caf = window.cancelAnimationFrame.bind(window)
+  // The element, once it shows (`waitFor` without the element). Checked at once, then at most once a frame after a
+  // change that could show it: the DOM, focus (it moves without a mutation, so a `:focus` selector would otherwise
+  // never resolve), an animation or transition starting or ending, a scroll, a resize. The check runs after the
+  // frame has rendered (a task posted from its animation callback), so the boxes it reads are the ones the frame
+  // laid out and it forces no layout of the page's own; a page that draws no frames (hidden) is checked 50 ms after
+  // the change instead (only then: a frame later than 50 ms, a headless clock's or one with the display off, is
+  // waited for, so the wait never ends before that frame and leaves its work for after the step). While an element it matches is
+  // there but hidden and an animation or transition runs, it checks each frame: a fade in (opacity from 0) shows
+  // an element on a frame, not on a mutation.
+  s.waitEl = (q, timeout, label) => new Promise((resolve, reject) => {
+    const first = timed(q)
+    if (first.el) return resolve(first.el)
+    let done = false, queued = false, frame = 0, late = 0
+    const port = new MessageChannel()
+    const check = () => {
+      if (done || !queued) return
+      queued = false
+      caf(frame)
+      clearTimeout(late)
+      late = 0
+      const r = timed(q)
+      if (r.el) { stop(); resolve(r.el) }
+      else if (r.near && document.getAnimations().some((a) => a.playState === "running" || a.playState === "pending")) soon()
+    }
+    port.port1.onmessage = check
+    // A page hidden while a check waits for its frame (a `visibilitychange`) is checked 50 ms on.
+    const soon = () => {
+      if (done) return
+      if (document.hidden && queued && !late) late = setTimeout(check, 50)
+      if (queued) return
+      queued = true
+      frame = raf(() => port.port2.postMessage(0))
+      if (document.hidden) late = setTimeout(check, 50)
+    }
+    const unwatch = observe(soon, { subtree: true, childList: true, attributes: true, characterData: q.text != null })
+    const events = ["focusin", "focusout", "animationstart", "animationend", "transitionrun", "transitionend", "scroll", "visibilitychange"]
+    for (const e of events) document.addEventListener(e, soon, true)
+    window.addEventListener("resize", soon)
+    const stop = () => {
+      done = true
+      caf(frame)
+      clearTimeout(late)
+      clearTimeout(t)
+      unwatch()
+      for (const e of events) document.removeEventListener(e, soon, true)
+      window.removeEventListener("resize", soon)
+      port.port1.close()
+    }
+    const t = setTimeout(() => { stop(); reject(new Error("timed out waiting for " + label)) }, timeout)
+    if (first.near) soon()
+  })
+  s.waitFor = (q, timeout, label) => s.waitEl(q, timeout, label).then(() => true)
+  // What a person sees at the top of the page: its title and address, its open dialogs (by their heading), then
+  // its top headings (h1, h2, and role=heading at aria-level 1 or 2, its default), at most `max`; and its visible
+  // text, at most `chars` of it (none read when 0).
+  s.screen = (max, chars) => {
+    const text = (e) => (e.getAttribute("aria-label") || e.innerText || e.textContent || "").trim().replace(/\s+/g, " ").slice(0, 80)
+    const out = []
+    for (const d of document.querySelectorAll("dialog[open], [role=dialog], [role=alertdialog], [aria-modal=true]"))
+      if (visible(d)) out.push(text(d.querySelector("h1, h2, h3, [role=heading]") ?? d))
+    for (const h of document.querySelectorAll("h1, h2, [role=heading]"))
+      if (Number(h.getAttribute("aria-level") ?? (h.localName === "h1" ? 1 : 2)) <= 2 && visible(h)) out.push(text(h))
+    const body = chars > 0 ? (document.body?.innerText ?? "").replace(/\n{3,}/g, "\n\n").trim() : ""
+    return JSON.stringify({ title: document.title, url: location.href, headings: [...new Set(out.filter(Boolean))].slice(0, max), text: body.slice(0, chars), chars: body.length, ready: document.readyState })
+  }
+  // `tag#id.class`: a node as a person finds it in DevTools.
+  const name = (n) => {
+    const el = n && n.nodeType === 1 ? n : n?.parentElement
+    if (!el) return '#' + (n?.nodeName ?? "?")
+    const cls = typeof el.className === "string" ? el.className.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((c) => "." + c).join("") : ""
+    return el.tagName.toLowerCase() + (el.id ? '#' + el.id : "") + cls
+  }
+  s.idle = (quiet, timeout) => new Promise((resolve, reject) => {
+    let timer, po
+    // What kept the page busy, for the failure: mutations by node and kind, long frames by script.
+    const causes = new Map()
+    let mutations = 0, frames = 0, longest = 0
+    const count = (key) => causes.set(key, (causes.get(key) ?? 0) + 1)
+    const stop = () => { unwatch(); if (po) po.disconnect(); clearTimeout(timer); clearTimeout(limit) }
+    const kick = () => { clearTimeout(timer); timer = setTimeout(() => { stop(); resolve(true) }, quiet) }
+    const unwatch = observe((records) => {
+      for (const r of records) { mutations++; count("mutation " + name(r.target) + (r.type === "attributes" ? " [" + r.attributeName + "]" : r.type === "childList" ? " (children)" : " (text)")) }
+      kick()
+    }, { subtree: true, childList: true, attributes: true, characterData: true })
+    try {
+      po = new PerformanceObserver((list) => {
+        for (const e of list.getEntries()) {
+          frames++
+          longest = Math.max(longest, e.duration)
+          const top = [...(e.scripts ?? [])].sort((a, b) => b.duration - a.duration)[0]
+          count("long frame " + (top ? (top.invoker || "script") + (top.sourceURL ? " (" + top.sourceURL.split("/").pop() + ")" : "") : "(no script: style, layout or paint)"))
+        }
+        kick()
+      })
+      po.observe({ type: "long-animation-frame" })
+    } catch {}
+    const limit = setTimeout(() => {
+      stop()
+      const top = [...causes].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, n]) => k + " ×" + n).join("; ")
+      // Lead with what kept it busy: DOM mutations, long animation frames (a frame over 50 ms with no
+      // mutation: a spinner's animation on a slow core, a script on a timer), or both.
+      const muts = mutations + " DOM mutation" + (mutations === 1 ? "" : "s")
+      const longs = frames + " animation frame" + (frames === 1 ? "" : "s") + " over 50 ms (longest " + Math.round(longest) + " ms)"
+      const what = !frames ? "the DOM kept changing (" + muts + ", no long frames)"
+        : !mutations ? "long frames kept it busy (" + longs + ", no DOM mutations)"
+        : "the DOM kept changing and frames ran long (" + muts + "; " + longs + ")"
+      reject(new Error("the page never went idle in " + timeout + " ms: " + what + (top ? "; most: " + top : "")))
+    }, timeout)
+    kick()
+  })
+  // `until: "animations"`: until no animation that ends is running (CSS animations and transitions, Web
+  // Animations), in the document and every shadow root strobe found (`getAnimations()` of each: a document's
+  // leaves its shadow trees out), looked at again a frame after each set finished, since one may start the
+  // next. With none at first it looks once more a frame later: a transition the step's change starts begins
+  // at the next frame's style update. An endless one (a spinner) is never waited for.
+  s.animations = (timeout) => new Promise((resolve, reject) => {
+    const deadline = performance.now() + timeout
+    const ending = () => [...new Set([document, ...roots].flatMap((r) => r.getAnimations?.() ?? []))].filter((a) => a.playState === "running" && Number.isFinite(a.effect?.getComputedTiming?.().endTime ?? Infinity))
+    const label = (a) => (a.animationName || a.transitionProperty || a.id || "an animation") + " on " + name(a.effect?.target)
+    const next = (f) => document.hidden ? setTimeout(f, 16) : raf(f)
+    let first = true
+    const look = () => {
+      const running = ending()
+      // Two frames: the next frame's style update has run when the second one's callbacks do.
+      if (!running.length && first) { first = false; return next(() => next(look)) }
+      first = false
+      if (!running.length) return resolve(true)
+      const left = deadline - performance.now()
+      if (left <= 0) return reject(new Error("animations still running after " + timeout + " ms: " + running.slice(0, 3).map(label).join("; ")))
+      Promise.race([Promise.allSettled(running.map((a) => a.finished)), new Promise((r) => setTimeout(r, left))]).then(() => next(look))
+    }
+    look()
+  })
+  // What a run starts from that its input acts on (`ResetIncomplete`): the value of every visible, enabled and
+  // writable text field, search box, combo box, spin button, slider and editing host (a password by its length),
+  // and the state of every check box, radio button and switch, by its id, name or label (else its role), in the
+  // page and its shadow roots, with the roles a native app's tree gives them.
+  s.state = () => {
+    const out = {}, seen = {}
+    const put = (k, v) => { seen[k] = (seen[k] ?? 0) + 1; out[seen[k] === 1 ? k : k + " #" + seen[k]] = v }
+    const toggles = ["checkbox", "radio", "switch", "menuitemcheckbox", "menuitemradio"]
+    const values = ["textbox", "searchbox", "combobox", "spinbutton", "slider"]
+    const cut = (t) => JSON.stringify(String(t ?? "").trim().slice(0, 200))
+    for (const root of [document, ...roots]) for (const el of root.querySelectorAll("input, textarea, select, [role], [contenteditable]")) {
+      const role = roleOf(el)
+      const host = el.isContentEditable && !el.parentElement?.isContentEditable
+      if (!host && !toggles.includes(role) && !values.includes(role)) continue
+      if (!visible(el) || el.disabled || el.readOnly || el.getAttribute("aria-readonly") === "true" || el.closest("[inert], [aria-disabled=true]")) continue
+      const label = el.getAttribute("aria-label")
+      const key = el.id ? '#' + el.id : el.name ? el.localName + "[name=" + el.name + "]" : label ? (role || "editable") + " " + JSON.stringify(label) : role || "editable"
+      const aria = el.getAttribute("aria-checked") ?? "false"
+      if (toggles.includes(role)) put(key, el.localName === "input" ? (el.checked ? "checked" : "unchecked") : ({ true: "checked", false: "unchecked" })[aria] ?? aria)
+      else if (el.type === "password") put(key, el.value.length + " characters")
+      else if (typeof el.value === "string" && /^(input|textarea|select)$/.test(el.localName)) put(key, cut(el.value))
+      else if (role === "slider" || role === "spinbutton") put(key, cut(el.getAttribute("aria-valuetext") ?? el.getAttribute("aria-valuenow")))
+      else put(key, cut(el.innerText ?? el.textContent))
+    }
+    return JSON.stringify(out)
+  }
+  // True at the first change input could make (the DOM, an input or change event), false after `timeout` ms.
+  s.change = (timeout) => new Promise((resolve) => {
+    const events = ["input", "change"]
+    const done = (v) => { unwatch(); for (const e of events) document.removeEventListener(e, yes, true); clearTimeout(t); resolve(v) }
+    const yes = () => done(true)
+    const unwatch = observe(yes, { subtree: true, childList: true, attributes: true, characterData: true })
+    for (const e of events) document.addEventListener(e, yes, true)
+    const t = setTimeout(() => done(false), timeout)
+  })
+  // An input's whole look at the page in one call (`driver.reads` counts it once): wait for the element,
+  // then its centre (scrolled into view) and whether focus is in it; the wait's timeout rejects.
+  // With `focus` (a click into a field before typing), a field focus is already in is not aimed at: no click goes there.
+  // What the action log keeps of the element an input aims at (`hit`): read from the box the aim just laid out.
+  const about = (el) => { const r = el.getBoundingClientRect(); return { role: roleOf(el), key: el.id || "", name: nameOf(el), rect: [r.left, r.top, r.width, r.height] } }
+  s.aim = (q, timeout, label, focus) => s.waitEl(q, timeout, label).then((el) => (focus && focusedIn(el) ? { focused: true, ...about(el) } : { ...s.box(el), focused: focusedIn(el), ...about(el) }))
+  // What `expect.same` compares: a field's value, else the element's text; null when it never showed.
+  s.text = (q, timeout) => s.waitEl(q, timeout, "").then((el) => {
+    const v = !el ? null : /^(input|textarea|select)$/.test(el.localName) ? el.value : (el.innerText ?? el.textContent)
+    return v == null ? null : String(v).trim().replace(/\s+/g, " ")
+  }, () => null)
+  // The next frame, or "hidden" once the page has been hidden for 200 ms (`frames_or_hidden!`).
+  s.frame = () => "#,
+    frames_or_hidden!(),
+    r#"(2)
+  // Between paced keys where strobe follows no presents: the frame after the key, then until a frame passes
+  // with no DOM change; true when one did within `ms`, false while the page kept changing.
+  s.settled = (ms) => new Promise((r) => {
+    let changed = true
+    const unwatch = observe(() => { changed = true }, { subtree: true, childList: true, attributes: true, characterData: true })
+    let done = false
+    const finish = (v) => { if (!done) { done = true; unwatch(); r(v) } }
+    const end = performance.now() + ms
+    const tick = () => {
+      if (done) return
+      if (!changed || performance.now() > end) finish(!changed)
+      else { changed = false; raf(tick) }
+    }
+    raf(tick)
+    // A page that draws no frames (hidden) never ticks.
+    setTimeout(() => finish(false), ms)
+  })
+  s.nodes = () => document.getElementsByTagName("*").length
+  // An element's name as a person reads it, at most 120 characters: its label (aria-label, aria-labelledby, a
+  // field's label, alt, title), else its text (read until that is long enough, not built whole), else its placeholder.
+  const squash = (t) => (t ?? "").replace(/\s+/g, " ").trim().slice(0, 120)
+  const nameOf = (el) => {
+    const by = (el.getAttribute("aria-labelledby") ?? "").split(/\s+/).filter(Boolean).map((id) => el.getRootNode().getElementById?.(id)?.textContent ?? "").join(" ")
+    const own = squash(el.getAttribute("aria-label") || by || el.labels?.[0]?.textContent || el.getAttribute("alt") || el.getAttribute("title"))
+    if (own) return own
+    let text = ""
+    const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT)
+    for (let n = w.nextNode(); n && text.length < 240; n = w.nextNode()) text += n.data + " "
+    return squash(text) || squash(el.getAttribute("placeholder"))
+  }
+  const tri = (v) => (v === "true" ? true : v === "false" ? false : null)
+  // `page.query` (SPEC §9.6): the visible elements a selector matches, in tree order and through shadow roots, each as
+  // a native app's query gives it, in viewport CSS pixels; `*` alone: those with a role, an id or a way to take input.
+  // `actionable`: enabled, not inert, with a visible part (the box clipped by the viewport and every ancestor that
+  // clips it, as input aims) that a hit test at its centre (then its quarters' centres) finds the element at, with no
+  // scrolling; at most `hits` hit tests in all, null past them (`cut`). Only
+  // actionable ones with `only`. Read once, on the page's main thread; its time is strobe's (`driver.read_ms`).
+  s.query = (q, hits, only) => {
+    const t0 = performance.now()
+    try {
+      const deep = (root, out) => { for (const el of root.querySelectorAll("*")) { out.push(el); if (el.shadowRoot) deep(el.shadowRoot, out) } return out }
+      const every = q.css === "*" && q.role == null && q.text == null && !q.focus
+      const bare = q.css == null && q.role == null && q.text != null
+      const all = bare ? holders(q.text, q.exact) : q.css == null || q.css === "*" ? deep(document, []) : query(document, q.css.split(">>>").map((p) => p.trim()))
+      const interactive = (el) => el.tabIndex >= 0 || el.isContentEditable || el.hasAttribute("onclick")
+      let found = all.filter((el) => (q.role == null || isRole(el, q.role)) && (!q.focus || el.matches(":focus")) && has(el, q.text, q.exact) && (!every || roleOf(el) || el.id || interactive(el)) && visible(el))
+      if (q.text != null) {
+        const outer = new Set()
+        for (const el of found) for (let p = up(el); p && !outer.has(p); p = up(p)) outer.add(p)
+        found = found.filter((el) => !outer.has(el))
+      }
+      const at = q.index ?? 0
+      found = at < 0 ? found.slice(Math.max(0, found.length + at)) : found.slice(at)
+      // A selector that finds the element again: from the nearest id unique in its root, else the root, by
+      // child position, `>>>` into shadow roots.
+      const ids = new Map(), paths = new Map()
+      const unique = (root, id) => {
+        if (!ids.has(root)) { const n = new Map(); for (const e of root.querySelectorAll("[id]")) n.set(e.id, (n.get(e.id) ?? 0) + 1); ids.set(root, n) }
+        return ids.get(root).get(id) === 1
+      }
+      const pathOf = (el) => {
+        if (paths.has(el)) return paths.get(el)
+        const root = el.getRootNode()
+        let p
+        if (el.id && unique(root, el.id)) p = (root.host ? pathOf(root.host) + " >>> " : "") + '#' + CSS.escape(el.id)
+        else if (el === document.documentElement) p = "html"
+        else {
+          const step = CSS.escape(el.localName) + ":nth-child(" + ([...(el.parentNode?.children ?? [])].indexOf(el) + 1) + ")"
+          // A shadow root's own child is anchored to it (`:host >`): by position alone it would match a deeper one too.
+          p = el.parentElement ? pathOf(el.parentElement) + " > " + step : root.host ? pathOf(root.host) + " >>> :host > " + step : step
+        }
+        paths.set(el, p)
+        return p
+      }
+      let left = hits, over = false
+      const hitAt = (el, part) => {
+        const [x, y] = mid(part), qx = (part.x1 - part.x0) / 4, qy = (part.y1 - part.y0) / 4
+        for (const [ax, ay] of [[x, y], [x - qx, y - qy], [x + qx, y - qy], [x - qx, y + qy], [x + qx, y + qy]]) {
+          if (left <= 0) { over = true; return null }
+          left--
+          if (!reaches(el, ax, ay)) return true
+        }
+        return false
+      }
+      const out = []
+      for (const el of found) {
+        const r = el.getBoundingClientRect(), part = partOf(el)
+        const enabled = !el.matches(":disabled") && !el.closest("[aria-disabled=true]")
+        const actionable = enabled && !el.closest("[inert]") && shows(part) ? hitAt(el, part) : false
+        if (only && actionable !== true) continue
+        const role = roleOf(el), input = el instanceof HTMLInputElement, toggle = input && (el.type === "checkbox" || el.type === "radio")
+        const checked = toggle ? (el.indeterminate ? null : el.checked) : tri(el.getAttribute("aria-checked"))
+        const expanded = el.localName === "details" ? el.open : el.localName === "summary" && el.parentElement?.localName === "details" ? el.parentElement.open : tri(el.getAttribute("aria-expanded"))
+        const selected = el instanceof HTMLOptionElement ? el.selected : tri(el.getAttribute("aria-selected"))
+        const value = input && el.type === "password" ? el.value.length + " characters"
+          : /^(input|textarea|select)$/.test(el.localName) && !toggle && !/^(button|submit|reset|image|file)$/.test(el.type) ? String(el.value).slice(0, 200)
+          : role === "slider" || role === "spinbutton" ? el.getAttribute("aria-valuetext") ?? el.getAttribute("aria-valuenow") ?? undefined : undefined
+        out.push({ key: el.id || "", path: pathOf(el), role, name: nameOf(el), value, rect: shows(part) ? [part.x0, part.y0, part.x1 - part.x0, part.y1 - part.y0] : [r.left, r.top, r.width, r.height],
+          actionable, focused: el.matches(":focus"), enabled, checked, expanded, selected })
+      }
+      return JSON.stringify({ found: out, cut: over })
+    } finally { s.spent += performance.now() - t0 }
+  }
+  return s
+})(), true
+//# sourceURL=strobe-driver.js"#
+);
+
+/// Firefox's profiles name the script of code its WebDriver evaluates after the document (whatever its
+/// `sourceURL` says, and an `eval` inside after the document too), so there the probe goes in as a module
+/// whose address ends in `#strobe-driver.js` (`probe::gecko` names it the probe's). A page whose policy
+/// refuses that module gets the probe as other engines do.
+const FIREFOX_INSTALL: &str = r##"(async () => {
+  if (window.__strobe) return true
+  const u = URL.createObjectURL(new Blob([SOURCE], { type: "text/javascript" }))
+  try { await import(u + "#" + NAME) } finally { URL.revokeObjectURL(u) }
+  return !!window.__strobe
+})()"##;
+
+/// Installs the probe in the page's document.
+fn install(page: &Page, timeout: Duration) -> Result<()> {
+    if let Page::Firefox(_) = page {
+        // The name first: the probe's own text may hold either word.
+        let module = FIREFOX_INSTALL.replace("NAME", &json!(SOURCE_URL).to_string()).replace("SOURCE", &json!(HELPER).to_string());
+        if page.eval_timeout(&module, timeout).is_ok_and(|v| v == true) {
+            return Ok(());
+        }
+    }
+    page.eval_timeout(HELPER, timeout).map(drop)
+}
+
+/// Evaluates a helper call (`__strobe.…`), installing the helper first only when this document lacks
+/// it (a navigation drops it). Page calls run inside measured runs: sending the whole helper with
+/// each one made the page parse it on its main thread every call.
+fn helped(page: &Page, expr: &str, timeout: Duration) -> Result<Value> {
+    match page.eval_timeout(expr, timeout) {
+        // V8 and SpiderMonkey say "is not defined", JavaScriptCore "Can't find variable".
+        Err(e) if e.message.contains("__strobe is not defined") || e.message.contains("Can't find variable: __strobe") => {
+            install(page, timeout)?;
+            page.eval_timeout(expr, timeout)
+        }
+        r => r,
+    }
+}
+
+/// What the page shows (`__strobe.screen`): its title, address, open dialogs and top headings (at most
+/// `max`), and its visible text (at most `chars` of it).
+pub fn screen(page: &Page, max: usize, chars: usize, timeout: Duration) -> Result<Value> {
+    let v = helped(page, &format!("__strobe.screen({max}, {chars})"), timeout)?;
+    v.as_str().and_then(|s| serde_json::from_str(s).ok()).ok_or_else(|| Error::msg("the page's screen did not read"))
+}
+
+/// What a run would start from (`__strobe.state`): each editable control's value and each toggle's
+/// state, by control.
+pub fn state(page: &Page, timeout: Duration) -> Result<std::collections::BTreeMap<String, String>> {
+    let v = helped(page, "__strobe.state()", timeout)?;
+    v.as_str().and_then(|s| serde_json::from_str(s).ok()).ok_or_else(|| Error::msg("the page's state did not read"))
+}
+
+/// Waits until the page changes (`__strobe.change`) or `t` passes.
+pub fn wait_change(page: &Page, t: Duration) -> Result<bool> {
+    Ok(helped(page, &format!("__strobe.change({})", t.as_millis()), t + Duration::from_secs(2))? == Value::Bool(true))
+}
+
+/// Whether a visible element matches `sel` within `timeout`, re-checked on each DOM and focus change
+/// as `waitFor` does.
+pub fn shows(page: &Page, sel: &Selector, timeout: Duration) -> Result<bool> {
+    let expr = format!("__strobe.waitFor({}, {}, {}).then(() => true, () => false)", sel.page_spec(), timeout.as_millis(), json!(sel.source));
+    Ok(helped(page, &expr, timeout + Duration::from_secs(5))? == Value::Bool(true))
+}
+
+/// The first visible element `sel` matches, as its box on the document in CSS pixels (x, y, width,
+/// height), by the driver's own probe; None when nothing matches.
+pub fn element_box(page: &Page, sel: &Selector, timeout: Duration) -> Result<Option<[f64; 4]>> {
+    let expr = format!(
+        "(() => {{ const el = __strobe.find({}); if (!el) return null; const r = el.getBoundingClientRect(); return JSON.stringify([r.left + scrollX, r.top + scrollY, r.width, r.height]) }})()",
+        sel.page_spec()
+    );
+    let v = helped(page, &expr, timeout)?;
+    Ok(v.as_str().and_then(|s| serde_json::from_str(s).ok()))
+}
+
+/// The text or value of the element `sel` matches (`__strobe.text`), waiting up to `timeout` for it;
+/// None when it never showed.
+pub fn text(page: &Page, sel: &Value, timeout: Duration) -> Result<Option<String>> {
+    let sel = Selector::parse(sel, Dialect::Page)?;
+    let v = helped(page, &format!("__strobe.text({}, {})", sel.page_spec(), timeout.as_millis()), timeout + Duration::from_secs(5))?;
+    Ok(v.as_str().map(str::to_string))
+}
+
+/// A coordinate locator in a selector's place (SPEC 9.6): `[x, y]` in the target's own units (a page's
+/// CSS pixels in its viewport, a native window's device-independent pixels in its client area, a
+/// terminal's cells), or `{ x, y, space }` naming them (`"dip"`, `"cell"`, or `"norm"`: 0 to 1 of the
+/// viewport, client area or grid). None for a selector. Each driver takes the spaces it has.
+pub(crate) fn point(v: &Value) -> Option<Result<(f64, f64, Option<String>)>> {
+    let num = |x: &Value| x.as_f64().filter(|f| f.is_finite());
+    match v {
+        Value::Array(a) if a.len() == 2 => Some(match (num(&a[0]), num(&a[1])) {
+            (Some(x), Some(y)) => Ok((x, y, None)),
+            _ => Err(Error::usage(format!("a point is [x, y], two numbers, not {v}"))),
+        }),
+        Value::Object(o) if o.contains_key("x") || o.contains_key("y") => Some(match (o.get("x").and_then(num), o.get("y").and_then(num)) {
+            (Some(x), Some(y)) if o.keys().all(|k| matches!(k.as_str(), "x" | "y" | "space")) => Ok((x, y, o.get("space").and_then(Value::as_str).map(str::to_string))),
+            _ => Err(Error::usage(format!("a point is {{ x, y, space? }} (numbers; space \"dip\", \"cell\" or \"norm\"), not {v}"))),
+        }),
+        _ => None,
+    }
+}
+
+/// A point in a page's or a window's own pixels from `point`: its units (`dip`, a page's CSS pixels
+/// too) or `norm` of `size`, refused off it (input there lands on nothing of the target's).
+pub(crate) fn pixel_point((x, y, space): (f64, f64, Option<String>), size: (f64, f64), what: &str) -> Result<(f64, f64)> {
+    let (px, py) = match space.as_deref() {
+        None | Some("dip" | "css") => (x, y),
+        Some("norm") => (x * size.0, y * size.1),
+        Some(s) => return Err(Error::usage(format!("a point's space here is \"dip\" ({what}'s own pixels) or \"norm\" (0 to 1 of it), not {s:?}"))),
+    };
+    if !(0.0..size.0).contains(&px) || !(0.0..size.1).contains(&py) {
+        return Err(Refusal::new(
+            ValidatorId::OutOfView,
+            format!("point ({x}, {y}){} is off the {:.0}×{:.0} {what}, so input there would land on nothing of the target's", space.map(|s| format!(" in {s}")).unwrap_or_default(), size.0, size.1),
+        )
+        .fix(format!("give a point inside the {what}: [x, y] from its top left, or {{ x, y, space: \"norm\" }} from 0 to 1"))
+        .into());
+    }
+    Ok((px, py))
+}
+
+/// A selector argument with a call's `{ text, exact }` options added (`waitFor(sel, { text })`).
+pub(crate) fn with_text(sel: &Value, o: &Value) -> Value {
+    if o.get("text").is_none() && o.get("exact").is_none() {
+        return sel.clone();
+    }
+    let mut sel = match sel {
+        Value::Object(_) => sel.clone(),
+        s => json!({ "selector": s.as_str().unwrap_or("") }),
+    };
+    for k in ["text", "exact"] {
+        if let Some(v) = o.get(k) {
+            sel[k] = v.clone();
+        }
+    }
+    sel
+}
+
+/// Runs a call's `until`: no wait, one, or a list of them in order (`[selector, "frame"]`: the element, then the
+/// frame after it). A list runs under one deadline, the call's timeout from now: `one` gets the call's options with
+/// one wait and what is left of the timeout, and whether it is the first (a later one waits from when the one
+/// before it ended, not from the input). None without a wait.
+pub(crate) fn each_until<T>(opts: &Value, timeout: Duration, mut one: impl FnMut(&Value, bool) -> Result<T>) -> Result<Option<T>> {
+    let list = match opts.get("until") {
+        None | Some(Value::Null) => return Ok(None),
+        Some(Value::Array(l)) => l,
+        Some(_) => return one(opts, true).map(Some),
+    };
+    if list.is_empty() || list.iter().any(|u| u.is_array() || u.is_null()) {
+        return Err(Error::usage(format!(
+            "until: {}: a list is the waits to run in order, at least one, each what until takes alone (\"idle\", \"frame\", \"animations\", a selector, an image, {{ pixels }}, {{ state }})",
+            Value::Array(list.clone())
+        )));
+    }
+    let deadline = Instant::now() + timeout;
+    let mut last = None;
+    for (i, u) in list.iter().enumerate() {
+        let left = deadline.saturating_duration_since(Instant::now());
+        if left.is_zero() {
+            return Err(Error::timeout(format!("until: the waits before {u} took the call's whole {} s", timeout.as_secs())));
+        }
+        let mut o = opts.clone();
+        o["until"] = u.clone();
+        o["timeout"] = json!(left.as_millis().max(1) as u64);
+        last = Some(one(&o, i == 0)?);
+    }
+    Ok(last)
+}
+
+/// The pixel wait in a call's `until` (an image, `{ pixels }`; a list's first): what the region showed before the
+/// input is captured for it.
+pub(crate) fn pixel_until(o: &Value) -> Option<Result<pixels::Look>> {
+    match o.get("until")? {
+        Value::Array(l) => l.iter().find_map(pixels::look),
+        u => pixels::look(u),
+    }
+}
+
+/// A `waitFor`'s options for its `until`, run once what it waited for shows: what is left of the call's
+/// timeout. None without an `until`.
+pub(crate) fn until_after(o: &Value, deadline: Instant) -> Option<Value> {
+    o.get("until").filter(|u| !u.is_null())?;
+    let mut o = o.clone();
+    o["timeout"] = json!(deadline.saturating_duration_since(Instant::now()).as_millis().max(1) as u64);
+    Some(o)
+}
+
+/// CDP's modifier bits (Alt 1, Control 2, Meta 4, Shift 8).
+fn cdp_mods(m: Mods) -> i64 {
+    m.alt as i64 | (m.ctrl as i64) << 1 | (m.meta as i64) << 2 | (m.shift as i64) << 3
+}
+
+/// CDP's name and `buttons` bit for a mouse button.
+fn cdp_button(b: Button) -> (&'static str, i64) {
+    match b {
+        Button::Left => ("left", 1),
+        Button::Right => ("right", 2),
+        Button::Middle => ("middle", 4),
+    }
+}
+
+/// WebDriver's button number.
+fn bidi_button(b: Button) -> u8 {
+    match b {
+        Button::Left => 0,
+        Button::Middle => 1,
+        Button::Right => 2,
+    }
+}
+
+/// The modifier keys of CDP modifier bits, in the order they go down.
+fn mod_keys(bits: i64) -> Vec<Key> {
+    [(2, Named::Control), (8, Named::Shift), (1, Named::Alt), (4, Named::Meta)].into_iter().filter(|(b, _)| bits & b != 0).map(|(_, n)| Key::Named(n)).collect()
+}
+
+/// A key source's down or up action for WebDriver input.
+fn key_action(k: Key, down: bool) -> Result<Value> {
+    Ok(json!({ "type": if down { "keyDown" } else { "keyUp" }, "value": bidi::key_value(k)? }))
+}
+
+/// One BiDi `performActions` list: `pointer` actions with the modifier keys `mods` (CDP bits) pressed
+/// around them, as ticks of a key source beside the pointer source.
+fn with_mods(pointer: Vec<Value>, mods: i64) -> Result<Value> {
+    let keys = mod_keys(mods);
+    if keys.is_empty() {
+        return Ok(json!([{ "type": "pointer", "id": "mouse", "parameters": { "pointerType": "mouse" }, "actions": pointer }]));
+    }
+    let pause = || json!({ "type": "pause" });
+    let mut key_src: Vec<Value> = keys.iter().map(|k| key_action(*k, true)).collect::<Result<_>>()?;
+    key_src.extend((0..pointer.len()).map(|_| pause()));
+    key_src.extend(keys.iter().rev().map(|k| key_action(*k, false)).collect::<Result<Vec<_>>>()?);
+    let mut ptr: Vec<Value> = (0..keys.len()).map(|_| pause()).collect();
+    ptr.extend(pointer);
+    ptr.extend((0..keys.len()).map(|_| pause()));
+    Ok(json!([{ "type": "key", "id": "keyboard", "actions": key_src }, { "type": "pointer", "id": "mouse", "parameters": { "pointerType": "mouse" }, "actions": ptr }]))
+}
+
+/// No selector given: `""`, or none at all.
+/// A burst press on the current focus skips even the settle inside `focus`.
+pub fn press_needs_focus(options: &Value) -> bool {
+    Typing::of(options) != Typing::Burst || !no_selector(&options["selector"])
+}
+
+fn no_selector(sel: &Value) -> bool {
+    sel.is_null() || sel.as_str() == Some("")
+}
+
+/// What a key call's failure adds when its keys reached no page that had no focus; with no selector, a
+/// selector would have clicked into its element first.
+fn unfocused_note(selector: bool) -> String {
+    format!("the page had no focus (document.hasFocus() is false), so keys did not reach it; click the page first{}", if selector { "" } else { " or pass a selector" })
+}
+
+/// `e` with `note` after what it says (a refusal's detail, so its validator and fix stay).
+fn noted(mut e: Error, note: &str) -> Error {
+    match e.refusal.as_deref_mut() {
+        Some(r) => {
+            r.detail = Some(r.detail.take().map_or(note.to_string(), |d| format!("{d}; {note}")));
+            e.message = r.message();
+        }
+        None => e.message = format!("{}; {note}", e.message),
+    }
+    e
+}
+
+pub struct Driver {
+    pub page: Page,
+    pub token: String,
+    pub op_timeout: Duration,
+    /// A pixels block's folder: `snapshot(name)` writes `<name>.png` there. Elsewhere a snapshot does nothing.
+    pub pixels: Option<std::path::PathBuf>,
+    /// Keys held down by `down`, and the modifier bits they set (CDP's).
+    held: RefCell<Vec<Key>>,
+    mods: Cell<i64>,
+    /// Where the pointer is (CSS pixels), and the mouse buttons held (`buttons` bits: left 1, right 2,
+    /// middle 4) with the last one pressed.
+    pointer: Cell<(f64, f64)>,
+    buttons: Cell<(i64, Option<Button>)>,
+    /// The display's frame period as the page's rAF sees it (ms), measured at the first drag.
+    frame_ms: Cell<Option<f64>>,
+    pacer: Pacer,
+    /// Each drag's move times on the host clock (a button held by `down` or `drag`), for
+    /// `input.rate` and `input.gap.p95`; the block takes them per run.
+    pub drags: RefCell<Vec<Vec<u64>>>,
+    /// The inputs a person's interaction latency is measured from (a click's release, each key press,
+    /// a scroll's first wheel step, a mouse button's release), on the host clock as strobe sent them,
+    /// with whether it was a scroll: a page without the browser's own input latencies (Firefox, WebKit)
+    /// joins them to the frames that showed them.
+    pub inputs: RefCell<Vec<Sent>>,
+    /// That page's OS present capture (shared with the block), its browser's processes and the
+    /// display's refresh period: what a click's hold and a measured input wait on (`settle`).
+    live: std::cell::OnceCell<os::Presents>,
+    live_pids: RefCell<Vec<u32>>,
+    refresh: Cell<Duration>,
+    /// A page measured from outside (against a native implementation or a page in another engine):
+    /// its input goes through the OS.
+    pub os: std::cell::OnceCell<os::OsInput>,
+    /// strobe's looks at the page through the probe since the last `take_reads` (an input's aim, an
+    /// `until` or `waitFor` selector; never `idle` or `frame`): `driver.reads`.
+    reads: Cell<u64>,
+    /// The last address of a document of the page's own that strobe saw (at each `goto`, before it
+    /// navigates, and between runs): a relative `goto` from a page without one (about:blank after a
+    /// reset, a data: or blob: URL) resolves against it.
+    base: RefCell<Option<String>>,
+    /// The page runs in a headless browser: no window for `page.window` to size.
+    pub headless: bool,
+    /// The page runs in Chrome on a phone (`--mobile`): its screen is the phone's, with no window to size.
+    pub phone: bool,
+    /// `page.window` sizing of the browser's window over the block.
+    sizer: window::Sizer,
+    /// An emulated phone's page: its pointer input is touch (`touch_input`).
+    touch: std::cell::OnceCell<touch::Touch>,
+    /// The call runs inside a run's timed stretch (not setup, reset, `ctx.untimed`, an untimed block or a
+    /// pixels block): pixels are then read from outside, never through the browser (`pixels`).
+    pub timed: Cell<bool>,
+    /// Image anchors and pixel waits (`driver::pixels`): the block's templates and reads, the browser
+    /// window's capture for timed reads, what an input's pixel `until` captured before it, when the
+    /// call began, and the viewport a timed read maps (CSS width, height, device pixels per CSS pixel).
+    images: pixels::Pixels,
+    grabber: RefCell<Option<crate::host::capture::Grabber>>,
+    before: RefCell<Option<pixels::Before>>,
+    call_at: Cell<u64>,
+    viewport: Cell<Option<[f64; 4]>>,
+}
+
+impl Driver {
+    pub fn new(page: Page, token: String) -> Driver {
+        Driver {
+            page,
+            token,
+            op_timeout: Duration::from_secs(30),
+            pixels: None,
+            held: RefCell::new(Vec::new()),
+            mods: Cell::new(0),
+            pointer: Cell::new((0.0, 0.0)),
+            buttons: Cell::new((0, None)),
+            frame_ms: Cell::new(None),
+            pacer: Pacer::default(),
+            drags: RefCell::new(Vec::new()),
+            inputs: RefCell::new(Vec::new()),
+            live: std::cell::OnceCell::new(),
+            live_pids: RefCell::new(Vec::new()),
+            refresh: Cell::new(Duration::from_micros(16_667)),
+            os: std::cell::OnceCell::new(),
+            reads: Cell::new(0),
+            base: RefCell::new(None),
+            headless: false,
+            phone: false,
+            sizer: window::Sizer::default(),
+            touch: std::cell::OnceCell::new(),
+            timed: Cell::new(false),
+            images: pixels::Pixels::default(),
+            grabber: RefCell::new(None),
+            before: RefCell::new(None),
+            call_at: Cell::new(0),
+            viewport: Cell::new(None),
+        }
+    }
+
+    /// The page's pixels as `driver::pixels` reads them: through the browser outside timed stretches
+    /// (`PageShots`), from outside inside them (`WindowShots`, a headed page's window); a headless page
+    /// or a phone's has none to read from outside there.
+    fn shots(&self) -> Result<Box<dyn pixels::Source + '_>> {
+        if !self.timed.get() {
+            return Ok(Box::new(PageShots { page: &self.page }));
+        }
+        if self.headless {
+            return Err(Refusal::new(
+                ValidatorId::Headless,
+                "an image or pixel wait inside a timed run of a headless page: its pixels can only be read through the browser's own renderer, which would add work to the run it times",
+            )
+            .fix("find images in setup or ctx.untimed (page.query({ image })) and aim at the points it found, or run the page headed (its window is read from outside)")
+            .into());
+        }
+        if self.phone {
+            return Err(Refusal::new(ValidatorId::NotForTarget, "an image or pixel wait inside a timed run of a phone's page: its screen is the phone's, which strobe cannot read from outside")
+                .fix("find images in setup or ctx.untimed and aim at the points it found")
+                .into());
+        }
+        Ok(Box::new(WindowShots { d: self }))
+    }
+
+    /// strobe's captures of the page's pixels since the last call: count, wall ms, CPU ms (with the
+    /// window capture's own frame events).
+    pub fn take_pixel_reads(&self) -> (u64, f64, f64) {
+        let (n, ms, cpu) = self.images.take_reads();
+        (n, ms, cpu + self.grabber.borrow().as_ref().map_or(0.0, crate::host::capture::Grabber::take_cpu_ms))
+    }
+
+    /// Before a case's runs (after setup, between a batch's cases): when setup (or the case before) read
+    /// pixels and the runs read them from outside (`timed`: a timing block's headed page), the browser
+    /// window's capture is opened now, so no run pays for opening it; otherwise it is closed, so none
+    /// follows frames through runs that read no pixels.
+    pub fn ready_pixels(&self, timed: bool) {
+        if self.images.take_used() && timed && !self.headless && !self.phone {
+            let _ = WindowShots { d: self }.with(|_| Ok(()));
+            return;
+        }
+        if let Some(g) = self.grabber.borrow_mut().take() {
+            self.images.bank_cpu(g.take_cpu_ms());
+        }
+    }
+
+    /// The viewport's metrics a timed pixel read maps onto the window (`WindowShots`): its CSS width and
+    /// height, device-independent pixels per CSS pixel, and what the window adds to its height (CSS
+    /// pixels). Read once before the runs (the block calls it outside them) and again after a `window`.
+    pub fn prime_viewport(&self) -> Result<[f64; 4]> {
+        if let Some(v) = self.viewport.get() {
+            return Ok(v);
+        }
+        let v = self.page.eval("[innerWidth, innerHeight, devicePixelRatio, outerHeight]")?;
+        let scale = self.browser_window().map_or(1.0, |w| w.scale()).max(0.01);
+        let n = |i: usize| v[i].as_f64().unwrap_or(0.0);
+        let out = [n(0), n(1), if n(2) > 0.0 { n(2) / scale } else { 1.0 }, (n(3) - n(1)).max(0.0)];
+        self.viewport.set(Some(out));
+        Ok(out)
+    }
+
+    /// Before a measured input whose `until` waits on pixels: what the region shows now.
+    fn before_input(&self, o: &Value) -> Result<()> {
+        let Some(l) = pixel_until(o) else { return Ok(()) };
+        let b = self.images.before(&*self.shots()?, &l?)?;
+        *self.before.borrow_mut() = Some(b);
+        Ok(())
+    }
+
+    /// A pixel proof for the call's last measured input (`Sent::pixel`), the driver's or the OS input's.
+    fn prove(&self, p: pixels::Proof) {
+        let (Some(lacked), true) = (p.lacked, p.timing) else { return };
+        let since = self.call_at.get();
+        if let Some(os) = self.os.get() {
+            os.prove(since, (lacked, p.had));
+            return;
+        }
+        if let Some(s) = self.inputs.borrow_mut().iter_mut().rev().take_while(|s| s.t_ns >= since).next() {
+            s.pixel = Some((lacked, p.had));
+        }
+    }
+
+    /// The browser's window, for `page.window`: the processes strobe follows (`set_pids`, `watch`) or
+    /// those the OS input does.
+    fn browser_window(&self) -> Result<crate::host::TopWindow> {
+        let pids = match self.os.get() {
+            Some(os) => os.pids(),
+            None => self.live_pids.borrow().clone(),
+        };
+        crate::host::main_window(&pids).ok_or_else(|| Error::msg(format!("page.window(): the browser (pids {pids:?}) shows no window to size")))
+    }
+
+    /// `page.window(action)` on a page: maximizes, restores or resizes the browser's window through the
+    /// OS, the viewport being the content (`window::Sizer`). Where strobe gives the page the OS's input,
+    /// the map from page to screen follows the size strobe asked for (`OsInput::commanded`).
+    fn window(&self, action: &Value, o: &Value) -> Result<Value> {
+        let Some(sizing) = window::Sizing::parse(action)? else {
+            return Err(Error::usage(format!(
+                "page.window({action}): a page's window is maximized, restored or resized (\"maximize\", \"restore\", {{ resize: {{ width, height }} }}); showing, hiding, minimizing, focusing and closing are a native app's"
+            )));
+        };
+        if self.headless {
+            return Err(Refusal::new(ValidatorId::Headless, "page.window() sizes the browser's window through the OS, and a headless browser has none")
+                .fix("run the case headed (drop --headless and the target's headless) to size its window")
+                .into());
+        }
+        if self.phone {
+            return Err(Refusal::new(ValidatorId::NotForTarget, "page.window() sizes a desktop browser's window, and a phone's page is the phone's own screen")
+                .fix("size the window on a desktop target, or run the case without --mobile")
+                .into());
+        }
+        let w = self.browser_window()?;
+        // The viewport in device-independent pixels: CSS pixels times the device pixels per CSS pixel,
+        // over the window's device pixels per DIP (1 at page zoom 100%).
+        let content = || -> Result<(f64, f64)> {
+            let v = self.page.eval("[innerWidth, innerHeight, devicePixelRatio]")?;
+            let n = |i: usize| v[i].as_f64().unwrap_or(0.0);
+            let k = crate::host::window_state(w.hwnd).map_or(1.0, |s| s.scale()).max(0.01);
+            let r = if n(2) > 0.0 { n(2) / k } else { 1.0 };
+            Ok((n(0) * r, n(1) * r))
+        };
+        let before = match self.os.get() {
+            Some(os) => os.sizing(&self.page)?,
+            None => 0.0,
+        };
+        let asked = self.sizer.apply(w.hwnd, sizing, &content)?;
+        sent(asked, false, None);
+        // The frame capture follows the new size at once (ScreenCaptureKit: the stream's source).
+        if let Some(p) = self.live.get()
+            && let Some(c) = p.borrow_mut().as_mut()
+        {
+            c.resized(&self.live_pids.borrow());
+        }
+        if let Some(os) = self.os.get() {
+            os.commanded(&self.page, before)?;
+        }
+        self.until(o)
+    }
+
+    /// Before run `run` (1-based; `after`: after the last): the browser window's size as each run
+    /// starts, held to the first run's once the block sized it (`window::Sizer::check`). `on`: the block
+    /// checks what runs start from (`resetCheck`).
+    /// Run 1's start is read whatever `on` says: it is where `restore` goes back to.
+    pub fn window_start(&self, run: usize, after: bool, on: bool) -> Result<()> {
+        if self.headless || ((run != 1 || after) && !(on && self.sizer.commanded())) {
+            return Ok(());
+        }
+        let now = self.browser_window().ok().and_then(|w| window::Start::of(w.hwnd));
+        self.sizer.check(run, after, on, now)
+    }
+
+    /// Whether a `page.window` sized the browser's window in this block.
+    pub fn window_sized(&self) -> bool {
+        self.sizer.commanded()
+    }
+
+    /// Keeps `at` (the page's location) as the base when it is a document's own hierarchical address.
+    fn saw(&self, at: &str) {
+        let lower = at.to_ascii_lowercase();
+        if lower.contains("://") && !["about:", "data:", "blob:", "javascript:"].iter().any(|s| lower.starts_with(s)) {
+            *self.base.borrow_mut() = Some(at.to_string());
+        }
+    }
+
+    /// Where `goto(to)` goes: the page's location is read first (and kept as the base when it is the
+    /// page's own), so an absolute `to` (about:blank in a reset) leaves the base behind. A relative `to`
+    /// resolves as a link on the page would; from a page without an address of its own, against the base.
+    fn goto_url(&self, to: &str) -> Result<String> {
+        let absolute = to.contains("://") || ["about:", "data:", "blob:", "javascript:"].iter().any(|s| to.get(..s.len()).is_some_and(|p| p.eq_ignore_ascii_case(s)));
+        let at = self.page.eval("location.href");
+        if absolute {
+            if let Ok(at) = at.as_ref().map(|v| v.as_str().unwrap_or("")) {
+                self.saw(at);
+            }
+            return Ok(to.to_string());
+        }
+        let at = at?.as_str().unwrap_or("").to_string();
+        self.saw(&at);
+        let Some(base) = self.base.borrow().clone() else {
+            return Err(Error::usage(format!(
+                "page.goto({to:?}): a relative address on {} (location.href), which has none to resolve it against, and strobe has seen no address of the page's own yet",
+                crate::target::web::short_url(&at)
+            ))
+            .hint("give goto an absolute URL: page.goto(new URL(path, ctx.url).href), where ctx.url is the address strobe opened"));
+        };
+        let v = self.page.eval(&format!("(() => {{ try {{ return new URL({}, {}).href }} catch {{ return null }} }})()", json!(to), json!(base)))?;
+        v.as_str().map(str::to_string).ok_or_else(|| {
+            Error::usage(format!("page.goto({to:?}): no address relative to {base} (the page is at {})", crate::target::web::short_url(&at)))
+                .hint("give goto an absolute URL: page.goto(new URL(path, ctx.url).href)")
+        })
+    }
+
+    /// The reads of the page since the last call, and the page's time in them (ms, its main thread's
+    /// lookups, from the probe): `driver.reads`, `driver.read_ms`. Read between runs, never inside one;
+    /// the page's location then is kept as the base too.
+    pub fn take_reads(&self) -> (u64, f64) {
+        let v = self.page.eval("(() => { const s = window.__strobe, v = s?.spent ?? 0; if (s) s.spent = 0; return [v, location.href] })()").unwrap_or(Value::Null);
+        if let Some(at) = v[1].as_str() {
+            self.saw(at);
+        }
+        (self.reads.replace(0), v[0].as_f64().unwrap_or(0.0))
+    }
+
+    /// A look at the page that `driver.reads` counts.
+    fn read(&self, expr: &str, timeout: Duration) -> Result<Value> {
+        self.reads.set(self.reads.get() + 1);
+        self.wait(expr, timeout)
+    }
+
+    fn sel(v: &Value) -> Result<Selector> {
+        Selector::parse(v, Dialect::Page)
+    }
+
+    /// A mouse event at (x, y) carrying the held buttons and modifiers. Over BiDi the held buttons and
+    /// keys are the session's own input state; `extra` modifiers go down around the event.
+    fn mouse(&self, kind: &str, (x, y): (f64, f64), button: Option<Button>, mask: i64, count: u64, extra: i64) -> Result<()> {
+        match &self.page {
+            Page::Chromium(p) => {
+                let name = button.map_or("none", |b| cdp_button(b).0);
+                p.send("Input.dispatchMouseEvent", json!({ "type": kind, "x": x, "y": y, "button": name, "buttons": mask, "clickCount": count, "modifiers": self.mods.get() | extra })).map(|_| ())
+            }
+            Page::Firefox(_) | Page::Webkit(_) => {
+                let at = json!({ "type": "pointerMove", "x": x.round() as i64, "y": y.round() as i64, "origin": "viewport" });
+                let b = button.map_or(0, bidi_button);
+                let pointer = match kind {
+                    "mouseMoved" => vec![at],
+                    "mousePressed" => vec![at, json!({ "type": "pointerDown", "button": b })],
+                    _ => vec![json!({ "type": "pointerUp", "button": b })],
+                };
+                self.page.actions(with_mods(pointer, extra & !self.mods.get())?)
+            }
+        }
+    }
+
+    /// A click over WebDriver (BiDi or Classic) as a person clicks, as native targets are clicked: `mods` go down once and
+    /// stay down over the move, every press and release; each press is held (60 ms for one click, a
+    /// frame between a double click's presses), and the input time is taken just before the last
+    /// release goes out. The session's input state keeps keys and buttons between the action lists.
+    fn webdriver_click(&self, (x, y): (f64, f64), b: Button, mods: i64, count: u64) -> Result<()> {
+        let p = &self.page;
+        let keys = mod_keys(mods);
+        let pointer = |actions: Vec<Value>| json!({ "type": "pointer", "id": "mouse", "parameters": { "pointerType": "mouse" }, "actions": actions });
+        let key_list = |down: bool| -> Result<Value> { Ok(json!({ "type": "key", "id": "keyboard", "actions": keys.iter().map(|k| key_action(*k, down)).collect::<Result<Vec<_>>>()? })) };
+        let at = json!({ "type": "pointerMove", "x": x.round() as i64, "y": y.round() as i64, "origin": "viewport" });
+        let n = bidi_button(b);
+        if keys.is_empty() {
+            p.actions(json!([pointer(vec![at])]))?;
+        } else {
+            // Keys first, then the move: the key source's ticks, then the pointer's after them.
+            let pause = keys.iter().map(|_| json!({ "type": "pause" })).chain(std::iter::once(at)).collect();
+            p.actions(json!([key_list(true)?, pointer(pause)]))?;
+        }
+        let gap = Duration::from_millis(if count > 1 { 16 } else { 60 });
+        let result = (|| -> Result<()> {
+            // A frame of what came before (the move's hover, an earlier step) settles before the press.
+            let quiet = self.settle(Duration::ZERO)?;
+            for _ in 1..=count {
+                let pressed = crate::host::now_ns();
+                sent(pressed, false, None);
+                p.actions(json!([pointer(vec![json!({ "type": "pointerDown", "button": n })])]))?;
+                if count == 1 {
+                    // Held until what the press drew is on the screen and settled (SPEC 7.4); a target
+                    // that was still drawing before the press is held the minimum only. A page that
+                    // acts on the press (`mousedown`) is timed from it.
+                    if quiet {
+                        self.settle(gap)?;
+                    } else {
+                        std::thread::sleep(gap);
+                    }
+                    self.input_at(false, Some(pressed));
+                } else {
+                    // A double or triple click's presses follow at once: no settling inside the gesture,
+                    // and no sample (SPEC 7.4).
+                    std::thread::sleep(gap);
+                }
+                p.actions(json!([pointer(vec![json!({ "type": "pointerUp", "button": n })])]))?;
+            }
+            Ok(())
+        })();
+        if !keys.is_empty() {
+            let mut up = key_list(false)?;
+            if let Some(a) = up["actions"].as_array_mut() {
+                a.reverse();
+            }
+            p.actions(json!([up]))?;
+        }
+        result
+    }
+
+    /// An input time for `interaction.*` (a single click's release with its press, a key press, a
+    /// button's `up`) or `scroll.latency.*` (a scroll's first step).
+    fn input_at(&self, scroll: bool, press: Option<u64>) {
+        let t_ns = crate::host::now_ns();
+        sent(t_ns, true, press);
+        self.inputs.borrow_mut().push(Sent { t_ns, scroll, press, acted: None, burst: false, pixel: None });
+    }
+
+    /// Follows the page's OS presents (a headed page whose engine reports no frames of its own): a
+    /// click's press is then held until its frame settles, and each measured input waits for the page
+    /// to rest, as a native app's do (SPEC 7.4).
+    pub fn watch(&self, presents: os::Presents, pids: Vec<u32>, refresh_ms: Option<f64>) {
+        let _ = self.live.set(presents);
+        *self.live_pids.borrow_mut() = pids;
+        if let Some(ms) = refresh_ms.filter(|ms| *ms > 1.0) {
+            self.refresh.set(Duration::from_secs_f64(ms / 1e3));
+        }
+    }
+
+    /// The browser's processes now (a renderer may come or go).
+    pub fn set_pids(&self, pids: Vec<u32>) {
+        *self.live_pids.borrow_mut() = pids;
+    }
+
+    /// `settle` on the page's presents when strobe follows them; else `min` alone.
+    fn settle(&self, min: Duration) -> Result<bool> {
+        match self.live.get() {
+            Some(p) => settle(p, &self.live_pids.borrow(), min, self.refresh.get()),
+            None => {
+                std::thread::sleep(min);
+                Ok(true)
+            }
+        }
+    }
+
+    /// `settle_key` on the page's presents when strobe follows them. Else (headed Chromium, whose trace
+    /// times its keys, and every headless page) from the page's own frames: the frame after the key, then
+    /// until a frame passes with no DOM change (`__strobe.settled`), inside the same budget; `min`
+    /// counts from the key either way.
+    fn settle_key(&self, sent: u64, min: Duration) -> Result<bool> {
+        match self.live.get() {
+            Some(p) => settle_key(p, &self.live_pids.borrow(), sent, min, self.refresh.get()),
+            None => {
+                let since = Instant::now();
+                let budget = SETTLE_MAX.max(min);
+                // A key that navigated (Enter on a form) leaves no document to ask: pacing stops there.
+                let quiet = helped(&self.page, &format!("__strobe.settled({})", budget.as_millis()), budget + Duration::from_secs(5)).is_ok_and(|v| v == true);
+                std::thread::sleep(min.saturating_sub(since.elapsed()));
+                Ok(quiet)
+            }
+        }
+    }
+
+    /// A pointer move to (x, y) carrying the held buttons. While one is held it is a drag's move: sent
+    /// without waiting for the renderer to handle it (`paced`), and its time is kept for `input.rate`.
+    fn pointer_move(&self, x: f64, y: f64, paced: bool) -> Result<()> {
+        let (mask, last) = self.buttons.get();
+        self.pointer.set((x, y));
+        sent(crate::host::now_ns(), false, None);
+        if mask != 0
+            && let Some(d) = self.drags.borrow_mut().last_mut()
+        {
+            d.push(crate::host::now_ns());
+        }
+        if !paced {
+            return self.mouse("mouseMoved", (x, y), last.filter(|_| mask != 0), mask, 0, 0);
+        }
+        match &self.page {
+            Page::Chromium(p) => {
+                let e = json!({ "type": "mouseMoved", "x": x, "y": y, "button": last.filter(|_| mask != 0).map_or("none", |b| cdp_button(b).0), "buttons": mask, "modifiers": self.mods.get() });
+                p.post("Input.dispatchMouseEvent", e)
+            }
+            Page::Firefox(_) | Page::Webkit(_) => self.page.post_actions(with_mods(vec![json!({ "type": "pointerMove", "x": x.round() as i64, "y": y.round() as i64, "origin": "viewport" })], 0)?),
+        }
+    }
+
+    /// A mouse button going down or up where the pointer is; a release is a latency sample only when
+    /// `sample` (`up`; not a drag's end or `release_all`).
+    fn pointer_button(&self, b: Button, down: bool, sample: bool) -> Result<()> {
+        let (x, y) = self.pointer.get();
+        let bit = cdp_button(b).1;
+        let mask = if down { self.buttons.get().0 | bit } else { self.buttons.get().0 & !bit };
+        self.buttons.set((mask, Some(b)));
+        if down {
+            let t = crate::host::now_ns();
+            sent(t, false, None);
+            self.drags.borrow_mut().push(vec![t]);
+        } else if sample {
+            // A release is a sample, as a native app's is (SPEC 7.4).
+            self.input_at(false, None);
+        }
+        self.mouse(if down { "mousePressed" } else { "mouseReleased" }, (x, y), Some(b), mask, 1, 0)
+    }
+
+    /// The display's frame period (ms) from ten of the page's animation frames, once per block. A headless
+    /// page has no display: its moves are paced at 60 Hz on strobe's clock, never by its animation frames,
+    /// which the OS slows with the display off (a locked session's), so `input.rate` and `input.gap.p95`
+    /// stay strobe's own pacing either way.
+    fn frame_period(&self) -> Result<f64> {
+        if let Some(ms) = self.frame_ms.get() {
+            return Ok(ms);
+        }
+        if self.headless {
+            let ms = 1000.0 / 60.0;
+            self.frame_ms.set(Some(ms));
+            return Ok(ms);
+        }
+        let t = self.wait(concat!(frames_or_hidden!(), "(11)"), Duration::from_secs(5))?;
+        if hidden(&t) {
+            return Err(page_hidden("the display's frame period (ten of the page's frames, before paced input)"));
+        }
+        let ts: Vec<f64> = t.as_array().into_iter().flatten().filter_map(Value::as_f64).collect();
+        let mut d: Vec<f64> = ts.windows(2).map(|w| w[1] - w[0]).filter(|d| *d > 0.0).collect();
+        d.sort_by(f64::total_cmp);
+        let ms = d.get(d.len() / 2).copied().unwrap_or(1000.0 / 60.0).clamp(4.0, 50.0);
+        self.frame_ms.set(Some(ms));
+        Ok(ms)
+    }
+
+    /// `drag(selector, path, { duration, button })`: presses at the element's centre (or where the pointer
+    /// is, with `""`), moves along `path` (offsets in CSS pixels, spread evenly over `duration`) one move
+    /// per display frame on strobe's clock without waiting for each to be handled, and releases. A button
+    /// already held by `down` stays held.
+    fn drag(&self, sel: &Value, path: &Value, o: &Value) -> Result<Value> {
+        let path = keys::parse_path(path)?;
+        let (x0, y0) = if no_selector(sel) { self.pointer.get() } else { self.spot(sel, o)? };
+        let b = Button::parse(o["button"].as_str())?;
+        let duration = o.get("duration").and_then(Value::as_f64).unwrap_or(1000.0).max(1.0);
+        let frame = self.frame_period()?;
+        let (dx, dy) = keys::path_at(&path, 0.0);
+        self.pointer_move(x0 + dx, y0 + dy, false)?;
+        let held = self.buttons.get().0 & cdp_button(b).1 != 0;
+        if held {
+            self.drags.borrow_mut().push(vec![crate::host::now_ns()]);
+        } else {
+            self.pointer_button(b, true, false)?;
+        }
+        let steps = (duration / frame).ceil().max(1.0) as u32;
+        let start = Instant::now();
+        for k in 1..=steps {
+            self.pacer.wait(start + Duration::from_secs_f64(frame * k as f64 / 1e3), Duration::from_secs_f64(frame / 1e3));
+            let (dx, dy) = keys::path_at(&path, k as f64 / steps as f64);
+            self.pointer_move(x0 + dx, y0 + dy, true)?;
+        }
+        if !held {
+            self.pointer_button(b, false, false)?;
+        }
+        self.until(o)
+    }
+
+    fn call(&self, expr: &str) -> Result<Value> {
+        helped(&self.page, expr, Duration::from_secs(60))
+    }
+
+    /// A helper call that waits in the page for up to `timeout`: the in-page timeout fires first and names what it waited for.
+    fn wait(&self, expr: &str, timeout: Duration) -> Result<Value> {
+        // A wait ends with the document it runs in: CDP reports a reload or navigation as a collected promise or
+        // a destroyed context, which says nothing about what happened to the page.
+        helped(&self.page, expr, timeout + Duration::from_secs(10)).map_err(|e| {
+            if ["Promise was collected", "context was destroyed", "no such frame", "was discarded"].iter().any(|m| e.message.contains(m)) {
+                Error::msg(format!("the page reloaded or navigated away while strobe waited ({expr}): the app replaced the document on its own"))
+            } else {
+                e
+            }
+        })
+    }
+
+    /// Waits for a visible element `sel` matches.
+    fn wait_for(&self, sel: &Selector, t: Duration) -> Result<Value> {
+        self.read(&format!("__strobe.waitFor({}, {}, {})", sel.page_spec(), t.as_millis(), json!(sel.source)), t)
+    }
+
+    /// Writes a `performance.mark` that the trace (or Firefox's profiler) records on its own clock.
+    /// A Firefox timing block takes none: its runs and phases are strobe's own spans on the host clock,
+    /// as a native app's; its attribution block marks its runs so the profile names the page's process.
+    pub fn mark(&self, name: &str) -> Result<()> {
+        let full = format!("strobe:{}:{}", self.token, name.replace(['"', '\\', '\n'], "_"));
+        self.page.eval(&format!(r#"performance.mark("{full}"), performance.clearMarks("{full}"), true"#)).map(|_| ())
+    }
+
+    pub fn nodes(&self) -> Result<u64> {
+        Ok(self.call("__strobe.nodes()")?.as_u64().unwrap_or(0))
+    }
+
+    /// Lets go of every key and mouse button `down` (or a drag) left held, so the next run starts with none.
+    /// On a phone, a finger left down lifts, and what strobe touched must have reached the page.
+    pub fn release_all(&self) -> Result<()> {
+        if let Some(os) = self.os.get() {
+            // Where the last move landed after a resize strobe asked for, before the cursor goes back.
+            os.look_landed(&self.page)?;
+            os.release_all();
+            return Ok(());
+        }
+        if let Some(t) = self.touch.get() {
+            self.touch_release(t)?;
+        }
+        let (mask, _) = self.buttons.get();
+        for b in [Button::Left, Button::Right, Button::Middle] {
+            if mask & cdp_button(b).1 != 0 {
+                self.pointer_button(b, false, false)?;
+            }
+        }
+        let held: Vec<Key> = self.held.borrow().clone();
+        for k in held.into_iter().rev() {
+            self.key(k, false)?;
+        }
+        Ok(())
+    }
+
+    /// Clicks into the element unless focus is already in it, so a second call keeps typing where the caret is.
+    fn focus(&self, sel: &Value, o: &Value) -> Result<()> {
+        if no_selector(sel) {
+            return self.settle(Duration::ZERO).map(drop);
+        }
+        let (x, y, focused) = match point(sel).is_some() || pixels::anchor(sel).is_some() {
+            true => self.spot(sel, o).map(|(x, y)| (x, y, false))?,
+            false => self.aim_for(&Self::sel(sel)?, o, true)?,
+        };
+        if focused {
+            return self.settle(Duration::ZERO).map(drop);
+        }
+        let held = self.buttons.get().0;
+        self.pointer.set((x, y));
+        self.mouse("mouseMoved", (x, y), None, held, 0, 0)?;
+        self.mouse("mousePressed", (x, y), Some(Button::Left), held | 1, 1, 0)?;
+        self.mouse("mouseReleased", (x, y), Some(Button::Left), held, 1, 0)?;
+        // The click's frames (a focus ring, a caret) settle before the first key, which is measured: at
+        // least 2 refreshes, since the click's first frame may not have begun yet.
+        self.settle(self.refresh.get() * 2).map(drop)
+    }
+
+    /// Dispatches one driver call from the runner: `{ call, args }`.
+    pub fn dispatch(&self, call: &str, args: &[Value]) -> Result<Value> {
+        let s = |i: usize| args.get(i).and_then(Value::as_str).unwrap_or("").to_string();
+        let opts = |i: usize| args.get(i).cloned().unwrap_or(Value::Null);
+        // A selector as the bench gave it: a string, or `{ selector, role, text, exact, index, focus }`.
+        let sel = |i: usize| args.get(i).cloned().unwrap_or(Value::String(String::new()));
+        self.call_at.set(crate::host::now_ns());
+        self.before.borrow_mut().take();
+        if call == "window" {
+            self.viewport.set(None);
+        }
+        if let Some(os) = self.os.get().filter(|_| os::INPUT.contains(&call)) {
+            return self.os_dispatch(os, call, args);
+        }
+        if let Some(t) = self.touch.get().filter(|_| touch::takes(call, args)) {
+            return self.touch_dispatch(t, call, args);
+        }
+        match call {
+            "goto" => {
+                let to = s(0);
+                let url = self.goto_url(&to)?;
+                // What strobe touched in the document it leaves reached it; the next one counts afresh.
+                if let Some(t) = self.touch.get() {
+                    t.delivered(&self.page)?;
+                }
+                sent(crate::host::now_ns(), false, None);
+                self.page.navigate(&url, self.timeout(&opts(1)))?;
+                if let Some(t) = self.touch.get() {
+                    t.rebase(&self.page)?;
+                }
+                self.until(&opts(1))
+            }
+            "click" => {
+                let o = opts(1);
+                let (x, y) = self.spot(&sel(0), &o)?;
+                let b = Button::parse(o["button"].as_str())?;
+                let mods = cdp_mods(Mods::parse_list(&o["modifiers"])?);
+                let count = o["count"].as_u64().unwrap_or(1).clamp(1, 3);
+                let (held, bit) = (self.buttons.get().0, cdp_button(b).1);
+                self.pointer.set((x, y));
+                match &self.page {
+                    Page::Firefox(_) | Page::Webkit(_) => {
+                        self.before_input(&o)?;
+                        self.webdriver_click((x, y), b, mods & !self.mods.get(), count)?;
+                        return self.until(&o);
+                    }
+                    Page::Chromium(_) => {}
+                }
+                self.mouse("mouseMoved", (x, y), None, held, 0, mods)?;
+                // After the move: what a hover drew is not the click's reaction.
+                self.before_input(&o)?;
+                // Each press of a double or triple click carries its count, as a mouse's do. Chromium's
+                // trace times a single click's events (`sent`: the action log's edges only).
+                for k in 1..=count {
+                    let pressed = crate::host::now_ns();
+                    self.mouse("mousePressed", (x, y), Some(b), held | bit, k, mods)?;
+                    sent(crate::host::now_ns(), count == 1, (count == 1).then_some(pressed));
+                    self.mouse("mouseReleased", (x, y), Some(b), held, k, mods)?;
+                }
+                self.until(&o)
+            }
+            "type" => {
+                let o = opts(2);
+                no_paste(&o)?;
+                self.focus(&sel(0), &o)?;
+                self.before_input(&o)?;
+                // One key event per character, like a person typing, so each keystroke is an interaction,
+                // sent once what the last one drew has settled (SPEC 7.4), unless typed in a burst.
+                let delay = Duration::from_millis(o.get("delay").and_then(Value::as_u64).unwrap_or(0));
+                let typing = Typing::of(&o);
+                let mut paced = typing == Typing::Paced;
+                for (i, c) in s(1).chars().enumerate() {
+                    if i > 0 && paced {
+                        let sent = self.inputs.borrow().last().map_or(0, |s| s.t_ns);
+                        paced = self.settle_key(sent, delay)?;
+                    } else if i > 0 {
+                        std::thread::sleep(delay);
+                    }
+                    let k = match c {
+                        '\n' => Key::Named(Named::Enter),
+                        '\t' => Key::Named(Named::Tab),
+                        c => Key::Char(c),
+                    };
+                    self.stroke(k, 0)?;
+                    if typing == Typing::Burst
+                        && let Some(s) = self.inputs.borrow_mut().last_mut()
+                    {
+                        s.burst = true;
+                    }
+                }
+                if typing == Typing::Burst {
+                    unmeasured();
+                }
+                self.until(&o).map_err(|e| if no_selector(&sel(0)) { self.unfocused(e) } else { e })
+            }
+            "press" => {
+                let o = opts(1);
+                let burst = Typing::of(&o) == Typing::Burst;
+                if press_needs_focus(&o) {
+                    self.focus(&o["selector"], &o)?;
+                }
+                let (mods, key) = keys::parse_chord(&s(0))?;
+                self.before_input(&o)?;
+                self.stroke(key, cdp_mods(mods))?;
+                // `burst: true`: a key sent before the last one showed (a chord's next key), as a burst's.
+                if burst && let Some(s) = self.inputs.borrow_mut().last_mut() {
+                    s.burst = true;
+                }
+                if burst {
+                    unmeasured();
+                }
+                self.until(&o).map_err(|e| if no_selector(&o["selector"]) { self.unfocused(e) } else { e })
+            }
+            // The pointer over an element, without a click: reveals hover-only controls, or parks the pointer.
+            "hover" => {
+                let (x, y) = self.spot(&sel(0), &opts(1))?;
+                self.before_input(&opts(1))?;
+                self.pointer_move(x, y, false)?;
+                self.until(&opts(1))
+            }
+            "move" => {
+                let at = |i: usize| args.get(i).and_then(Value::as_f64).unwrap_or(0.0);
+                self.pointer_move(at(0), at(1), false)?;
+                self.until(&opts(2))
+            }
+            "drag" => self.drag(&sel(0), &opts(1), &opts(2)),
+            "scroll" => {
+                let o = opts(1);
+                let (x, y) = self.spot(&sel(0), &opts(2))?;
+                let by = o.get("by").and_then(Value::as_f64).unwrap_or(0.0);
+                let by_x = o.get("byX").and_then(Value::as_f64).unwrap_or(0.0);
+                let speed = o.get("speed").and_then(Value::as_f64).unwrap_or(2000.0);
+                self.before_input(&opts(2))?;
+                match &self.page {
+                    Page::Chromium(p) => {
+                        sent(crate::host::now_ns(), true, None);
+                        p.send_long(
+                            "Input.synthesizeScrollGesture",
+                            json!({ "x": x, "y": y, "yDistance": -by, "xDistance": -by_x, "speed": speed, "gestureSourceType": "mouse", "preventFling": true }),
+                        )?;
+                    }
+                    Page::Firefox(_) | Page::Webkit(_) => self.paced_wheel((x, y), (by_x, by), speed)?,
+                }
+                self.until(&opts(2))
+            }
+            // One wheel event at the element's centre (the viewport's without a selector), as a mouse wheel
+            // sends, with the keys and buttons `down` holds (Control and the wheel zoom).
+            "wheel" => {
+                let d = opts(1);
+                let (x, y) = if no_selector(&sel(0)) {
+                    let c = self.page.eval("[innerWidth / 2, innerHeight / 2]")?;
+                    (c[0].as_f64().unwrap_or(0.0), c[1].as_f64().unwrap_or(0.0))
+                } else {
+                    self.spot(&sel(0), &opts(2))?
+                };
+                let delta = |k: &str| d.get(k).and_then(Value::as_f64).unwrap_or(0.0);
+                let (mask, last) = self.buttons.get();
+                self.settle(Duration::ZERO)?;
+                self.before_input(&opts(2))?;
+                self.input_at(true, None);
+                match &self.page {
+                    Page::Chromium(p) => {
+                        p.send(
+                            "Input.dispatchMouseEvent",
+                            json!({ "type": "mouseWheel", "x": x, "y": y, "deltaX": delta("dx"), "deltaY": delta("dy"), "button": last.filter(|_| mask != 0).map_or("none", |b| cdp_button(b).0), "buttons": mask, "modifiers": self.mods.get() }),
+                        )?;
+                    }
+                    Page::Firefox(_) | Page::Webkit(_) => self.page.actions(json!([{ "type": "wheel", "id": "wheel", "actions": [wheel_step((x, y), (delta("dx"), delta("dy")))] }]))?,
+                }
+                self.until(&opts(2))
+            }
+            "window" => self.window(args.first().unwrap_or(&Value::Null), &opts(1)),
+            "act" => Err(Error::usage("page.act() is a native app's accessibility action; on a page click, type or press")),
+            "query" => match pixels::anchor(&sel(0)) {
+                Some(a) => self.images.query(&*self.shots()?, &a?),
+                None => self.query(&sel(0), &opts(1)),
+            },
+            "waitFor" => {
+                let o = opts(1);
+                let deadline = Instant::now() + self.timeout(&o);
+                match pixels::look(&sel(0)) {
+                    Some(l) => {
+                        self.images.wait(&*self.shots()?, &l?, None, self.timeout(&o))?;
+                    }
+                    None => {
+                        self.wait_for(&Self::sel(&with_text(&sel(0), &o))?, self.timeout(&o))?;
+                    }
+                }
+                match (until_after(&o, deadline), self.os.get()) {
+                    (Some(o), Some(os)) => self.os_until(os, &o, crate::host::now_ns()).map(|_| Value::Bool(true)),
+                    (Some(o), None) => self.until(&o),
+                    (None, _) => Ok(Value::Bool(true)),
+                }
+            }
+            "idle" => {
+                let t = self.timeout(&opts(0));
+                self.wait(&format!("__strobe.idle(300, {})", t.as_millis()), t)
+            }
+            "wait" => {
+                let ms = args.first().and_then(Value::as_f64).unwrap_or(0.0).max(0.0);
+                std::thread::sleep(Duration::from_millis(ms as u64));
+                Ok(Value::Bool(true))
+            }
+            "eval" => {
+                let rest: Vec<Value> = args.iter().skip(1).cloned().collect();
+                self.page.eval(&format!("({})(...{})", s(0), Value::Array(rest)))
+            }
+            // The frame that ends a run: on a page hidden for 200 ms the run is no valid run (its timers
+            // clamp, its frames stop, its renderer is backgrounded), refused whatever it measures.
+            "frame" => {
+                let v = self.call("__strobe.frame()")?;
+                if hidden(&v) { Err(page_hidden("the frame after the run")) } else { Ok(v) }
+            }
+            // A key held across other calls (a game's WASD, a held shortcut): `down` presses it, `up` lets go.
+            "down" | "up" => {
+                let o = opts(1);
+                if let Some(b) = keys::mouse_button(&s(0)) {
+                    // `at`: a selector or [x, y] to move to first, as a person moves before pressing.
+                    if let Some(at) = o.get("at").filter(|a| matches!(a, Value::String(_) | Value::Object(_) | Value::Array(_))) {
+                        let (x, y) = self.spot(at, &o)?;
+                        self.pointer_move(x, y, false)?;
+                    }
+                    // A release is measured as a click's is: what the press drew settles first.
+                    if call == "up" {
+                        self.settle(Duration::ZERO)?;
+                    }
+                    self.before_input(&o)?;
+                    self.pointer_button(b, call == "down", true)?;
+                } else {
+                    let (mods, key) = keys::parse_chord(&s(0))?;
+                    if mods.any() {
+                        return Err(Error::usage(format!("page.{call}({:?}): one key, not a chord (hold each with its own down)", s(0))));
+                    }
+                    // A key going down is measured, as a press is.
+                    if call == "down" {
+                        self.settle(Duration::ZERO)?;
+                    }
+                    self.before_input(&o)?;
+                    self.key(key, call == "down")?;
+                    return self.until(&o).map_err(|e| self.unfocused(e));
+                }
+                self.until(&o)
+            }
+            // The page's pixels for `--pixels`: only a pixels block captures, so timed runs never pay for it.
+            "snapshot" => {
+                let Some(dir) = &self.pixels else { return Ok(Value::Bool(false)) };
+                let name: String = s(0).chars().map(|c| if c.is_alphanumeric() || c == '-' || c == '_' || c == '.' { c } else { '_' }).collect();
+                let png = self.page.screenshot(Duration::from_secs(120)).map_err(|e| Error::msg(format!("snapshot {name}: {}", e.message)))?;
+                std::fs::create_dir_all(dir)?;
+                crate::store::write_atomic(&dir.join(format!("{name}.png")), &png)?;
+                Ok(Value::Bool(true))
+            }
+            other => Err(Error::msg(format!("unknown page call {other}"))),
+        }
+    }
+
+    fn timeout(&self, opts: &Value) -> Duration {
+        opts.get("timeout").and_then(Value::as_u64).map(Duration::from_millis).unwrap_or(self.op_timeout)
+    }
+
+    /// `page.query(selector?, { actionable })` on a page: one look through the page probe
+    /// (`__strobe.query`), counted in `driver.reads`; no selector is `*`.
+    fn query(&self, sel: &Value, o: &Value) -> Result<Value> {
+        let sel = if no_selector(sel) { Selector::every(Dialect::Page) } else { Self::sel(sel)? };
+        let only = o["actionable"] == true;
+        let v = self.read(&format!("__strobe.query({}, {QUERY_HITS}, {only})", sel.page_spec()), self.timeout(o))?;
+        let v: Value = v.as_str().and_then(|s| serde_json::from_str(s).ok()).ok_or_else(|| Error::msg("page.query(): the page's elements did not read"))?;
+        if only && v["cut"] == true {
+            return Err(Error::usage(format!(
+                "page.query({}, {{ actionable: true }}): more elements matched than {QUERY_HITS} hit tests can tell actionable or not, so the list would miss some",
+                sel.source
+            ))
+            .hint("narrow the selector (a role, a container's CSS), or query without actionable: elements past the hit tests read actionable: null"));
+        }
+        Ok(v["found"].clone())
+    }
+
+    /// Waits for the element, then returns the point to send input at.
+    fn locate(&self, sel: &Selector, opts: &Value) -> Result<(f64, f64)> {
+        self.aim(sel, opts).map(|(x, y, _)| (x, y))
+    }
+
+    /// Where input goes for a locator: a point in the viewport (`point`: CSS pixels, or `norm`), or the
+    /// element a selector finds (`locate`).
+    pub(crate) fn spot(&self, v: &Value, opts: &Value) -> Result<(f64, f64)> {
+        if let Some(a) = pixels::anchor(v) {
+            let m = self.images.aim(&*self.shots()?, &a?, self.timeout(opts))?;
+            return Ok((m.x, m.y));
+        }
+        let Some(p) = point(v) else { return self.locate(&Self::sel(v)?, opts) };
+        let p = p?;
+        let c = self.page.eval("[innerWidth, innerHeight]")?;
+        let (x, y) = pixel_point(p, (c[0].as_f64().unwrap_or(0.0), c[1].as_f64().unwrap_or(0.0)), "viewport")?;
+        aimed(Hit { role: String::new(), key: None, name: String::new(), point: Some([x, y]), rect: None, scrolled: false });
+        Ok((x, y))
+    }
+
+    /// `locate`, and whether focus is in the element: one look at the page (`__strobe.aim`).
+    fn aim(&self, sel: &Selector, opts: &Value) -> Result<(f64, f64, bool)> {
+        self.aim_for(sel, opts, false)
+    }
+
+    /// `aim`; with `focus`, a field focus is already in is not aimed at (`focused`, no point): the
+    /// click into it is never sent. The same rule in every engine (`__strobe.box`): the centre of the
+    /// element's visible part where a hit test finds the element, never a point outside the viewport
+    /// (where input lands on nothing, or a WebDriver browser refuses it) or on what covers it. An element
+    /// strobe scrolled into view is aimed at again once a frame drew the scroll, and the page rests two
+    /// refreshes, so the scroll's frames are neither taken as the input's reaction nor keep it busy.
+    fn aim_for(&self, sel: &Selector, opts: &Value, focus: bool) -> Result<(f64, f64, bool)> {
+        let t = self.timeout(opts);
+        let expr = format!("__strobe.aim({}, {}, {}, {focus})", sel.page_spec(), t.as_millis(), json!(sel.source));
+        let mut b = self.read(&expr, t)?;
+        if b.is_null() {
+            return Err(Error::msg(format!("no visible element matches {}", sel.source)));
+        }
+        let scrolled = b["scrolled"] == true;
+        let hit = |b: &Value| {
+            let rect = b["rect"].as_array().filter(|r| r.len() == 4).map(|r| std::array::from_fn(|i| r[i].as_f64().unwrap_or(0.0)));
+            let point = b["x"].as_f64().zip(b["y"].as_f64()).map(|(x, y)| [x, y]);
+            Hit {
+                role: b["role"].as_str().unwrap_or("").to_string(),
+                key: b["key"].as_str().filter(|k| !k.is_empty()).map(str::to_string),
+                name: b["name"].as_str().unwrap_or("").to_string(),
+                point,
+                rect,
+                scrolled,
+            }
+        };
+        if focus && b["focused"] == true && b["x"].is_null() {
+            aimed(hit(&b));
+            return Ok((0.0, 0.0, true));
+        }
+        if scrolled {
+            if hidden(&self.call("__strobe.frame()")?) {
+                return Err(page_hidden("the frame after scrolling the element into view"));
+            }
+            b = self.read(&expr, t)?;
+            let frames = self.refresh.get() * 2;
+            match self.os.get() {
+                Some(os) => os.rest_frames()?,
+                None => self.settle(frames)?,
+            };
+        }
+        aimed(hit(&b));
+        match (b["x"].as_f64(), b["y"].as_f64()) {
+            (Some(x), Some(y)) => Ok((x, y, b["focused"] == true)),
+            _ if b["covered"].is_string() => Err(Refusal::new(
+                ValidatorId::Covered,
+                format!("{}: {} covers it wherever it shows, even scrolled to the middle of the viewport, so input there would reach that instead", sel.source, b["covered"].as_str().unwrap_or("")),
+            )
+            .fix("wait until it is uncovered (until: a selector after what closes the cover), or close what covers it")
+            .into()),
+            _ => Err(Refusal::new(ValidatorId::OutOfView, format!("{}: {}, so input there would land beside it", sel.source, b["hidden"].as_str().unwrap_or("no part of it shows")))
+                .fix("aim at what a person would click: an element with a part on the screen (a person could not reach this one either)")
+                .into()),
+        }
+    }
+
+    fn until(&self, opts: &Value) -> Result<Value> {
+        Ok(each_until(opts, self.timeout(opts), |o, _| self.until_one(o))?.unwrap_or(Value::Bool(true)))
+    }
+
+    /// The `until` of keys sent to no element (a press, typing or a key down or up with no selector) that
+    /// failed (a wait in the page or one that ran out, an image that never showed): when no key reached
+    /// the document since the call (`KEYS_SEEN`) and it had no focus (`document.hasFocus()`), both read
+    /// within 1 s, the error says so. Focus alone proves nothing: a headless page reads no focus until a
+    /// click, and takes keys all the same. Both clocks are monotonic: the time since the call on strobe's,
+    /// and the document's own (`performance.now`, as `KEYS_SEEN` bound it, so a page's fake timers change
+    /// neither), with 5 ms of slack for the reads. Nothing is said of a document that began after the call
+    /// (a key that navigated reached the one before), of one whose focus is in a frame (its keys went
+    /// there), of a page without `KEYS_SEEN` (OS input, a phone), or on a phone.
+    fn unfocused(&self, e: Error) -> Error {
+        if !(matches!(e.code, 1 | 124) || e.validator() == Some(ValidatorId::AnchorNotFound)) || self.phone {
+            return e;
+        }
+        let read = "[document.hasFocus(), window.__strobeKeys?.at ?? null, window.__strobeKeys?.now?.() ?? performance.now(), /^(IFRAME|FRAME)$/.test(document.activeElement?.tagName ?? \"\")]";
+        let Ok(seen) = self.page.eval_timeout(read, Duration::from_secs(1)) else { return e };
+        // Read after the page answered: the longer, the less the page is said to have missed.
+        let elapsed_ms = crate::host::now_ns().saturating_sub(self.call_at.get()) as f64 / 1e6;
+        let (Some(at), Some(doc_now)) = (seen[1].as_f64(), seen[2].as_f64()) else { return e };
+        let reached = at >= 0.0 && doc_now - at <= elapsed_ms + 5.0;
+        let later = doc_now <= elapsed_ms + 5.0;
+        if seen[0] != false || seen[3] == true || reached || later {
+            return e;
+        }
+        noted(e, &unfocused_note(false))
+    }
+
+    /// One wait of a call's `until` (`each_until` runs a list's in turn).
+    fn until_one(&self, opts: &Value) -> Result<Value> {
+        let t = self.timeout(opts);
+        // An image or pixels: from what the region showed before the input (`before_input`).
+        if let Some(l) = opts.get("until").and_then(pixels::look) {
+            let before = self.before.borrow_mut().take();
+            let p = self.images.wait(&*self.shots()?, &l?, before, t)?;
+            self.prove(p);
+            return Ok(Value::Bool(true));
+        }
+        match opts.get("until") {
+            None | Some(Value::Null) => Ok(Value::Bool(true)),
+            Some(Value::String(u)) if u == "idle" => self.wait(&format!("__strobe.idle(300, {})", t.as_millis()), t),
+            Some(Value::String(u)) if u == "frame" => {
+                let v = self.call("__strobe.frame()")?;
+                if hidden(&v) { Err(page_hidden("until: \"frame\"")) } else { Ok(v) }
+            }
+            Some(Value::String(u)) if u == "animations" => self.wait(&format!("__strobe.animations({})", t.as_millis()), t),
+            Some(u) => self.wait_for(&Self::sel(u)?, t),
+        }
+    }
+
+    /// A key pressed and released with `extra` modifiers on top of the held ones. Modifiers mark the
+    /// events, as CDP takes them; they are not keys of their own.
+    /// Over WebDriver (BiDi or Classic) a chord's modifiers (and Shift for a character a US keyboard types
+    /// with it) go down as keys around it, in one action list.
+    fn stroke(&self, key: Key, extra: i64) -> Result<()> {
+        let m = self.mods.get() | extra;
+        self.input_at(false, None);
+        match &self.page {
+            Page::Chromium(_) => {
+                self.key_event(key, true, m)?;
+                return self.key_event(key, false, m);
+            }
+            Page::Firefox(_) | Page::Webkit(_) => {}
+        }
+        let shift = if matches!(key, Key::Char(c) if keys::us_key(c).is_some_and(|k| k.1)) { 8 } else { 0 };
+        let press = (extra | shift) & !self.mods.get();
+        let key = match key {
+            // Safari types a shifted character with Shift only from its key's own character (`1` for `!`;
+            // `w` for `W`, which it sometimes dropped as `W` after a click).
+            Key::Char(c) if (m | shift) & 8 != 0 && self.page.shift_takes_base_key() => Key::Char(keys::us_key(c).map_or(c, |k| k.0)),
+            Key::Char(c) if (m | shift) & 8 != 0 && c.is_ascii_graphic() => Key::Char(keys::us_shifted(c)),
+            k => k,
+        };
+        let down: Vec<Value> = mod_keys(press).into_iter().map(|k| key_action(k, true)).collect::<Result<_>>()?;
+        let up: Vec<Value> = mod_keys(press).into_iter().rev().map(|k| key_action(k, false)).collect::<Result<_>>()?;
+        let list = |actions: Vec<Value>| json!([{ "type": "key", "id": "keyboard", "actions": actions }]);
+        let mut actions = down;
+        actions.push(key_action(key, true)?);
+        actions.push(key_action(key, false)?);
+        actions.extend(up);
+        self.page.actions(list(actions))
+    }
+
+    /// `scroll` over WebDriver, which has no scroll gesture: wheel steps of the distance at `speed` (CSS
+    /// px a second), one per display frame on strobe's clock, sent without waiting for each to be handled
+    /// (WebDriver Classic: each waited for), then one empty action list that returns once the page has
+    /// handled them all.
+    fn paced_wheel(&self, at: (f64, f64), (dx, dy): (f64, f64), speed: f64) -> Result<()> {
+        let p = &self.page;
+        let frame = self.frame_period()?;
+        let dist = dx.hypot(dy);
+        let steps = ((dist / speed.max(1.0)) * 1e3 / frame).ceil().max(1.0) as u32;
+        self.settle(Duration::ZERO)?;
+        let start = Instant::now();
+        let mut sent = (0.0, 0.0);
+        for k in 1..=steps {
+            if k > 1 {
+                self.pacer.wait(start + Duration::from_secs_f64(frame * (k - 1) as f64 / 1e3), Duration::from_secs_f64(frame / 1e3));
+            } else {
+                self.input_at(true, None);
+            }
+            let f = k as f64 / steps as f64;
+            let to = ((dx * f).round(), (dy * f).round());
+            p.post_actions(json!([{ "type": "wheel", "id": "wheel", "actions": [wheel_step(at, (to.0 - sent.0, to.1 - sent.1))] }]))?;
+            sent = to;
+        }
+        p.actions(json!([{ "type": "none", "id": "sync", "actions": [{ "type": "pause", "duration": 0 }] }]))
+    }
+
+    /// One key going down or up, from the key table: its `key`, `code` and virtual key, and its text only
+    /// while no Control, Alt or Meta is down (Shift types what a US keyboard's key types with it: `A`, `!`).
+    fn key_event(&self, key: Key, down: bool, modifiers: i64) -> Result<()> {
+        let mut d = match key {
+            Key::Named(n) => keys::dom(n),
+            Key::Char(c) => keys::dom_char(c),
+        };
+        // A character a US keyboard types with Shift (`A`, `+`) holds Shift, as the native posters press it.
+        let modifiers = modifiers | if matches!(key, Key::Char(c) if keys::us_key(c).is_some_and(|k| k.1)) { 8 } else { 0 };
+        if modifiers & 8 != 0
+            && let Some(c) = d.text.as_deref().and_then(|t| t.chars().next()).filter(|c| d.key.chars().count() == 1 && c.is_ascii_graphic())
+        {
+            d.key = keys::us_shifted(c).to_string();
+            d.text = Some(d.key.clone());
+        }
+        let text = d.text.filter(|_| down && modifiers & 0b0111 == 0);
+        let kind = match (down, &text) {
+            (false, _) => "keyUp",
+            (true, Some(_)) => "keyDown",
+            (true, None) => "rawKeyDown",
+        };
+        let mut e = json!({ "type": kind, "key": d.key, "code": d.code, "windowsVirtualKeyCode": d.vk, "modifiers": modifiers });
+        if let Some(t) = text {
+            e["text"] = json!(t);
+        }
+        match &self.page {
+            Page::Chromium(p) => p.send("Input.dispatchKeyEvent", e).map(|_| ()),
+            // The session's input state holds the modifiers already down.
+            Page::Firefox(_) | Page::Webkit(_) => {
+                // Safari types a shifted character with Shift held only from its key's own character (`stroke`).
+                let key = match key {
+                    Key::Char(c) if self.mods.get() & 8 != 0 && self.page.shift_takes_base_key() => Key::Char(keys::us_key(c).map_or(c, |k| k.0)),
+                    k => k,
+                };
+                self.page.actions(json!([{ "type": "key", "id": "keyboard", "actions": [key_action(key, down)?] }]))
+            }
+        }
+    }
+
+    /// One key, pressed (`down`) or let go: a held key stays down across other calls until its `up`. A held
+    /// modifier (Shift, Control, Alt, Meta) also marks the key events and mouse events sent while it is down.
+    /// Chromium sends no auto-repeat, as a game reading key state does not need.
+    fn key(&self, key: Key, down: bool) -> Result<()> {
+        let bit = match key {
+            Key::Named(Named::Alt) => 1,
+            Key::Named(Named::Control) => 2,
+            Key::Named(Named::Meta) => 4,
+            Key::Named(Named::Shift) => 8,
+            _ => 0,
+        };
+        {
+            let mut held = self.held.borrow_mut();
+            let at = held.iter().position(|k| *k == key);
+            match (down, at) {
+                (true, None) => held.push(key),
+                (false, Some(i)) => {
+                    held.remove(i);
+                }
+                // Already down, or not held: nothing to send.
+                _ => return Ok(()),
+            }
+        }
+        self.mods.set(if down { self.mods.get() | bit } else { self.mods.get() & !bit });
+        if down && bit == 0 {
+            self.input_at(false, None);
+        } else {
+            sent(crate::host::now_ns(), false, None);
+        }
+        self.key_event(key, down, self.mods.get())
+    }
+}
+
+/// A page's viewport through its browser's own screenshots (`WebPage::capture`): outside timed stretches
+/// only, as the renderer draws them for strobe (`Driver::shots`), and for `expect` and `look`.
+pub(crate) struct PageShots<'a> {
+    pub page: &'a Page,
+}
+
+impl pixels::Source for PageShots<'_> {
+    fn size(&self) -> Result<(f64, f64)> {
+        let v = self.page.eval("[innerWidth, innerHeight]")?;
+        Ok((v[0].as_f64().unwrap_or(0.0), v[1].as_f64().unwrap_or(0.0)))
+    }
+
+    fn grab(&self, r: [f64; 4]) -> Result<crate::host::capture::Shot> {
+        let t0 = crate::host::now_ns();
+        let img = self.page.capture(r, Duration::from_secs(15))?;
+        let t = crate::host::now_ns();
+        Ok(crate::host::capture::Shot { scale: img.width as f64 / r[2].max(1.0), img, t0_ns: t0, t_ns: t, seq: 0, late_ns: 0 })
+    }
+
+    fn wake(&self, _: &crate::host::capture::Shot, until: Instant) {
+        std::thread::sleep(until.min(Instant::now() + Duration::from_millis(30)).saturating_duration_since(Instant::now()));
+    }
+
+    fn what(&self) -> &'static str {
+        "viewport"
+    }
+}
+
+/// A headed page's viewport from outside, inside a run's timed stretch: the browser's window through
+/// `host::capture` (the renderer does nothing for it). Where strobe gives the page the OS's input, the
+/// viewport is where that input's calibration put it (`OsInput::page_in_client`). Else it is the bottom
+/// of the window's client area, full width (the browser's own bars are above it), at the window's
+/// device-independent pixels per CSS pixel (`devicePixelRatio` over the window's scale), checked against
+/// the window: its width within 2 pixels of the viewport's, and the bars above it inside what the window
+/// adds to the viewport (`outerHeight − innerHeight`); otherwise refused, never guessed. The metrics are
+/// read before the runs (`Driver::prime_viewport`), again after a `window` call.
+struct WindowShots<'a> {
+    d: &'a Driver,
+}
+
+impl WindowShots<'_> {
+    fn with<T>(&self, f: impl FnOnce(&mut crate::host::capture::Grabber) -> Result<T>) -> Result<T> {
+        let mut g = self.d.grabber.borrow_mut();
+        // The window the capture follows while it still shows (finding the browser's window lists every
+        // window on the desktop, a read's cost each time).
+        let open = g.as_ref().filter(|g| g.shown()).map(|g| g.window());
+        let w = match open {
+            Some(w) => w,
+            None => self.d.browser_window()?.hwnd,
+        };
+        if g.as_ref().is_none_or(|g| g.window() != w) {
+            // The capture it replaces has CPU of its own not yet taken (its open, its frame events).
+            if let Some(old) = g.take() {
+                self.d.images.bank_cpu(old.take_cpu_ms());
+            }
+            *g = Some(crate::host::capture::Grabber::open(w)?);
+        }
+        f(g.as_mut().ok_or_else(|| Error::msg("internal: the window's capture"))?)
+    }
+
+    /// Where the viewport is in the window's client area: its origin and device-independent pixels per
+    /// CSS pixel.
+    fn place(&self, g: &crate::host::capture::Grabber) -> Result<(f64, f64, f64)> {
+        if let Some(os) = self.d.os.get() {
+            return os.page_in_client(g.window());
+        }
+        let [vw, vh, k, chrome] = self.d.prime_viewport()?;
+        let (cw, ch) = g.size()?;
+        let top = ch - vh * k;
+        if (cw - vw * k).abs() > 2.0 || top < -2.0 || top > chrome * k + 2.0 {
+            return Err(Refusal::new(
+                ValidatorId::NoPresentSource,
+                format!(
+                    "the page's {vw:.0}×{vh:.0} viewport does not sit at the bottom of its browser window's {cw:.0}×{ch:.0} client area, full width ({:.1} device-independent pixels a CSS pixel, the window adding {chrome:.0} CSS pixels): where its pixels are on the screen is unknown",
+                    k
+                ),
+            )
+            .fix("read the page's pixels outside the runs (setup, ctx.untimed), or measure it from outside against another implementation, where strobe calibrates the page on the screen")
+            .into());
+        }
+        Ok((0.0, top.max(0.0), k))
+    }
+}
+
+impl pixels::Source for WindowShots<'_> {
+    /// The viewport's size; the window's capture opens here when it is not open yet, before the read
+    /// that counts its CPU (the open's own CPU is the capture's `open_ms`, counted once).
+    fn size(&self) -> Result<(f64, f64)> {
+        self.with(|_| Ok(()))?;
+        self.d.prime_viewport().map(|v| (v[0], v[1]))
+    }
+
+    fn grab(&self, r: [f64; 4]) -> Result<crate::host::capture::Shot> {
+        self.with(|g| {
+            let (x0, y0, k) = self.place(g)?;
+            let s = g.grab([x0 + r[0] * k, y0 + r[1] * k, r[2] * k, r[3] * k])?;
+            Ok(crate::host::capture::Shot { scale: s.scale * k, ..s })
+        })
+    }
+
+    fn seq(&self) -> Option<u64> {
+        self.d.grabber.borrow().as_ref().and_then(|g| g.seq())
+    }
+
+    fn wake(&self, after: &crate::host::capture::Shot, until: Instant) {
+        if let Some(g) = self.d.grabber.borrow().as_ref().filter(|g| g.evented()) {
+            g.wait(after.seq, until);
+            return;
+        }
+        let step = until.min(Instant::now() + Duration::from_millis(30)).saturating_duration_since(Instant::now());
+        match self.d.live.get() {
+            Some(p) => {
+                if let Some(c) = p.borrow_mut().as_mut() {
+                    let _ = c.live(&self.d.live_pids.borrow(), after.t_ns, step);
+                } else {
+                    std::thread::sleep(step);
+                }
+            }
+            None => std::thread::sleep(step),
+        }
+    }
+
+    fn what(&self) -> &'static str {
+        "viewport"
+    }
+}
+
+/// Whether an image shows on a page within `t`, through the browser's screenshots (`expect.visible`).
+pub fn page_image_shows(page: &Page, v: &Value, t: Duration) -> Option<Result<bool>> {
+    let a = pixels::anchor(v)?;
+    Some(a.and_then(|a| pixels::Pixels::default().shows(&PageShots { page }, &a, t)))
+}
+
+/// Waits up to `t` for an image (or pixels) on a page, through the browser's screenshots (`look`):
+/// `AnchorNotFound` says where the nearest thing to it was.
+pub fn page_image_wait(page: &Page, v: &Value, t: Duration) -> Option<Result<()>> {
+    let l = pixels::look(v)?;
+    Some(l.and_then(|l| pixels::Pixels::default().wait(&PageShots { page }, &l, None, t).map(drop)))
+}
+
+/// Every place an image shows on a page now, through the browser's screenshot (`look`).
+pub fn page_image_query(page: &Page, v: &Value) -> Option<Result<Value>> {
+    let a = pixels::anchor(v)?;
+    Some(a.and_then(|a| pixels::Pixels::default().query(&PageShots { page }, &a)))
+}
+
+/// One wheel step at a viewport point, for WebDriver input (whole pixels).
+fn wheel_step((x, y): (f64, f64), (dx, dy): (f64, f64)) -> Value {
+    json!({ "type": "scroll", "x": x.round() as i64, "y": y.round() as i64, "deltaX": dx.round() as i64, "deltaY": dy.round() as i64, "origin": "viewport" })
+}
+
+impl chromium::Page {
+    /// Like `send`, for commands that take as long as the gesture they perform.
+    pub fn send_long(&self, method: &str, params: Value) -> Result<Value> {
+        self.cdp.send_timeout(method, params, Some(&self.session), Duration::from_secs(120))
+    }
+
+    /// A command whose reply nobody waits for (`Cdp::post`).
+    pub fn post(&self, method: &str, params: Value) -> Result<()> {
+        self.cdp.post(method, params, Some(&self.session))
+    }
+}
+
+/// Paces a drag's moves on strobe's clock: sleeps while the OS's timers wake strobe in time and
+/// spins the rest. Each driver keeps its own: how late its sleeps woke is the lead it spins before
+/// each move, which grows to the latest wake, shrinks by an eighth with each wake in time and a
+/// sixteenth with each frame it spun whole, and never passes a frame (then the whole frame is spun).
+/// A process whose timers macOS coalesces (a launchd job of ProcessType Standard, such as a remote
+/// shell's daemon, and what it starts) woke 20 to 60 ms late from a 16 ms sleep, so its moves came in
+/// bursts; one late wake no longer makes every later drag of the process spin.
+#[derive(Default)]
+pub(crate) struct Pacer {
+    late: Cell<Duration>,
+}
+
+impl Pacer {
+    /// Waits until `due`, the next move of a drag whose frames are `frame` long.
+    pub fn wait(&self, due: Instant, frame: Duration) {
+        let late = self.late.get();
+        let lead = (late + Duration::from_millis(1)).min(frame);
+        match due.checked_duration_since(Instant::now() + lead) {
+            Some(w) => {
+                let asked = Instant::now() + w;
+                std::thread::sleep(w);
+                let woke = Instant::now().saturating_duration_since(asked);
+                self.late.set(if woke >= late { woke } else { late - (late - woke) / 8 });
+            }
+            None => self.late.set(late - late / 16),
+        }
+        while Instant::now() < due {
+            std::thread::yield_now();
+        }
+    }
+}
+
+/// `input.rate` and `input.gap.p95` (SPEC §9.6): pointer moves strobe sent per second while a button was
+/// held, over the time each drag lasted, and the 95th percentile gap between consecutive moves (ms).
+/// Input that starved (a slow driver, a busy machine) shows here rather than as dropped frames.
+pub fn input_pacing(drags: &[Vec<u64>]) -> Option<(f64, f64)> {
+    let mut gaps: Vec<f64> = Vec::new();
+    let mut span = 0u64;
+    for d in drags.iter().filter(|d| d.len() >= 2) {
+        span += d[d.len() - 1].saturating_sub(d[0]);
+        gaps.extend(d.windows(2).map(|w| w[1].saturating_sub(w[0]) as f64 / 1e6));
+    }
+    if gaps.is_empty() || span == 0 {
+        return None;
+    }
+    let rate = gaps.len() as f64 / (span as f64 / 1e9);
+    gaps.sort_by(f64::total_cmp);
+    // Interpolated as every other percentile strobe gives (`metrics::percentile`).
+    Some((rate, crate::metrics::percentile(&gaps, 0.95)))
+}

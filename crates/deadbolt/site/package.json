@@ -1,0 +1,30 @@
+{
+  "name": "@deadbolt/site",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "sh scripts/wasm.sh && tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "sh scripts/wasm.sh && tsc --noEmit",
+    "motion-sweep": "bun src/dev/motion-sweep.ts",
+    "deploy": "bun run build && bunx wrangler deploy",
+    "wasm": "sh scripts/wasm.sh"
+  },
+  "dependencies": {
+    "@kitlangton/justice": "0.3.0",
+    "@phosphor-icons/react": "2.1.10",
+    "knobs": "npm:@kitlangton/knobs@0.4.0-next.23",
+    "motion": "12.42.2",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.3",
+    "typescript": "6.0.2",
+    "vite": "8.1.3"
+  }
+}

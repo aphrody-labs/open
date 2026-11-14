@@ -1,0 +1,918 @@
+//! One recording opened for views: each source read once, however many views ask (SPEC §11.2).
+
+use super::Forced;
+use crate::engine;
+use crate::model::{Error, Result};
+use crate::probe::cpu::Sampling;
+use crate::probe::symbols::{Frame, Symbolizer};
+use crate::store;
+use serde_json::Value;
+use std::borrow::Cow;
+use std::collections::{BTreeMap, HashMap};
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, OnceLock};
+
+/// One recording opened for views. Each source (the CPU and allocation profiles, native samples, the
+/// heap snapshot, the trace's views) is read once, however many views ask for it: a report asks for
+/// the same sources through a dozen views, and reading them once per view loaded one trace into
+/// trace_processor up to seven times at once.
+pub struct Rec {
+    pub dir: PathBuf,
+    pub id: String,
+    pub meta: Value,
+    /// Source maps decode once per script for every view (a `Symbolizer` caches per instance).
+    pub(super) sym: Mutex<Symbolizer>,
+    cpu: OnceLock<Result<Stacks>>,
+    /// A script recording's whole host profile (`whole-host.json.gz`, `Scope::Host`).
+    host_cpu: OnceLock<Result<Stacks>>,
+    alloc: OnceLock<Result<Stacks>>,
+    native: OnceLock<Result<Option<NativeStacks>>>,
+    heap: OnceLock<Result<crate::heapsnap::Snapshot>>,
+    pub(super) forced: OnceLock<Result<Forced>>,
+    /// Trace views by part: those asked for together run in one trace_processor pass.
+    trace: Mutex<BTreeMap<Part, Result<Arc<Rows>>>>,
+    /// What strobe read out of a Firefox recording's Gecko profile.
+    gecko: OnceLock<Option<Value>>,
+    /// The gaps between consecutive samples of the CPU profiles (µs), read with them.
+    gaps: Mutex<Vec<f64>>,
+    /// A folder a person named: held while it is read (`store::Named`).
+    _named: Option<store::Named>,
+}
+
+pub(super) type Rows = Vec<Vec<Option<String>>>;
+
+/// One distinct stack and what it weighs: µs of time or bytes allocated, the samples behind it, and
+/// the sampling variance of the weight (µs² or bytes²), which depends on the sampler: a CPU sample
+/// weighs the time to the next sample, so Σ Δt²; an allocation sample is a Horvitz-Thompson estimate
+/// (size s seen with probability 1 − e^(−s/B)), so Σ (s/p)²(1 − p), near zero for one large
+/// allocation; native samples weigh one interval each, so n·interval²; traced events have none.
+pub struct Weight {
+    pub stack: Vec<u32>,
+    pub w: f64,
+    pub n: u64,
+    pub var: f64,
+}
+
+/// Weighted stacks with each distinct frame stored once (stacks are root first, indices into `frames`).
+#[derive(Default)]
+pub struct Stacks {
+    pub frames: Vec<Frame>,
+    pub weights: Vec<Weight>,
+    at: BTreeMap<Frame, u32>,
+}
+
+impl Stacks {
+    pub(super) fn intern(&mut self, f: Frame) -> u32 {
+        if let Some(&i) = self.at.get(&f) {
+            return i;
+        }
+        let i = self.frames.len() as u32;
+        self.frames.push(f.clone());
+        self.at.insert(f, i);
+        i
+    }
+
+    /// Native samples: each weighs one sampling interval, so a stack's variance is n·interval².
+    fn from_native(weights: Vec<(Vec<Frame>, f64, u64)>) -> Stacks {
+        let mut s = Stacks::default();
+        for (stack, w, n) in weights {
+            let stack = stack.into_iter().map(|f| s.intern(f)).collect();
+            let var = if n > 0 { w * w / n as f64 } else { 0.0 };
+            s.weights.push(Weight { stack, w, n, var });
+        }
+        s
+    }
+}
+
+/// A recording's native samples (`deep`) as stacks, with what resolved. `untimed`: the samples carry
+/// no time and cover the whole capture (macOS `sample`: launch, warmup runs and resets included), so
+/// they cannot be divided into measured runs.
+pub(super) struct NativeStacks {
+    pub(super) stacks: Stacks,
+    pub(super) interval_us: f64,
+    pub(super) samples: u64,
+    pub(super) resolved: u64,
+    pub(super) untimed: bool,
+    pub(super) facts: Value,
+}
+
+impl NativeStacks {
+    /// A recording's native samples, all of them, or those `select` picks (uncached).
+    pub(super) fn read(dir: &Path, select: &crate::symbol::Select) -> Result<Option<NativeStacks>> {
+        Ok(crate::symbol::native_of(dir, select)?.map(|n| {
+            let facts = crate::symbol::summary(&n);
+            NativeStacks { interval_us: n.interval_us, samples: n.samples, resolved: n.resolved, untimed: n.untimed, facts, stacks: Stacks::from_native(n.weights) }
+        }))
+    }
+}
+
+/// A failure cached with its source, handed again to each view that asks.
+pub(super) fn cached<T>(r: &Result<T>) -> Result<&T> {
+    r.as_ref().map_err(Error::clone)
+}
+
+impl Rec {
+    pub fn open(dir: &Path) -> Rec {
+        let stored = dir.parent().is_some_and(|p| p == crate::host::paths::state_path().join("recordings"));
+        // A meta.json strobe did not write here (a folder named by its path) is read as any named file is
+        // (`query::by_path` read and checked it first, with its refusals).
+        let meta = if stored { store::read_json(&dir.join("meta.json")) } else { store::read_named_json(&dir.join("meta.json")) }.unwrap_or(Value::Null);
+        Rec::with_meta(dir, meta, None)
+    }
+
+    /// A recording whose meta.json is read already: a folder a person named (`query::by_path`), held
+    /// while it is read.
+    pub(crate) fn with_meta(dir: &Path, mut meta: Value, named: Option<store::Named>) -> Rec {
+        super::super::record::omit_refused_display(&mut meta);
+        let stored = dir.parent().is_some_and(|p| p == crate::host::paths::state_path().join("recordings"));
+        // Its id as the file says when that is a plain id, else its folder's: it names caches and shows
+        // in text, so never a path (`store::plain_id`).
+        let folder = dir.file_name().map(|n| n.to_string_lossy().to_string()).filter(|n| store::plain_id(n));
+        let id = meta["id"].as_str().filter(|i| store::plain_id(i)).map(str::to_string).or(folder).unwrap_or_else(|| "recording".into());
+        Rec {
+            dir: dir.to_path_buf(),
+            id,
+            meta,
+            // A recording strobe keeps reads its scripts' original sources from disk; one named by its path
+            // reads only what it holds (its maps' own sources), never a file its maps name.
+            sym: Mutex::new(if stored { Symbolizer::open(dir) } else { Symbolizer::open_held(dir) }),
+            cpu: OnceLock::new(),
+            host_cpu: OnceLock::new(),
+            alloc: OnceLock::new(),
+            native: OnceLock::new(),
+            heap: OnceLock::new(),
+            forced: OnceLock::new(),
+            trace: Mutex::new(BTreeMap::new()),
+            gecko: OnceLock::new(),
+            gaps: Mutex::new(Vec::new()),
+            _named: named,
+        }
+    }
+
+    /// A recording strobe keeps, by its id (or the id's first letters). An id read from a file (a result's
+    /// recordings) resolves only here: never as a path.
+    pub fn resolve(handle: &str) -> Result<Rec> {
+        Ok(Rec::open(&store::resolve(handle)?))
+    }
+
+    /// A recording a person named: by its handle, or by the path of its folder or its meta.json
+    /// (`query::by_path`).
+    pub fn named(handle: &str) -> Result<Rec> {
+        match super::by_path(handle)? {
+            Some(super::ByPath::Recording(dir, meta, named)) => Ok(Rec::with_meta(&dir, meta, named)),
+            Some(super::ByPath::Experiment(..)) => Err(Error::usage(format!("{handle} is an experiment's result, not a recording"))),
+            None => Rec::resolve(handle),
+        }
+    }
+
+    /// Whether the recording is one of strobe's own (`recordings/`): a folder named by its path is read
+    /// as it is, and nothing is written beside it.
+    pub fn stored(&self) -> bool {
+        self.dir.parent().is_some_and(|p| p == crate::host::paths::state_path().join("recordings"))
+    }
+
+    /// What a printed command names the recording by: its id, or the path it was read from.
+    pub fn handle(&self) -> String {
+        if self.stored() { self.id.clone() } else { super::path_word(&self.dir) }
+    }
+
+    /// The measured runs the recording's profiles cover: its `runs`, else its duration over one run's.
+    pub fn runs(&self) -> Option<u64> {
+        self.meta["runs"].as_u64().or_else(|| {
+            let dur = self.meta["duration_ms"].as_f64()?;
+            let one = self.meta["values"]["run.duration"].as_f64()?;
+            (one > 0.0).then(|| (dur / one).round().max(1.0) as u64)
+        })
+    }
+
+    pub(super) fn cpu(&self) -> Result<&Stacks> {
+        cached(self.cpu.get_or_init(|| self.load_cpu()))
+    }
+
+    pub(super) fn alloc(&self) -> Result<&Stacks> {
+        cached(self.alloc.get_or_init(|| self.load_alloc()))
+    }
+
+    pub(super) fn native(&self) -> Result<Option<&NativeStacks>> {
+        cached(self.native.get_or_init(|| NativeStacks::read(&self.dir, &crate::symbol::Select::default()))).map(Option::as_ref)
+    }
+
+    pub fn snapshot(&self) -> Result<&crate::heapsnap::Snapshot> {
+        cached(self.heap.get_or_init(|| {
+            super::firefox_gap(self, super::Gap::Heap)?;
+            crate::heapsnap::read(&super::heap_file(&self.dir)?)
+        }))
+    }
+
+    /// Loads the sources the given views read, all at once (each its own file read or trace pass).
+    pub fn preload(&self, parts: &[Part], cpu: bool, alloc: bool, heap: bool) {
+        std::thread::scope(|s| {
+            s.spawn(|| self.prefetch(parts));
+            if alloc {
+                s.spawn(|| self.alloc().is_ok());
+            }
+            if heap {
+                s.spawn(|| self.snapshot().is_ok());
+            }
+            if cpu {
+                let _ = self.cpu();
+            }
+        });
+    }
+
+    /// Whether this recording's trace can answer a part: run marks, and an attribution trace for
+    /// stacks, GC phases and invalidation tracking. A Firefox attribution recording answers from the
+    /// rows strobe read out of its Gecko profile (`gecko.json`).
+    pub(super) fn has(&self, p: Part) -> bool {
+        let token = self.meta["token"].as_str().unwrap_or("");
+        let source = self.dir.join("trace.pftrace").is_file() || self.gecko_rows(p).is_some();
+        !token.is_empty() && source && (!p.attribution_only() || self.meta["probes"] == "attribution")
+    }
+
+    /// What strobe read out of a Firefox recording's Gecko profile (`gecko.json`) or an iOS Safari
+    /// Web Inspector recording (`webkit.json`).
+    fn gecko(&self) -> Option<&Value> {
+        self.gecko.get_or_init(|| store::read_json(&self.dir.join(crate::probe::gecko::READ)).or_else(|_| store::read_json(&self.dir.join(crate::probe::webkit_inspector::READ))).ok()).as_ref()
+    }
+
+    /// A part's rows from a Firefox recording's Gecko profile.
+    fn gecko_rows(&self, p: Part) -> Option<Rows> {
+        serde_json::from_value(self.gecko()?["parts"].get(format!("{p:?}"))?.clone()).ok()
+    }
+
+    /// The interval the recording's page sampler was asked for and the one it kept: as the recording
+    /// stored it (`meta.json`, a Firefox recording's `gecko.json`), else, for a recording from before
+    /// strobe stored it, the median gap of its page's CPU profiles, asked `INTERVAL_US` as they all were
+    /// (a Firefox one the interval its `gecko.json` gave). A script recording stores the gaps of its
+    /// measured runs; one from before strobe cut script profiles to the runs has none: its profile
+    /// covers a whole host process.
+    pub fn sampling(&self) -> Option<Sampling> {
+        let stored = |v: &Value| serde_json::from_value::<Sampling>(v["sampling"].clone()).ok();
+        if let Some(s) = stored(&self.meta).or_else(|| self.gecko().and_then(stored)) {
+            return Some(s);
+        }
+        if self.meta["script"] == true {
+            return None;
+        }
+        self.cpu().ok()?;
+        let asked = self.gecko().and_then(|g| g["interval_us"].as_f64()).unwrap_or(crate::probe::cpu::INTERVAL_US as f64);
+        Sampling::of(asked, self.gaps.lock().unwrap_or_else(|e| e.into_inner()).clone())
+    }
+
+    /// Runs the parts not yet read in one trace_processor pass: one load of the trace for all of them.
+    pub fn prefetch(&self, parts: &[Part]) {
+        let mut cache = self.trace.lock().unwrap_or_else(|e| e.into_inner());
+        if !self.dir.join("trace.pftrace").is_file() {
+            let todo: Vec<Part> = parts.iter().copied().filter(|p| !cache.contains_key(p) && self.has(*p)).collect();
+            for p in todo {
+                if let Some(rows) = self.gecko_rows(p) {
+                    cache.insert(p, Ok(Arc::new(rows)));
+                }
+            }
+            return;
+        }
+        let mut todo: Vec<Part> = parts.iter().copied().filter(|p| !cache.contains_key(p) && self.has(*p)).collect();
+        todo.sort();
+        todo.dedup();
+        if todo.is_empty() {
+            return;
+        }
+        match engine::query(&self.dir.join("trace.pftrace"), &batch_sql(self.meta["token"].as_str().unwrap_or(""), measured_keys(&self.meta).as_deref(), &todo)) {
+            Ok(table) => {
+                let mut split: BTreeMap<Part, Rows> = todo.iter().map(|p| (*p, Vec::new())).collect();
+                for row in table.rows {
+                    let Some(p) = row.first().cloned().flatten().and_then(|t| t.parse::<usize>().ok()).and_then(|i| PARTS.get(i).copied()) else { continue };
+                    if let Some(rows) = split.get_mut(&p) {
+                        rows.push(row.into_iter().skip(1).take(p.width()).collect());
+                    }
+                }
+                for (p, mut rows) in split {
+                    if let Some((a, b)) = p.order() {
+                        rows.sort_by(|x, y| cell_cmp(x, y, a).then_with(|| cell_cmp(x, y, b)).then_with(|| cell_cmp(y, x, 3)));
+                    }
+                    cache.insert(p, Ok(Arc::new(rows)));
+                }
+            }
+            Err(e) => {
+                for p in todo {
+                    cache.insert(p, Err(e.clone()));
+                }
+            }
+        }
+    }
+
+    pub(super) fn require_part(&self, p: Part) -> Result<()> {
+        if !self.has(p) {
+            // A page block that took no trace (`traced: false`): nothing it measured needed one.
+            if self.meta["traced"] == false && !self.dir.join("trace.pftrace").is_file() {
+                return Err(Error::usage("this block took no trace: nothing it measured needs one; record or bench with --trace full, or headed, to keep one"));
+            }
+            return Err(Error::usage("this recording has no trace with strobe's run marks"));
+        }
+        Ok(())
+    }
+
+    pub(super) fn part(&self, p: Part) -> Result<Arc<Rows>> {
+        self.require_part(p)?;
+        self.prefetch(&[p]);
+        let cache = self.trace.lock().unwrap_or_else(|e| e.into_inner());
+        cache.get(&p).map(|r| r.as_ref().map(Arc::clone).map_err(Error::clone)).unwrap_or_else(|| Err(Error::msg("trace part missing")))
+    }
+
+    /// A script recording's whole host process (`whole-host.json.gz`): startup, setup, warmup, the
+    /// runs, resets and teardown. Each sample weighs its gap; one over the file's `capUs`, its `overUs`.
+    pub(super) fn host_cpu(&self) -> Result<&Stacks> {
+        cached(self.host_cpu.get_or_init(|| self.load_script(&[(f64::NEG_INFINITY, f64::INFINITY)], &[], HostFrames::Name)))
+    }
+
+    /// A script recording's samples inside `spans` and outside `untimed` (ns on strobe's clock, as
+    /// `runs.json` and `lifecycle_spans` keep them): one phase's stretches of the measured runs, or one
+    /// part of the host's life (`--source startup`, `--source setup`).
+    pub(super) fn phase_cpu(&self, spans: &[(u64, u64)], untimed: &[(u64, u64)]) -> Result<Stacks> {
+        self.load_script(&us(spans), &us(untimed), HostFrames::Fold)
+    }
+
+    /// The JavaScript the whole host profile sampled inside each group of `spans` (ns on strobe's
+    /// clock), µs, and in all of it: every sample's weight there but the profile's own `(root)` and
+    /// `(idle)`, as `probe::cpu::Rebased::sampled_in` counts it. One read of the profile for every group.
+    pub(super) fn host_sampled(&self, groups: &[Vec<(u64, u64)>]) -> Result<(Vec<f64>, f64)> {
+        let bytes = self.host_bytes()?;
+        let prof: CpuProfile = parse(&bytes, &self.dir.join(crate::probe::cpu::WHOLE_HOST))?;
+        let t = HostTimes::of(&prof);
+        let idle: std::collections::HashSet<u64> = prof.nodes.iter().filter(|n| matches!(n.call_frame.name.as_ref(), "(root)" | "(idle)")).map(|n| n.id).collect();
+        let sum = |spans: &[(f64, f64)]| -> f64 { t.weights(spans, &[]).iter().zip(&prof.samples).filter(|(_, id)| !idle.contains(*id)).map(|(w, _)| w).sum() };
+        let all = sum(&[(f64::NEG_INFINITY, f64::INFINITY)]);
+        Ok((groups.iter().map(|g| sum(&us(g))).collect(), all))
+    }
+
+    /// The whole host profile's bytes (`whole-host.json.gz`), uncompressed.
+    pub(super) fn host_file(&self) -> Result<PathBuf> {
+        let path = self.dir.join(crate::probe::cpu::WHOLE_HOST);
+        if !path.is_file() {
+            return Err(Error::usage(format!(
+                "{} has no whole host profile: --source host|startup|setup and a script's --phase read a script target's attribution recording, and one from before strobe cut its profile to the runs covers the whole host already (strobe query {} hotspots)",
+                self.id,
+                self.handle()
+            )));
+        }
+        Ok(path)
+    }
+
+    fn host_bytes(&self) -> Result<Vec<u8>> {
+        let path = self.host_file()?;
+        let mut bytes = Vec::new();
+        std::io::Read::read_to_end(&mut store::gunzip(&path)?, &mut bytes)?;
+        Ok(bytes)
+    }
+
+    /// The whole host profile's samples inside `spans` and outside `untimed` (µs, sorted), as
+    /// `probe::cpu::weights` weighs them.
+    fn load_script(&self, spans: &[(f64, f64)], untimed: &[(f64, f64)], host: HostFrames) -> Result<Stacks> {
+        let bytes = self.host_bytes()?;
+        let prof: CpuProfile = parse(&bytes, &self.dir.join(crate::probe::cpu::WHOLE_HOST))?;
+        let w = HostTimes::of(&prof).weights(spans, untimed);
+        let mut out = Stacks::default();
+        self.add_profile(&mut out, &prof, host, |i| w.get(i).copied().filter(|w| *w > 0.0));
+        if host == HostFrames::Name {
+            for f in out.frames.iter_mut().filter(|f| is_host(f)) {
+                f.file = SCRIPT_HOST.into();
+                f.url = SCRIPT_HOST.into();
+                f.mapped = false;
+            }
+        }
+        Ok(out)
+    }
+
+    pub(super) fn cpu_files(&self) -> Result<Vec<PathBuf>> {
+        let profiles = files(&self.dir, "cpuprofile")?;
+        // A script recording whose measured runs held no sample: none (the whole host has them).
+        if profiles.is_empty() && !self.dir.join(crate::probe::cpu::WHOLE_HOST).is_file() {
+            return Err(super::no_profile(self, "CPU profile", "hotspots"));
+        }
+        Ok(profiles)
+    }
+
+    fn load_cpu(&self) -> Result<Stacks> {
+        let profiles = self.cpu_files()?;
+        let mut out = Stacks::default();
+        for p in profiles {
+            let bytes = std::fs::read(&p)?;
+            let prof: CpuProfile = parse(&bytes, &p)?;
+            // `timeDeltas[i]`: the gap from sample i − 1 to sample i. A V8 profile's last sample has no
+            // gap after it: it weighs the profile's median gap, as a Firefox thread's last sample does.
+            let gaps: Vec<f64> = prof.time_deltas.iter().skip(1).copied().collect();
+            let last = Sampling::of(0.0, gaps.clone()).map_or(0.0, |s| s.median_us);
+            // The page's sampler only: not an app's main process (`cpu-main`, a launch's).
+            if p.file_stem().is_some_and(|s| s != "cpu-main") {
+                self.gaps.lock().unwrap_or_else(|e| e.into_inner()).extend(gaps);
+            }
+            let host = if self.meta["script"] == true { HostFrames::Fold } else { HostFrames::Keep };
+            self.add_profile(&mut out, &prof, host, |i| Some(prof.time_deltas.get(i + 1).copied().unwrap_or(last).max(0.0)));
+        }
+        Ok(out)
+    }
+
+    /// One profile's samples into `out`, sample i weighing `weight(i)` µs (none: left out), with the
+    /// script host's own frames as `host` says.
+    fn add_profile(&self, out: &mut Stacks, prof: &CpuProfile, host: HostFrames, weight: impl Fn(usize) -> Option<f64>) {
+        // Parsing runs beside other loads; symbolizing shares the recording's source maps.
+        let sym = self.sym.lock().unwrap_or_else(|e| e.into_inner());
+        let index: HashMap<u64, usize> = prof.nodes.iter().enumerate().map(|(i, n)| (n.id, i)).collect();
+        let mut parent = vec![usize::MAX; prof.nodes.len()];
+        for (i, n) in prof.nodes.iter().enumerate() {
+            for c in &n.children {
+                if let Some(&j) = index.get(c) {
+                    parent[j] = i;
+                }
+            }
+        }
+        // Per profile node: µs, samples and Σ Δt² (a sample's time is the delta to the next sample).
+        let mut at: BTreeMap<usize, (f64, u64, f64)> = BTreeMap::new();
+        for (i, s) in prof.samples.iter().enumerate() {
+            let (Some(&k), Some(dt)) = (index.get(s), weight(i)) else { continue };
+            let e = at.entry(k).or_default();
+            e.0 += dt;
+            e.1 += 1;
+            e.2 += dt * dt;
+        }
+        let mut frames = Symbolized::new(&sym, prof.nodes.len());
+        // Stacks the fold made the same weigh as one.
+        let mut folded: HashMap<Vec<u32>, usize> = HashMap::new();
+        for (k, (w, n, var)) in at {
+            let mut stack = frames.chain(k, &parent, |i| &prof.nodes[i].call_frame, out);
+            // The host's dispatch below the script's own code (its line reader, the hook call) is the
+            // same on every stack: what the script called from it stays, a sample in the host alone is
+            // one frame for it.
+            if host == HostFrames::Fold {
+                if let Some(k) = stack.iter().rposition(|&i| is_host(&out.frames[i as usize])) {
+                    let rest = stack.split_off(k + 1);
+                    stack = if rest.is_empty() { vec![out.intern(host_frame())] } else { rest };
+                }
+                if let Some(&j) = folded.get(&stack) {
+                    let x = &mut out.weights[j];
+                    (x.w, x.n, x.var) = (x.w + w, x.n + n, x.var + var);
+                    continue;
+                }
+                folded.insert(stack.clone(), out.weights.len());
+            }
+            out.weights.push(Weight { stack, w, n, var });
+        }
+    }
+
+    pub(super) fn alloc_files(&self) -> Result<Vec<PathBuf>> {
+        super::firefox_gap(self, super::Gap::Alloc)?;
+        let profiles = files(&self.dir, "heapprofile")?;
+        if profiles.is_empty() {
+            return Err(super::no_profile(self, "allocation profile", "alloc"));
+        }
+        Ok(profiles)
+    }
+
+    fn load_alloc(&self) -> Result<Stacks> {
+        let profiles = self.alloc_files()?;
+        let mut out = Stacks::default();
+        for p in profiles {
+            let bytes = std::fs::read(&p)?;
+            let prof: AllocProfile = parse(&bytes, &p)?;
+            let sym = self.sym.lock().unwrap_or_else(|e| e.into_inner());
+            // Per node: samples and the variance of the bytes V8 scaled them up to. V8 samples an
+            // allocation of s bytes with probability p = 1 − e^(−s/B) and counts it as s/p; its
+            // variance is (s/p)²(1 − p): about B² for a small object, near zero for a large one.
+            let b = crate::probe::alloc::INTERVAL_BYTES as f64;
+            let mut hits: HashMap<u64, (u64, f64)> = HashMap::new();
+            for s in &prof.samples {
+                let e = hits.entry(s.node_id).or_default();
+                e.0 += 1;
+                if s.size > 0.0 {
+                    let p = 1.0 - (-s.size / b).exp();
+                    e.1 += (s.size / p).powi(2) * (1.0 - p);
+                }
+            }
+            // Flatten the call tree once (each node and its parent); a stack is built only for nodes
+            // where bytes were sampled (`selfSize`), not copied down every branch.
+            let mut nodes: Vec<&AllocNode> = Vec::new();
+            let mut parent: Vec<usize> = Vec::new();
+            let mut todo: Vec<(&AllocNode, usize)> = prof.head.iter().map(|h| (h, usize::MAX)).collect();
+            while let Some((n, up)) = todo.pop() {
+                let i = nodes.len();
+                nodes.push(n);
+                parent.push(up);
+                todo.extend(n.children.iter().map(|c| (c, i)));
+            }
+            let mut frames = Symbolized::new(&sym, nodes.len());
+            for i in 0..nodes.len() {
+                let w = nodes[i].self_size;
+                if w > 0.0 {
+                    let stack = frames.chain(i, &parent, |j| &nodes[j].call_frame, &mut out);
+                    // A profile without its sample list: the bytes as samples of B bytes each.
+                    let (n, var) = hits.get(&nodes[i].id).copied().unwrap_or(((w / b).round().max(1.0) as u64, w * b));
+                    out.weights.push(Weight { stack, w, n, var });
+                }
+            }
+        }
+        Ok(out)
+    }
+}
+
+/// The files of one kind in a recording's folder, in name order.
+fn files(dir: &Path, ext: &str) -> Result<Vec<PathBuf>> {
+    let mut v: Vec<PathBuf> = std::fs::read_dir(dir)?.flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|e| e == ext)).collect();
+    v.sort();
+    Ok(v)
+}
+
+/// Stretches in ns on strobe's clock as µs, sorted by start.
+fn us(v: &[(u64, u64)]) -> Vec<(f64, f64)> {
+    let mut v: Vec<(f64, f64)> = v.iter().map(|&(a, b)| (a as f64 / 1e3, b as f64 / 1e3)).collect();
+    v.sort_by(|a, b| a.0.total_cmp(&b.0));
+    v
+}
+
+/// The whole host profile's sample times (µs on strobe's clock) and what its samples weigh: the gap
+/// to the next, one over the file's `capUs` its `overUs`, the last the median gap.
+struct HostTimes {
+    times: Vec<f64>,
+    cap: f64,
+    over: f64,
+    last: f64,
+}
+
+impl HostTimes {
+    fn of(prof: &CpuProfile) -> HostTimes {
+        let mut t = prof.start_time;
+        let times: Vec<f64> = prof
+            .samples
+            .iter()
+            .enumerate()
+            .map(|(i, _)| {
+                t += prof.time_deltas.get(i).copied().unwrap_or(0.0);
+                t
+            })
+            .collect();
+        let cap = prof.cap_us.unwrap_or(crate::probe::cpu::MAX_GAP_US);
+        let gaps: Vec<f64> = times.windows(2).map(|w| w[1] - w[0]).filter(|g| *g > 0.0 && *g <= cap).collect();
+        let last = Sampling::of(0.0, gaps).map_or(0.0, |s| s.median_us);
+        HostTimes { over: prof.over_us.unwrap_or(cap), times, cap, last }
+    }
+
+    /// Each sample's weight inside `spans` and outside `untimed` (µs, sorted and apart).
+    fn weights(&self, spans: &[(f64, f64)], untimed: &[(f64, f64)]) -> Vec<f64> {
+        crate::probe::cpu::weights(&self.times, self.cap, self.over, self.last, spans, untimed)
+    }
+}
+
+/// A profile from JSON: profiles nest one level per stack frame, past serde_json's default limit.
+fn parse<'a, T: serde::Deserialize<'a>>(bytes: &'a [u8], path: &Path) -> Result<T> {
+    store::deep_enough(bytes, path)?;
+    let mut de = serde_json::Deserializer::from_slice(bytes);
+    de.disable_recursion_limit();
+    Ok(T::deserialize(&mut de)?)
+}
+
+#[derive(serde::Deserialize)]
+struct CallFrame<'a> {
+    #[serde(default, borrow, rename = "functionName")]
+    name: Cow<'a, str>,
+    #[serde(default, borrow)]
+    url: Cow<'a, str>,
+    #[serde(default = "unknown", rename = "lineNumber")]
+    line: i64,
+    #[serde(default = "unknown", rename = "columnNumber")]
+    column: i64,
+}
+
+fn unknown() -> i64 {
+    -1
+}
+
+#[derive(serde::Deserialize)]
+struct CpuNode<'a> {
+    #[serde(default)]
+    id: u64,
+    #[serde(borrow, rename = "callFrame")]
+    call_frame: CallFrame<'a>,
+    #[serde(default)]
+    children: Vec<u64>,
+}
+
+#[derive(serde::Deserialize)]
+struct CpuProfile<'a> {
+    #[serde(default, borrow)]
+    nodes: Vec<CpuNode<'a>>,
+    #[serde(default)]
+    samples: Vec<u64>,
+    #[serde(default, rename = "timeDeltas")]
+    time_deltas: Vec<f64>,
+    #[serde(default, rename = "startTime")]
+    start_time: f64,
+    /// What a sample of a script's whole host profile weighs at most (`probe::cpu::Rebased::cap_us`).
+    #[serde(default, rename = "capUs")]
+    cap_us: Option<f64>,
+    /// What a sample before a gap over the cap weighs (`probe::cpu::Rebased::over_us`).
+    #[serde(default, rename = "overUs")]
+    over_us: Option<f64>,
+}
+
+#[derive(serde::Deserialize)]
+struct AllocNode<'a> {
+    #[serde(default)]
+    id: u64,
+    #[serde(borrow, rename = "callFrame")]
+    call_frame: CallFrame<'a>,
+    #[serde(default, rename = "selfSize")]
+    self_size: f64,
+    #[serde(default, borrow)]
+    children: Vec<AllocNode<'a>>,
+}
+
+#[derive(serde::Deserialize)]
+struct AllocProfile<'a> {
+    #[serde(borrow)]
+    head: Option<AllocNode<'a>>,
+    #[serde(default)]
+    samples: Vec<AllocSample>,
+}
+
+#[derive(serde::Deserialize)]
+struct AllocSample {
+    #[serde(default, rename = "nodeId")]
+    node_id: u64,
+    #[serde(default)]
+    size: f64,
+}
+
+/// What a script recording's profile keeps of its host's own frames (strobe's `host.mjs`, which reads
+/// the runner's requests and calls the script's hooks): all (a page's profile has none), none below
+/// the script's code (the measured runs and phases: the same dispatch on every stack), or all with
+/// their file named for what it is (the whole host profile: its path is strobe's install folder under
+/// the user's profile).
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum HostFrames {
+    Keep,
+    Fold,
+    Name,
+}
+
+const SCRIPT_HOST: &str = "(strobe script host)";
+
+fn is_host(f: &Frame) -> bool {
+    [&f.url, &f.file].iter().any(|s| s.ends_with("/host.mjs") || s.ends_with("\\host.mjs"))
+}
+
+/// A sample inside the host itself, below no code of the script's.
+fn host_frame() -> Frame {
+    Frame { name: SCRIPT_HOST.into(), file: SCRIPT_HOST.into(), line: -1, column: -1, url: String::new(), mapped: false, name_from: None, package: None }
+}
+
+/// Profile nodes to interned frames, each node and each distinct call frame resolved once.
+struct Symbolized<'s, 'a> {
+    sym: &'s Symbolizer,
+    node: Vec<Option<u32>>,
+    by_frame: HashMap<(&'a str, &'a str, i64, i64), u32>,
+}
+
+impl<'s, 'a> Symbolized<'s, 'a> {
+    fn new(sym: &'s Symbolizer, nodes: usize) -> Self {
+        Symbolized { sym, node: vec![None; nodes], by_frame: HashMap::new() }
+    }
+
+    /// The stack of node `i`, root first, without the `(root)` frame.
+    fn chain(&mut self, i: usize, parent: &[usize], frame_of: impl Fn(usize) -> &'a CallFrame<'a>, out: &mut Stacks) -> Vec<u32> {
+        let mut stack = Vec::new();
+        let mut at = i;
+        while at != usize::MAX {
+            let id = match self.node[at] {
+                Some(id) => id,
+                None => {
+                    let cf = frame_of(at);
+                    let key = (cf.url.as_ref(), cf.name.as_ref(), cf.line, cf.column);
+                    let id = match self.by_frame.get(&key) {
+                        Some(&id) => id,
+                        None => {
+                            let id = out.intern(self.sym.frame(&cf.url, cf.line, cf.column, &cf.name));
+                            self.by_frame.insert(key, id);
+                            id
+                        }
+                    };
+                    self.node[at] = Some(id);
+                    id
+                }
+            };
+            if out.frames[id as usize].name != "(root)" {
+                stack.push(id);
+            }
+            at = parent[at];
+        }
+        stack.reverse();
+        stack
+    }
+}
+
+/// A trace view strobe reads with SQL over the run windows (`_w`). Several parts run as one statement
+/// (a `union all` tagged by part), so the trace loads once for all of them.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub enum Part {
+    Layout,
+    Gc,
+    LongTasks,
+    Style,
+    Phases,
+    Threads,
+}
+
+const PARTS: [Part; 6] = [Part::Layout, Part::Gc, Part::LongTasks, Part::Style, Part::Phases, Part::Threads];
+
+impl Part {
+    /// Columns of the part's rows. Window rows (`_w`) carry only their key, the rest NULL.
+    fn width(self) -> usize {
+        match self {
+            Part::Layout => 6,
+            Part::Gc => 7,
+            Part::LongTasks => 2,
+            Part::Style => 9,
+            Part::Phases => 5,
+            Part::Threads => 5,
+        }
+    }
+
+    fn attribution_only(self) -> bool {
+        matches!(self, Part::Layout | Part::Gc | Part::Style)
+    }
+
+    /// The two columns its consumers read in order (thread then time, or run then time). Slices that
+    /// start together follow longest first (column 3, the duration), so an outer slice is seen before
+    /// the one nested at its start and nesting counts it once.
+    fn order(self) -> Option<(usize, usize)> {
+        match self {
+            Part::Layout | Part::Gc => Some((4, 2)),
+            Part::Phases => Some((0, 2)),
+            Part::LongTasks | Part::Style | Part::Threads => None,
+        }
+    }
+
+    fn sql(self) -> &'static str {
+        match self {
+            Part::Layout => {
+                "select k, null, null, null, null, null from _w
+union all
+select w.k, s.name, s.ts, s.dur, t.tid,
+  (select group_concat(a.key || char(31) || coalesce(a.display_value, ''), char(30)) from args a
+     where a.arg_set_id = s.arg_set_id and a.key glob 'debug.beginData.stackTrace*') as stack
+  from slice s join thread_track tt on s.track_id = tt.id join thread t using(utid)
+  join _wp w on t.upid = w.upid and s.ts >= w.t0 and s.ts < w.t1
+  where s.name in ('Layout', 'UpdateLayoutTree') and t.name = 'CrRendererMain'"
+            }
+            // Every GC slice that overlaps a run (a helper thread's runs across the run's edges), with
+            // each run's span and untimed stretches (`(run)` and `(untimed)` rows, no thread) to cut them to.
+            Part::Gc => {
+                "select k, null, null, null, null, null, null from _w
+union all
+select k, '(run)', t0, t1 - t0, null, null, null from _w
+union all
+select w.k, '(untimed)', u.t0, u.t1 - u.t0, null, null, null from _u u join _w w on u.t0 >= w.t0 and u.t0 < w.t1
+union all
+select w.k, s.name, s.ts, s.dur, t.tid, t.name = 'CrRendererMain' as main,
+  extract_arg(s.arg_set_id, 'debug.usedHeapSizeBefore') - extract_arg(s.arg_set_id, 'debug.usedHeapSizeAfter') as freed
+  from slice s join thread_track tt on s.track_id = tt.id join thread t using(utid)
+  join _wp w on t.upid = w.upid and s.dur >= 0 and s.ts < w.t1 and s.ts + s.dur > w.t0
+  where s.name in ('MinorGC', 'MajorGC') or s.name glob 'V8.GC*' or s.name glob 'BlinkGC*'"
+            }
+            // As `main.tasks.long` counts them: a task's time inside the run and outside its untimed
+            // stretches, one task however a stretch cuts it, long over 50 ms.
+            Part::LongTasks => {
+                "select count(*), max(d) from (
+select min(s.ts + s.dur, w.t1) - max(s.ts, w.t0)
+    - coalesce((select sum(max(0, min(s.ts + s.dur, w.t1, u.t1) - max(s.ts, w.t0, u.t0))) from _u u where u.t0 < min(s.ts + s.dur, w.t1) and u.t1 > max(s.ts, w.t0)), 0) as d
+  from slice s join thread_track tt on s.track_id = tt.id join thread t using(utid)
+  join _wp w on t.upid = w.upid and s.dur >= 0 and s.ts < w.t1 and s.ts + s.dur > w.t0
+ where s.name = 'RunTask' and s.depth = 0 and t.name = 'CrRendererMain'
+) where d > 50000000"
+            }
+            Part::Style => {
+                "select k, null, null, null, null, null, null, null, null from _w
+union all
+select w.k, s.name, s.dur,
+  coalesce(extract_arg(s.arg_set_id, 'debug.elementCount'), extract_arg(s.arg_set_id, 'debug.data.elementCount')),
+  extract_arg(s.arg_set_id, 'debug.data.reason'),
+  coalesce('class .' || extract_arg(s.arg_set_id, 'debug.data.changedClass'), 'id #' || extract_arg(s.arg_set_id, 'debug.data.changedId'),
+    'attribute [' || extract_arg(s.arg_set_id, 'debug.data.changedAttribute') || ']', 'pseudo-class :' || extract_arg(s.arg_set_id, 'debug.data.changedPseudo')),
+  extract_arg(s.arg_set_id, 'debug.data.nodeName'),
+  (select group_concat(a.display_value, char(30)) from args a where a.arg_set_id = s.arg_set_id and a.key glob 'debug.data.selectors*.selector'),
+  (select group_concat(a.key || char(31) || coalesce(a.display_value, ''), char(30)) from args a where a.arg_set_id = s.arg_set_id and a.key glob 'debug.data.stackTrace*')
+  from slice s join thread_track tt on s.track_id = tt.id join thread t using(utid)
+  join _wp w on t.upid = w.upid and s.ts >= w.t0 and s.ts < w.t1
+  where (s.name = 'UpdateLayoutTree' and t.name = 'CrRendererMain') or s.name glob '*InvalidationTracking'"
+            }
+            Part::Phases => {
+                "select k, null, null, null, null from _w
+union all
+select w.k, s.name, s.ts, s.dur, coalesce(extract_arg(s.arg_set_id, 'debug.elementCount'), extract_arg(s.arg_set_id, 'debug.data.elementCount'), 0)
+  from slice s join thread_track tt on s.track_id = tt.id join thread t using(utid)
+  join _wp w on t.upid = w.upid and s.ts >= w.t0 and s.ts < w.t1
+  where t.name = 'CrRendererMain' and s.name in ('UpdateLayoutTree', 'Layout', 'PrePaint', 'Paint')"
+            }
+            // Every process's threads in the run windows: task-loop tasks that started inside a run, by
+            // thread. Only the task loop's own slices: a thread's other tracks hold spans that overlap
+            // them (animation frames, GC sweeping), which would count time twice.
+            Part::Threads => {
+                "select k, null, null, null, null from _w
+union all
+select w.k, coalesce(p.name, '?'), coalesce(t.name, '?'), sum(s.dur), count(*)
+  from slice s join thread_track tt on s.track_id = tt.id join thread t using(utid) left join process p using(upid)
+  join (select distinct k, t0, t1 from _w) w on s.ts >= w.t0 and s.ts < w.t1
+ where s.depth = 0 and s.dur > 0 and s.name in ('RunTask', 'ThreadControllerImpl::RunTask', 'ThreadPool_RunTask') group by 1, 2, 3"
+            }
+        }
+    }
+}
+
+/// One statement for several parts: the run windows once, then each part's rows tagged with its
+/// index and padded to the widest part.
+fn batch_sql(token: &str, measured: Option<&[String]>, parts: &[Part]) -> String {
+    let width = parts.iter().map(|p| p.width()).max().unwrap_or(0);
+    let selects: Vec<String> = parts
+        .iter()
+        .map(|p| format!("select {} as part, *{} from (\n{}\n)", PARTS.iter().position(|x| x == p).unwrap_or(0), ", null".repeat(width - p.width()), p.sql().replace(IN_WINDOW, IN_RUN)))
+        .collect();
+    format!("{}\n{};", windows_sql(token, measured), selects.join("\nunion all\n"))
+}
+
+/// A recording's measured runs by key (`run:<i>`): a bench block's meta says which (`measured`; a batch's
+/// also per case), as its trace marks warmup runs, a check's run after its reset and every case of a
+/// batch too. None for a recording that does not say (one whose runs were all measured: `record`'s).
+pub(crate) fn measured_keys(meta: &Value) -> Option<Vec<String>> {
+    if let Some(a) = meta["measured"].as_array() {
+        return Some(a.iter().filter_map(|k| k.as_str().map(str::to_string)).collect());
+    }
+    let cases = meta["batch"].as_array()?;
+    Some(cases.iter().flat_map(|c| c["runs"].as_array().into_iter().flatten().filter_map(|k| k.as_str().map(str::to_string))).collect())
+}
+
+/// A run's key as strobe writes it in a meta.json and its trace's marks (`run:3`, `warm:0`): letters,
+/// digits, `_`, `-`, `.` and `:`, at most 64.
+pub(crate) fn run_key(k: &str) -> bool {
+    !k.is_empty() && k.len() <= 64 && k.bytes().all(|c| c.is_ascii_alphanumeric() || b"_-.:".contains(&c))
+}
+
+/// Refuses a meta.json whose words that go into a trace query (its run marks' token, its measured runs'
+/// keys, a batch's runs) are not as strobe writes them: a meta.json read by its path is anyone's.
+pub(crate) fn sql_words(meta: &Value, file: &Path) -> Result<()> {
+    if let Some(t) = meta.get("token").filter(|t| !t.is_null())
+        && !t.as_str().is_some_and(|t| t.is_empty() || store::plain_id(t))
+    {
+        return Err(Error::usage(format!("{}: its token {t} is not a plain id (letters, digits, _ and -), as every token strobe writes is: not read", file.display())));
+    }
+    if let Some(k) = measured_keys(meta).into_iter().flatten().find(|k| !run_key(k)) {
+        return Err(Error::usage(format!("{}: its measured run {k:?} is not a run key (letters, digits, _ - . :), as strobe writes them: not read", file.display())));
+    }
+    Ok(())
+}
+
+/// Orders two rows by one column: numbers as numbers, NULL first, else as text.
+fn cell_cmp(x: &[Option<String>], y: &[Option<String>], i: usize) -> std::cmp::Ordering {
+    let (a, b) = (x.get(i).cloned().flatten(), y.get(i).cloned().flatten());
+    match (a.as_deref().map(str::parse::<i64>), b.as_deref().map(str::parse::<i64>)) {
+        (Some(Ok(p)), Some(Ok(q))) => p.cmp(&q),
+        _ => a.cmp(&b),
+    }
+}
+
+/// A slice in a run window, as each part joins it; and in a run window outside its untimed stretches.
+const IN_WINDOW: &str = "s.ts >= w.t0 and s.ts < w.t1";
+const IN_RUN: &str = "s.ts >= w.t0 and s.ts < w.t1 and not exists (select 1 from _u u where s.ts >= u.t0 and s.ts < u.t1)";
+
+/// The existence check for Part::Style's non-recalc rows, without extracting their arguments.
+pub(super) const TRACKED_RUN: &str = "exists (select 1 from slice s join thread_track tt on s.track_id=tt.id join thread t using(utid) join _wp w on t.upid=w.upid and s.ts>=w.t0 and s.ts<w.t1 where w.k=_w.k and s.name glob '*InvalidationTracking' and not exists (select 1 from _u u where s.ts>=u.t0 and s.ts<u.t1))";
+
+/// `_w`: the trace's measured run windows between `strobe:<token>:…:start|end` marks (`measured`, else
+/// every run), and `_wp` each with the renderers the page was in (`metrics::windows_sql`); `_u`: the
+/// runs' untimed stretches (`ctx.untimed`), whose slices no part counts (`IN_RUN`).
+pub(crate) fn windows_sql(token: &str, measured: Option<&[String]>) -> String {
+    // Only words strobe writes reach the SQL: a token is a plain id and a run key `run:3` (`run_key`);
+    // anything else from a meta.json (`sql_words` refuses it first) matches no mark.
+    let token = if store::plain_id(token) { token } else { "" };
+    let keep = match measured {
+        Some(keys) => format!("k in ({})", keys.iter().filter(|k| run_key(k)).map(|k| format!("'strobe:{token}:{k}'")).collect::<Vec<_>>().join(",")),
+        None => "k glob '*:run:*' and k not glob '*:phase:*'".to_string(),
+    };
+    windows_for(token, &keep)
+}
+
+/// All run keys a reader could select, including explicitly measured warm:<i> keys. Selection
+/// by case or last measured run count happens after reading the reusable facts.
+pub(super) fn all_run_windows_sql(token: &str) -> String {
+    windows_for(if store::plain_id(token) { token } else { "" }, "(k glob '*:run:*' or k glob '*:warm:*') and k not glob '*:phase:*'")
+}
+
+fn windows_for(token: &str, keep: &str) -> String {
+    format!(
+        "create perfetto table _m as
+  select s.name, s.ts, t.upid, s.id from slice s join thread_track tt on s.track_id = tt.id join thread t using(utid)
+  where s.name glob 'strobe:{token}:*';
+{}
+create perfetto table _u as
+  select a.ts as t0, b.ts as t1 from _m a join _m b on b.name = substr(a.name, 1, length(a.name) - 6) || ':end'
+  where a.name glob '*:untimed:*:start';",
+        crate::metrics::windows_sql(keep)
+    )
+}

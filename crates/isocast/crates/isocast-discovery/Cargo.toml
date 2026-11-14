@@ -1,0 +1,28 @@
+[package]
+name = "isocast-discovery"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Finding Isocast engines on the local network through the operating system's own DNS-SD responder."
+
+[dependencies]
+anyhow = "1.0.104"
+isocast-diagnostics = { path = "../isocast-diagnostics" }
+
+# Bonjour's dns_sd.h is part of libSystem: no library to link, no crate.
+[target.'cfg(target_os = "macos")'.dependencies]
+libc = "0.2"
+
+# Pure Rust D-Bus; the OS Avahi daemon owns mDNS sockets (no Avahi linkage).
+[target.'cfg(target_os = "linux")'.dependencies]
+zbus = { version = "=5.19.0", default-features = false, features = ["tokio"] }
+tokio = { version = "1", features = ["rt", "net", "time", "sync", "macros"] }
+futures-util = "0.3"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_NetworkManagement_Dns",
+    "Win32_System_SystemInformation",
+] }

@@ -1,0 +1,851 @@
+//! `strobe report`: self-contained artifacts from views (SPEC §11.2).
+
+use super::Output;
+use super::query::{self, Rec};
+use crate::cli::Args;
+use crate::model::{Error, Result};
+use crate::store;
+use serde_json::{Value, json};
+use std::collections::BTreeMap;
+
+/// What a report is of, read once: an experiment's result or a recording's meta.json, from the store by
+/// its handle, or from a path exactly as `query` reads one (`query::by_path`, the one resolver).
+struct Source {
+    /// The folder that holds it.
+    dir: std::path::PathBuf,
+    data: Value,
+    experiment: bool,
+    /// The file it was read from, when named by its path: nothing is written beside it.
+    file: Option<std::path::PathBuf>,
+    /// A folder a person named, held while it is read (`store::Named`).
+    _named: Option<store::Named>,
+}
+
+impl Source {
+    fn of(handle: &str) -> Result<Source> {
+        Ok(match query::by_path(handle)? {
+            Some(query::ByPath::Experiment(file, data, named)) => {
+                Source { dir: file.parent().map(std::path::Path::to_path_buf).unwrap_or_default(), data, experiment: true, file: Some(file), _named: named }
+            }
+            Some(query::ByPath::Recording(dir, data, named)) => Source { file: Some(dir.join("meta.json")), dir, data, experiment: false, _named: named },
+            None => {
+                let dir = store::resolve(handle)?;
+                let experiment = store::is_experiment(&dir);
+                let data = store::read_json(&dir.join(if experiment { "result.json" } else { "meta.json" }))?;
+                Source { dir, data, experiment, file: None, _named: None }
+            }
+        })
+    }
+}
+
+pub fn run(args: &Args) -> Result<Output> {
+    let first = args.pos.first().ok_or_else(|| {
+        Error::usage("report [experiment|recording|history] <handle>: an experiment (exp_…), a recording (rec_…), a tracked series (ser_…), or the path of a result.json or meta.json")
+    })?;
+    let named_view = matches!(first.as_str(), "experiment" | "recording" | "history");
+    // `report ser_…` or `report <file>.bench.ts`: a tracked series' history.
+    if first == "history" || !named_view && (first.starts_with("ser_") || first.ends_with(".bench.ts")) {
+        if named_view {
+            return super::history::report(args);
+        }
+        let mut a = args.clone();
+        a.pos.insert(0, "history".into());
+        return super::history::report(&a);
+    }
+    // A format no report writes is refused before anything is read or written (an HTML once took its place).
+    const FORMATS: [&str; 6] = ["html", "md", "pr", "summary", "card", "badge"];
+    if let Some(f) = args.get("format").filter(|f| !FORMATS.contains(f)) {
+        return Err(Error::usage(format!("--format {f}: an experiment's report writes html (default), md, pr, summary, card or badge; a recording's html or md")));
+    }
+    let handle =
+        if named_view { args.pos.get(1) } else { Some(first) }.ok_or_else(|| Error::usage(format!("report {first} needs a handle: strobe report {first} <exp_…|rec_…|path/to/result.json>")))?;
+    // A result.json or meta.json named by its path (an edited copy, a hand-written fixture), or the folder
+    // of either, is read as `query` reads it: nothing is written beside it, and what a report writes goes
+    // to strobe's own run folder. `report <handle>` takes its view from what it holds.
+    let source = Source::of(handle)?;
+    let held = if source.experiment { "experiment" } else { "recording" };
+    let view = if named_view { first.as_str() } else { held };
+    if view != held {
+        let word = query::path_word(std::path::Path::new(handle));
+        return Err(Error::usage(format!("{handle} is {} {held}, not {} {view}: strobe report {held} {word} (or strobe report {word})", article(held), article(view))));
+    }
+    let Source { dir, mut data, experiment, file, _named } = source;
+    super::pr::safe_diagnostics(&mut data);
+    if let Some(f) = args.get("format").filter(|f| !experiment && !matches!(*f, "html" | "md")) {
+        return Err(Error::usage(format!("--format {f} writes an experiment's result: give an exp_… handle (a recording's report is html or md)")));
+    }
+    let scratch = match &file {
+        Some(_) => {
+            // Its id only when that is a plain id; else a hash of where it is: never a path the file says.
+            let name = data["id"].as_str().filter(|i| store::plain_id(i)).map_or_else(|| format!("file-{}", super::query::folder_key(&dir)), str::to_string);
+            let d = crate::host::paths::run().join("reports").join(name);
+            std::fs::create_dir_all(&d)?;
+            d
+        }
+        None => dir.clone(),
+    };
+    // `bench --blocks`: one build's values, nothing compared. Its HTML and Markdown show the blocks and
+    // their median with an interval; a PR block, card and badge state a comparison, so none is drawn.
+    let compares = data["series"].as_array().is_none_or(|a| a.iter().any(|s| s["kind"] != "blocks"));
+    if let (true, false, Some(format @ ("pr" | "card" | "badge"))) = (experiment, compares, args.get("format")) {
+        return Err(Error::usage(format!("{handle} measured one build (bench --blocks): it compares nothing, so there is no --format {format} of it")).hint(format!(
+            "strobe report experiment {} (HTML) or --format md shows its blocks and their median with an interval; a tracked point shows in strobe history",
+            query::path_word(std::path::Path::new(handle))
+        )));
+    }
+    // A check or a pixels run compares no timed pairs: a PR block, card or badge would state a verdict
+    // it does not have (rule 1). Its HTML report shows what it did.
+    if let (true, Some(format @ ("pr" | "card" | "badge"))) = (experiment, args.get("format"))
+        && let Some(kind @ ("check" | "pixels")) = data["kind"].as_str()
+    {
+        return Err(Error::usage(format!("{handle} is a --{} run: it decides nothing, so there is no --format {format} of it", if kind == "check" { "check" } else { "pixels-only" }))
+            .hint(format!("strobe report experiment {} (HTML) shows it; a verdict comes from a comparison (--base, --aa)", query::path_word(std::path::Path::new(handle)))));
+    }
+    // What the PR block and card call the sides (`pr::side_names`): the names given, else by whether
+    // head is the pull request's own head commit.
+    if let Some(l) = args.get("labels") {
+        if !experiment || !compares {
+            return Err(Error::usage(format!("--labels names the two sides of a comparison: {handle} compares nothing")));
+        }
+        let (b, h) = super::pr::labels(l)?;
+        data["side_names"] = json!([b, h]);
+    } else if let (Some(n), Some("pr")) = (args.get("update-pr"), args.get("format")) {
+        data["pr_head_commit"] = json!(super::pr::head_commit(n, args.get("repo"))?);
+    }
+    // A card or badge needs only the result: no views, no insights. Published: every string of it
+    // through `pr::public` first.
+    if let Some(format @ ("card" | "badge")) = args.get("format") {
+        omit_device_ids(&mut data);
+        super::pr::public_value(&mut data);
+        return super::card::report(args, &scratch, &data, format);
+    }
+    if experiment {
+        // The rerun ledger as of now: experiments on the same variants since this one ran count too. A
+        // result read from its path keeps the ledger it holds: this machine's index is not its history.
+        if data["identity"].is_object() && file.is_none() {
+            data["ledger"] = store::ledger::for_experiment(data["id"].as_str().unwrap_or(""), data["created"].as_str().unwrap_or(""), &data["identity"]);
+        }
+        if let Some(i) = attach_series(&mut data) {
+            data["insights"] = i;
+        }
+        // Two implementations: the journeys' scoreboard and each one's repeated p and Holm standing,
+        // as the PR block and card read them (`family`), for the viewer to show the same.
+        if super::family::implementations(&data) {
+            let board = super::family::Board::of(&data);
+            board.write(&mut data);
+            if let Some(series) = data["series"].as_array_mut() {
+                for (i, s) in series.iter_mut().enumerate() {
+                    s["headline"] = json!(board.hero == Some(i));
+                }
+            }
+        }
+    } else {
+        // Its meta.json as read above (once).
+        recording_display(&dir, &mut data);
+        let rec = Rec::with_meta(&dir, data.clone(), None);
+        if let Some(a) = attribution(&rec, None) {
+            data["attribution"] = a;
+            if let Ok(i) = query::insights(&rec) {
+                data["insights"] = i.json;
+            }
+        } else if data["probes"] == "memory" {
+            if let Ok(i) = query::insights(&rec) {
+                data["insights"] = i.json;
+            }
+            if let Ok(m) = query::memory(&dir, "process", 30, None) {
+                data["memory"] = m.json;
+            }
+            if let Ok(m) = query::memory(&dir, "layer", 30, None) {
+                data["memory_layers"] = m.json;
+            }
+            // A memory recording: its live heap at the end and the objects that outlived their half.
+            if let Ok(o) = query::heap(&rec, 15, false) {
+                data["heap"] = o.json;
+            }
+            if let Ok(o) = query::leaks(&rec, 15, false) {
+                data["leaks"] = o.json;
+            }
+        }
+        // What the HTTP probe read beside the runs (`query <rec> http`).
+        if let Some(h) = query::http::recording_json(&dir, 6) {
+            data["http"] = h;
+        }
+    }
+    let format = args.get("format").unwrap_or("html");
+    omit_device_ids(&mut data);
+    // A PR block and a step summary are published: every string they read through `pr::public` first,
+    // the views and insights just attached too.
+    if matches!(format, "pr" | "summary") {
+        super::pr::public_value(&mut data);
+    }
+    let markdown_out = matches!(format, "md" | "pr" | "summary");
+    let out = match args.get("out") {
+        Some(p) => std::path::PathBuf::from(p),
+        None => scratch.join(format!(
+            "report-{view}{}",
+            match format {
+                "pr" | "summary" => format!(".{format}.md"),
+                _ => format!(".{format}"),
+            }
+        )),
+    };
+    // Markdown of a file named by its path goes to stdout alone, unless --out says where to write it.
+    let write = file.is_none() || args.get("out").is_some() || !markdown_out;
+    if args.get("update-pr").is_some() && format != "pr" {
+        return Err(Error::usage("--update-pr replaces an experiment's block in a pull request body: add --format pr"));
+    }
+    // A pull request gets the result card and per-series badges as images gh attaches; the block's
+    // headings say the same in words, so a body without them (an older gh, a failed upload) still reads.
+    let mut images = Vec::new();
+    let mut plain = None;
+    if args.get("update-pr").is_some() && !args.has("no-card") {
+        plain = Some(super::pr::block(&data));
+        let (card, files) = super::card::for_pr(&data, &scratch)?;
+        data["card"] = card;
+        images = files;
+    }
+    if format == "html" {
+        attach_videos(&mut data, (!experiment).then_some(dir.as_path()), &Videos::Embed(&out))?;
+    }
+    let body = match format {
+        "md" => markdown(&data, if experiment { file.as_deref() } else { _named.as_ref().map(|_| dir.as_path()) }, !experiment),
+        "pr" => super::pr::block(&data),
+        "summary" => super::pr::summary(&data),
+        _ => html(view, &data),
+    };
+    if write {
+        write_whole(&out, body.as_bytes())?;
+    }
+    // The block between its markers in a pull request's body, the author's text around it untouched.
+    if let Some(n) = args.get("update-pr") {
+        // Only images the block names: gh appends any other attachment to the end of the body.
+        let attach: Vec<std::path::PathBuf> = images.into_iter().filter(|p| p.file_name().and_then(|f| f.to_str()).is_some_and(|f| body.contains(&format!("./{f}")))).collect();
+        // The block's own markers name its id as `pr::block` writes it (none: empty), never the handle.
+        let id = data["id"].as_str().unwrap_or("");
+        let shown = if id.is_empty() { handle.as_str() } else { id };
+        let done = super::pr::update_pr(n, args.get("repo"), id, &body, args.has("force"), &attach, plain.as_deref())?;
+        let path = if write { out.display().to_string() } else { "no file (--out writes one)".to_string() };
+        let how = match done.images {
+            0 => "as text".to_string(),
+            k => format!("with {k} image{}", if k == 1 { "" } else { "s" }),
+        };
+        let text = if done.unchanged {
+            format!("left {} as it was: it already holds this report of {shown}; the report is also in {path}\n", done.url)
+        } else {
+            format!("updated {} with {shown} ({how}, {}); the report is also in {path}\n", done.url, super::fmt::bytes(body.len() as f64))
+        };
+        return Ok(Output::new(text, json!({ "path": path, "bytes": body.len(), "pr": done.url, "images": done.images, "unchanged": done.unchanged, "seen": done.seen })));
+    }
+    if args.has("open") && write {
+        open(&out.display().to_string());
+    }
+    let path = out.display().to_string();
+    let size = super::fmt::bytes(body.len() as f64);
+    // Markdown is for pasting: it goes to stdout, and the file's path to stderr.
+    if markdown_out {
+        if !args.json() && !args.has("quiet") && write {
+            eprintln!("strobe: wrote {path} · {size}");
+        }
+        return Ok(Output::new(body.clone(), json!({ "path": write.then_some(path), "bytes": body.len(), "markdown": body })));
+    }
+    Ok(Output::new(format!("{path} · {size}\n"), json!({ "path": path, "bytes": body.len() })))
+}
+
+fn article(word: &str) -> &'static str {
+    if word.starts_with(['a', 'e', 'i', 'o', 'u']) { "an" } else { "a" }
+}
+
+/// A refused display can still have compositor reports. Metadata alone cannot prove the trace
+/// is present (especially in a copy), so make the viewer's link decision while reading the folder.
+pub(super) fn recording_display(dir: &std::path::Path, data: &mut Value) {
+    super::record::omit_refused_display(data);
+    if data["frames_refused"].is_string() {
+        data["pipeline_frames_available"] = json!(
+            data["wir"] != true && data["launch"] != true && data["traced"] != false && data["engine"].as_str().is_none_or(|e| e == "chromium") && store::held_file(dir, "trace.pftrace").is_some()
+        );
+    }
+}
+
+/// Where a report's videos play from.
+pub enum Videos<'a> {
+    /// In the file itself while they add up to at most `EMBED_BYTES`, else copied beside it into
+    /// `<report>.assets/` (the report then needs that folder).
+    Embed(&'a std::path::Path),
+    /// From the daemon that serves the report (`/video/<rec>`).
+    Daemon,
+}
+
+/// A recording's video: its id, its file and its `video.json`.
+type Filmed = (String, std::path::PathBuf, Value);
+
+pub(super) fn film(dir: &std::path::Path) -> Option<(std::path::PathBuf, Value)> {
+    let j = store::read_json(&store::held_file(dir, "video.json")?).ok()?;
+    let name = j["file"].as_str().filter(|n| !n.is_empty() && !n.starts_with('.') && !n.contains('/'))?;
+    let file = store::held_file(dir, name)?;
+    store::regular(&file).then_some((file, j))
+}
+
+/// A player to show: where (None: the recording's own; a series' index) and its sides by role.
+type Player = (Option<usize>, Vec<(&'static str, Filmed)>);
+
+/// The most video a report holds inside itself (base64 in the HTML).
+const EMBED_BYTES: u64 = 16 << 20;
+
+/// Each video the report shows (SPEC §11.2): a recording's own, or each series' base and head (their
+/// `video` recordings), as `video_player` beside it: every side's `video.json` and where it plays from.
+pub fn attach_videos(data: &mut Value, recording: Option<&std::path::Path>, src: &Videos) -> Result<()> {
+    // A recording's video, in its own folder: the file its video.json names by a plain name there alone,
+    // and in a folder a person named a regular file of its own (`store::held_file`: no link out of it).
+    let filmed = |rec: &str, dir: &std::path::Path| -> Option<Filmed> {
+        let (file, j) = film(dir)?;
+        Some((rec.to_string(), file, j))
+    };
+    let side = |rec: &str| -> Option<Filmed> { filmed(rec, &store::resolve(rec).ok()?) };
+    // (where to put it, its sides by role)
+    let mut players: Vec<Player> = Vec::new();
+    if let Some(dir) = recording {
+        let id = data["id"].as_str().filter(|i| store::plain_id(i)).unwrap_or("recording").to_string();
+        if let Some(s) = filmed(&id, dir) {
+            players.push((None, vec![("recording", s)]));
+        }
+    }
+    for (i, s) in data["series"].as_array().into_iter().flatten().enumerate() {
+        let sides: Vec<(&'static str, Filmed)> = ["base", "head"].into_iter().filter_map(|role| Some((role, side(s["video"][role].as_str()?)?))).collect();
+        if !sides.is_empty() {
+            players.push((Some(i), sides));
+        }
+    }
+    let total: u64 = players.iter().flat_map(|p| &p.1).filter_map(|(_, (_, f, _))| std::fs::metadata(f).ok()).map(|m| m.len()).sum();
+    for (at, sides) in players {
+        let mut out = Vec::new();
+        for (role, (rec, file, j)) in sides {
+            let ext = file.extension().and_then(|e| e.to_str()).unwrap_or("mp4").to_string();
+            let mime = if ext == "webm" { "video/webm" } else { "video/mp4" };
+            let url = match src {
+                Videos::Daemon => format!("/video/{rec}"),
+                Videos::Embed(_) if total <= EMBED_BYTES => {
+                    use base64::Engine as _;
+                    format!("data:{mime};base64,{}", base64::engine::general_purpose::STANDARD.encode(std::fs::read(&file)?))
+                }
+                Videos::Embed(report) => {
+                    let name = format!("{}.assets", report.file_name().and_then(|n| n.to_str()).unwrap_or("report"));
+                    let assets = report.with_file_name(&name);
+                    std::fs::create_dir_all(&assets)?;
+                    std::fs::copy(&file, assets.join(format!("{rec}.{ext}")))?;
+                    // A relative URL: the folder's name percent-encoded (a report named with spaces or `#`).
+                    let enc: String = name.bytes().map(|b| if b.is_ascii_alphanumeric() || b"-._~".contains(&b) { (b as char).to_string() } else { format!("%{b:02X}") }).collect();
+                    format!("./{enc}/{rec}.{ext}")
+                }
+            };
+            out.push(json!({ "role": role, "recording": rec, "src": url, "mime": mime, "video": j }));
+        }
+        let kinds: std::collections::BTreeSet<String> = out.iter().filter_map(|s| s["video"]["kind"].as_str().map(str::to_string)).collect();
+        let player = json!({ "sides": out, "mixed": kinds.len() > 1 });
+        match at {
+            None => data["video_player"] = player,
+            Some(i) => data["series"][i]["video_player"] = player,
+        }
+    }
+    Ok(())
+}
+
+/// Writes a report whole or not at all (`store::write_atomic`), so a reader never sees half a report.
+pub(super) fn write_whole(path: &std::path::Path, body: &[u8]) -> Result<()> {
+    store::write_atomic(path, body)
+}
+
+/// The "why" of each series, one series at a time: its attribution recordings (base and head) as the
+/// report shows them, how the two sides' live heaps and memory differ, the diff flame, and the series'
+/// insights. Each recording's sources load once for all of these, both sides at once; a series'
+/// recordings are dropped before the next one loads. Returns the experiment's insights.
+fn attach_series(data: &mut Value) -> Option<Value> {
+    let plan_runs = data["plan"]["runs_per_block"].as_u64();
+    let id = data["id"].clone();
+    // Two implementations share no code: each side is read on its own, never diffed (SPEC §11.2).
+    let implementations = super::family::implementations(data);
+    // Each side's engine (`chromium`, `native`, `script`, …), as the bench named it.
+    let engine = |i: usize| data["variants"][i]["engine"].as_str().unwrap_or("chromium").to_string();
+    let engines = [engine(0), engine(1)];
+    let series = data["series"].as_array_mut()?;
+    let mut insights = Vec::new();
+    for s in series {
+        // The HTTP probe's blocks and recordings, stalled cohorts and all (`query <exp> http`).
+        if let Some(h) = query::http::series_json(s, 6) {
+            s["http"] = h;
+        }
+        if s["kind"] == "blocks" {
+            s["blocks_summary"] = blocks_summary(s);
+        }
+        let recs: Vec<(&str, Rec)> = ["base", "head"].into_iter().filter_map(|role| Some((role, Rec::resolve(s["attribution"][role].as_str()?).ok()?))).collect();
+        // The threads print times as this invocation does (an MCP call's own unit).
+        let fmt_ctx = crate::fmt::ctx();
+        let sides: Vec<(&str, Option<Value>)> = std::thread::scope(|scope| {
+            let handles: Vec<_> = recs
+                .iter()
+                .map(|(role, rec)| {
+                    let engine = engines[usize::from(*role == "head")].as_str();
+                    (
+                        *role,
+                        scope.spawn(move || {
+                            let _fmt = crate::fmt::scope(fmt_ctx);
+                            if implementations { side_attribution(rec, plan_runs, engine) } else { attribution(rec, plan_runs) }
+                        }),
+                    )
+                })
+                .collect();
+            handles.into_iter().map(|(role, h)| (role, h.join().ok().flatten())).collect()
+        });
+        let mut out = json!({});
+        for (role, h) in sides {
+            if let Some(mut h) = h {
+                if implementations {
+                    timed_side(s, role, &mut h["side"]);
+                }
+                out[role] = h;
+            }
+        }
+        if out.as_object().is_some_and(|o| !o.is_empty()) {
+            s["hotspots"] = out;
+        }
+        if implementations {
+            // The headline's words for this journey, as the PR block says them (`uses 62% less CPU time`).
+            if s["primary"]["estimate"].is_number() {
+                s["claim"] = json!(super::pr::claim(&s["primary"]).pr(false));
+            }
+            continue;
+        }
+        let [(_, a), (_, b)] = recs.as_slice() else { continue };
+        if let Ok(d) = query::heap_diff(a, b, 15, false) {
+            s["heap_diff"] = d.json;
+        }
+        // A native app's two launches by what holds their memory (host, GPU mapped, private, …).
+        if a.dir.join("memory.json").exists()
+            && b.dir.join("memory.json").exists()
+            && let Ok(d) = query::memory_diff(&a.dir, &b.dir, 10)
+        {
+            s["memory_diff"] = d.json;
+        }
+        let tree = query::diff_tree(a, b, plan_runs);
+        if tree.as_object().is_some_and(|o| !o.is_empty()) {
+            s["diff_tree"] = tree;
+        }
+        if let Ok(i) = query::series_insights(a, b, plan_runs) {
+            let mut j = i.json;
+            j["series"] = s["label"].clone();
+            insights.push(j);
+        }
+    }
+    (!insights.is_empty()).then(|| json!({ "experiment": id, "series": insights }))
+}
+
+/// A `bench --blocks` series as `bench` prints it: the primary in each block and the blocks' median
+/// with its 95% interval (`stats::median_interval`, two blocks or more), then each declared secondary
+/// the same way or why a block refused it. One build's values: nothing is compared.
+fn blocks_summary(s: &Value) -> Value {
+    let blocks = s["blocks"].as_array().map(Vec::as_slice).unwrap_or_default();
+    let one = |m: &str| {
+        let unit = crate::model::metric(m).map_or("", |d| d.unit);
+        let each: Vec<Option<f64>> = blocks.iter().map(|b| b["values"][m].as_f64().filter(|v| v.is_finite())).collect();
+        let got: Vec<f64> = each.iter().flatten().copied().collect();
+        let refused: Vec<&str> = blocks.iter().filter_map(|b| b["refused"][m].as_str()).collect();
+        let mut j = json!({ "metric": m, "unit": unit, "values": each, "refused_blocks": refused.len(), "refused": refused.first() });
+        if got.len() >= 2 && refused.is_empty() {
+            let (median, lo, hi, conf) = crate::stats::median_interval(&got, 0.95);
+            j["median"] = json!(median);
+            j["lo"] = json!(lo);
+            j["hi"] = json!(hi);
+            j["confidence"] = json!(conf);
+        }
+        j
+    };
+    let metric = s["primary"]["metric"].as_str().unwrap_or("");
+    let mut primary = one(metric);
+    // Refused as the series' primary (a block refused it, too short a tail): no median of it.
+    if let Some(v) = s["primary"]["verdict"].as_str().filter(|_| s["primary"]["refusal"].is_object()) {
+        primary["verdict"] = json!(v);
+        if let Some(o) = primary.as_object_mut() {
+            for k in ["median", "lo", "hi", "confidence"] {
+                o.remove(k);
+            }
+        }
+    }
+    let declared: Vec<&str> = s["declared"].as_array().into_iter().flatten().filter_map(Value::as_str).filter(|m| *m != metric).collect();
+    let mut secondaries: Vec<Value> = declared.iter().copied().map(one).collect();
+    // Then the main thread's CPU of a target with no window, as the text shows it (`main_thread_shown`):
+    // only where a block measured or refused it.
+    for m in super::bench::main_thread_shown(s, &declared).into_iter().filter(|m| *m != metric) {
+        let j = one(m);
+        if j["values"].as_array().is_some_and(|v| v.iter().any(Value::is_number)) || j["refused_blocks"].as_u64().unwrap_or(0) > 0 {
+            secondaries.push(j);
+        }
+    }
+    json!({ "blocks": blocks.len(), "primary": primary, "secondaries": secondaries })
+}
+
+/// One attribution recording for a report: CPU by function and file, allocations by function and
+/// file, forced layouts, GC, the live heap, run count and metric values.
+fn attribution(rec: &Rec, plan_runs: Option<u64>) -> Option<Value> {
+    // Every source this reads, at once: the trace's views in one pass, the profiles and the snapshot.
+    rec.preload(&query::ATTRIBUTION_PARTS, true, true, true);
+    // A native recording without native stacks still has its threads and memory.
+    let native = rec.dir.join("threads.json").exists();
+    let mut h = match query::hotspots_of(rec, "function", 50) {
+        Ok(o) => o.json,
+        Err(_) if native => json!({ "rows": [] }),
+        Err(_) => return None,
+    };
+    if native && let Ok(o) = query::native_threads(&rec.dir, 15) {
+        h["threads"] = o.json;
+    }
+    if let Ok(o) = query::hotspots_of(rec, "file", 25) {
+        h["files"] = o.json["rows"].clone();
+    }
+    // A script target's whole host process beside its measured runs (the default), labelled, per
+    // recording: the report's toggle shows it.
+    if rec.dir.join(crate::probe::cpu::WHOLE_HOST).is_file()
+        && let Ok(o) = query::hotspots_scoped(rec, "function", 50, query::Sort::Own, query::Scope::Host)
+    {
+        let mut w = o.json;
+        if let Ok(f) = query::hotspots_scoped(rec, "file", 25, query::Sort::Own, query::Scope::Host) {
+            w["files"] = f.json["rows"].clone();
+        }
+        if let Some(o) = w.as_object_mut() {
+            o.remove("callers");
+        }
+        w["label"] = json!(query::WHOLE_HOST_TEXT);
+        w["runs"] = json!(1);
+        h["whole_host"] = w;
+        // The host's startup and the bench file's setup alone (`query hotspots --source startup|setup`),
+        // the toggle's other scopes; none for a recording that kept no such span.
+        for (key, scope, label) in [("startup", query::Scope::Startup, "Host startup"), ("setup", query::Scope::Setup, "Bench file's setup")] {
+            if let Ok(o) = query::hotspots_scoped(rec, "function", 50, query::Sort::Own, scope)
+                && o.json["rows"].as_array().is_some_and(|r| !r.is_empty())
+            {
+                let mut w = o.json;
+                if let Ok(f) = query::hotspots_scoped(rec, "file", 25, query::Sort::Own, scope) {
+                    w["files"] = f.json["rows"].clone();
+                }
+                if let Some(o) = w.as_object_mut() {
+                    o.remove("callers");
+                }
+                w["label"] = json!(label);
+                w["runs"] = json!(1);
+                h[key] = w;
+            }
+        }
+    }
+    if let Ok(o) = query::alloc(rec, "function", 25) {
+        h["alloc"] = o.json;
+        if let Ok(f) = query::alloc(rec, "file", 25) {
+            h["alloc"]["files"] = f.json["rows"].clone();
+        }
+    }
+    if let Ok(o) = query::layout(rec, 25) {
+        h["layout"] = o.json;
+    }
+    if let Ok(o) = query::gc(rec) {
+        h["gc"] = o.json;
+    }
+    if let Ok(o) = query::heap(rec, 15, false) {
+        h["heap"] = o.json;
+    }
+    if let Ok(o) = query::memory(&rec.dir, "process", 30, None) {
+        h["memory"] = o.json;
+    }
+    if let Ok(o) = query::memory(&rec.dir, "layer", 30, None) {
+        h["memory_layers"] = o.json;
+    }
+    let runs = rec.runs().or(plan_runs);
+    // A display may abbreviate (the recording and `query` keep everything): three stacks for the top
+    // rows, the heaviest one below them, and no `url` beside `file` in frames. Frames repeat across
+    // stacks (a framework's are in most of them), so each side keeps one `frame_table` and stacks list
+    // indices into it: lossless, and a fifth of the bytes.
+    let mut table: Vec<Value> = Vec::new();
+    let mut seen: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    for key in ["rows", "files", "whole_host.rows", "whole_host.files", "startup.rows", "startup.files", "setup.rows", "setup.files", "alloc.rows", "alloc.files", "layout.rows"] {
+        let rows = key.split('.').try_fold(&mut h, |v, k| v.get_mut(k));
+        for (i, row) in rows.and_then(Value::as_array_mut).into_iter().flatten().enumerate() {
+            let Some(stacks) = row["stacks"].as_array_mut() else { continue };
+            stacks.truncate(if i < 15 { 3 } else { 1 });
+            for f in stacks.iter_mut().flat_map(|s| s["frames"].as_array_mut().into_iter().flatten()) {
+                if let Some(o) = f.as_object_mut() {
+                    o.remove("url");
+                }
+                let at = *seen.entry(f.to_string()).or_insert_with(|| {
+                    table.push(f.clone());
+                    table.len() - 1
+                });
+                *f = json!(at);
+            }
+        }
+    }
+    h["frame_table"] = json!(table);
+    h["recording"] = json!(rec.id);
+    if let Some(r) = runs {
+        h["runs"] = json!(r);
+    }
+    if rec.meta["values"].is_object() {
+        h["values"] = rec.meta["values"].clone();
+    }
+    Some(h)
+}
+
+/// A side's CPU from its timed blocks, which no profiler slowed (rule 2): a profiled browser spends
+/// many times its timed CPU in its own renderer (the sampler, the trace), a native sampler little,
+/// so profiled totals on one scale would compare the profilers. `cpu_ms_per_run` becomes the timed
+/// pairs' median (the profiled launch's own is kept as `profiled_cpu_ms_per_run`), and a browser's
+/// processes by role come from the timed blocks' per-side shares when the series kept them.
+fn timed_side(s: &Value, role: &str, side: &mut Value) {
+    let comparisons = std::iter::once(&s["primary"]).chain(["secondaries", "descriptive"].iter().flat_map(|k| s[*k].as_array().into_iter().flatten()));
+    let median = |metric: &str| comparisons.clone().find(|c| c["metric"] == metric).and_then(|c| c[role].as_f64()).filter(|x| x.is_finite());
+    side["profiled_cpu_ms_per_run"] = side["cpu_ms_per_run"].clone();
+    side["cpu_ms_per_run"] = json!(median("cpu.work"));
+    let ps = &s["per_side"][role];
+    let (Some(dur), Some(total)) = (median("run.duration"), median("cpu.work")) else { return };
+    let rows = role_rows(|m| ps[m]["median"].as_f64(), dur, total);
+    if !rows.is_empty() {
+        side["processes"] = json!(rows);
+        side["processes_from"] = json!("timed");
+    }
+}
+
+/// A browser's processes by role as CPU ms per run: each role's share of a core (`pct(metric)`) over
+/// a run of `dur` ms, and what the roles leave of `total` as the rest. Empty when no role was read.
+fn role_rows(pct: impl Fn(&str) -> Option<f64>, dur: f64, total: f64) -> Vec<Value> {
+    let mut rows: Vec<Value> = [("cpu.renderer", "renderer"), ("cpu.gpu", "GPU process"), ("cpu.browser", "browser")]
+        .into_iter()
+        .filter_map(|(metric, name)| Some(json!({ "name": name, "ms": pct(metric).filter(|x| x.is_finite())? / 100.0 * dur })))
+        .collect();
+    let named: f64 = rows.iter().filter_map(|r| r["ms"].as_f64()).sum();
+    if !rows.is_empty() && total - named > 0.005 * total {
+        rows.push(json!({ "name": "other (utility, network, …)", "ms": total - named }));
+    }
+    rows
+}
+
+/// One side of an implementation comparison on its own (SPEC §11.2), profiled with its own engine's
+/// tools: what `attribution` keeps, its call tree (`tree`, the diff flame's shape with one value per
+/// node) and `side`: CPU per run by process (a browser's roles, a native app's programs) and by
+/// thread origin (native), self time by function and package, memory by part, and how much of its
+/// samples were named. Per run where its samples carry times; untimed native samples (macOS
+/// `sample`) cover the whole capture, so they are per recording and say so.
+fn side_attribution(rec: &Rec, plan_runs: Option<u64>, engine: &str) -> Option<Value> {
+    let mut h = attribution(rec, plan_runs)?;
+    let tree = query::side_tree(rec, plan_runs);
+    if tree.as_object().is_some_and(|o| !o.is_empty()) {
+        h["tree"] = tree;
+    }
+    let native = h["native"] == true;
+    let untimed = native && h["untimed"] == true;
+    let runs = rec.runs().or(plan_runs).filter(|_| !untimed);
+    let per = |weight_us: f64| weight_us / 1000.0 / runs.unwrap_or(1).max(1) as f64;
+    let values = &rec.meta["values"];
+    let v = |k: &str| values[k].as_f64().filter(|x| x.is_finite());
+    let mut side = json!({
+        "engine": engine,
+        "per_run": runs.is_some(), "runs": runs, "untimed": untimed,
+        "cpu_ms_per_run": v("cpu.work"),
+    });
+    if native {
+        side["profiler"] = json!("native stacks");
+        side["resolved_share"] = h["resolved_share"].clone();
+        side["samples"] = h["samples"].clone();
+    } else if h["samples"].as_u64().unwrap_or(0) > 0 {
+        side["profiler"] = json!(if engine == "script" { "script CPU profile" } else { "V8 CPU profile" });
+        // A script's profile names its own source files: nothing is mapped, and nothing is missing.
+        let (scripts, mapped) = (h["script_samples"].as_f64().unwrap_or(0.0), h["mapped_samples"].as_f64().unwrap_or(0.0));
+        side["mapped_share"] = if scripts > 0.0 && engine != "script" { json!(mapped / scripts) } else { Value::Null };
+        side["samples"] = h["samples"].clone();
+    }
+    // Self time by function, leaving out a profile's idle time and root.
+    let functions: Vec<Value> = h["rows"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|r| !matches!(r["name"].as_str(), Some("(idle)" | "(root)")))
+        .take(12)
+        .map(|r| json!({ "name": r["name"], "where": r["where"], "ms": per(r["weight"].as_f64().unwrap_or(0.0)) }))
+        .collect();
+    side["functions"] = json!(functions);
+    let idle: f64 = h["rows"].as_array().into_iter().flatten().filter(|r| r["name"] == "(idle)").filter_map(|r| r["weight"].as_f64()).sum();
+    if let Some(total) = h["total"].as_f64().filter(|t| *t > idle) {
+        side["sampled_ms"] = json!(per(total - idle));
+    }
+    if let Ok(o) = query::hotspots_of(rec, "package", 12) {
+        let rows: Vec<Value> =
+            o.json["rows"].as_array().into_iter().flatten().filter(|r| r["name"] != "(idle)").map(|r| json!({ "name": r["name"], "ms": per(r["weight"].as_f64().unwrap_or(0.0)) })).collect();
+        side["packages"] = json!(rows);
+    }
+    let threads: Vec<Value> = store::read_json(&rec.dir.join("threads.json")).ok().and_then(|t| t.as_array().cloned()).unwrap_or_default();
+    if threads.is_empty() {
+        // A browser's processes by role in its profiled launch (the timed blocks' replace them).
+        if let (Some(dur), Some(total)) = (v("run.duration"), v("cpu.app.total")) {
+            let rows = role_rows(v, dur, total / 100.0 * dur);
+            if !rows.is_empty() {
+                side["processes"] = json!(rows);
+                side["processes_from"] = json!("profiled");
+            }
+        }
+    } else {
+        // A native app's processes by program, and its threads by whose code they started in.
+        // Per pid: CPU per run, the app's threads by start module, and macOS's executable.
+        type Process = (f64, BTreeMap<String, usize>, Option<String>);
+        let mut by_pid: BTreeMap<u64, Process> = BTreeMap::new();
+        let mut origins: BTreeMap<String, f64> = BTreeMap::new();
+        for t in &threads {
+            let ms = t["cpu_ms_per_run"].as_f64().unwrap_or(0.0);
+            let e = by_pid.entry(t["pid"].as_u64().unwrap_or(0)).or_default();
+            e.0 += ms;
+            if let Some(m) = t["module"].as_str() {
+                // macOS's per-process row names its executable; elsewhere the module the app's own
+                // threads started in is its program.
+                if t["tid"] == 0 {
+                    e.2 = Some(m.to_string());
+                } else if t["origin"] == "app" {
+                    *e.1.entry(m.to_string()).or_default() += 1;
+                }
+            }
+            if ms > 0.0 {
+                *origins.entry(t["origin"].as_str().unwrap_or("unknown").to_string()).or_default() += ms;
+            }
+        }
+        let mut procs: Vec<Value> = by_pid
+            .into_iter()
+            .filter(|(_, (ms, _, _))| *ms > 0.0)
+            .map(|(pid, (ms, modules, exe))| {
+                let program = exe.or_else(|| modules.into_iter().max_by_key(|(m, n)| (*n, std::cmp::Reverse(m.clone()))).map(|(m, _)| m));
+                json!({ "name": program.unwrap_or_else(|| format!("pid {pid}")), "pid": pid, "ms": ms })
+            })
+            .collect();
+        procs.sort_by(|a, b| b["ms"].as_f64().unwrap_or(0.0).total_cmp(&a["ms"].as_f64().unwrap_or(0.0)));
+        side["processes"] = json!(procs);
+        side["processes_from"] = json!("profiled");
+        // macOS keeps no thread's start module: its threads' origins are unknown, so none are listed.
+        if origins.keys().any(|o| o != "unknown") {
+            side["origins"] = json!(["app", "driver", "os", "unknown"].iter().filter_map(|o| Some(json!({ "name": o, "ms": origins.get(*o)? }))).collect::<Vec<_>>());
+        }
+    }
+    // Memory by part: a native app's by what holds it (host, GPU mapped, …), a browser's by allocator
+    // layer across its processes.
+    if rec.dir.join("memory.json").exists() {
+        if let Ok(o) = query::native_memory(&rec.dir, &rec.meta, "layer", 10, None) {
+            let parts = crate::probe::memory::totals(&o.json["reading"]);
+            let total = parts.iter().find(|p| p.0 == "private").map(|p| p.1);
+            let rows: Vec<Value> = parts.iter().filter(|p| !matches!(p.0.as_str(), "private" | "working_set")).filter(|p| p.1 > 0.0).map(|(k, b)| json!({ "name": k, "bytes": b })).collect();
+            side["memory"] = json!({ "total": { "name": "private", "bytes": total }, "parts": rows });
+        }
+    } else if h["memory_layers"].is_object() {
+        let m = &h["memory_layers"];
+        let rows: Vec<Value> = m["layers"].as_array().into_iter().flatten().take(10).map(|l| json!({ "name": l["layer"], "bytes": l["effective_bytes"] })).collect();
+        side["memory"] = json!({ "total": { "name": "OS private", "bytes": m["os_private_bytes"] }, "parts": rows });
+    }
+    h["side"] = side;
+    Some(h)
+}
+
+const TEMPLATE: &str = include_str!("../../viewer/report.html");
+
+/// The owner's raw metadata and rerun arguments keep device selectors. A report must not
+/// embed those identifiers in its payload, including copies in an older rendered message.
+mod device_ids;
+use device_ids::omit_device_ids;
+
+pub fn html(view: &str, data: &Value) -> String {
+    // The viewer does not consume the local name maps. A self-contained HTML file is a report,
+    // not a copy of result.json. The latter keeps the structured fields for local consumers.
+    let mut data = data.clone();
+    omit_device_ids(&mut data);
+    super::pr::safe_diagnostics(&mut data);
+    if let Some(r) = data.pointer_mut("/plan/reserve").and_then(Value::as_object_mut) {
+        r.remove("moved");
+        r.remove("failed");
+    }
+    if let Some(o) = data.as_object_mut() {
+        o.remove("background");
+    }
+    fn omit_screen_name(v: &mut Value) {
+        if let Some(c) = v.pointer_mut("/screen/compositor").and_then(Value::as_object_mut) {
+            c.remove("name");
+        }
+    }
+    omit_screen_name(&mut data);
+    for s in data.get_mut("series").and_then(Value::as_array_mut).into_iter().flatten() {
+        omit_screen_name(s);
+        for c in ["primary", "secondaries", "descriptive"] {
+            let add_labels = |row: &mut Value| {
+                if row["shift"].is_object() {
+                    for unit in [crate::fmt::TimeUnit::Us, crate::fmt::TimeUnit::Ms, crate::fmt::TimeUnit::S] {
+                        let _ctx = crate::fmt::scope(crate::fmt::FmtCtx { unit, ascii: false });
+                        if let Some(text) = crate::fmt::paired_shift(row) {
+                            row["shift_text"][unit.as_str()] = json!(text);
+                        }
+                    }
+                }
+            };
+            if let Some(rows) = s[c].as_array_mut() {
+                rows.iter_mut().for_each(add_labels);
+            } else if let Some(row) = s.get_mut(c) {
+                add_labels(row);
+            }
+        }
+        for key in ["/blocks", "/pass/blocks"] {
+            for b in s.pointer_mut(key).and_then(Value::as_array_mut).into_iter().flatten() {
+                omit_screen_name(b);
+                if let Some(o) = b.as_object_mut() {
+                    o.remove("background");
+                }
+            }
+        }
+    }
+    fn omit_busiest(v: &mut Value) {
+        match v {
+            Value::Object(o) => {
+                o.remove("busiest");
+                o.values_mut().for_each(omit_busiest)
+            }
+            Value::Array(a) => a.iter_mut().for_each(omit_busiest),
+            _ => {}
+        }
+    }
+    if let Some(insights) = data.get_mut("insights") {
+        omit_busiest(insights);
+    }
+    let catalog: Vec<Value> = crate::model::METRICS
+        .iter()
+        .map(|m| json!({ "name": m.name, "unit": m.unit, "better": m.better, "kind": m.kind, "words": [m.words.0, m.words.1], "min_n": m.min_n, "about": m.about }))
+        .collect();
+    // The unit the page prints times in first (`--unit`, strobe.json); its switch picks another.
+    let payload = serde_json::to_string(&json!({ "view": view, "data": data, "metrics": catalog, "default_unit": crate::fmt::ctx().unit.as_str() })).unwrap_or_default().replace("</", "<\\/");
+    TEMPLATE.replace("/*STROBE_DATA*/null", &payload)
+}
+
+fn markdown(data: &Value, path: Option<&std::path::Path>, recording: bool) -> String {
+    // A comparison's or a check's text is drawn again from its result, as its PR block and HTML are:
+    // today's digits, rendering and unit, and the rerun ledger as of now (`run` refreshed it). A
+    // recording's from its meta.json; other results keep the text they printed (a pixels run).
+    let text = if let Some(mut t) = super::bench::rendered_at(data, path) {
+        // Another strobe measured it: its numbers are that strobe's, the words this one's.
+        if let Some(v) = data["env"]["strobe"].as_str().filter(|v| *v != env!("CARGO_PKG_VERSION") && data["kind"] == "experiment") {
+            t += &format!("\nmeasured by strobe {v}; this text drawn again by strobe {}\n", env!("CARGO_PKG_VERSION"));
+        }
+        t
+    } else if data["series"].is_array() {
+        data["text"].as_str().unwrap_or("").to_string()
+    } else {
+        super::record::summary_text(data)
+    };
+    let text = if let Some(p) = path { query::path_text(&text, data, p, recording) } else { text };
+    let text = if recording { text } else { query::recording_links(&text, path, &data["id"]) };
+    format!("```\n{}\n```\n", text.trim_end())
+}
+
+/// Opens a file or a URL (without `&`: cmd's `start` would split it) with the desktop's handler.
+pub(super) fn open(p: &str) {
+    let _ = if cfg!(windows) {
+        std::process::Command::new("cmd").args(["/c", "start", "", p]).spawn()
+    } else if cfg!(target_os = "macos") {
+        std::process::Command::new("open").arg(p).spawn()
+    } else {
+        std::process::Command::new("xdg-open").arg(p).spawn()
+    };
+}

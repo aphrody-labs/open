@@ -1,0 +1,696 @@
+//! GPU-only BGRA8/RGB10 conversion or qualified NV12 copy/expansion to
+//! limited-range Rec.709 NV12/P010 for the MF worker.
+//! Ten-bit output is SDR, not HDR. The software encoder and the independent
+//! camera publisher can read back RGB without a hardware video processor.
+
+use std::mem::ManuallyDrop;
+use std::time::{Duration, Instant};
+
+use anyhow::{Context, Result, bail};
+use windows::Win32::Foundation::{RECT, WAIT_FAILED, WAIT_OBJECT_0, WAIT_TIMEOUT};
+use windows::Win32::Graphics::Direct3D11::*;
+use windows::Win32::Graphics::Dxgi::Common::*;
+use windows::Win32::Graphics::Dxgi::DXGI_ERROR_WAS_STILL_DRAWING;
+use windows::Win32::System::Threading::WaitForSingleObject;
+use windows::core::Interface;
+
+use crate::frames::PixelFormat;
+use crate::native::Event;
+use crate::p010::P010Converter;
+use crate::{Frame, GraphicsDevice};
+
+const COMPLETION_TIMEOUT_MS: u32 = 2_000;
+
+pub(crate) struct Converter {
+    device: GraphicsDevice,
+    context: ID3D11DeviceContext4,
+    video: Option<VideoProcessor>,
+    p010: Option<P010Converter>,
+    fence: ID3D11Fence,
+    event: Option<Event>,
+    value: u64,
+    width: u32,
+    height: u32,
+    input_format: DXGI_FORMAT,
+    output_format: DXGI_FORMAT,
+    pending: Option<Pending>,
+    owner: isocast_surfaces::generation::Owner,
+}
+
+struct Pending {
+    _frame: Option<Frame>,
+    _source: ID3D11Texture2D,
+    _target: ID3D11Texture2D,
+}
+
+struct VideoProcessor {
+    device: ID3D11VideoDevice,
+    context: ID3D11VideoContext1,
+    enumerator: ID3D11VideoProcessorEnumerator1,
+    processor: ID3D11VideoProcessor,
+}
+
+impl Converter {
+    pub(crate) fn with_format(
+        device: &GraphicsDevice,
+        width: u32,
+        height: u32,
+        fps: u32,
+        input: PixelFormat,
+        bit_depth: u8,
+    ) -> Result<Self> {
+        Self::open(device, width, height, fps, input, bit_depth, false)
+    }
+
+    pub(crate) fn for_software(
+        device: &GraphicsDevice,
+        width: u32,
+        height: u32,
+        fps: u32,
+        input: PixelFormat,
+        bit_depth: u8,
+    ) -> Result<Self> {
+        Self::open(device, width, height, fps, input, bit_depth, true)
+    }
+
+    fn open(
+        device: &GraphicsDevice,
+        width: u32,
+        height: u32,
+        fps: u32,
+        input: PixelFormat,
+        bit_depth: u8,
+        software: bool,
+    ) -> Result<Self> {
+        device.generation().check()?;
+        let owner = device.generation().child("MF converter");
+        let input_format = match input {
+            PixelFormat::Bgra8 => DXGI_FORMAT_B8G8R8A8_UNORM,
+            PixelFormat::Rgba10 => DXGI_FORMAT_R10G10B10A2_UNORM,
+            PixelFormat::Nv12 => DXGI_FORMAT_NV12,
+        };
+        let software_rgb = software && input == PixelFormat::Bgra8 && bit_depth == 8;
+        let output_format = match bit_depth {
+            8 if software_rgb => DXGI_FORMAT_B8G8R8A8_UNORM,
+            8 => DXGI_FORMAT_NV12,
+            10 => DXGI_FORMAT_P010,
+            _ => bail!("video.bit_depth: valid values are 8 and 10"),
+        };
+        if input == PixelFormat::Rgba10 && bit_depth != 10 {
+            bail!("video.bit_depth: Rgba10 input requires 10-bit output");
+        }
+        for (field, size) in [("width", width), ("height", height)] {
+            if !(2..=D3D11_REQ_TEXTURE2D_U_OR_V_DIMENSION).contains(&size)
+                || !size.is_multiple_of(2)
+            {
+                bail!("video.{field}: NV12/P010 requires an even size in 2..=16384");
+            }
+        }
+        if !(1..=240).contains(&fps) {
+            bail!("video.fps: valid range is 1..=240");
+        }
+        unsafe {
+            let context: ID3D11DeviceContext4 = device
+                .raw()
+                .GetImmediateContext()?
+                .cast()
+                .context("converter: query ID3D11DeviceContext4")?;
+            let video = if bit_depth == 8 && input != PixelFormat::Nv12 && !software_rgb {
+                let video: ID3D11VideoDevice = device
+                    .raw()
+                    .cast()
+                    .context("converter: query ID3D11VideoDevice for RGB to NV12")?;
+                let video_context: ID3D11VideoContext1 = context
+                    .cast()
+                    .context("converter: query ID3D11VideoContext1 for RGB to NV12")?;
+                let rate = DXGI_RATIONAL {
+                    Numerator: fps,
+                    Denominator: 1,
+                };
+                let enumerator: ID3D11VideoProcessorEnumerator1 = video
+                    .CreateVideoProcessorEnumerator(&D3D11_VIDEO_PROCESSOR_CONTENT_DESC {
+                        InputFrameFormat: D3D11_VIDEO_FRAME_FORMAT_PROGRESSIVE,
+                        InputFrameRate: rate,
+                        InputWidth: width,
+                        InputHeight: height,
+                        OutputFrameRate: rate,
+                        OutputWidth: width,
+                        OutputHeight: height,
+                        Usage: D3D11_VIDEO_USAGE_PLAYBACK_NORMAL,
+                    })?
+                    .cast()?;
+                if enumerator.CheckVideoProcessorFormat(input_format)?
+                    & D3D11_VIDEO_PROCESSOR_FORMAT_SUPPORT_INPUT.0 as u32
+                    == 0
+                    || enumerator.CheckVideoProcessorFormat(output_format)?
+                        & D3D11_VIDEO_PROCESSOR_FORMAT_SUPPORT_OUTPUT.0 as u32
+                        == 0
+                    || !enumerator
+                        .CheckVideoProcessorFormatConversion(
+                            input_format,
+                            DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709,
+                            output_format,
+                            DXGI_COLOR_SPACE_YCBCR_STUDIO_G22_LEFT_P709,
+                        )?
+                        .as_bool()
+                {
+                    bail!(
+                        "D3D11 video processor does not support full Rec.709 {input:?} to limited Rec.709 {bit_depth}-bit YUV"
+                    );
+                }
+                let mut caps = D3D11_VIDEO_PROCESSOR_CAPS::default();
+                enumerator.GetVideoProcessorCaps(&mut caps)?;
+                if caps.RateConversionCapsCount == 0 || caps.MaxInputStreams == 0 {
+                    bail!("D3D11 video processor has no usable stream or rate-conversion mode");
+                }
+                // Same-rate progressive input needs no deinterlacing or temporal references.
+                let processor = video.CreateVideoProcessor(&enumerator, 0)?;
+                let rect = RECT {
+                    left: 0,
+                    top: 0,
+                    right: width as i32,
+                    bottom: height as i32,
+                };
+                video_context.VideoProcessorSetStreamFrameFormat(
+                    &processor,
+                    0,
+                    D3D11_VIDEO_FRAME_FORMAT_PROGRESSIVE,
+                );
+                video_context.VideoProcessorSetStreamAutoProcessingMode(&processor, 0, false);
+                video_context.VideoProcessorSetStreamColorSpace1(
+                    &processor,
+                    0,
+                    DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709,
+                );
+                video_context.VideoProcessorSetOutputColorSpace1(
+                    &processor,
+                    DXGI_COLOR_SPACE_YCBCR_STUDIO_G22_LEFT_P709,
+                );
+                video_context.VideoProcessorSetStreamSourceRect(&processor, 0, true, Some(&rect));
+                video_context.VideoProcessorSetStreamDestRect(&processor, 0, true, Some(&rect));
+                video_context.VideoProcessorSetOutputTargetRect(&processor, true, Some(&rect));
+                Some(VideoProcessor {
+                    device: video,
+                    context: video_context,
+                    enumerator,
+                    processor,
+                })
+            } else {
+                None
+            };
+            // The NVIDIA video processor treats P010 like normalized 16-bit
+            // video: nonzero padding bits, white944 and neutral514 at ten-bit.
+            // The shader writes exact limited-range codes with six zero bits.
+            let p010 = if bit_depth == 10 {
+                Some(P010Converter::new(device, input)?)
+            } else {
+                None
+            };
+            let mut fence = None;
+            device
+                .raw()
+                .CreateFence(0, D3D11_FENCE_FLAG_NONE, &mut fence)?;
+            Ok(Self {
+                device: device.clone(),
+                context,
+                video,
+                p010,
+                fence: fence.context("D3D11 returned no conversion fence")?,
+                event: Some(Event::new()?),
+                value: 0,
+                width,
+                height,
+                input_format,
+                output_format,
+                pending: None,
+                owner,
+            })
+        }
+    }
+
+    pub(crate) fn create_texture(&self) -> Result<ID3D11Texture2D> {
+        self.idle()?;
+        let desc = D3D11_TEXTURE2D_DESC {
+            Width: self.width,
+            Height: self.height,
+            MipLevels: 1,
+            ArraySize: 1,
+            Format: self.output_format,
+            SampleDesc: DXGI_SAMPLE_DESC {
+                Count: 1,
+                Quality: 0,
+            },
+            Usage: D3D11_USAGE_DEFAULT,
+            BindFlags: (D3D11_BIND_RENDER_TARGET.0
+                | if self.p010.is_some() {
+                    D3D11_BIND_UNORDERED_ACCESS.0
+                } else {
+                    0
+                }) as u32,
+            ..Default::default()
+        };
+        let mut texture = None;
+        self.check(
+            unsafe {
+                self.device
+                    .raw()
+                    .CreateTexture2D(&desc, None, Some(&mut texture))
+            },
+            "create YUV conversion texture",
+        )?;
+        texture.context("D3D11 returned no YUV conversion texture")
+    }
+
+    /// Call only on the private encoder worker; successful return means the
+    /// GPU conversion is complete. The caller must not reuse a target while
+    /// an MFT still owns its sample, or after any submission/completion error.
+    pub(crate) fn convert(&mut self, frame: &Frame, target: &ID3D11Texture2D) -> Result<()> {
+        self.idle()?;
+        if !self.device.owns(frame) || frame.width() != self.width || frame.height() != self.height
+        {
+            bail!(
+                "conversion frame must belong to this GraphicsDevice and match {}x{}",
+                self.width,
+                self.height
+            );
+        }
+        self.texture_desc(frame.texture(), self.input_format, false)?;
+        self.texture_desc(target, self.output_format, true)?;
+        if self.input_format == self.output_format {
+            self.retain(Some(frame.clone()), frame.texture(), target)?;
+            self.check(
+                unsafe { self.context.Wait(frame.fence(), frame.ready_value()) },
+                "wait for captured conversion source",
+            )?;
+            unsafe { self.context.CopyResource(target, frame.texture()) };
+            return self.finish();
+        }
+        if self.p010.is_some() {
+            self.retain(Some(frame.clone()), frame.texture(), target)?;
+            self.check(
+                unsafe { self.context.Wait(frame.fence(), frame.ready_value()) },
+                "wait for captured P010 source",
+            )?;
+            self.p010.as_ref().expect("checked above").convert(
+                frame.texture(),
+                target,
+                self.width,
+                self.height,
+            )?;
+            return self.finish();
+        }
+        let video = self
+            .video
+            .as_ref()
+            .expect("RGB to NV12 converter owns a video processor");
+        let mut input = None;
+        let mut output = None;
+        unsafe {
+            self.check(
+                video.device.CreateVideoProcessorInputView(
+                    frame.texture(),
+                    &video.enumerator,
+                    &D3D11_VIDEO_PROCESSOR_INPUT_VIEW_DESC {
+                        FourCC: 0,
+                        ViewDimension: D3D11_VPIV_DIMENSION_TEXTURE2D,
+                        Anonymous: D3D11_VIDEO_PROCESSOR_INPUT_VIEW_DESC_0 {
+                            Texture2D: D3D11_TEX2D_VPIV {
+                                MipSlice: 0,
+                                ArraySlice: 0,
+                            },
+                        },
+                    },
+                    Some(&mut input),
+                ),
+                "create RGB processor input view",
+            )?;
+            self.check(
+                video.device.CreateVideoProcessorOutputView(
+                    target,
+                    &video.enumerator,
+                    &D3D11_VIDEO_PROCESSOR_OUTPUT_VIEW_DESC {
+                        ViewDimension: D3D11_VPOV_DIMENSION_TEXTURE2D,
+                        Anonymous: D3D11_VIDEO_PROCESSOR_OUTPUT_VIEW_DESC_0 {
+                            Texture2D: D3D11_TEX2D_VPOV { MipSlice: 0 },
+                        },
+                    },
+                    Some(&mut output),
+                ),
+                "create YUV processor output view",
+            )?;
+        }
+        let input = input.context("D3D11 returned no processor input view")?;
+        let output = output.context("D3D11 returned no processor output view")?;
+        let context = video.context.clone();
+        let processor = video.processor.clone();
+        self.retain(Some(frame.clone()), frame.texture(), target)?;
+        unsafe {
+            // Capture already submitted its signal and Flush before publishing.
+            // Interleaved immediate-context calls cannot reverse that dependency.
+            self.check(
+                self.context.Wait(frame.fence(), frame.ready_value()),
+                "wait for captured RGB",
+            )?;
+            let mut stream = D3D11_VIDEO_PROCESSOR_STREAM {
+                Enable: true.into(),
+                pInputSurface: ManuallyDrop::new(Some(input)),
+                ..Default::default()
+            };
+            let result =
+                context.VideoProcessorBlt(&processor, &output, 0, std::slice::from_ref(&stream));
+            // windows-rs represents this COM member as ManuallyDrop, not RAII.
+            ManuallyDrop::drop(&mut stream.pInputSurface);
+            self.check(result, "convert RGB to YUV")?;
+        }
+        self.finish()
+    }
+
+    pub(crate) fn readback(&mut self, target: &ID3D11Texture2D) -> Result<Vec<u8>> {
+        self.idle()?;
+        let desc = self.texture_desc(target, self.output_format, true)?;
+        let staging = self.staging(desc)?;
+        let bytes = self.copy_pixels(target, None, &staging, (self.width, self.height))?;
+        if self.output_format == DXGI_FORMAT_B8G8R8A8_UNORM {
+            Ok(bgra_to_nv12(
+                &bytes,
+                self.width as usize,
+                self.height as usize,
+            ))
+        } else {
+            Ok(bytes)
+        }
+    }
+
+    /// The shared worker hands us completed, composited BGRA.
+    /// Never enqueue a wait for a late frame on the recorder's GPU context.
+    /// The staging texture belongs only to the camera thread and is reused.
+    pub(crate) fn camera_nv12(
+        &mut self,
+        frame: &Frame,
+        staging: &mut Option<((u32, u32), ID3D11Texture2D)>,
+    ) -> Result<Option<Vec<u8>>> {
+        self.idle()?;
+        let size = (frame.width(), frame.height());
+        if !self.device.owns(frame)
+            || frame.pixel_format() != PixelFormat::Bgra8
+            || u64::from(size.0) * u64::from(size.1) > 3840 * 2160
+        {
+            bail!("virtual_camera: expected a same-device BGRA canvas of at most 3840×2160 pixels");
+        }
+        if !frame.wait_ready(Duration::ZERO)? {
+            return Ok(None);
+        }
+        let (_, staging) = match staging {
+            Some(pair) if pair.0 == size => pair,
+            slot => {
+                let mut desc = D3D11_TEXTURE2D_DESC::default();
+                unsafe { frame.texture().GetDesc(&mut desc) };
+                slot.insert((size, self.staging(desc)?))
+            }
+        };
+        let bytes = self.copy_pixels(frame.texture(), Some(frame.clone()), staging, size)?;
+        let bytes = if size == (self.width, self.height) {
+            bytes
+        } else {
+            // All four channels are resampled independently (opaque BGRA).
+            // Center the fitted image on black just like the compositor.
+            let image = image::RgbaImage::from_raw(size.0, size.1, bytes)
+                .context("invalid camera BGRA length")?;
+            let scale = (f64::from(self.width) / f64::from(size.0))
+                .min(f64::from(self.height) / f64::from(size.1));
+            let w = ((f64::from(size.0) * scale).round() as u32).clamp(1, self.width);
+            let h = ((f64::from(size.1) * scale).round() as u32).clamp(1, self.height);
+            let fit = image::imageops::resize(&image, w, h, image::imageops::FilterType::Triangle);
+            if (w, h) == (self.width, self.height) {
+                fit.into_raw()
+            } else {
+                let mut canvas = image::RgbaImage::new(self.width, self.height);
+                image::imageops::replace(
+                    &mut canvas,
+                    &fit,
+                    i64::from((self.width - w) / 2),
+                    i64::from((self.height - h) / 2),
+                );
+                canvas.into_raw()
+            }
+        };
+        Ok(Some(bgra_to_nv12(
+            &bytes,
+            self.width as usize,
+            self.height as usize,
+        )))
+    }
+
+    fn staging(&self, mut desc: D3D11_TEXTURE2D_DESC) -> Result<ID3D11Texture2D> {
+        desc.Usage = D3D11_USAGE_STAGING;
+        desc.BindFlags = 0;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ.0 as u32;
+        desc.MiscFlags = 0;
+        let mut staging = None;
+        self.check(
+            unsafe {
+                self.device
+                    .raw()
+                    .CreateTexture2D(&desc, None, Some(&mut staging))
+            },
+            "create YUV readback texture",
+        )?;
+        staging.context("D3D11 returned no readback texture")
+    }
+
+    fn copy_pixels(
+        &mut self,
+        target: &ID3D11Texture2D,
+        frame: Option<Frame>,
+        staging: &ID3D11Texture2D,
+        (width, height): (u32, u32),
+    ) -> Result<Vec<u8>> {
+        let software_rgb = self.output_format == DXGI_FORMAT_B8G8R8A8_UNORM;
+        let row_bytes = width as usize
+            * match self.output_format {
+                DXGI_FORMAT_B8G8R8A8_UNORM => 4,
+                DXGI_FORMAT_P010 => 2,
+                _ => 1,
+            };
+        let rows = if software_rgb {
+            height
+        } else {
+            height + height / 2
+        } as usize;
+        let mut bytes = vec![0; row_bytes * rows];
+        self.retain(frame, target, staging)?;
+        unsafe { self.context.CopyResource(staging, target) };
+        self.finish()?;
+        let mut mapped = D3D11_MAPPED_SUBRESOURCE::default();
+        // A completed GPU fence does not guarantee that WDDM has finished
+        // preparing the CPU mapping (observed on RTX 5070). Keep this wait
+        // bounded instead of making Map block indefinitely or failing a
+        // valid software fallback on its first transient STILL_DRAWING.
+        let deadline = Instant::now() + Duration::from_millis(u64::from(COMPLETION_TIMEOUT_MS));
+        loop {
+            let result = unsafe {
+                self.context.Map(
+                    staging,
+                    0,
+                    D3D11_MAP_READ,
+                    D3D11_MAP_FLAG_DO_NOT_WAIT.0 as u32,
+                    Some(&mut mapped),
+                )
+            };
+            if result
+                .as_ref()
+                .is_err_and(|error| error.code() == DXGI_ERROR_WAS_STILL_DRAWING)
+                && Instant::now() < deadline
+            {
+                std::thread::sleep(Duration::from_millis(1));
+                continue;
+            }
+            self.check(result, "map completed YUV readback")?;
+            break;
+        }
+        let pitch = mapped.RowPitch as usize;
+        let valid = !mapped.pData.is_null()
+            && pitch >= row_bytes
+            && pitch
+                .checked_mul(rows)
+                .is_some_and(|size| size <= isize::MAX as usize);
+        if valid {
+            // Copy pixels only, never row padding. NV12/P010 have height Y
+            // rows followed by height/2 UV rows, with the same RowPitch.
+            for (row, dest) in bytes.chunks_exact_mut(row_bytes).enumerate() {
+                unsafe {
+                    std::ptr::copy_nonoverlapping(
+                        mapped.pData.cast::<u8>().add(row * pitch),
+                        dest.as_mut_ptr(),
+                        row_bytes,
+                    )
+                };
+            }
+        }
+        unsafe { self.context.Unmap(staging, 0) };
+        if !valid {
+            bail!("D3D11 YUV readback returned a null pointer or invalid row pitch");
+        }
+        Ok(bytes)
+    }
+
+    fn idle(&self) -> Result<()> {
+        self.owner.check()?;
+        unsafe { self.device.raw().GetDeviceRemovedReason() }
+            .context("D3D11 conversion device lost")?;
+        if self.pending.is_some() {
+            bail!("D3D11 converter is unusable after an unfinished GPU operation");
+        }
+        Ok(())
+    }
+
+    fn texture_desc(
+        &self,
+        texture: &ID3D11Texture2D,
+        format: DXGI_FORMAT,
+        output: bool,
+    ) -> Result<D3D11_TEXTURE2D_DESC> {
+        let owner: ID3D11Device5 = unsafe { texture.GetDevice() }?.cast()?;
+        let mut desc = D3D11_TEXTURE2D_DESC::default();
+        unsafe { texture.GetDesc(&mut desc) };
+        if owner != *self.device.raw()
+            || desc.Width != self.width
+            || desc.Height != self.height
+            || desc.Format != format
+            || desc.MipLevels != 1
+            || desc.ArraySize != 1
+            || desc.SampleDesc.Count != 1
+            || desc.SampleDesc.Quality != 0
+            || desc.Usage != D3D11_USAGE_DEFAULT
+            || desc.CPUAccessFlags != 0
+            || (output
+                && (desc.MiscFlags != 0 || desc.BindFlags & D3D11_BIND_RENDER_TARGET.0 as u32 == 0))
+        {
+            bail!(
+                "conversion texture must be same-device {}x{} {format:?}, single mip/slice/sample and GPU-only (outputs must be private render targets)",
+                self.width,
+                self.height
+            );
+        }
+        Ok(desc)
+    }
+
+    fn retain(
+        &mut self,
+        frame: Option<Frame>,
+        source: &ID3D11Texture2D,
+        target: &ID3D11Texture2D,
+    ) -> Result<()> {
+        self.value = self
+            .value
+            .checked_add(1)
+            .filter(|value| *value != u64::MAX)
+            .context("D3D11 conversion fence exhausted")?;
+        self.pending = Some(Pending {
+            _frame: frame,
+            _source: source.clone(),
+            _target: target.clone(),
+        });
+        Ok(())
+    }
+
+    fn finish(&mut self) -> Result<()> {
+        let event = self
+            .event
+            .as_ref()
+            .expect("live converter owns its event")
+            .handle();
+        unsafe {
+            self.check(
+                self.context.Signal(&self.fence, self.value),
+                "signal conversion fence",
+            )?;
+            self.context.Flush();
+            self.check(
+                self.fence.SetEventOnCompletion(self.value, event),
+                "register conversion completion",
+            )?;
+            let status = WaitForSingleObject(event, COMPLETION_TIMEOUT_MS);
+            let wait_error = (status == WAIT_FAILED).then(windows::core::Error::from_thread);
+            let completed = self.fence.GetCompletedValue();
+            // Device removal signals fences with UINT64_MAX, not success.
+            self.device
+                .raw()
+                .GetDeviceRemovedReason()
+                .context("D3D11 conversion device lost")?;
+            if completed == u64::MAX {
+                bail!("D3D11 conversion fence reports device removal");
+            }
+            match status {
+                WAIT_OBJECT_0 if completed >= self.value => {}
+                WAIT_TIMEOUT => {
+                    bail!("D3D11 conversion did not complete within {COMPLETION_TIMEOUT_MS} ms")
+                }
+                WAIT_FAILED => {
+                    return Err(wait_error.expect("captured above"))
+                        .context("wait for conversion completion");
+                }
+                _ => bail!("D3D11 conversion completion was not confirmed ({status:?})"),
+            }
+        }
+        self.pending = None;
+        Ok(())
+    }
+
+    fn check<T>(&self, result: windows::core::Result<T>, operation: &'static str) -> Result<T> {
+        if result.is_err() {
+            unsafe { self.device.raw().GetDeviceRemovedReason() }
+                .context("D3D11 conversion device lost")?;
+        }
+        result.context(operation)
+    }
+}
+
+/// Full-range RGB to limited-range Rec.709, with left-sited 4:2:0 chroma
+/// (horizontal [1,2,1]/4 and a two-row average), matching the P010 shader.
+/// Fixed-point coefficients include the 219/255 and 224/255 range scales.
+fn bgra_to_nv12(bgra: &[u8], width: usize, height: usize) -> Vec<u8> {
+    let mut nv12 = vec![0; width * height * 3 / 2];
+    let (luma, chroma) = nv12.split_at_mut(width * height);
+    for (rgb, y) in bgra.as_chunks::<4>().0.iter().zip(luma.iter_mut()) {
+        let value =
+            11966 * i32::from(rgb[2]) + 40254 * i32::from(rgb[1]) + 4064 * i32::from(rgb[0]);
+        *y = (16 + ((value + 32768) >> 16)).clamp(16, 235) as u8;
+    }
+    for y in (0..height).step_by(2) {
+        for x in (0..width).step_by(2) {
+            let mut rgb = [0i32; 3];
+            for row in [y, y + 1] {
+                for (col, weight) in [(x.saturating_sub(1), 1), (x, 2), (x + 1, 1)] {
+                    let at = (row * width + col) * 4;
+                    for channel in 0..3 {
+                        rgb[channel] += i32::from(bgra[at + 2 - channel]) * weight;
+                    }
+                }
+            }
+            let [r, g, b] = rgb;
+            let cb = -6596 * r - 22189 * g + 28784 * b;
+            let cr = 28784 * r - 26145 * g - 2639 * b;
+            let at = y / 2 * width + x;
+            chroma[at] = (128 + ((cb + 262144) >> 19)).clamp(16, 240) as u8;
+            chroma[at + 1] = (128 + ((cr + 262144) >> 19)).clamp(16, 240) as u8;
+        }
+    }
+    nv12
+}
+
+impl Drop for Converter {
+    fn drop(&mut self) {
+        if let Some(pending) = self.pending.take() {
+            // Failed Signal/timeout cannot prove the GPU stopped reading the
+            // pool's frame. Like NVENC teardown, quarantine this one operation
+            // until process exit; never recycle it or close a registered event.
+            eprintln!("D3D11 conversion: unfinished GPU resources retained until process exit");
+            std::mem::forget(pending);
+            self.owner.clone().quarantine();
+            std::mem::forget(self.event.take());
+            std::mem::forget(self.fence.clone());
+            std::mem::forget(self.device.clone());
+        }
+    }
+}

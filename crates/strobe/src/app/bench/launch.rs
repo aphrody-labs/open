@@ -1,0 +1,1499 @@
+//! Launch cases (SPEC §9.6): a block launches the target once, cold, and times it from process spawn
+//! (or, for a web target, from navigation) until the case's `until` selector is visible, with
+//! milestones on the way: lines in the app's output, its log files or its page marks, Node's own
+//! bootstrap timing, and when the window's pixels first and last changed.
+
+use super::*;
+use crate::target::cdp::Cdp;
+use crate::target::command;
+use crate::target::electron::{Extra, Started};
+use crate::target::isolate::epoch_ms;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{Receiver, channel};
+use std::sync::{Arc, Mutex};
+
+/// One milestone: the first line matching `pattern` from `source`: `output` (stdout and stderr),
+/// `page` (the page's `performance.mark` names) or a glob of files under the launch's home.
+pub(super) struct Milestone {
+    pub(super) name: String,
+    pub(super) pattern: regex_lite::Regex,
+    pub(super) source: String,
+}
+
+/// A line seen during a launch: when (epoch ms), its text, and where it came from.
+pub(super) type Line = (f64, String, String);
+
+/// What a launch series is timed until, as result.json records it (the series' `until`): `{ end:
+/// "visible" | "painted" | "settled" }` for the window, `{ end: "milestone", milestone }`, `{ end:
+/// "state", state }`, or `{ end: "selector", selector }`. Null for a series that is no launch.
+pub(super) fn until_of(launch: &Value) -> Value {
+    let u = &launch["until"];
+    if !launch.is_object() || u.is_null() {
+        return Value::Null;
+    }
+    // A milestone ends the launch before any window condition does (`native::launch_once`).
+    if let Some(m) = u["milestone"].as_str() {
+        return json!({ "end": "milestone", "milestone": m });
+    }
+    // A terminal program's own state on its event stream (`tty()`, §13.9).
+    if let Some(st) = u["state"].as_str() {
+        return json!({ "end": "state", "state": st });
+    }
+    // An image or pixels the window shows (`driver::pixels`), by the name the bench file gave the image.
+    if u.get("image").is_some() || u.get("pixels").is_some() {
+        return json!({ "end": "pixels", "image": u.get("as").or_else(|| u["pixels"].get("as")) });
+    }
+    match u["window"].as_str() {
+        Some(w) => json!({ "end": w }),
+        None => json!({ "end": "selector", "selector": u }),
+    }
+}
+
+pub(super) fn block(ctx: &mut Ctx, s: &Series, v: &Variant, pair: usize, x: &Exec) -> Result<Block> {
+    let key = format!("{}\n{}", s.label(), v.role);
+    // The first launch of a build pays for its files being read from disk and scanned: one launch per
+    // variant and series is discarded before any is measured. A warm profile fills its home in it.
+    if !x.untimed && ctx.launched.insert(key.clone()) {
+        progress(format!("  {} warm-up launch (discarded)", v.role));
+        once(ctx, s, v, pair, &key, false, false)?;
+    }
+    once(ctx, s, v, pair, &key, false, x.measures_time())
+}
+
+/// An attribution launch: never timed. The main process starts paused under `--inspect-brk` with its
+/// CPU profiler on (app and exe targets), and every page starts paused until its own profiler runs,
+/// so both profiles cover the launch from the first statement.
+pub(super) fn attribution(ctx: &mut Ctx, s: &Series, v: &Variant) -> Result<Block> {
+    // Its recording keeps the launch's actions (a `before` hook's).
+    ctx.runner.collect_actions(true);
+    if is_native(&ctx.describe["targets"][&s.target]) {
+        return super::native::launch_once(ctx, s, v, usize::MAX, true, false);
+    }
+    let key = format!("{}\n{}", s.label(), v.role);
+    once(ctx, s, v, usize::MAX, &key, true, false)
+}
+
+fn once(ctx: &mut Ctx, s: &Series, v: &Variant, pair: usize, key: &str, profile: bool, measured: bool) -> Result<Block> {
+    let spec = s.launch.clone();
+    let target = ctx.describe["targets"][&s.target].clone();
+    let kind = target["kind"].as_str().unwrap_or("").to_string();
+    let web = kind == "web" || kind == "url";
+    let milestones = milestones(&spec)?;
+    let t = Duration::from_secs(120);
+    let mut steps: Vec<(String, f64)> = Vec::new();
+    let mut lapped = Instant::now();
+    let mut lap = |name: &str, steps: &mut Vec<(String, f64)>| {
+        steps.push((name.to_string(), lapped.elapsed().as_secs_f64() * 1e3));
+        lapped = Instant::now();
+    };
+    // `until: { window }`: the launch ends on its window's pixels, as a native app's can (the same
+    // samples on both sides of an implementation comparison), not on an element in the page.
+    let window_until = super::native::window_until(s, &spec["until"])?;
+    if web && window_until.is_some() {
+        return Err(Error::usage(format!("{}: a web target's launch is timed in the page, which has no window of its own: time it to a selector", s.case)));
+    }
+    // An app's home is ready before the hook (folders, seed, profile files, a `{port}` a warm home
+    // keeps), and the hook gets the environment and executable the app launches with, so it can start
+    // what the app expects to find (a background service) the way the app would.
+    let app = if matches!(kind.as_str(), "app" | "exe" | "webview") { Some(variant_app(v, &target, &ctx.config)?) } else { None };
+    // An app with `window: false` (a tray app), on the target or the profile this side runs: nothing to
+    // wait for on screen, fit or film, as for a windowless native app (`native::launch_once`). Refused
+    // for this series alone, so the file's other targets and cases still run, and before the GPU cache's
+    // preparation, which a later series' launch of this side would take as its first.
+    let windowless = !web && app_windowless(&target, app.as_ref());
+    if windowless {
+        windowless_refusal(s, window_until.is_some(), false)?;
+    }
+    let app = match app {
+        Some(a) => Some(with_gpu_cache(ctx, s, v, &target, a)?),
+        None => None,
+    };
+    if matches!(window_until, Some(super::native::Until::Painted | super::native::Until::Settled)) {
+        if spec["screen"] == false {
+            return Err(Error::usage(format!("{}: launch.until.window painted or settled reads the window's pixels; drop screen: false", s.case)));
+        }
+        #[cfg(target_os = "macos")]
+        if !host::macos::screen_capture_allowed() {
+            return Err(Error::refused(
+                "NoPresentSource",
+                format!("{}: launch.until.window reads the window's pixels: {}", s.case, no_pixels(true)),
+                "grant Screen Recording, or time the launch to a selector",
+            ));
+        }
+    }
+    // An app on the OS's webview has no Node main process to profile or inspect.
+    let electron = app.as_ref().is_some_and(|a| a.kind == isolate::AppKind::Electron);
+    if spec["inspect"] == true && !electron {
+        return Err(Error::usage(format!("{}: launch.inspect reads Node's timing from an Electron app's main process", s.case)));
+    }
+    if let Some(a) = app.as_ref().filter(|_| !profile) {
+        dev_build(&a.exe)?;
+    }
+    // `fresh`: a new home per launch. `warm`: one home per series and variant, kept across its launches,
+    // so caches and state from the discarded first launch are there, as for a person's second launch.
+    let warm = match spec["profile"].as_str().unwrap_or("fresh") {
+        "fresh" => false,
+        "warm" if web => return Err(warm_page(&s.case)),
+        "warm" => true,
+        other => return Err(Error::usage(format!("{}: launch.profile is fresh or warm, not {other}", s.case))),
+    };
+    let home = (!web).then(|| if warm { ctx.homes.entry(key.to_string()).or_insert_with(isolate::new_home).clone() } else { isolate::new_home() });
+    if let Some(h) = &home {
+        // Claimed at once: its owner file before any seed or command (`isolate::claim`).
+        isolate::claim(h)?;
+    }
+    let seed = target["home"].as_str().map(|h| {
+        let h = s.params.iter().fold(h.to_string(), |h, (k, val)| h.replace(&format!("{{{k}}}"), &value_text(val)));
+        Path::new(ctx.describe["file"].as_str().unwrap_or(".")).parent().unwrap_or(Path::new(".")).join(h)
+    });
+    let prepared = match &app {
+        Some(a) => Some(isolate::prepare_home(a, seed.as_deref(), home.clone())?),
+        None => None,
+    };
+    let env = app.as_ref().zip(prepared.as_ref()).map(|(a, h)| h.environment(a));
+    let root = v.root.as_deref().map(host::paths::plain);
+    let exe = app.as_ref().map(|a| host::paths::plain(&a.exe));
+    // A page's `prepare` mocks its API under the URL strobe opens (`ctx.url`), as in a run case.
+    let url = if web { variant_url(v, &target)? } else { String::new() };
+    let engine = engine_of(&target);
+    // Firefox profiles a page from strobe's run marks in it (`probe::gecko`), which no document carries from
+    // the navigation's start (`no_profiler` keeps a bench from asking).
+    if web && profile && engine != WebEngine::Chromium {
+        return Err(Refusal::new(ValidatorId::EngineUnsupported, format!("a {engine} page's launch has no attribution block in strobe")).fix("attribute the launch in Chromium").into());
+    }
+    ctx.runner.call(
+        "block",
+        json!({ "case": s.case, "params": s.params, "target": s.target, "variant": v.role, "url": url, "root": root, "home": home.as_deref().map(host::paths::plain), "env": env, "exe": exe, "engine": engine }),
+        t,
+        &no_page,
+    )?;
+    if spec["before"] == true {
+        ctx.runner
+            .call("before", json!({ "case": s.case }), Duration::from_secs(900), &no_page)
+            .map_err(|e| crate::runner::incomplete(&format!("{} before", s.case), "before", e, "", "fix the launch's before hook"))?;
+    }
+    lap("before", &mut steps);
+    let mut window = ctx.window.clone();
+    if let Some(vp) = target.get("viewport").filter(|v| v.is_object()) {
+        window.width = vp["width"].as_u64().unwrap_or(1400) as u32;
+        window.height = vp["height"].as_u64().unwrap_or(900) as u32;
+    }
+    // A page that emulates a phone or a touch screen launches as one (SPEC 13.1), as a run case's does.
+    let emulation = if web { emulation_of(&target, &s.target)? } else { chromium::Emulation::default() };
+    let reduce = Motion::of(&target, &s.target)?;
+    phone_window(&mut window, &target, &emulation, headless_of(ctx, s));
+    // A windowless app's hidden window is no one's size: none is recorded or held to the other side's.
+    if !windowless {
+        ctx.used = Some(window.clone());
+    }
+    // An attribution launch reads no pixels, unless they are what ends it.
+    let screen = !web && !windowless && spec["screen"] != false && (!profile || window_until.is_some());
+    let inspect_port = if spec["inspect"] == true && !profile { Some(free_port()?) } else { None };
+    let mut guard = None;
+    // The time stamp counter's rate, from two readings around the launch: cycles to ms.
+    let clock = (host::tsc(), Instant::now());
+    let (launched, mut load) = super::LaunchLoad::observe(measured && !web, || -> Result<(WebBrowser, Started)> {
+        Ok(match kind.as_str() {
+            "app" | "exe" | "webview" => {
+                let app = app.as_ref().ok_or_else(|| Error::msg("internal: an app target without its app"))?;
+                let extra = Extra {
+                    args: inspect_port.map(|p| vec![format!("--inspect={p}")]).unwrap_or_default(),
+                    output: true,
+                    home: home.clone(),
+                    prepared: prepared.clone(),
+                    profile_main: if profile && electron { Some(free_port()?) } else { None },
+                };
+                let (b, g, st) = electron::launch_with(app, seed.as_deref(), &window, ctx.pin, &extra)?;
+                guard = Some(g);
+                (b.into(), st)
+            }
+            "command" => {
+                let root = v.root.clone().ok_or_else(|| Error::msg(format!("{}: a command target runs in a variant's folder (a directory or a git ref)", v.role)))?;
+                let (b, st) = command::launch(&command::Spec::from_target(&target, &root), home.as_deref().unwrap_or(Path::new(".")), !warm, &window, ctx.pin)?;
+                (b.into(), st)
+            }
+            // A fresh browser and profile per launch: no HTTP cache, storage, service worker or browser
+            // shader cache from an earlier visit.
+            _ if web => (web::launch_as(engine, &window, headless_of(ctx, s), ctx.pin, &emulation, reduce)?, Started { epoch_ms: 0.0, at_ns: 0, output: None, main: None }),
+            other => return Err(Error::usage(format!("{}: launch cases need an app, exe, command, web or url target, not {other}", s.case))),
+        })
+    });
+    let (mut browser, started) = launched?;
+    // A launched target inherits strobe's priority, or sets its own (`BackgroundPriority`).
+    ctx.target_qos = host::background_qos(Some(browser.pid()));
+    let result = (|| -> Result<Block> {
+        // Timed to the window, the pages still start paused for their profilers, with an observer that
+        // never resolves.
+        let watch = Observer::start(&browser, if window_until.is_some() { NO_OBSERVER.to_string() } else { observer(&spec["until"])? }, profile)?;
+        let stop = Arc::new(AtomicBool::new(false));
+        let (pid, profile_dir) = (browser.pid(), browser.profile());
+        let (tx, samples) = channel();
+        // An app's windows stay on top without focus (an occluded window never paints); `screen` also
+        // captures their pixels. Timed to the window, each look goes to the wait below too, with the
+        // process set's cycles, as a native launch's does. An app with `window: false` has none to keep up.
+        let sampler = (!web && !windowless).then(|| {
+            let stop = stop.clone();
+            let until = window_until.clone();
+            let load = load.clone();
+            std::thread::spawn(move || {
+                if let (Some(until), Some(home)) = (until, &profile_dir) {
+                    super::native::watch(pid, home, screen, &stop, until, load, tx)
+                } else {
+                    sample_screen(pid, profile_dir.as_deref(), screen, &stop)
+                }
+            })
+        });
+        let tails = {
+            let globs: Vec<String> = milestones.iter().filter(|m| m.source != "output" && m.source != "page").map(|m| m.source.clone()).collect();
+            let stop = stop.clone();
+            let home = home.clone();
+            home.filter(|_| !globs.is_empty()).map(|home| std::thread::spawn(move || tail(&home, &globs, &stop)))
+        };
+        // CPU of the target's processes in cycles (exact; process times move in 15.6 ms ticks), from
+        // spawn, or from navigation for a web target whose browser was already up.
+        // With what its processes that ended used since the spawn, read with it (`host::launch_ended_cpu`).
+        let cpu_now = || -> (u64, Option<u64>) {
+            let procs = browser.processes();
+            let pids: Vec<u32> = procs.iter().map(|p| p.pid).collect();
+            (procs.iter().map(|p| p.cycles).sum(), host::launch_ended_cpu(&pids, browser.profile().as_deref()))
+        };
+        let mut cpu0 = 0;
+        // A web launch's browser was up before it: each process against its own reading at the navigation
+        // (`record::timed_cpu`), and what tells a process of it ended in between.
+        let mut at0: Option<(super::super::record::Cycles, host::EndedMarks)> = None;
+        // `ctx.mock` on a page whose engine gives the runner no CDP session: through strobe (`mocks`), for
+        // the whole launch.
+        let mocks = super::mocks::Mocks::default();
+        let started_ms = if web {
+            let page = browser.page()?;
+            let headless = headless_of(ctx, s);
+            // The emulated device's touch and user agent before anything sizes or loads the page, its
+            // input checked before anything loads (on the blank page): the launch's page runs its code
+            // in the timed load. Read again once it is ready.
+            page.emulate(&emulation)?;
+            // The browser's window takes the viewport before the timed navigation, as a run case's does.
+            if target.get("viewport").is_some_and(Value::is_object) || emulation.mobile {
+                browser.fit_viewport(&page, window.width, window.height, headless)?;
+            }
+            if emulation.mobile {
+                if !headless {
+                    page.check_viewport((window.width, window.height))?;
+                }
+                page.emulate_viewport(&emulation, (window.width, window.height), window.scale)?;
+                page.check_device((window.width, window.height), window.scale, "before it loads")?;
+            }
+            let (_, blank_reduced) = validity::emulated_input(&page, &emulation)?;
+            // Reduced motion holds in the browser before the timed load, as its input devices do.
+            if reduce.reduced() {
+                motion::require(blank_reduced, motion_how(&kind, engine))?;
+            }
+            let first = if target["prepare"].as_bool() == Some(true) {
+                // `ctx.addInitScript`: in the launch's page before its own scripts, as in a run case.
+                let init = |op: &str, a: &Value| match (op, a["source"].as_str()) {
+                    ("init", Some(source)) => page.add_init_script(&format!("{source}\n")).map(|_| Value::Bool(true)),
+                    ("mock", _) if page.cdp().is_none() => mocks.add(&page, a),
+                    _ => no_page(op, a),
+                };
+                // Playwright connects over CDP: Chromium only (the runner's `playwright` throws elsewhere).
+                let (endpoint, target_id) = match (browser.cdp(), page.cdp()) {
+                    (Some(b), Some(p)) => (json!(b.ws), json!(p.target)),
+                    _ => (Value::Null, Value::Null),
+                };
+                // A prepare that throws (`ctx.playwright` under an old Bun, say) refuses its series, as a run case's does.
+                let r = ctx
+                    .runner
+                    .call("prepare", json!({ "endpoint": endpoint, "target": target_id, "engine": engine }), t, &init)
+                    .map_err(|e| crate::runner::incomplete("prepare", "prepare", e, "", "fix the target's prepare in the bench file"))?;
+                super::first_page(&variant_url(v, &target)?, r.get("url").and_then(Value::as_str))?
+            } else {
+                variant_url(v, &target)?
+            };
+            // An attribution launch's page profiler started when the page was attached, before this.
+            let procs = browser.processes();
+            let pids: Vec<u32> = procs.iter().map(|p| p.pid).collect();
+            at0 = Some((super::super::record::per_process(&procs), host::ended_marks(&pids, browser.profile().as_deref())));
+            cpu0 = procs.iter().map(|p| p.cycles).sum();
+            // From strobe's send on the host's wall clock, the clock the page's `until` time is on.
+            load = super::measured_launch(measured, || super::LaunchLoad::start(&[]));
+            let at = epoch_ms();
+            page.start_navigation(&first)?;
+            at
+        } else {
+            started.epoch_ms
+        };
+        let timeout = Duration::from_millis(spec["timeout"].as_u64().unwrap_or(120_000));
+        // `cpu1` holds what ended processes used where that is known (`ended`).
+        let (ready_at, page, cpu1, ended, load) = match &window_until {
+            Some(_) => {
+                let deadline = Instant::now() + timeout;
+                let (ready, load) = loop {
+                    if let Ok(ready) = samples.recv_timeout(Duration::from_millis(100)) {
+                        break ready;
+                    }
+                    if let Some(g) = &guard {
+                        g.check("while the app started")?;
+                    }
+                    if Instant::now() > deadline {
+                        return Err(Error::refused(
+                            "RunIncomplete",
+                            format!("{} launch: its window never got to {} in {} s", s.case, spec["until"]["window"].as_str().unwrap_or(""), timeout.as_secs()),
+                            "check that the app opens a window",
+                        ));
+                    }
+                };
+                // The app's main page through the session strobe attached at its start (where an
+                // attribution launch's profiler runs).
+                let WebBrowser::Chromium(b) = &browser else { return Err(Error::msg("internal: a window launch of a page")) };
+                let main = electron::main_page(b)?;
+                let page: Page = watch.page(&main.target).unwrap_or(main).into();
+                (ready.at, page, ready.cycles + ready.ended.unwrap_or(0), ready.ended, load)
+            }
+            None => match watch.ready(timeout) {
+                Ok((at, received, page)) => {
+                    let load = load.as_ref().map(super::LaunchLoad::stop);
+                    let (cycles, ended) = match &at0 {
+                        Some((a, e0)) => {
+                            let procs = browser.processes();
+                            let now = super::super::record::per_process(&procs);
+                            let marks = host::ended_marks(&procs.iter().map(|p| p.pid).collect::<Vec<_>>(), browser.profile().as_deref());
+                            match super::super::record::timed_cpu(&[a, &now], &[e0, &marks]) {
+                                Ok(c) => (cpu0 + c.total, Some(c.ended)),
+                                Err(_) => (cpu0 + super::super::record::cycles_used(a, &now), None),
+                            }
+                        }
+                        None => {
+                            let (c, ended) = cpu_now();
+                            (c + ended.unwrap_or(0), ended)
+                        }
+                    };
+                    // The page's time is on its own clock (`performance.timeOrigin`, which Firefox coarsens to
+                    // 1 ms): it must fall between strobe's start and when strobe heard of it, and the page's
+                    // clock must read the host's wall clock now, within a read bracketed on both sides.
+                    let clock = |what: String| Error::from(Refusal::new(ValidatorId::ClockUnsynced, format!("{} launch: {what}: the page's clock does not match the host's", s.case)));
+                    if at < started_ms - CLOCK_SLACK_MS || at > received + CLOCK_SLACK_MS {
+                        return Err(clock(format!(
+                            "the page says until showed {} from the start, which strobe heard of at {}",
+                            crate::fmt::time_signed(at - started_ms),
+                            crate::fmt::time_signed(received - started_ms)
+                        )));
+                    }
+                    let c0 = epoch_ms();
+                    let now = page.eval("performance.timeOrigin + performance.now()")?.as_f64().unwrap_or(f64::NAN);
+                    let c1 = epoch_ms();
+                    if !(now >= c0 - CLOCK_SLACK_MS && now <= c1 + CLOCK_SLACK_MS) {
+                        return Err(clock(format!("the page's clock read {} from the host's wall clock in a read that took {}", crate::fmt::time_signed(now - c0), crate::fmt::time(c1 - c0))));
+                    }
+                    (at, page, cycles, ended, load)
+                }
+                Err(e) => {
+                    let shot = watch.any_page().map(|p| snapshot(&p, &ctx.exp, "launch")).unwrap_or_default();
+                    return Err(Error::refused("RunIncomplete", format!("{} launch: {}{shot}", s.case, e.message), "the until selector never showed"));
+                }
+            },
+        };
+        // Never from process times (15.6 ms ticks): without cycles over the cycle clock, unknown, and
+        // `refusals` says why.
+        // Cycle-clock ticks a ms.
+        let per_ms = match (clock.0, host::tsc()) {
+            (Some(a), Some(b)) if b > a => Some((b - a) as f64 / (clock.1.elapsed().as_secs_f64() * 1e3)),
+            _ => None,
+        };
+        let cpu_ms = per_ms.map_or(f64::NAN, |r| cpu1.saturating_sub(cpu0) as f64 / r);
+        // A process that ended before the launch was ready (a launcher that handed over, a helper, a
+        // browser process the navigation left) took its CPU with it: the set's cycles then are short,
+        // unless what it used is known (Linux's launch cgroups, Windows' held job processes: `ended`).
+        let launch_lost = ended.is_none() && {
+            let procs = browser.processes();
+            let pids: Vec<u32> = procs.iter().map(|p| p.pid).collect();
+            let marks = host::ended_marks(&pids, browser.profile().as_deref());
+            match &at0 {
+                Some((a, e0)) => super::super::record::gone(&[a, &super::super::record::per_process(&procs)]) > 0 || marks.ended_since(e0),
+                // An app's launch counts from its spawn, where every count starts at 0.
+                None => !pids.contains(&pid) || marks.ended_since(&host::EndedMarks::default()),
+            }
+        };
+        if let (Some(c), Some(r), false, false) = (ended, per_ms, profile, launch_lost)
+            && cpu_ms.is_finite()
+        {
+            super::note_ended_launch(&mut ctx.warnings, s, c as f64 / r);
+        }
+        if let Some(l) = load {
+            l.launch((!launch_lost).then_some(cpu_ms))
+        }
+        lap("ready", &mut steps);
+        if watch.late() {
+            return Err(Error::refused(
+                "RunIncomplete",
+                format!("{} launch: the window showed its until selector before strobe could attach, so the launch has no valid end", s.case),
+                "a target strobe reaches only after its first page loads cannot be timed to a selector",
+            ));
+        }
+        let shown_page: Page = page.clone();
+        // A windowless app's window is hidden (`visibilityState` hidden is what one looks like), and
+        // must stay so: one on screen had none of a windowed app's guards (in front, uncovered).
+        if windowless {
+            windowless_shown(v.target_of(s), &browser.pids())?;
+        } else {
+            validity::window_visible(&shown_page)?;
+        }
+        // A webview app's launch is not moved or sized: the block records the window it opened.
+        if let (WebBrowser::Chromium(b), Page::Chromium(p)) = (&browser, &page)
+            && b.embedded
+            && !windowless
+        {
+            ctx.used = Some(crate::target::webview::fit(b, p, None, false)?);
+        }
+        // A timed launch of a dev build is refused, as a run block's page is (an app's executable was
+        // checked before its launch).
+        if !profile {
+            validity::dev_build(&shown_page)?;
+        }
+        let page_seen = if web { Some(validity::emulated_input(&shown_page, &emulation)?) } else { observed_input(ctx, s, &shown_page) };
+        let (input, reduced_motion) = (page_seen.map(|s| s.0), page_seen.map(|s| s.1));
+        // An app's launch is timed from its spawn, with the switch on its command line from the start:
+        // its page is read once it is ready, and a launch that did not reduce motion is refused.
+        if reduce.reduced() {
+            motion::require(reduced_motion == Some(true), motion_how(&kind, engine))?;
+        }
+        let headless = headless_of(ctx, s);
+        let seen = browser_seen(ctx, s, v, headless, !profile, &browser)?;
+        // Milestones may land after ready (a service that comes up behind the window), and the screen
+        // settles after it: lines are collected for 1 s, and up to 3 s while a milestone is missing.
+        let mut lines: Vec<Line> = Vec::new();
+        let settle = Instant::now() + Duration::from_secs(1);
+        let grace = Instant::now() + Duration::from_secs(3);
+        loop {
+            if let Some(rx) = &started.output {
+                lines.extend(rx.try_iter().map(|(at, _, l)| (at, l, "output".to_string())));
+            }
+            let now = Instant::now();
+            if now >= grace || (now >= settle && found_all(&milestones, &lines, |m| m.source == "output")) {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(30));
+        }
+        if milestones.iter().any(|m| m.source == "page") {
+            lines.extend(page_marks(&page));
+        }
+        stop.store(true, Ordering::Relaxed);
+        watch.stop();
+        if let Some(h) = tails {
+            lines.extend(joined(h));
+        }
+        let pixels = sampler.map(joined).unwrap_or_default();
+        lap("milestones", &mut steps);
+        // The page's own size in the window the app opened (a launch is never resized), which
+        // `admit_window` holds to the other side's and to a viewport the targets ask for.
+        let client = if windowless { None } else { page.eval("[innerWidth, innerHeight, devicePixelRatio]").ok().and_then(|v| Some([v[0].as_f64()?, v[1].as_f64()?, v[2].as_f64()?])) };
+        // What the result says the launch drew in: the page's own size, not the window asked for.
+        if let Some(c) = client.filter(|_| !matches!(&browser, WebBrowser::Chromium(b) if b.embedded)) {
+            ctx.used = Some(Window { width: c[0].round() as u32, height: c[1].round() as u32, scale: Some(c[2]), ..window.clone() });
+        }
+        // The launch's processes once it was ready (what its numbers summed), and whether they talk to
+        // the block's fixture by then.
+        let procs = browser.processes();
+        if let Some(f) = &ctx.fixture_running {
+            f.check(&procs.iter().map(|p| p.pid).collect::<Vec<_>>());
+        }
+        let mut values = BTreeMap::new();
+        // Within the clock's slack (checked above): never a negative duration.
+        let ready_ms = (ready_at - started_ms).max(0.0);
+        values.insert("launch.ready".to_string(), ready_ms);
+        if cpu_ms.is_finite() && !launch_lost {
+            values.insert("cpu.work".to_string(), cpu_ms);
+        }
+        for m in &milestones {
+            // A capture named `at` holding epoch ms (a mark the app wrote into its log) is the time;
+            // otherwise the time strobe read the line.
+            let first = lines
+                .iter()
+                .filter(|(_, _, src)| *src == m.source)
+                .filter_map(|(at, l, _)| m.pattern.captures(l).map(|c| c.name("at").and_then(|v| v.as_str().parse::<f64>().ok()).filter(|v| *v > 1e12).unwrap_or(*at)))
+                .min_by(f64::total_cmp);
+            match first {
+                // A page's mark is on the page's clock, checked against the host's above: one before the
+                // navigation by more than its slack is a clock that does not match, never a negative time.
+                Some(at) if m.source == "page" && at < started_ms - CLOCK_SLACK_MS => {
+                    return Err(Refusal::new(
+                        ValidatorId::ClockUnsynced,
+                        format!("{} launch: the page marked {} {} before strobe's navigation: the page's clock does not match the host's", s.case, m.name, crate::fmt::time(started_ms - at)),
+                    )
+                    .into());
+                }
+                Some(at) => {
+                    values.insert(format!("launch.{}", m.name), if m.source == "page" { (at - started_ms).max(0.0) } else { at - started_ms });
+                }
+                None if declared_metrics(s).iter().any(|x| **x == format!("launch.{}", m.name)) => {
+                    return Err(Error::refused("RunIncomplete", format!("{} launch: milestone {} never matched in {}", s.case, m.name, m.source), "check the milestone's match and where it looks"));
+                }
+                None => {}
+            }
+        }
+        if let Some((painted, settled)) = screen_times(&pixels) {
+            values.insert("launch.painted".into(), painted - started_ms);
+            values.insert("launch.settled".into(), settled - started_ms);
+        }
+        // Node's timing is context: an app that ignores `--inspect` (an Electron fuse turns it off in
+        // some release builds) still has a valid launch, without `launch.node.*`.
+        if let Some(port) = inspect_port {
+            match node_timing(port) {
+                Ok(timing) => {
+                    for (name, at) in timing {
+                        values.insert(format!("launch.node.{name}"), at - started_ms);
+                    }
+                }
+                Err(e) if !ctx.warnings.iter().any(|w| w.id == "Inspect") => ctx.warnings.push(validity::warn("Inspect", format!("{}: {}", side_of(ctx, v), e.message))),
+                Err(_) => {}
+            }
+            lap("node", &mut steps);
+        }
+        if !web && declares(s, "memory.app.") {
+            memory(&browser.processes(), &mut values);
+        }
+        let why_no_pixels = if web {
+            "a page's launch is timed in the page; window pixels are an app, exe or command target's".to_string()
+        } else if windowless {
+            WINDOWLESS_DRAWN.to_string()
+        } else {
+            no_pixels(screen)
+        };
+        let mut refused = refusals(s, &values, &why_no_pixels, web, web || windowless);
+        if launch_lost && refused.contains_key("cpu.work") {
+            refused.insert("cpu.work".into(), super::super::record::cpu_lost("cpu.work", 1, 1, if web { "the browser" } else { "the app (a launcher that handed over, a helper)" }));
+        }
+        if let (false, Some(r)) = (profile, refused.get(&s.primary)) {
+            return Err(r.clone().fix("pick a primary a launch case measures").into());
+        }
+        let recording = match (profile, page.cdp()) {
+            (true, Some(p)) => Some(save_profiles(ctx, s, v, p, &started, &values, input)?),
+            (true, None) => return Err(Error::msg("internal: an attribution launch of a page without DevTools")),
+            (false, _) => None,
+        };
+        // What the launch ended on, once its values and profiles are taken.
+        let end = shown::page(ctx, s, v, pair, "end", &shown_page);
+        shown::expect(&s.expect, &end, "when the launch was ready", true, &|sel| shown::page_shows(&shown_page, sel))?;
+        // `expect.same` once ready, outside the launch's timed span (SPEC 9.10).
+        let same = super::journey::Same::new(s, &ctx.describe["targets"])?;
+        same.read(super::journey::When::Setup, &|sel| crate::driver::text(&shown_page, sel, Duration::from_secs(2)))?;
+        Ok(Block {
+            shown: Some(shown::Shown { start: shown::Screen::default(), end }),
+            same: same.take(0..1),
+            variant: v.role.to_string(),
+            pair,
+            values,
+            run_ms: vec![ready_ms],
+            warmup: 0,
+            speed_ratio: None,
+            nodes: Vec::new(),
+            recording,
+            phases: BTreeMap::new(),
+            frames: Vec::new(),
+            intervals: Vec::new(),
+            steps: steps.clone(),
+            background: Vec::new(),
+            leak: None,
+            refused,
+            locked: false,
+            display: None,
+            screen: None,
+            reserve: None,
+            overhead: None,
+            process_set: Some(programs(&procs)),
+            fixture_connected: None,
+            client,
+            browser: Some(seen),
+            directions: BTreeMap::new(),
+            input,
+            reduced_motion,
+            ..Block::default()
+        })
+    })();
+    // The app closes first, then the bench file's teardown runs while the home still exists (it may
+    // stop a service whose registration is in there), then a fresh home goes; a warm one stays.
+    // A page's browser removes its own profile as it closes.
+    let home = match &mut browser {
+        WebBrowser::Chromium(b) => b.profile.take(),
+        WebBrowser::Firefox(_) | WebBrowser::Webkit(_) => None,
+    };
+    browser.close();
+    if let Some(h) = &home {
+        isolate::release_home(h);
+    }
+    let closed = ctx.runner.call("close", json!({}), t, &no_page);
+    // Its GPU caches go back to their store and shared seeds unlink before the home goes.
+    if let Some(h) = home.filter(|_| !warm) {
+        isolate::remove_home(&h);
+    }
+    if let Some(g) = &guard {
+        g.check("after a launch")?;
+    }
+    if let Err(e) = closed
+        && !ctx.warnings.iter().any(|w| w.id == "Teardown")
+    {
+        ctx.warnings.push(validity::warn("Teardown", format!("{} launch: {}", side_of(ctx, v), e.message)));
+    }
+    result
+}
+
+/// What a launch case measures is the launch: from the spawn until ready, its milestones, the CPU it
+/// took and, for a launched app, its memory once ready. Every other declared metric is refused with
+/// why (a run's, or one this OS cannot read), never left without a value. `pixels`: why the window's
+/// pixels were not read, when they were not. `no_window`: the target has none to read (a page, a
+/// terminal, a windowless app), so they are no metric of it (`NotForTarget`), not a source that failed.
+pub(super) fn refusals(s: &Series, values: &BTreeMap<String, f64>, pixels: &str, web: bool, no_window: bool) -> BTreeMap<String, Refusal> {
+    let mut out = BTreeMap::new();
+    for m in declared_metrics(s) {
+        // A counter only `--noworse` names is no launch's to measure, nor to refuse.
+        if values.contains_key(m) || out.contains_key(m) || (!s.case_declares(m) && m.starts_with("count.")) {
+            continue;
+        }
+        let r = super::super::outside::not_on_this_os(m).unwrap_or_else(|| match m.as_str() {
+            "launch.painted" | "launch.settled" if no_window => Refusal::new(ValidatorId::NotForTarget, format!("{m}: {pixels}")),
+            "launch.painted" | "launch.settled" => Refusal::new(ValidatorId::NoPresentSource, format!("{m} reads the window's pixels: {pixels}")),
+            _ if m.starts_with("launch.node.") => {
+                Refusal::new(ValidatorId::NotForTarget, format!("{m} is Node's own timing, read over --inspect from an app or exe target's main process (launch.inspect: true); this launch gave none"))
+            }
+            "cpu.work" => Refusal::new(ValidatorId::RunIncomplete, "cpu.work: no CPU of the app's processes could be read when it was ready"),
+            "memory.app.private" | "memory.app.host" if web => {
+                Refusal::new(ValidatorId::NotForTarget, format!("{m}: a page's launch runs in the browser strobe started before it, so its memory is not the launch's"))
+            }
+            "memory.app.private" | "memory.app.host" => Refusal::new(ValidatorId::RunIncomplete, format!("{m}: the app's processes could not be read when it was ready")),
+            _ => Refusal::new(
+                ValidatorId::NotForTarget,
+                format!("{m} is measured over a run; a launch case measures the launch from the spawn until ready (launch.*, cpu.work, memory.app.*): declare {m} on a run case"),
+            ),
+        });
+        out.insert(m.clone(), r);
+    }
+    out
+}
+
+/// `launch.profile: "warm"` on a page: its launch is a fresh browser and profile each time (a first
+/// visit), with no home kept between launches.
+pub(super) fn warm_page(case: &str) -> Error {
+    Error::usage(format!(
+        "{case}: launch.profile warm keeps an app's home between launches; a page's launch is a first visit in a fresh browser profile every time (a returning visit is a run case: page.goto after a warmup)"
+    ))
+}
+
+/// Whether the series declares a metric starting with `prefix` (its primary, a secondary or a no-worse one).
+pub(super) fn declares(s: &Series, prefix: &str) -> bool {
+    declared_metrics(s).iter().any(|m| m.starts_with(prefix))
+}
+
+/// Why a launch read none of its window's pixels.
+pub(super) fn no_pixels(asked: bool) -> String {
+    if !asked {
+        return "the case turns them off (screen: false)".into();
+    }
+    #[cfg(target_os = "macos")]
+    if !host::macos::screen_capture_allowed() {
+        return format!("macOS gives strobe a window's pixels only with Screen Recording ({}, for {})", host::macos::screen_recording_pane(), host::macos::screen_recording_grantee());
+    }
+    "no frame of the window was read while the app launched (it showed none in time, or the OS gave strobe none of its pixels: a native Wayland window)".into()
+}
+
+/// Why a windowless app (`app_windowless`) has no pixels, frames or input latency: the same words as
+/// the bench's own refusal of them (`bench.rs`).
+pub(super) const WINDOWLESS_DRAWN: &str = "the app shows no window (window: false), so nothing it draws reaches a display";
+
+/// Whether an app side shows no window: the target's own `window` when it sets one (an explicit
+/// `window: true` holds over its profile's `window: false`), else the profile this side runs (`app`:
+/// the target's, or the one an `app:<id>` variant names).
+pub(super) fn app_windowless(target: &Value, app: Option<&isolate::App>) -> bool {
+    match target["window"].as_bool() {
+        Some(window) => !window,
+        None => app.is_some_and(|a| a.windowless),
+    }
+}
+
+/// What a windowless app's launch cannot be, refused for its series before anything launches: timed to
+/// a window (`window_until`), or with a primary of its pixels. A secondary of them is refused per
+/// block (`refusals`), and the primary still measured.
+pub(super) fn windowless_refusal(s: &Series, window_until: bool, native: bool) -> Result<()> {
+    if window_until {
+        return Err(Refusal::new(ValidatorId::NotForTarget, format!("{}: the app shows no window (window: false), so its launch cannot end on one", s.case))
+            .fix(if native { "time it to a milestone" } else { "time it to a selector in its page or to a milestone" })
+            .into());
+    }
+    if matches!(s.primary.as_str(), "launch.painted" | "launch.settled") || display_metric(&s.primary) || gpu_use(&s.primary) {
+        return Err(Refusal::new(ValidatorId::NotForTarget, format!("the primary {}: {WINDOWLESS_DRAWN}", s.primary))
+            .fix("choose a primary a windowless app's launch has: launch.ready, a milestone, cpu.work or memory.app.private; or give the app a window")
+            .into());
+    }
+    Ok(())
+}
+
+/// `window: false` on a target whose processes (`pids`) put a normal window on screen anyway: none of a
+/// windowed target's guards held it (in front, uncovered, active), so its numbers may be a covered or
+/// inactive window's. A hidden window, a headless browser's and a tray icon are not on screen; a covered
+/// one is (macOS and X11 call a window under others `cloaked`; Windows only one the compositor hides).
+/// Every check of a windowless target calls this one (page and native blocks, launches).
+pub(super) fn windowless_shown(name: &str, pids: &[u32]) -> Result<()> {
+    let on_screen = |w: &host::TopWindow| w.visible && !w.iconic && (!cfg!(windows) || !w.cloaked);
+    match host::main_window(pids).filter(on_screen) {
+        Some(w) => Err(Refusal::new(ValidatorId::VariantMismatch, format!("the target {name} declares window: false, yet it showed a window on screen ({}×{} pixels)", w.client.0, w.client.1))
+            .fix("drop `window: false`, or keep the window hidden")
+            .into()),
+        None => Ok(()),
+    }
+}
+
+/// A launch's memory once ready (`memory.app.private`, and `memory.app.host` where the OS gives
+/// memory by what holds it), from its process set.
+pub(super) fn memory(procs: &[host::ProcTimes], values: &mut BTreeMap<String, f64>) {
+    let private = procs.iter().map(|p| p.private_bytes).sum::<u64>() as f64 / (1024.0 * 1024.0);
+    if private > 0.0 {
+        values.insert("memory.app.private".into(), private);
+    }
+    values.extend(probe::memory::Reading::take(procs, "when the launch was ready").values().into_iter().map(|(k, v)| (k.to_string(), v)));
+}
+
+pub(super) fn no_page(op: &str, _: &Value) -> Result<Value> {
+    match op {
+        // A launch case's hooks are never timed: nothing to leave out.
+        "untimed" => Ok(Value::Bool(false)),
+        _ => Err(Error::msg("a launch case's hooks have no page driver: a launch is timed from outside the app")),
+    }
+}
+
+pub(super) fn milestones(spec: &Value) -> Result<Vec<Milestone>> {
+    spec["milestones"]
+        .as_object()
+        .into_iter()
+        .flatten()
+        .map(|(name, d)| {
+            if ["ready", "painted", "settled"].contains(&name.as_str()) || name.starts_with("node.") {
+                return Err(Error::usage(format!("launch milestone {name}: launch.{name} is strobe's own; name it something else")));
+            }
+            let pattern = pattern(d, &format!("launch milestone {name}"))?;
+            Ok(Milestone { name: name.clone(), pattern, source: d["in"].as_str().unwrap_or("output").to_string() })
+        })
+        .collect()
+}
+
+/// A line pattern as the bench file gives it: `match` (a string, matched as is) or `regex` (a RegExp's
+/// source and flags).
+pub(super) fn pattern(d: &Value, what: &str) -> Result<regex_lite::Regex> {
+    let source = match (&d["match"], &d["regex"]) {
+        (Value::String(text), _) => regex_lite::escape(text),
+        (_, r) if r.is_object() => format!("{}{}", if r["flags"].as_str().unwrap_or("").contains('i') { "(?i)" } else { "" }, r["source"].as_str().unwrap_or("")),
+        _ => return Err(Error::usage(format!("{what}: `match` is a string or a RegExp"))),
+    };
+    regex_lite::Regex::new(&source).map_err(|e| Error::usage(format!("{what}: {e}")))
+}
+
+/// `ctx.waitForLine(match, { in, timeout, since })` in a block's hooks: each call registers a watch
+/// (`watch`) and then polls it (`poll`) until it has the first line matching it that the app wrote
+/// after the watch (`since: "now"`, the default) or since its launch (`since: "launch"`): from its
+/// output (`in: "output"`, the default; only a target with `output: true` pipes it) or from files
+/// under its home matching a glob. A poll never blocks, so the runner keeps serving the hook's other
+/// calls (a click) meanwhile. A line carries when strobe read it on the host clock (ns), the clock of
+/// phase marks and presents: output as its reader thread got it, a log file's line as the watch's own
+/// tail thread read it.
+#[derive(Default)]
+pub(super) struct Lines {
+    watches: Vec<LineWatch>,
+    /// The app's last few output lines, for a refusal when it exits.
+    last: std::collections::VecDeque<String>,
+    /// Its output since the launch (`since: "launch"`), the oldest dropped past `SINCE_LINES` lines or
+    /// `SINCE_BYTES` bytes (`dropped`): what a watch begun later still finds.
+    since: std::collections::VecDeque<(u64, String)>,
+    since_bytes: usize,
+    dropped: bool,
+}
+
+/// What `Lines` keeps of the output since the launch: an app that logs a line a millisecond for its
+/// whole startup keeps its last 2 seconds.
+const SINCE_LINES: usize = 2000;
+const SINCE_BYTES: usize = 512 * 1024;
+
+struct LineWatch {
+    pattern: regex_lite::Regex,
+    source: String,
+    /// Its lines from the launch on (`since: "launch"`), else from the watch.
+    launch: bool,
+    /// The log files under the home that matched the glob at the watch, by the length they had then.
+    before: BTreeMap<PathBuf, u64>,
+    deadline: Instant,
+    timeout: Duration,
+    tail: Option<Tail>,
+    found: Option<(u64, String)>,
+}
+
+/// A log glob's tail thread: the lines it read (host clock ns), and the flag that ends it.
+type Tail = (Receiver<(u64, String)>, Arc<AtomicBool>);
+
+impl Drop for LineWatch {
+    fn drop(&mut self) {
+        if let Some((_, stop)) = &self.tail {
+            stop.store(true, Ordering::Relaxed);
+        }
+    }
+}
+
+impl Lines {
+    /// Hands the app's new output lines to the watches waiting on output; with none waiting they are
+    /// dropped but the last few, so nothing buffers while no case asks.
+    fn pull(&mut self, rx: Option<&Receiver<isolate::OutputLine>>) {
+        let Some(rx) = rx else { return };
+        while let Ok((_, at, line)) = rx.try_recv() {
+            for w in self.watches.iter_mut().filter(|w| w.source == "output" && w.found.is_none()) {
+                if w.pattern.is_match(&line) {
+                    w.found = Some((at, line.clone()));
+                }
+            }
+            if self.last.len() == 5 {
+                self.last.pop_front();
+            }
+            self.last.push_back(line.clone());
+            self.since_bytes += line.len();
+            self.since.push_back((at, line));
+            while self.since.len() > SINCE_LINES || self.since_bytes > SINCE_BYTES {
+                let Some((_, l)) = self.since.pop_front() else { break };
+                self.since_bytes -= l.len();
+                self.dropped = true;
+            }
+        }
+    }
+
+    /// The first output line since the launch that matches, as strobe kept it (`since`).
+    fn since_launch(&self, pattern: &regex_lite::Regex) -> Option<(u64, String)> {
+        self.since.iter().find(|(_, l)| pattern.is_match(l)).cloned()
+    }
+
+    /// The app's last output lines (none unless the target pipes its output: `output: true`).
+    pub(super) fn last(&mut self, rx: Option<&Receiver<isolate::OutputLine>>) -> Vec<String> {
+        self.pull(rx);
+        self.last.iter().cloned().collect()
+    }
+
+    pub(super) fn serve(&mut self, rx: Option<&Receiver<isolate::OutputLine>>, home: &Path, a: &Value) -> Result<Value> {
+        self.pull(rx);
+        if a["step"] == "watch" {
+            let source = a["in"].as_str().unwrap_or("output").to_string();
+            if source == "output" && rx.is_none() {
+                return Err(Error::usage(
+                    "waitForLine: strobe reads this target's output only with output: true on the target (native(…, { output: true })), which pipes it (an app that buffers a pipe must flush each line); or give `in` a glob of log files under its home",
+                ));
+            }
+            let timeout = Duration::from_millis(a["timeout"].as_u64().unwrap_or(30_000));
+            let launch = match a["since"].as_str().unwrap_or("now") {
+                "now" => false,
+                "launch" => true,
+                other => return Err(Error::usage(format!("waitForLine: since is \"now\" (the default: lines written after the call) or \"launch\" (any line since the app started), not {other:?}"))),
+            };
+            let pattern = pattern(a, "waitForLine")?;
+            // Files that exist now are read from their end (since the launch: their last `SINCE_BYTES`, as
+            // the output keeps); later ones from their start.
+            let before: BTreeMap<PathBuf, u64> =
+                if source == "output" { BTreeMap::new() } else { matching(home, &source).into_iter().map(|p| (p.clone(), std::fs::metadata(&p).map_or(0, |m| m.len()))).collect() };
+            let tail = (source != "output").then(|| {
+                let offsets: BTreeMap<PathBuf, u64> = before.iter().map(|(p, len)| (p.clone(), if launch { len.saturating_sub(SINCE_BYTES as u64) } else { *len })).collect();
+                let (tx, lines) = channel();
+                let stop = Arc::new(AtomicBool::new(false));
+                let (home, glob, flag) = (home.to_path_buf(), source.clone(), stop.clone());
+                std::thread::spawn(move || tail_from(&home, &glob, offsets, &flag, &tx));
+                (lines, stop)
+            });
+            let found = if launch && source == "output" { self.since_launch(&pattern) } else { None };
+            self.watches.push(LineWatch { pattern, source, launch, before, deadline: Instant::now() + timeout, timeout, tail, found });
+            return Ok(json!(self.watches.len() - 1));
+        }
+        let id = a["id"].as_u64().unwrap_or(u64::MAX) as usize;
+        let w = self.watches.get_mut(id).ok_or_else(|| Error::msg("waitForLine: no such watch"))?;
+        if let Some((lines, _)) = &w.tail {
+            while let (None, Ok((at, line))) = (&w.found, lines.try_recv()) {
+                if w.pattern.is_match(&line) {
+                    w.found = Some((at, line));
+                }
+            }
+        }
+        if let Some((at, line)) = w.found.clone() {
+            w.tail = None;
+            return Ok(json!({ "line": line, "at": at }));
+        }
+        if Instant::now() >= w.deadline {
+            w.tail = None;
+            let what = if w.launch { "since the launch" } else { "after the call" };
+            let e = Error::timeout(format!("waitForLine: no line matching {} in {} {what} in {:.1} s", w.pattern.as_str(), w.source, w.timeout.as_secs_f64()));
+            let (launch, source, before, pattern) = (w.launch, w.source.clone(), w.before.clone(), w.pattern.clone());
+            // A line that came before the call: the wait began too late to see it.
+            let earlier = !launch && if source == "output" { self.since_launch(&pattern).is_some() } else { matched_before(&before, &pattern) };
+            return Err(if earlier {
+                e.hint("a matching line came before this call (waitForLine sees only lines written after it by default): pass { since: \"launch\" }, or start the wait before what makes the app write")
+            } else if launch && source == "output" && self.dropped {
+                e.hint(format!("strobe keeps the output's last {SINCE_LINES} lines ({} KiB) since the launch, and the app wrote more: start the wait earlier", SINCE_BYTES / 1024))
+            } else {
+                e
+            });
+        }
+        Ok(json!({ "pending": true }))
+    }
+}
+
+/// Whether a line matching `pattern` was in the log files a watch saw (their first `before` bytes,
+/// at most the last `SINCE_BYTES` of each).
+fn matched_before(before: &BTreeMap<PathBuf, u64>, pattern: &regex_lite::Regex) -> bool {
+    use std::io::{Read, Seek, SeekFrom};
+    before.iter().filter(|(_, len)| **len > 0).any(|(path, &len)| {
+        let Ok(mut f) = std::fs::File::open(path) else { return false };
+        let from = len.saturating_sub(SINCE_BYTES as u64);
+        let mut buf = Vec::new();
+        if f.seek(SeekFrom::Start(from)).is_err() || f.take(len - from).read_to_end(&mut buf).is_err() {
+            return false;
+        }
+        String::from_utf8_lossy(&buf).lines().any(|l| pattern.is_match(&isolate::strip_ansi(l.trim_end_matches('\r'))))
+    })
+}
+
+/// Lines appended to files under `home` matching `glob` after `offsets` (a file not in it: from its
+/// start), stamped on the host clock as read every 10 ms, until `stop`.
+fn tail_from(home: &Path, glob: &str, mut offsets: BTreeMap<PathBuf, u64>, stop: &AtomicBool, tx: &std::sync::mpsc::Sender<(u64, String)>) {
+    use std::io::{Read, Seek, SeekFrom};
+    let mut partial: BTreeMap<PathBuf, String> = BTreeMap::new();
+    while !stop.load(Ordering::Relaxed) {
+        for path in matching(home, glob) {
+            let at = offsets.entry(path.clone()).or_insert(0);
+            if std::fs::metadata(&path).map_or(0, |m| m.len()) <= *at {
+                continue;
+            }
+            let Ok(mut f) = std::fs::File::open(&path) else { continue };
+            let mut buf = Vec::new();
+            if f.seek(SeekFrom::Start(*at)).is_err() || f.read_to_end(&mut buf).is_err() {
+                continue;
+            }
+            let now = host::now_ns();
+            *at += buf.len() as u64;
+            let text = partial.entry(path).or_default();
+            text.push_str(&String::from_utf8_lossy(&buf));
+            while let Some(i) = text.find('\n') {
+                let line = isolate::strip_ansi(text[..i].trim_end_matches('\r'));
+                text.drain(..=i);
+                if tx.send((now, line)).is_err() {
+                    return;
+                }
+            }
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+}
+
+pub(super) fn found_all(milestones: &[Milestone], lines: &[Line], which: impl Fn(&Milestone) -> bool) -> bool {
+    milestones.iter().filter(|m| which(m)).all(|m| lines.iter().any(|(_, l, src)| *src == m.source && m.pattern.is_match(l)))
+}
+
+/// The init script of a launch timed to its window: nothing in the page ends it.
+const NO_OBSERVER: &str = "window.__strobeLaunch = window.__strobeLaunch || new Promise(() => {}); false";
+
+/// The init script that resolves `window.__strobeLaunch` with the epoch time `until` first showed, and
+/// returns whether it already shows (a late install). `until` is a selector in the one grammar pages
+/// and native apps share (`a11y::Selector`), found by the page probe (`driver::HELPER`) that `expect`,
+/// `waitFor` and `look` use, which goes in first. Only a page's top document: a frame inside it runs
+/// nothing of strobe's.
+fn observer(until: &Value) -> Result<String> {
+    if crate::driver::pixels::is_pixels(until) {
+        return Err(crate::model::Refusal::new(
+            crate::model::ValidatorId::NotForTarget,
+            "launch.until: an image or pixels on a page's launch, which is timed in its own document, where no pixels are read",
+        )
+        .fix("time the page's launch to a selector (its canvas element, a heading), or launch the app as a native target, whose window strobe reads from outside")
+        .into());
+    }
+    let q = crate::target::a11y::Selector::parse(until, crate::target::a11y::Dialect::Page).map_err(|e| Error::usage(format!("launch.until: {}", e.message)))?.page_spec();
+    Ok(format!(
+        r#"if (window === window.top) {{
+{helper}
+;(() => {{
+  if (window.__strobeLaunch) return false
+  const q = {q}
+  let done
+  window.__strobeLaunch = new Promise((resolve) => (done = resolve))
+  const already = document.documentElement != null && !!window.__strobe.find(q)
+  // The probe's wait: every shadow root's changes, and each frame while an animation or a transition
+  // runs, so an element inside a shadow root or one that fades in counts when it shows.
+  window.__strobe.waitFor(q, 2147483647, "until").then(() => done(performance.timeOrigin + performance.now()))
+  return already
+}})()
+}}"#,
+        helper = crate::driver::HELPER,
+    ))
+}
+
+/// Every page of the launch, from its first script: browser-wide auto-attach pauses each new page
+/// until the observer (and, for attribution, its CPU profiler) is in, then lets it run. A page that
+/// already ran when strobe attached gets the observer late; if `until` already shows there, the
+/// launch has no valid end (`late`).
+struct Watch {
+    cdp: Arc<Cdp>,
+    /// When `until` showed (the page's clock, epoch ms), when strobe heard of it (epoch ms), and the
+    /// page's session and target.
+    found: Receiver<(f64, f64, String, String)>,
+    stop: Arc<AtomicBool>,
+    late: Arc<AtomicBool>,
+    /// (session, target) of every page seen.
+    pages: Arc<Mutex<Vec<(String, String)>>>,
+}
+
+/// A page's observer (with the Page domain on: without it, the script missed the document an already
+/// open page navigated to, and the observer went in late) and, for attribution, its CPU profiler.
+fn arm(cdp: &Cdp, session: &str, observer: &str, profile: bool) {
+    let send = |method: &str, params: Value| cdp.send_timeout(method, params, Some(session), Duration::from_secs(10));
+    let _ = send("Page.enable", json!({}));
+    let _ = send("Page.addScriptToEvaluateOnNewDocument", json!({ "source": observer }));
+    if profile {
+        let _ = send("Profiler.enable", json!({}));
+        let _ = send("Profiler.setSamplingInterval", json!({ "interval": probe::cpu::interval_us() }));
+        let _ = send("Profiler.start", json!({}));
+    }
+}
+
+/// What the watch does with each page target it attaches: the first session to a target is the one it arms
+/// (observer and profiler), watches and later reads (`Watch::ready`, `Watch::page`); a second session to the
+/// same target is ignored. Chromium's profiler is per session: one armed and another read was every
+/// attribution launch's "Profiler.stop: No recording profiles found".
+struct Attacher {
+    cdp: Arc<Cdp>,
+    observer: String,
+    profile: bool,
+    tx: std::sync::mpsc::Sender<(f64, f64, String, String)>,
+    stop: Arc<AtomicBool>,
+    late: Arc<AtomicBool>,
+    pages: Arc<Mutex<Vec<(String, String)>>>,
+    seen: Mutex<std::collections::BTreeSet<String>>,
+}
+
+impl Attacher {
+    /// A `Target.attachedToTarget` event; the target's id when it was a page this call took.
+    fn event(&self, ev: &Value) -> Option<String> {
+        if ev["method"] != "Target.attachedToTarget" {
+            return None;
+        }
+        let p = &ev["params"];
+        let session = p["sessionId"].as_str().unwrap_or("");
+        let taken = self.page(session, &p["targetInfo"]);
+        if p["waitingForDebugger"] == true {
+            let _ = self.cdp.send_timeout("Runtime.runIfWaitingForDebugger", json!({}), Some(session), Duration::from_secs(10));
+        }
+        taken
+    }
+
+    /// A page target attached on `session`: armed and watched once per target.
+    fn page(&self, session: &str, info: &Value) -> Option<String> {
+        let target = info["targetId"].as_str().unwrap_or("").to_string();
+        if !is_page(info) || !self.seen.lock().unwrap().insert(target.clone()) {
+            return None;
+        }
+        arm(&self.cdp, session, &self.observer, self.profile);
+        self.pages.lock().unwrap().push((session.to_string(), target.clone()));
+        let (cdp, tx, stop, late, observer) = (self.cdp.clone(), self.tx.clone(), self.stop.clone(), self.late.clone(), self.observer.clone());
+        let (session, id) = (session.to_string(), target.clone());
+        std::thread::spawn(move || {
+            let eval =
+                |expr: &str, wait: bool| cdp.send_timeout("Runtime.evaluate", json!({ "expression": expr, "awaitPromise": wait, "returnByValue": true }), Some(&session), Duration::from_secs(10));
+            while !stop.load(Ordering::Relaxed) {
+                match eval("window.__strobeLaunch", true) {
+                    Ok(r) if r["result"]["value"].is_number() => {
+                        let _ = tx.send((r["result"]["value"].as_f64().unwrap_or(0.0), epoch_ms(), session, id));
+                        return;
+                    }
+                    // A document that loaded before the init script was in: the observer goes in
+                    // now. Its time is valid unless `until` already shows.
+                    Ok(r) if r["result"]["type"] == "undefined" => {
+                        if eval(&observer, false).is_ok_and(|r| r["result"]["value"] == true) {
+                            late.store(true, Ordering::Relaxed);
+                        }
+                    }
+                    // The page closed: nothing more to wait for here.
+                    Err(e) if e.message.contains("ession") && e.message.contains("not found") => return,
+                    // A document between navigations.
+                    _ => std::thread::sleep(Duration::from_millis(20)),
+                }
+            }
+        });
+        Some(target)
+    }
+}
+
+impl Watch {
+    fn start(cdp: &Arc<Cdp>, observer: String, profile: bool) -> Result<Watch> {
+        let events = cdp.events();
+        let (tx, found) = channel();
+        let stop = Arc::new(AtomicBool::new(false));
+        let late = Arc::new(AtomicBool::new(false));
+        let pages = Arc::new(Mutex::new(Vec::new()));
+        // Pages only: a frame from another site (its own target) or a worker is never held paused during the
+        // timed launch. A Chromium without target filters attaches (and resumes) everything.
+        let attach = |filter: bool| {
+            let mut p = json!({ "autoAttach": true, "waitForDebuggerOnStart": true, "flatten": true });
+            if filter {
+                p["filter"] = json!([{ "type": "page", "exclude": false }]);
+            }
+            cdp.send("Target.setAutoAttach", p, None)
+        };
+        // Auto-attach first, then the list: a page that opens between the two is paused for its observer
+        // either way, and is either in the list or arrives as an attach event later.
+        attach(true).or_else(|_| attach(false))?;
+        let running = cdp.send("Target.getTargets", json!({}), None)?;
+        let a = Arc::new(Attacher { cdp: cdp.clone(), observer, profile, tx, stop: stop.clone(), late: late.clone(), pages: pages.clone(), seen: Mutex::new(Default::default()) });
+        // Pages that already ran when strobe connected (a browser opens its first page at startup): armed
+        // here, before strobe navigates one. Auto-attach attaches them too, and Chromium sends those
+        // attach events before its answer to `setAutoAttach`, on the one connection, so they are queued
+        // now: taken without waiting (this runs inside a timed app launch). Their sessions are the ones
+        // armed, so each page has one session; a page auto-attach left out is attached here.
+        while let Ok(ev) = events.try_recv() {
+            a.event(&ev);
+        }
+        for info in running["targetInfos"].as_array().into_iter().flatten().filter(|t| is_page(t)) {
+            let id = info["targetId"].as_str().unwrap_or("");
+            if a.seen.lock().unwrap().contains(id) {
+                continue;
+            }
+            let attached = cdp.send("Target.attachToTarget", json!({ "targetId": id, "flatten": true }), None);
+            if let Some(session) = attached.ok().as_ref().and_then(|r| r["sessionId"].as_str()) {
+                a.page(session, info);
+            }
+        }
+        let watch = Watch { cdp: cdp.clone(), found, stop: stop.clone(), late, pages };
+        std::thread::spawn(move || {
+            while !stop.load(Ordering::Relaxed) {
+                if let Ok(ev) = events.recv_timeout(Duration::from_millis(100)) {
+                    a.event(&ev);
+                }
+            }
+        });
+        Ok(watch)
+    }
+
+    /// The epoch time `until` first showed and the page it showed in.
+    fn ready(&self, timeout: Duration) -> Result<(f64, f64, chromium::Page)> {
+        let (at, received, session, target) = self.found.recv_timeout(timeout).map_err(|_| Error::timeout(format!("not visible in {} s", timeout.as_secs())))?;
+        Ok((at, received, chromium::Page { cdp: self.cdp.clone(), session, target }))
+    }
+
+    /// A page by its target, through the session the watch attached.
+    fn page(&self, target: &str) -> Option<chromium::Page> {
+        self.pages.lock().unwrap().iter().find(|(_, t)| t == target).map(|(session, target)| chromium::Page { cdp: self.cdp.clone(), session: session.clone(), target: target.clone() })
+    }
+
+    fn any_page(&self) -> Option<chromium::Page> {
+        self.pages.lock().unwrap().first().map(|(session, target)| chromium::Page { cdp: self.cdp.clone(), session: session.clone(), target: target.clone() })
+    }
+
+    fn stop(&self) {
+        self.stop.store(true, Ordering::Relaxed);
+    }
+}
+
+impl Drop for Watch {
+    fn drop(&mut self) {
+        self.stop.store(true, Ordering::Relaxed);
+    }
+}
+
+/// How far (ms) a page's own time for `until` may fall outside strobe's span from its navigation to
+/// hearing of it: the page's clock is coarsened (Firefox: 1 ms, with jitter inside it).
+const CLOCK_SLACK_MS: f64 = 2.0;
+
+/// What tells a launch its end: the watch over every page over DevTools (Chromium, an app's pages), or
+/// in Firefox a preload script that answers over a BiDi channel.
+enum Observer {
+    Cdp(Watch),
+    Bidi(Preload),
+}
+
+impl Observer {
+    fn start(browser: &WebBrowser, observer: String, profile: bool) -> Result<Observer> {
+        match browser {
+            // Every page the launch opens runs as for a person (`chromium::NOT_AUTOMATED`), as a run case's does.
+            WebBrowser::Chromium(b) if b.as_person => Ok(Observer::Cdp(Watch::start(&b.cdp, format!("{};\n{observer}", crate::target::chromium::NOT_AUTOMATED), profile)?)),
+            WebBrowser::Chromium(b) => Ok(Observer::Cdp(Watch::start(&b.cdp, observer, profile)?)),
+            WebBrowser::Firefox(b) => Ok(Observer::Bidi(Preload::start(b, &observer)?)),
+            WebBrowser::Webkit(_) => Err(Error::msg("internal: a WebKit launch case (WebDriver Classic has no preload script)")),
+        }
+    }
+
+    /// The epoch time `until` first showed, when strobe heard of it (epoch ms), and the page it showed in.
+    fn ready(&self, timeout: Duration) -> Result<(f64, f64, Page)> {
+        match self {
+            Observer::Cdp(w) => w.ready(timeout).map(|(at, received, page)| (at, received, page.into())),
+            Observer::Bidi(p) => p.ready(timeout),
+        }
+    }
+
+    /// A page by its DevTools target (an app's main page).
+    fn page(&self, target: &str) -> Option<chromium::Page> {
+        match self {
+            Observer::Cdp(w) => w.page(target),
+            Observer::Bidi(_) => None,
+        }
+    }
+
+    fn any_page(&self) -> Option<Page> {
+        match self {
+            Observer::Cdp(w) => w.any_page().map(Page::from),
+            Observer::Bidi(p) => Some(Page::Firefox(p.page.clone())),
+        }
+    }
+
+    /// Whether `until` already showed in a page the observer went into late. A preload script is in every
+    /// document from its first script: never late.
+    fn late(&self) -> bool {
+        match self {
+            Observer::Cdp(w) => w.late.load(Ordering::Relaxed),
+            Observer::Bidi(_) => false,
+        }
+    }
+
+    fn stop(&self) {
+        match self {
+            Observer::Cdp(w) => w.stop(),
+            Observer::Bidi(p) => p.stop.store(true, Ordering::Relaxed),
+        }
+    }
+}
+
+/// Firefox's launch observer: a preload script (`script.addPreloadScript`) in every top-level browsing
+/// context and every document from its first script, before strobe navigates, which sends `until`'s time
+/// over a BiDi channel (`script.message`): nothing polls the page.
+struct Preload {
+    /// The browsing context strobe navigates.
+    page: crate::target::firefox::Page,
+    found: Receiver<(f64, f64, String)>,
+    stop: Arc<AtomicBool>,
+}
+
+impl Preload {
+    fn start(b: &crate::target::firefox::Browser, observer: &str) -> Result<Preload> {
+        let events = b.bidi.events();
+        let name = format!("strobe-launch-{}", host::now_ns());
+        b.bidi.send("session.subscribe", json!({ "events": ["script.message"] }))?;
+        // Every top-level context, those the page opens too; a frame's document runs nothing (`observer`).
+        b.bidi.send(
+            "script.addPreloadScript",
+            json!({
+                "functionDeclaration": format!("(strobeLaunched) => {{\n{observer}\n;window.__strobeLaunch?.then((t) => strobeLaunched(t))\n}}"),
+                "arguments": [{ "type": "channel", "value": { "channel": name } }],
+            }),
+        )?;
+        let (tx, found) = channel();
+        let stop = Arc::new(AtomicBool::new(false));
+        let stop2 = stop.clone();
+        std::thread::spawn(move || {
+            while !stop2.load(Ordering::Relaxed) {
+                let Ok(ev) = events.recv_timeout(Duration::from_millis(100)) else { continue };
+                let p = &ev["params"];
+                if ev["method"] != "script.message" || p["channel"] != name.as_str() {
+                    continue;
+                }
+                let received = epoch_ms();
+                if let Some(at) = crate::target::bidi::value(&p["data"]).as_f64() {
+                    let _ = tx.send((at, received, p["source"]["context"].as_str().unwrap_or("").to_string()));
+                    return;
+                }
+            }
+        });
+        Ok(Preload { page: crate::target::firefox::Page { bidi: b.bidi.clone(), context: b.context().to_string() }, found, stop })
+    }
+
+    fn ready(&self, timeout: Duration) -> Result<(f64, f64, Page)> {
+        let (at, received, context) = self.found.recv_timeout(timeout).map_err(|_| Error::timeout(format!("not visible in {} s", timeout.as_secs())))?;
+        Ok((at, received, Page::Firefox(crate::target::firefox::Page { bidi: self.page.bidi.clone(), context })))
+    }
+}
+
+impl Drop for Preload {
+    fn drop(&mut self) {
+        self.stop.store(true, Ordering::Relaxed);
+    }
+}
+
+/// A helper thread's result, or nothing if it does not finish within 5 s: a block never waits on a
+/// stuck OS call (a window that stopped answering), it goes without that thread's readings.
+pub(super) fn joined<T: Default>(h: std::thread::JoinHandle<T>) -> T {
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while !h.is_finished() && Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    if h.is_finished() { h.join().unwrap_or_default() } else { T::default() }
+}
+
+fn is_page(info: &Value) -> bool {
+    info["type"] == "page" && !info["url"].as_str().unwrap_or("").starts_with("devtools://")
+}
+
+/// Keeps the app's windows on top without focus, re-reading its process set (its tree, what carries
+/// its home's stamp, its job) every 300 ms, and with `capture` reads the window's 16×16 average
+/// pixels every 30 ms (epoch ms).
+fn sample_screen(pid: u32, home: Option<&Path>, capture: bool, stop: &AtomicBool) -> Vec<(f64, Vec<u8>)> {
+    let mut out = Vec::new();
+    let mut pids = Vec::new();
+    let mut read = Instant::now() - Duration::from_secs(1);
+    while !stop.load(Ordering::Relaxed) {
+        if read.elapsed() > Duration::from_millis(300) {
+            pids = host::process_set(pid, home).iter().map(|p| p.pid).collect();
+            host::raise_windows(&pids);
+            read = Instant::now();
+        }
+        if let Some(px) = host::window_pixels(&pids).filter(|_| capture) {
+            out.push((epoch_ms(), px));
+        }
+        std::thread::sleep(Duration::from_millis(30));
+    }
+    out
+}
+
+/// When the window's pixels first differed from its first sample, and when they last changed while
+/// sampled (epoch ms). A splash or a fade counts as painted: it is what a person sees.
+pub(super) fn screen_times(samples: &[(f64, Vec<u8>)]) -> Option<(f64, f64)> {
+    let (first_at, first) = samples.first()?;
+    // A cell (a 16th of the window each way, averaged) moving by more than 8 levels in a colour
+    // channel: a panel or a list filling in moves several cells by far more, a blinking caret moves
+    // its cell by under one level. Alpha is ignored.
+    let differs = |a: &[u8], b: &[u8]| a.chunks(4).zip(b.chunks(4)).any(|(x, y)| x.iter().zip(y).take(3).any(|(p, q)| p.abs_diff(*q) > 8));
+    let painted = samples.iter().find(|(_, px)| differs(px, first)).map_or(*first_at, |(at, _)| *at);
+    let settled = samples.windows(2).rev().find(|w| differs(&w[0].1, &w[1].1)).map_or(painted, |w| w[1].0).max(painted);
+    Some((painted, settled))
+}
+
+/// The page's `performance.mark` names with their epoch time.
+fn page_marks(page: &Page) -> Vec<Line> {
+    let expr = r#"JSON.stringify(performance.getEntriesByType("mark").map((m) => [m.name, performance.timeOrigin + m.startTime]))"#;
+    page.eval(expr)
+        .ok()
+        .and_then(|v| v.as_str().and_then(|s| serde_json::from_str::<Vec<(String, f64)>>(s).ok()))
+        .unwrap_or_default()
+        .into_iter()
+        .map(|(name, at)| (at, name, "page".to_string()))
+        .collect()
+}
+
+/// Lines appended to files matching `globs` under `home`, each with the time strobe read it, until `stop`.
+pub(super) fn tail(home: &Path, globs: &[String], stop: &AtomicBool) -> Vec<Line> {
+    use std::io::{Read, Seek, SeekFrom};
+    let mut offsets: BTreeMap<PathBuf, (u64, String)> = BTreeMap::new();
+    let mut out = Vec::new();
+    let mut listed = Instant::now() - Duration::from_secs(1);
+    let mut files: Vec<(PathBuf, String)> = Vec::new();
+    loop {
+        let stopping = stop.load(Ordering::Relaxed);
+        if listed.elapsed() > Duration::from_millis(200) || stopping {
+            files = globs.iter().flat_map(|g| matching(home, g).into_iter().map(move |p| (p, g.clone()))).collect();
+            listed = Instant::now();
+        }
+        for (path, glob) in &files {
+            let Ok(meta) = std::fs::metadata(path) else { continue };
+            let entry = offsets.entry(path.clone()).or_insert((0, String::new()));
+            if meta.len() <= entry.0 {
+                continue;
+            }
+            let Ok(mut f) = std::fs::File::open(path) else { continue };
+            let mut buf = Vec::new();
+            if f.seek(SeekFrom::Start(entry.0)).is_err() || f.read_to_end(&mut buf).is_err() {
+                continue;
+            }
+            entry.0 += buf.len() as u64;
+            entry.1.push_str(&String::from_utf8_lossy(&buf));
+            let at = epoch_ms();
+            while let Some(i) = entry.1.find('\n') {
+                let line = isolate::strip_ansi(entry.1[..i].trim_end_matches('\r'));
+                entry.1.drain(..=i);
+                out.push((at, line, glob.clone()));
+            }
+        }
+        if stopping {
+            return out;
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+}
+
+/// Files under `root` whose path relative to it matches `glob` (`*` within a segment, `**` across).
+pub(super) fn matching(root: &Path, glob: &str) -> Vec<PathBuf> {
+    let parts: Vec<&str> = glob.split(['/', '\\']).filter(|p| !p.is_empty()).collect();
+    let mut out = Vec::new();
+    walk(root, &parts, &mut out, 0);
+    out
+}
+
+fn walk(dir: &Path, parts: &[&str], out: &mut Vec<PathBuf>, depth: usize) {
+    let Some((first, rest)) = parts.split_first() else { return };
+    if depth > 12 {
+        return;
+    }
+    let entries: Vec<std::fs::DirEntry> = std::fs::read_dir(dir).into_iter().flatten().flatten().collect();
+    if *first == "**" {
+        walk(dir, rest, out, depth + 1);
+        for e in entries.iter().filter(|e| e.path().is_dir()) {
+            walk(&e.path(), parts, out, depth + 1);
+        }
+        return;
+    }
+    for e in entries.iter().filter(|e| super::glob(first, &e.file_name().to_string_lossy())) {
+        let p = e.path();
+        if rest.is_empty() && p.is_file() {
+            out.push(p);
+        } else if !rest.is_empty() && p.is_dir() {
+            walk(&p, rest, out, depth + 1);
+        }
+    }
+}
+
+/// Node's own bootstrap milestones in the main process, read over `--inspect` after the launch (nothing
+/// attaches while it starts): when the process was created, when Node started and when it finished
+/// bootstrapping, as epoch ms.
+fn node_timing(port: u16) -> Result<Vec<(String, f64)>> {
+    let body = chromium::http_get(&format!("127.0.0.1:{port}"), "/json/list")
+        .map_err(|_| Error::msg("the main process opened no inspector, so there is no launch.node.* (an Electron fuse, EnableNodeCliInspectArguments, may turn --inspect off in this build)"))?;
+    let list: Value = serde_json::from_str(&body)?;
+    let ws = list.as_array().and_then(|a| a.first()).and_then(|t| t["webSocketDebuggerUrl"].as_str()).ok_or_else(|| Error::msg("the main process has no inspector target"))?.to_string();
+    let cdp = Cdp::connect(&ws)?;
+    let r = cdp.send(
+        "Runtime.evaluate",
+        json!({ "expression": "JSON.stringify({ origin: performance.timeOrigin, timing: performance.nodeTiming.toJSON(), created: process.getCreationTime?.() ?? null })", "returnByValue": true }),
+        None,
+    )?;
+    let v: Value = serde_json::from_str(r["result"]["value"].as_str().unwrap_or("{}"))?;
+    let origin = v["origin"].as_f64().unwrap_or(0.0);
+    let mut out = Vec::new();
+    if let Some(c) = v["created"].as_f64() {
+        out.push(("created".to_string(), c));
+    }
+    for (name, field) in [("start", "nodeStart"), ("bootstrapped", "bootstrapComplete")] {
+        if let Some(ms) = v["timing"][field].as_f64().filter(|m| *m > 0.0) {
+            out.push((name.to_string(), origin + ms));
+        }
+    }
+    Ok(out)
+}
+
+/// The attribution launch's profiles as a recording: the page's (`cpu-0`) and the main process's
+/// (`cpu-main`), both from their first statement.
+fn save_profiles(ctx: &Ctx, s: &Series, v: &Variant, page: &chromium::Page, started: &Started, values: &BTreeMap<String, f64>, input: Option<validity::InputClass>) -> Result<String> {
+    let (id, draft) = store::new_recording()?;
+    let dir = draft.dir().to_path_buf();
+    let renderer = probe::cpu::stop(page)?;
+    store::write_json(&dir.join("cpu-0.cpuprofile"), &renderer)?;
+    let mut scripts = std::collections::BTreeSet::new();
+    probe::symbols::urls(&renderer, &mut scripts);
+    if let Some(main) = &started.main {
+        let r = main.send("Profiler.stop", json!({}), None)?;
+        store::write_json(&dir.join("cpu-main.cpuprofile"), &r["profile"])?;
+    }
+    let build = crate::target::isolate::build_for_os(&ctx.config["build"]);
+    let served = v.root.as_ref().zip(ctx.config["serve"]["dir"].as_str().or(crate::target::isolate::per_os(&build["output"]))).map(|(r, d)| r.join(d));
+    probe::symbols::store_maps(&page.clone().into(), &scripts, &dir, served.as_deref())?;
+    super::keep_actions(ctx, &dir)?;
+    store::write_json(
+        &dir.join("meta.json"),
+        &json!({
+            "id": id, "kind": "block", "experiment": ctx.exp, "seed": ctx.seed, "series": s.label(), "variant": v.role, "variant_label": v.label, "variant_git": variant_git(v),
+            "probes": "attribution", "runs": 1, "values": values, "input": input, "created": super::super::record::now_iso(), "valid": true, "env": host::env(),
+            "launch": true, "note": "a launch from the first statement: the page's profile and, for app targets, the main process's (cpu-main)",
+            // The page's sampler (SPEC §8.3), not the main process's.
+            "sampling": probe::cpu::Sampling::of(probe::cpu::interval_us() as f64, probe::cpu::gaps(&renderer)),
+        }),
+    )?;
+    draft.keep();
+    Ok(id)
+}

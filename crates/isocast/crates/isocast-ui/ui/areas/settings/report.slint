@@ -1,0 +1,177 @@
+// Help › Report a Bug… (A.6): a sheet that says what happened, shows
+// exactly what the report holds (its ISSUE.md, summary and triage block,
+// and every file with its size) before anything is written, then writes
+// the zip and offers the prefilled GitHub issue and the zip in the
+// Finder, or Send Report files the issue itself: its text becomes public,
+// the zip goes privately to the maintainers. Nothing is sent before Send
+// Report. If sending fails, Retry Send is the main action; a public issue
+// (its text only, never the zip) is the quiet one on the left.
+// src/areas/report.rs fills it.
+
+import { Theme } from "../../theme.slint";
+import { Icons } from "../../icons.slint";
+import { Ui, PlatformText } from "../../state.slint";
+import { Dialog, GroupHeading, GroupHint, ScrollArea, TextField } from "../../kit.slint";
+import { SettingsArea } from "state.slint";
+
+// A well that scrolls: `surface-inset`, 1px `line`, the compact corners.
+component Well inherits Rectangle {
+    background: Theme.surface-inset;
+    border-width: 1px;
+    border-color: Theme.line;
+    border-radius: Theme.r-compact;
+    clip: true;
+    @children
+}
+
+export component BugReportDialog inherits Dialog {
+    property <bool> saved: SettingsArea.report-archive != "";
+    property <bool> sent: SettingsArea.report-issue-url != "";
+    property <bool> failed: SettingsArea.report-send-failed && !root.sent;
+    title: "Report a Bug";
+    subtitle: root.sent ? "Sent. The issue is public on GitHub; the zip went privately to the maintainers."
+        : SettingsArea.report-copied ? "Triage block copied: paste it into the issue’s Triage field (" + PlatformText.primary + "V). The zip stays on this " + PlatformText.machine + "."
+        : root.failed ? "Not sent. The zip is saved on this " + PlatformText.machine + ", and nothing was made public."
+        : root.saved ? "Saved on this " + PlatformText.machine + ". Nothing was sent."
+        : "Made on this " + PlatformText.machine + ": you see all of it before anything is sent.";
+    icon: Icons.alert;
+    dialog-width: 640px;
+    dialog-height: 620px;
+    ok-text: root.sent ? "Open Issue" : root.failed ? "Retry Send" : root.saved ? "Open GitHub Issue" : "Send Report";
+    ok-enabled: !SettingsArea.report-busy;
+    apply-text: root.saved ? "Show in " + PlatformText.file-manager : "Save Zip Only";
+    apply-enabled: !SettingsArea.report-busy;
+    extra-text: root.failed ? "Open Public Issue…" : root.saved ? "" : "Update Preview";
+    extra-enabled: !SettingsArea.report-busy;
+    cancel-text: root.saved ? "Close" : "Cancel";
+    note: SettingsArea.report-sending ? "Sending…" : SettingsArea.report-busy ? "Collecting…" : "";
+    accepted => {
+        if root.failed {
+            SettingsArea.report-send();
+        } else if root.saved {
+            SettingsArea.report-open-issue();
+        } else {
+            SettingsArea.report-send();
+        }
+    }
+    applied => {
+        if root.saved {
+            SettingsArea.report-reveal();
+        } else {
+            SettingsArea.report-create();
+        }
+    }
+    extra => {
+        if root.failed {
+            SettingsArea.report-open-issue();
+        } else {
+            SettingsArea.report-preview();
+        }
+    }
+    cancelled => { Ui.close-dialog(); }
+
+    VerticalLayout {
+        vertical-stretch: 1;
+        padding-left: Theme.sheet-pad;
+        padding-right: Theme.sheet-pad;
+        spacing: Theme.space-2;
+
+        GroupHeading { title: "What happened"; }
+        // Made after the dialog takes focus, so the field keeps it. One
+        // line (Return previews it again; it never sends).
+        if true: TextField {
+            text: SettingsArea.report-describe;
+            placeholder: "What you did, what you expected and what happened instead";
+            label: "What happened";
+            auto-focus: true;
+            submits: false;
+            enabled: !root.saved;
+            edited(text) => { SettingsArea.report-describe = text; }
+            accepted(text) => { SettingsArea.report-preview(); }
+        }
+
+        if SettingsArea.report-error != "": Text {
+            text: SettingsArea.report-error;
+            color: Theme.danger-text;
+            font-size: Theme.fs-sm;
+            letter-spacing: Theme.tracking-sm;
+            wrap: word-wrap;
+        }
+
+        GroupHeading { title: "The issue’s text (ISSUE.md)"; }
+        Well {
+            vertical-stretch: 3;
+            min-height: 96px;
+            // Wrapped by the Rust side (wrapped text in a ScrollArea is a
+            // binding loop): one 14px line each.
+            ScrollArea {
+                content-height: SettingsArea.report-issue-lines * 14px + 2 * Theme.space-2;
+                Rectangle {
+                    height: SettingsArea.report-issue-lines * 14px + 2 * Theme.space-2;
+                    Text {
+                        x: Theme.space-2;
+                        y: Theme.space-2;
+                        text: SettingsArea.report-issue;
+                        color: Theme.text-2;
+                        font-family: Theme.font-mono;
+                        font-weight: Theme.weight-light;
+                        font-size: Theme.fs-xs;
+                        letter-spacing: Theme.tracking-mono;
+                        line-height-factor: 14 / 11;
+                        accessible-role: AccessibleRole.text;
+                        accessible-label: "The issue’s text";
+                        accessible-description: SettingsArea.report-issue-text;
+                    }
+                }
+            }
+        }
+
+        GroupHeading { title: "In the zip: " + SettingsArea.report-files-summary; }
+        Well {
+            vertical-stretch: 2;
+            min-height: 72px;
+            ScrollArea {
+                VerticalLayout {
+                    padding-left: Theme.space-2;
+                    padding-right: Theme.space-2;
+                    padding-top: Theme.space-1;
+                    padding-bottom: Theme.space-1;
+                    for f in SettingsArea.report-files: HorizontalLayout {
+                        height: 20px;
+                        spacing: Theme.space-2;
+                        accessible-role: AccessibleRole.text;
+                        accessible-label: f.name + ", " + f.size;
+                        Text {
+                            horizontal-stretch: 1;
+                            text: f.name;
+                            color: Theme.text;
+                            font-family: Theme.font-mono;
+                            font-weight: Theme.weight-light;
+                            font-size: Theme.fs-xs;
+                            letter-spacing: Theme.tracking-mono;
+                            vertical-alignment: center;
+                            overflow: elide;
+                            accessible-role: none;
+                        }
+                        Text {
+                            text: f.size;
+                            color: Theme.text-3;
+                            font-family: Theme.font-mono;
+                            font-weight: Theme.weight-light;
+                            font-size: Theme.fs-xs;
+                            letter-spacing: Theme.tracking-mono;
+                            horizontal-alignment: right;
+                            vertical-alignment: center;
+                            accessible-role: none;
+                        }
+                    }
+                }
+            }
+        }
+        GroupHint {
+            text: root.sent ? SettingsArea.report-archive
+                : root.saved ? "The zip (" + SettingsArea.report-archive + ") holds logs, settings, device names and file paths from this " + PlatformText.machine + ". It’s private: " + (root.failed ? "Retry Send shares it only with the maintainers. A public issue gets only the text above; don’t attach the zip there." : "a GitHub issue gets only the text above; don’t attach the zip there.")
+                : "Send Report makes the issue’s text above public on GitHub; the zip stays private to the maintainers. Keys, tokens and stream URLs are redacted; no video or audio.";
+        }
+    }
+}

@@ -1,0 +1,97 @@
+// Area F's dialogs, as Console sheets (Rename's shape): a name for a new,
+// duplicated or renamed scene collection or profile ("library-name", arg:
+// KIND:MODE), and Remove's confirmation ("library-remove", arg: KIND),
+// whose one main button says what it does. Put on the window by
+// app.slint.
+
+import { Theme } from "../../theme.slint";
+import { Icons } from "../../icons.slint";
+import { Ui } from "../../state.slint";
+import { Dialog, TextField } from "../../kit.slint";
+import { LibraryArea } from "state.slint";
+
+// The glyph of a scene collection (its scenes, stacked) or a profile (its
+// settings).
+global LibraryGlyph {
+    public pure function of(arg: string) -> string {
+        if arg == "profile" || arg == "profile:new" || arg == "profile:duplicate" || arg == "profile:rename" {
+            return Icons.sheet-sliders;
+        }
+        return Icons.stack;
+    }
+}
+
+component LibraryNameDialog inherits Dialog {
+    title: LibraryArea.name-title;
+    subtitle: LibraryArea.name-heading + ".";
+    icon: LibraryGlyph.of(Ui.dialog-arg);
+    dialog-width: 400px;
+    ok-enabled: LibraryArea.name != "";
+    accepted => { LibraryArea.name-accept(); }
+    cancelled => { Ui.close-dialog(); }
+
+    VerticalLayout {
+        padding-left: Theme.sheet-pad;
+        padding-right: Theme.sheet-pad;
+        // Made after the dialog takes focus, so the field keeps it.
+        if true: TextField {
+            text: LibraryArea.name;
+            label: "Name";
+            auto-focus: true;
+            edited(text) => { LibraryArea.name = text; }
+        }
+    }
+}
+
+component LibraryRemoveDialog inherits Dialog {
+    title: LibraryArea.remove-heading;
+    subtitle: LibraryArea.remove-note;
+    icon: Icons.trash;
+    dialog-width: 440px;
+    ok-text: "Remove";
+    // Paper's destructive button: Remove in red on `control`.
+    ok-danger: true;
+    accepted => { LibraryArea.remove-accept(); }
+    cancelled => { Ui.close-dialog(); }
+
+    // The rest of what it says: the sheet's header has one line.
+    VerticalLayout {
+        padding-left: Theme.sheet-pad;
+        padding-right: Theme.sheet-pad;
+        Text {
+            text: LibraryArea.remove-detail;
+            color: Theme.text-2;
+            font-size: Theme.fs-sm;
+            letter-spacing: Theme.tracking-sm;
+            line-height-factor: Theme.leading-sm;
+            wrap: word-wrap;
+        }
+    }
+}
+
+export component LibraryDialogs inherits Rectangle {
+    if Ui.dialog == "library-export-path": Dialog {
+        title: Ui.dialog-arg == "profile" ? "Export Profile" : "Export Scene Collection";
+        subtitle: replacing ? "This file exists. Replace it?" : "A desktop portal provides the native file dialog.";
+        icon: LibraryGlyph.of(Ui.dialog-arg);
+        dialog-width: 480px;
+        property <bool> replacing: LibraryArea.replace-path != "" && LibraryArea.replace-path == LibraryArea.export-path;
+        ok-text: replacing ? "Replace" : "Export";
+        ok-danger: replacing;
+        ok-enabled: LibraryArea.export-path != "";
+        accepted => { LibraryArea.export-path-accept(); }
+        cancelled => { Ui.close-dialog(); }
+        VerticalLayout {
+            padding-left: Theme.sheet-pad;
+            padding-right: Theme.sheet-pad;
+            if true: TextField {
+                label: "Save path (.toml or .json)";
+                text: LibraryArea.export-path;
+                auto-focus: true;
+                edited(text) => { LibraryArea.export-path = text; LibraryArea.replace-path = ""; }
+            }
+        }
+    }
+    if Ui.dialog == "library-name": LibraryNameDialog { }
+    if Ui.dialog == "library-remove": LibraryRemoveDialog { }
+}

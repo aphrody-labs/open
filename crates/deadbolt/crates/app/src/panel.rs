@@ -1,0 +1,359 @@
+//! The quick panel: a small window for finding an item and copying it.
+//! Type to filter, ⏎ copies the password (⇧⏎ the username), and it goes
+//! away. It's a second window with its own `App` (its own daemon connection;
+//! the process's one clipboard), drawn from the vault view's search, rows and
+//! copy.
+//! `window` holds how it opens, closes and is placed. See docs/app.md.
+
+pub mod item;
+pub mod view;
+pub mod window;
+
+use std::time::Duration;
+
+use rune::{AppSpec, Key, KeyEvent, Tx, Waker};
+
+use crate::daemon::{Daemon, Job};
+use crate::model::{App, Screen};
+
+/// The window: the card plus room for its shadow.
+pub const SIZE: (f32, f32) = (680.0, 440.0);
+/// Where the card sits in the window.
+pub const MARGIN: f32 = 20.0;
+/// How long the copy's line shows before the panel goes.
+pub const CONFIRM: f64 = 1.1;
+/// The close fade, and when the window hides after it starts.
+pub const CLOSE: f64 = 0.25;
+const HIDE_AFTER: f64 = 0.3;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Phase {
+    /// Up and taking keys.
+    Open,
+    /// A copy landed: the confirmation shows until `until`, then it closes.
+    Copied { until: Option<f64> },
+    /// The card is fading; the window hides at `until`.
+    Closing { until: Option<f64> },
+    /// Hidden until the shortcut brings it back.
+    Hidden,
+}
+
+/// The panel's part of its `App`; `App::panel` is `None` in the main window.
+pub struct Panel {
+    pub phase: Phase,
+    /// Counts summons.
+    pub opens: u32,
+}
+
+pub fn spec() -> AppSpec<App> {
+    AppSpec {
+        title: "Deadbolt",
+        size: SIZE,
+        min_size: Some((0.0, 0.0)),
+        init: || App::panel(Daemon::offline()),
+        view: view::panel,
+        scenes: crate::PANEL_SCENES,
+        fonts: rune_theme_opencode::FONTS,
+        families: rune_theme_opencode::FAMILIES,
+        setup: Some(setup),
+        poll: Some(|s, now, tx| s.poll(now, tx)),
+        on_key: Some(|s: &mut App, ev: &KeyEvent, tx: &mut Tx| s.panel_key(ev, tx)),
+    }
+}
+
+/// The panel follows the daemon through its watch stream and only asks it to
+/// start when summoned, so it never races the main window to start one.
+fn setup(s: &mut App, waker: Waker) {
+    s.daemon.set_waker(waker);
+}
+
+impl App {
+    /// An `App` for the panel window.
+    pub fn panel(daemon: Daemon) -> App {
+        let mut app = App::new(daemon);
+        app.panel = Some(Panel {
+            phase: Phase::Open,
+            opens: 0,
+        });
+        app
+    }
+
+    pub fn panel_phase(&self) -> Option<Phase> {
+        self.panel.as_ref().map(|p| p.phase)
+    }
+
+    /// The panel takes no picks: its copy's confirmation shows, or the card
+    /// is leaving or gone. Only Escape acts.
+    pub(crate) fn panel_inert(&self) -> bool {
+        self.panel_phase().is_some_and(|p| p != Phase::Open)
+    }
+
+    /// Summoned: open fresh and at rest, with no animation: check on the
+    /// daemon and fetch the list again (empty search, the first item selected).
+    pub fn summon(&mut self, tx: &mut Tx) {
+        let Some(panel) = &mut self.panel else { return };
+        panel.phase = Phase::Open;
+        panel.opens += 1;
+        self.window_focused = true;
+        // The card's own transition has no entrance, but its contents and a card
+        // revived mid-close would still animate in.
+        tx.settle();
+        // A failed copy shows until the next open; a good one keeps counting down.
+        if self.copy.as_ref().is_some_and(|c| c.error.is_some()) {
+            self.copy = None;
+        }
+        self.forget_items();
+        self.search.focused = self.screen == Screen::Vault;
+        if !self.busy_unlocking() {
+            self.passphrase.clear();
+            self.unlock_error = None;
+            self.touch_id_prompted = false;
+        }
+        self.passphrase.focused = self.screen == Screen::Locked;
+        self.daemon.send(Job::Connect);
+        if self.screen == Screen::Vault {
+            self.list();
+        } else if self.should_auto_prompt_touch_id() {
+            self.unlock_touch_id();
+        }
+    }
+
+    /// Escape, clicking away, the confirmation ending, or handing over to the
+    /// main window: the card fades, then the window hides. A part-typed passphrase goes as
+    /// the card starts leaving.
+    pub fn dismiss(&mut self, tx: &mut Tx) {
+        if self.begin_close(None) {
+            tx.wake_after(Duration::ZERO);
+        }
+    }
+
+    fn begin_close(&mut self, until: Option<f64>) -> bool {
+        let Some(panel) = &mut self.panel else {
+            return false;
+        };
+        if matches!(panel.phase, Phase::Closing { .. } | Phase::Hidden) {
+            return false;
+        }
+        panel.phase = Phase::Closing { until };
+        self.close_palette();
+        self.passphrase.clear();
+        true
+    }
+
+    /// A copy landed: show the confirmation, then close. The search lets go
+    /// of focus, so no paste or IME text reaches it meanwhile; Escape and the
+    /// shortcut still reach `panel_key`.
+    pub(crate) fn panel_copied(&mut self, tx: &mut Tx) {
+        let Some(panel) = &mut self.panel else { return };
+        if panel.phase == Phase::Open {
+            panel.phase = Phase::Copied { until: None };
+            self.close_palette();
+            self.search.focused = false;
+            tx.wake_after(Duration::ZERO);
+        }
+    }
+
+    /// The copy's write failed after all: stay open and show why, rather
+    /// than close on the confirmation, with the search back and the list
+    /// refetched for the changes dropped meanwhile.
+    pub(crate) fn panel_copy_failed(&mut self) {
+        if let Some(panel) = &mut self.panel
+            && matches!(panel.phase, Phase::Copied { .. })
+        {
+            panel.phase = Phase::Open;
+            self.search.focused = true;
+            self.refresh();
+        }
+    }
+
+    /// Moves the panel along its phases. True when anything changed.
+    ///
+    /// A phase's deadline is set here, from the frame's clock: an event can
+    /// arrive before the frame moves `self.clock` on from an idle stretch.
+    pub(crate) fn poll_panel(&mut self, now: f64, tx: &mut Tx) -> bool {
+        let Some(panel) = &mut self.panel else {
+            return false;
+        };
+        match &mut panel.phase {
+            Phase::Copied {
+                until: until @ None,
+            } => {
+                *until = Some(now + CONFIRM);
+                tx.wake_after(Duration::from_secs_f64(CONFIRM));
+                return false;
+            }
+            Phase::Closing {
+                until: until @ None,
+            } => {
+                *until = Some(now + HIDE_AFTER);
+                tx.wake_after(Duration::from_secs_f64(HIDE_AFTER));
+                return false;
+            }
+            Phase::Copied { until: Some(until) } if now >= *until - 1e-3 => {
+                self.begin_close(Some(now + HIDE_AFTER));
+                tx.wake_after(Duration::from_secs_f64(HIDE_AFTER));
+            }
+            Phase::Closing { until: Some(until) } if now >= *until - 1e-3 => self.hide_panel(tx),
+            _ => return false,
+        }
+        true
+    }
+
+    /// From the main window: bring the panel up.
+    pub fn open_panel(&self) {
+        if let (None, Some(windows)) = (&self.panel, &self.windows) {
+            windows.summon_panel();
+        }
+    }
+
+    /// Summoned (`App::summon`), then placed under the pointer and in front.
+    pub fn show_panel(&mut self, tx: &mut Tx) {
+        self.summon(tx);
+        if let Some(windows) = &self.windows {
+            windows.present_panel();
+        }
+    }
+
+    /// The global shortcut, registered on the panel's `App`: up if it's away,
+    /// away if it's up.
+    pub fn toggle_panel(&mut self, tx: &mut Tx) {
+        match self.panel_phase() {
+            Some(Phase::Open | Phase::Copied { .. }) => self.dismiss(tx),
+            Some(_) => self.show_panel(tx),
+            None => self.open_panel(),
+        }
+    }
+
+    /// ⇧⌘Space inside Deadbolt while it isn't registered globally
+    /// (`App::shortcut_fallback`): the main window brings the panel up; the
+    /// panel closes.
+    pub(crate) fn panel_shortcut(&mut self, ev: &KeyEvent, tx: &mut Tx) -> bool {
+        if !self.shortcut_fallback || !window::is_shortcut(ev) {
+            return false;
+        }
+        match self.panel {
+            Some(_) => self.dismiss(tx),
+            None => self.open_panel(),
+        }
+        true
+    }
+
+    /// The card has faded: hide the window and forget everything read and
+    /// typed, so nothing outlives the card: what's waiting is applied now, and
+    /// anything later is from an older generation and dropped. A copy keeps counting
+    /// down and is cleared on time.
+    fn hide_panel(&mut self, tx: &mut Tx) {
+        let Some(panel) = &mut self.panel else { return };
+        panel.phase = Phase::Hidden;
+        self.window_focused = false;
+        if let Some(windows) = &self.windows {
+            windows.hide_panel();
+        }
+        for done in self.daemon.drain(self.clock) {
+            self.apply(done, tx);
+        }
+        self.forget_items();
+        if !self.busy_unlocking() {
+            self.unlock_error = None;
+            self.touch_id_prompted = false;
+        }
+    }
+
+    /// The panel's window lost focus (another app or window was clicked):
+    /// it goes as Escape sends it, unless the macOS Touch ID sheet is up.
+    pub fn panel_focus(&mut self, focused: bool, tx: &mut Tx) {
+        self.window_focused = focused;
+        if !focused && !self.touch_id_unlocking {
+            self.dismiss(tx);
+        }
+    }
+
+    /// The panel's window was closed (by the system; it has no close button):
+    /// the main window's cleanup. The shortcut brings it back.
+    pub fn panel_closed(&mut self, tx: &mut Tx) {
+        self.close(tx);
+        if let Some(panel) = &mut self.panel {
+            panel.phase = Phase::Hidden;
+        }
+    }
+
+    /// The device isn't set up: onboarding lives in the main window.
+    pub fn open_main(&mut self, tx: &mut Tx) {
+        if let Some(windows) = &self.windows {
+            windows.open_main();
+        }
+        self.dismiss(tx);
+    }
+
+    /// Keys in the panel's search field: Escape closes; while the
+    /// confirmation shows, nothing else does anything.
+    pub fn panel_search_key(&mut self, ev: &KeyEvent, tx: &mut Tx) -> bool {
+        if self.panel_shortcut(ev, tx) {
+            return true;
+        }
+        // ⌘K's actions take Esc before it closes the panel.
+        if self.nav.palette.is_some() && !self.panel_inert() {
+            self.palette_key(ev, tx);
+            return true;
+        }
+        if self.panel_escape(ev, tx) {
+            return true;
+        }
+        if self.panel_inert() {
+            return true;
+        }
+        self.search_key(ev, tx)
+    }
+
+    /// Escape in one of the panel's fields closes the panel, before the field
+    /// would take it to blur.
+    pub(crate) fn panel_escape(&mut self, ev: &KeyEvent, tx: &mut Tx) -> bool {
+        if self.panel.is_none() || ev.key != Key::Escape {
+            return false;
+        }
+        self.dismiss(tx);
+        true
+    }
+
+    /// Keys no field took.
+    pub fn panel_key(&mut self, ev: &KeyEvent, tx: &mut Tx) -> bool {
+        if self.panel_shortcut(ev, tx) {
+            return true;
+        }
+        if self.screen == Screen::Vault && !self.panel_inert() {
+            if let Some(handled) = self.nav_key(ev, tx) {
+                return handled;
+            }
+            if ev.key == Key::Escape {
+                self.dismiss(tx);
+                return true;
+            }
+            if ev.is_command('l') && !ev.mods.shift && !ev.mods.alt && !ev.mods.ctrl {
+                self.lock();
+                return true;
+            }
+            return self.vault_key(ev, tx);
+        }
+        match ev.key {
+            Key::Escape => self.dismiss(tx),
+            Key::Enter if self.screen == Screen::Locked => self.submit_unlock(),
+            Key::Enter if self.screen == Screen::Onboarding => self.open_main(tx),
+            Key::Enter if matches!(self.screen, Screen::Failed(_)) => self.retry(),
+            _ => return false,
+        }
+        true
+    }
+
+    /// The main window closed: wipe it and quit, through the panel when
+    /// there is one, so the panel clears its own copy first. macOS Quit (the
+    /// menu, ⌘Q, the Dock, logout) runs this too, as the app is already
+    /// ending: the panel's queued quit never runs, and its own `on_close`
+    /// wipes it instead.
+    pub fn quit(&mut self, tx: &mut Tx) {
+        self.close(tx);
+        match &self.windows {
+            Some(windows) => windows.quit(),
+            None => tx.quit(),
+        }
+    }
+}
