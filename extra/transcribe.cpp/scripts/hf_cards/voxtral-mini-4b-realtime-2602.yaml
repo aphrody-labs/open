@@ -1,0 +1,44 @@
+# Spec for the HF README of handy-computer/Voxtral-Mini-4B-Realtime-2602-gguf.
+# Prose only; numbers and metadata come from catalog/<variant>.json. See README.md.
+
+pin_date: 2026-06-06
+
+# Validation pin for the most recent upload. Updated on each release —
+# older HF revisions carry whatever value was current at their upload time.
+validation:
+  reference: Transformers
+  commit: 483c122
+  date: 2026-06-06
+
+pipeline_tag: automatic-speech-recognition
+tags:
+  - gguf
+  - transcribe.cpp
+  - asr
+  - speech-to-text
+  - voxtral
+  - audio-llm
+  - streaming
+  - multilingual
+
+summary: |
+  Streaming audio-LLM speech-to-text. A ~970M causal audio encoder (left-pad
+  causal conv stem + 32-layer sliding-window RoPE transformer) feeds a
+  4-frame-group projector whose audio embeddings are added onto a ~3.4B
+  Ministral decoder (26 layers, GQA 32/8, NEOX RoPE) with delay-token latency
+  conditioning, emitting one text token per 80 ms audio slot (12.5 Hz). Takes a
+  16 kHz mono WAV and supports both incremental streaming (configurable
+  latency/quality via --stream-chunk-ms and --stream-voxtral-delay) and offline
+  transcription using an accuracy-first 2400 ms delay. Architecturally distinct
+  from the offline Voxtral 2507 family — own arch, streaming frontend, causal
+  encoder, additive audio fusion.
+
+wer:
+  notes: |
+    Scored with the Whisper English text normalizer, offline path at delay 6, on an
+    NVIDIA L40S. A delay-30 remeasurement is pending. Same-machine HuggingFace
+    transformers reference (VoxtralRealtimeForConditionalGeneration, BF16, greedy):
+    2.08%; the BF16 GGUF matches at 2.08%. Every shipped quant stays within bootstrap
+    noise (2.07-2.09%), so the quantization ladder is WER-neutral down to Q4_K_M. The
+    model is multilingual (13 languages, auto-detect); the published WER is English
+    only.

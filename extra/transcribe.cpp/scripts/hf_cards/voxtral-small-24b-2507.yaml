@@ -1,0 +1,38 @@
+# Spec for the HF README of handy-computer/Voxtral-Small-24B-2507-gguf.
+# Prose only; numbers and metadata come from catalog/<variant>.json. See README.md.
+
+pin_date: 2026-06-05
+
+# Validation pin for the most recent upload. Updated on each release —
+# older HF revisions carry whatever value was current at their upload time.
+validation:
+  reference: Transformers
+  commit: dac22fa
+  date: 2026-06-05
+
+pipeline_tag: automatic-speech-recognition
+tags:
+  - gguf
+  - transcribe.cpp
+  - asr
+  - speech-to-text
+  - voxtral
+  - audio-llm
+  - multilingual
+
+summary: |
+  Offline audio-LLM speech-to-text and speech translation. A Whisper-large-v3
+  bidirectional audio encoder feeds a 4-frame-group projector (375 audio tokens
+  per 30 s chunk) into a Mistral-Small-24B causal LM (40 layers, GQA 32/8, NEOX
+  RoPE, SwiGLU) via audio-token injection. Takes a 16 kHz mono WAV and produces a
+  transcript via greedy decoding. The larger sibling of Voxtral Mini 3B — same
+  encoder, projector, frontend, and tokenizer, with a scaled-up decoder.
+
+wer:
+  notes: |
+    Greedy decoding scored with the Whisper English text normalizer on an NVIDIA A100 80
+    GB. Same-machine HuggingFace transformers reference
+    (VoxtralForConditionalGeneration, BF16, greedy): 1.57%; the BF16 GGUF matches at
+    1.56%. Validation for this variant is end-to-end by WER — the family's tensor-level
+    numerical parity is established by the Voxtral Mini 3B sibling (identical
+    architecture).

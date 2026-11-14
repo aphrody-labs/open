@@ -1,0 +1,157 @@
+# Moonshine
+
+Useful Sensors' [Moonshine](https://github.com/usefulsensors/moonshine)
+family ported to transcribe.cpp. An encoder-decoder transformer that
+consumes raw 16 kHz PCM directly via a three-layer Conv1d stem — no
+STFT, no mel filterbank — and emits transcript-only output (no language
+tokens, no `<|translate|>`, no timestamps). The base English variants
+(`moonshine-tiny`, `moonshine-base`) ship alongside 12 language-specific
+fine-tunes published by Useful Sensors (vi / uk / zh / ko / ar / ja at
+both sizes); each fine-tune is single-language, same architecture, same
+runtime contract.
+
+For the architecture deep-dive, validation contract, and porting notes,
+see the family doc at
+[`docs/porting/families/moonshine.md`](../porting/families/moonshine.md).
+
+## Choosing a variant
+
+- **Smallest footprint, near-realtime CPU.** `moonshine-tiny` decodes
+  well above realtime on commodity hardware. WER is on par with
+  `whisper-tiny.en` while running on raw audio (no mel frontend in the
+  load path).
+- **Higher accuracy, still small.** `moonshine-base` lands inside
+  `whisper-small.en` accuracy territory for English audio.
+- **Streaming workloads.** Moonshine is **not** streaming-first — the
+  encoder is global, the decoder runs on the whole utterance. If you
+  need chunked / real-time decoding, see
+  [`moonshine-streaming`](moonshine-streaming.md), which is a separate
+  port from the same publisher.
+- **Non-English audio.** Useful Sensors publishes per-language fine-tunes
+  for Vietnamese, Ukrainian, Mandarin, Korean, Arabic, and Japanese at
+  both tiny and base sizes. Each is single-language (no auto-detect, no
+  translation), same architecture as the corresponding English variant.
+  See the **All variants** table below. For models that auto-detect
+  language or translate, use Whisper or Parakeet v3. These fine-tunes
+  are **not MIT**; commercial use is restricted (see below).
+
+## All variants
+
+Numbers are for the **Q8_0** preset (the default recommended quant),
+measured by transcribe.cpp's WER pipeline with greedy decode
+(`num_beams=1`) and `max_length=194` matching the upstream
+`generation_config`. CJK rows report **CER** (character error rate) on
+FLEURS; everything else reports **WER**. The K-tier presets (Q6_K /
+Q5_K_M / Q4_K_M) are intentionally skipped for this family — at
+moonshine's hidden / intermediate / vocab sizes, none of the dimensions
+divide the k-quant super-block size of 256, so those presets fall back
+to Q8_0 storage and would be near-duplicates.
+
+### English
+
+<!-- catalog:family variants=moonshine-tiny,moonshine-base -->
+| Variant          | Params | Languages | Q8_0 size | Benchmark                    |  Q8_0 | Capabilities | Doc |
+| --- | ---: | --- | ---: | --- | ---: | --- | --- |
+| `moonshine-tiny` |    27M | en        |     35 MB | LibriSpeech test-clean (WER) | 4.60% | -            | [moonshine-tiny.md](moonshine-tiny.md) |
+| `moonshine-base` |    62M | en        |     77 MB | LibriSpeech test-clean (WER) | 3.26% | -            | [moonshine-base.md](moonshine-base.md) |
+<!-- /catalog -->
+
+### Language-specific (Useful Sensors fine-tunes)
+
+Per-language fine-tunes of the same architecture. Unlike the English
+variants (MIT), these are licensed under the
+[Moonshine AI Community License](https://github.com/moonshine-ai/moonshine/blob/main/LICENSE),
+and the GGUFs inherit it: free for research and non-commercial use;
+commercial use requires registering with Moonshine AI and is limited to
+organizations under US$1M annual revenue. Each repo ships the agreement
+and the required `NOTICE`. Powered by Moonshine AI.
+
+Acceptance was measured
+against the **Transformers F32 reference on the same FLEURS test split**
+because Useful Sensors does not publish per-language WER/CER for these
+variants. See each repo's `README.md` on Hugging Face for the full
+F32 / F16 / Q8_0 table and the reference baseline.
+
+<!-- catalog:family variants=moonshine-tiny-vi,moonshine-tiny-uk,moonshine-tiny-zh,moonshine-tiny-ko,moonshine-tiny-ar,moonshine-tiny-ja,moonshine-base-vi,moonshine-base-uk,moonshine-base-zh,moonshine-base-ko,moonshine-base-ar,moonshine-base-ja -->
+| Variant             | Params | Languages | Q8_0 size | Benchmark       |   Q8_0 | Capabilities | Doc |
+| --- | ---: | --- | ---: | --- | ---: | --- | --- |
+| `moonshine-tiny-vi` |    27M | vi        |     35 MB | FLEURS vi (WER) | 13.37% | -            | [handy-computer/moonshine-tiny-vi-gguf](https://huggingface.co/handy-computer/moonshine-tiny-vi-gguf) |
+| `moonshine-tiny-uk` |    27M | uk        |     35 MB | FLEURS uk (WER) | 18.76% | -            | [handy-computer/moonshine-tiny-uk-gguf](https://huggingface.co/handy-computer/moonshine-tiny-uk-gguf) |
+| `moonshine-tiny-zh` |    27M | zh        |     35 MB | FLEURS zh (CER) | 13.88% | -            | [handy-computer/moonshine-tiny-zh-gguf](https://huggingface.co/handy-computer/moonshine-tiny-zh-gguf) |
+| `moonshine-tiny-ko` |    27M | ko        |     35 MB | FLEURS ko (CER) |  9.00% | -            | [handy-computer/moonshine-tiny-ko-gguf](https://huggingface.co/handy-computer/moonshine-tiny-ko-gguf) |
+| `moonshine-tiny-ar` |    27M | ar        |     35 MB | FLEURS ar (WER) | 26.70% | -            | [handy-computer/moonshine-tiny-ar-gguf](https://huggingface.co/handy-computer/moonshine-tiny-ar-gguf) |
+| `moonshine-tiny-ja` |    27M | ja        |     35 MB | FLEURS ja (CER) | 13.44% | -            | [handy-computer/moonshine-tiny-ja-gguf](https://huggingface.co/handy-computer/moonshine-tiny-ja-gguf) |
+| `moonshine-base-vi` |    62M | vi        |     77 MB | FLEURS vi (WER) |  9.96% | -            | [handy-computer/moonshine-base-vi-gguf](https://huggingface.co/handy-computer/moonshine-base-vi-gguf) |
+| `moonshine-base-uk` |    62M | uk        |     77 MB | FLEURS uk (WER) | 14.38% | -            | [handy-computer/moonshine-base-uk-gguf](https://huggingface.co/handy-computer/moonshine-base-uk-gguf) |
+| `moonshine-base-zh` |    62M | zh        |     77 MB | FLEURS zh (CER) | 17.79% | -            | [handy-computer/moonshine-base-zh-gguf](https://huggingface.co/handy-computer/moonshine-base-zh-gguf) |
+| `moonshine-base-ko` |    62M | ko        |     77 MB | FLEURS ko (CER) |  8.12% | -            | [handy-computer/moonshine-base-ko-gguf](https://huggingface.co/handy-computer/moonshine-base-ko-gguf) |
+| `moonshine-base-ar` |    62M | ar        |     77 MB | FLEURS ar (WER) | 24.62% | -            | [handy-computer/moonshine-base-ar-gguf](https://huggingface.co/handy-computer/moonshine-base-ar-gguf) |
+| `moonshine-base-ja` |    62M | ja        |     77 MB | FLEURS ja (CER) | 11.11% | -            | [handy-computer/moonshine-base-ja-gguf](https://huggingface.co/handy-computer/moonshine-base-ja-gguf) |
+<!-- /catalog -->
+
+Pre-built GGUFs for every variant and quant are hosted under
+[`handy-computer` on Hugging Face](https://huggingface.co/handy-computer);
+each per-variant repo's `README.md` has direct download links and the
+full F32 / F16 / Q8_0 measurement table.
+
+## Performance
+
+The language-specific checkpoints have exactly the same architecture and tensor
+shapes as their corresponding English checkpoint; only the trained weight
+values differ. They therefore inherit the English checkpoint's per-quant speed
+measurements rather than claiming separate benchmark runs:
+
+- every `moonshine-tiny-{ar,ja,ko,uk,vi,zh}` row is measured on
+  `moonshine-tiny`;
+- every `moonshine-base-{ar,ja,ko,uk,vi,zh}` row is measured on
+  `moonshine-base`.
+
+These are the published Q8_0 averages; the per-sample latency and xRT tables are
+in [moonshine-tiny.md](moonshine-tiny.md#performance) and
+[moonshine-base.md](moonshine-base.md#performance).
+
+| Size | Apple M4 Max Metal | Apple M4 Max CPU | Ryzen 4750U Vulkan | Ryzen 4750U CPU |
+| --- | ---: | ---: | ---: | ---: |
+| tiny and tiny language fine-tunes | 127x | 153.5x | 56x | 45.5x |
+| base and base language fine-tunes | 79.5x | 80.5x | 34.5x | 22x |
+
+## Input limits
+
+Moonshine has no input-length limit, but its decoder is capped at a short output
+window — about **48 seconds** of typical speech. A clip whose transcript reaches
+that cap is returned with the hard status `TRANSCRIBE_ERR_OUTPUT_TRUNCATED`, the
+partial text retained and `transcribe_was_truncated()` set — never silently cut.
+It is built for short utterances; segment longer audio (e.g. with VAD). See the
+[input-length contract](../input-limits.md).
+
+## Quick start
+
+Pick a variant and run:
+
+```bash
+cmake -B build
+cmake --build build
+
+build/bin/transcribe-cli \
+  -m models/moonshine-base/moonshine-base-Q8_0.gguf \
+  samples/jfk.wav
+```
+
+The repo doesn't ship the GGUFs — pull them from the corresponding
+`handy-computer/<variant>-gguf` repo on Hugging Face, or convert from
+the upstream Useful Sensors checkpoint via the per-variant doc's
+reproduction section.
+
+## Capabilities
+
+All Moonshine variants support:
+
+- **Transcription** of 16 kHz mono WAV input directly from raw PCM.
+- **Single-utterance decode** — the encoder is global; there's no
+  windowing or chunking layer.
+
+What's not supported (consistent across the family): translation,
+language detection (each fine-tune is single-language; pick the variant
+that matches your audio), timestamps, real-time streaming (see
+`moonshine-streaming`), VAD, speaker diarization. See the family doc
+for the full runtime contract.

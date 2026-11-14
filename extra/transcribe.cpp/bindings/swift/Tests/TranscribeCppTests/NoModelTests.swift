@@ -1,0 +1,150 @@
+import Foundation
+import XCTest
+import CTranscribe
+
+@testable import TranscribeCpp
+
+/// No-model tier (requirements §4): import/link, version gate, ABI liveness,
+/// and backend discovery. These run always — no canary GGUFs required — and are
+/// the Swift analogs of Rust's `no_model.rs` and Python's `test_abi.py` /
+/// `test_backends.py`.
+final class NoModelTests: XCTestCase {
+    func testNativeVersionPresent() {
+        XCTAssertFalse(Transcribe.version().isEmpty)
+    }
+
+    func testVersionGateAgrees() throws {
+        // The linked library and the binding agree on the base version.
+        try Transcribe.ensureCompatible()
+        XCTAssertEqual(baseVersion(Transcribe.version()), baseVersion(Transcribe.compiledVersion))
+    }
+
+    func testAbiStructSizesAreLive() {
+        // A real layout is non-zero; a garbage/empty one would be 0.
+        for s in [AbiStruct.runParams, .capabilities, .segment, .sessionLimits, .langIdResult, .langIdCandidate,
+                  .vadInfo, .vadSessionParams, .vadParams, .vadResult, .vadSegment] {
+            XCTAssertGreaterThan(Transcribe.abiStructSize(s), 0, "\(s)")
+        }
+    }
+
+    func testHeaderHashIsPinned() {
+        // 16 hex chars (sha256/16). The value-vs-header drift is gated in CI by
+        // scripts/ci/swift_abihash_check.py; here we just assert the shape.
+        let hash = Transcribe.headerHash()
+        XCTAssertEqual(hash.count, 16)
+        XCTAssertTrue(hash.allSatisfy { $0.isHexDigit })
+    }
+
+    func testStatusStringIsActionable() {
+        XCTAssertEqual(Transcribe.statusString(0), "ok")
+        XCTAssertFalse(Transcribe.statusString(3).isEmpty)  // ERR_FILE_NOT_FOUND
+    }
+
+    func testTruncationStatusesShareOneCheck() {
+        // A handler for incomplete transcripts covers both cut-short statuses.
+        XCTAssertTrue(TranscribeError.outputTruncated(message: "", partial: nil).isTruncated)
+        XCTAssertTrue(TranscribeError.outputRepetition(message: "", partial: nil).isTruncated)
+        XCTAssertFalse(TranscribeError.aborted(message: "", partial: nil).isTruncated)
+        XCTAssertFalse(TranscribeError.inputTooLong("").isTruncated)
+        XCTAssertNil(TranscribeError.outputRepetition(message: "", partial: nil).partial)
+        XCTAssertNil(TranscribeError.inputTooLong("").partial)
+    }
+
+    // Every native status maps to its case (compared by case name); the
+    // "unknown status" check below flags a newly appended C status.
+    func testEveryStatusMapsToItsCase() {
+        let expected: [Int32: String] = [
+            1: "invalidArgument", 2: "notImplemented", 3: "modelFileNotFound",
+            4: "modelLoad", 5: "modelLoad", 6: "modelLoad", 7: "outOfMemory",
+            8: "backend",
+            9: "other",  // SAMPLE_RATE: reserved, never returned; not mapped
+            10: "unsupported", 11: "unsupported", 12: "unsupported",
+            13: "aborted", 14: "badStructSize", 15: "unsupported",
+            16: "unsupported", 17: "inputTooLong", 18: "outputTruncated",
+            19: "outputRepetition", 20: "unsupportedRole", 21: "inputTooShort",
+        ]
+        for raw in 1...21 {
+            let status = transcribe_status(rawValue: UInt32(raw))
+            XCTAssertNotEqual(Transcribe.statusString(Int32(raw)), "unknown status", "status \(raw)")
+            let name = String(describing: TranscribeError.make(status)).prefix { $0 != "(" }
+            XCTAssertEqual(String(name), expected[Int32(raw)], "status \(raw)")
+        }
+        XCTAssertEqual(Transcribe.statusString(22), "unknown status",
+                       "a new status was appended; map it in TranscribeError.make")
+    }
+
+    func testAtLeastOneDevice() {
+        XCTAssertGreaterThanOrEqual(Transcribe.devices().count, 1)
+    }
+
+    func testCpuIsAlwaysAvailable() {
+        XCTAssertTrue(Transcribe.backendAvailable(.cpu))
+        XCTAssertTrue(Transcribe.backendAvailable(.auto))
+    }
+
+    func testCpuDeviceIsRegistered() {
+        XCTAssertTrue(Transcribe.devices().contains { $0.kind == "cpu" })
+    }
+
+    // Device-selection surface (no model). `devices()` is non-empty and each
+    // enumerated device carries a usable, self-consistent descriptor.
+    func testDevicesEnumerationIsNonEmpty() {
+        XCTAssertFalse(Transcribe.devices().isEmpty)
+    }
+
+    func testEnumeratedDevicesAreSelfConsistent() {
+        let devices = Transcribe.devices()
+        for (i, dev) in devices.enumerated() {
+            // `index` is the process-local registry position used for display.
+            XCTAssertEqual(dev.index, i, "device \(i) index mismatch")
+            // A CPU-kind device must classify on the CPU axis.
+            if dev.kind == "cpu" {
+                XCTAssertEqual(dev.deviceType, .cpu, "device \(i) cpu kind/type mismatch")
+            }
+            // deviceId is either absent (e.g. Metal) or a non-empty id.
+            if let deviceId = dev.deviceId {
+                XCTAssertFalse(deviceId.isEmpty, "device \(i) has an empty deviceId")
+            }
+            XCTAssertFalse(dev.name.isEmpty, "device \(i) has an empty name")
+            XCTAssertFalse(dev.kind.isEmpty, "device \(i) has an empty kind")
+        }
+    }
+
+    // Error-mapping integration (no canary needed): the two load-failure
+    // classes map to distinct cases. Mirrors Rust's no_model error tests and
+    // Python's test_errors.py integration cases.
+    func testMissingFileIsModelFileNotFound() {
+        XCTAssertThrowsError(try Model(path: "/no/such/transcribe-model.gguf")) { error in
+            guard case TranscribeError.modelFileNotFound = error else {
+                return XCTFail("expected .modelFileNotFound, got \(error)")
+            }
+        }
+    }
+
+    // The run-mode enum is `TranscriptionTask` (renamed off `Task` so it does
+    // not shadow Swift's concurrency `Task`). Lock the public name + `task:`
+    // option here so an accidental rename is caught without a model.
+    func testTranscriptionTaskOptionRoundTrips() {
+        let translate = RunOptions(task: .translate, pnc: .off, itn: .on, diarize: .on)
+        guard case .translate = translate.task else {
+            return XCTFail("task option did not round-trip to .translate")
+        }
+        let task: TranscriptionTask = .transcribe
+        guard case .transcribe = task else { return XCTFail("TranscriptionTask.transcribe") }
+        guard case .off = translate.pnc else { return XCTFail("Pnc.off") }
+        guard case .on = translate.itn else { return XCTFail("Itn.on") }
+        guard case .on = translate.diarize else { return XCTFail("Diarize.on") }
+    }
+
+    func testJunkFileIsModelLoadError() throws {
+        let junk = FileManager.default.temporaryDirectory
+            .appendingPathComponent("junk-\(UUID().uuidString).gguf")
+        try Data("not a gguf".utf8).write(to: junk)
+        defer { try? FileManager.default.removeItem(at: junk) }
+        XCTAssertThrowsError(try Model(path: junk.path)) { error in
+            guard case TranscribeError.modelLoad = error else {
+                return XCTFail("expected .modelLoad, got \(error)")
+            }
+        }
+    }
+}

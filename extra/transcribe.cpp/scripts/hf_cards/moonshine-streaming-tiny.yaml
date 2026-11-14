@@ -1,0 +1,39 @@
+# Spec for the HF README of handy-computer/moonshine-streaming-tiny-gguf.
+# Prose only; numbers and metadata come from catalog/<variant>.json. See README.md.
+
+pin_date: 2026-05-06
+
+# Validation pin for the most recent upload. Updated on each release —
+# older HF revisions carry whatever value was current at their upload time.
+validation:
+  reference: HF Transformers v5.7.0
+  commit: 0d312ce
+  date: 2026-05-06
+
+pipeline_tag: automatic-speech-recognition
+tags:
+  - gguf
+  - transcribe.cpp
+  - asr
+  - speech-to-text
+  - moonshine
+  - moonshine-streaming
+  - useful-sensors
+  - encoder-decoder
+
+summary: |
+  English speech-to-text in both one-shot and streaming modes. An
+  encoder-decoder ASR model designed for streaming use (ergodic encoder +
+  sliding-window attention, 50 Hz time-domain frontend). Takes a 16 kHz mono WAV
+  and produces a transcript. No translation, no multilingual capability, no
+  timestamps.
+
+wer:
+  notes: |
+    Greedy decoding (`num_beams=1`, `do_sample=False`). F32 reference baseline: 4.53%.
+    The HF Transformers reference scored on the same manifest in the same regime lands
+    at 4.52% with 99.6% byte-identical hypotheses to our F32, so the port is at exact
+    parity with the reference. Useful Sensors' self-reported number on this split is
+    4.49% from the Open ASR Leaderboard table; the +0.04pp residual is a scoring /
+    text-normalization difference vs that methodology, not a numerical drift in the
+    port. Q6_K / Q5_K_M / Q4_K_M GGUFs are not currently shipped for this variant.

@@ -1,0 +1,44 @@
+# Spec for the HF README of handy-computer/SenseVoiceSmall-gguf.
+# Prose only; numbers and metadata come from catalog/<variant>.json. See README.md.
+
+pin_date: 2026-05-06
+
+# Validation pin for the most recent upload. Updated on each release —
+# older HF revisions carry whatever value was current at their upload time.
+validation:
+  reference: FunASR
+  commit: f094d28
+  date: 2026-05-06
+
+pipeline_tag: automatic-speech-recognition
+tags:
+  - gguf
+  - transcribe.cpp
+  - asr
+  - speech-to-text
+  - sensevoice
+  - san-m
+  - ctc
+  - multilingual
+
+summary: |
+  Offline multilingual speech-to-text in Chinese, Cantonese, English, Japanese,
+  and Korean. A SAN-M encoder with a single CTC head over a 25,055-token
+  SentencePiece vocabulary. Takes a 16 kHz mono WAV (capped at 30 seconds per
+  call, per upstream's direct-inference contract) and produces a transcript. Not
+  a streaming model, no translation, no built-in long-form chunking. The same CTC
+  head also emits language-ID, simple emotion labels, audio-event tags, and
+  inverse-text-normalization control tags. These tags are hidden unless
+  `--raw-tokens` is passed. ITN is on by default for readable casing,
+  punctuation, and digits; pass `--no-itn` for upstream's spoken-form output.
+
+wer:
+  notes: |
+    Greedy CTC decoding. The publisher does not report a numerical LibriSpeech WER (the
+    model card publishes scores only as PNG figures), so the gate baseline is our own
+    FunASR 1.3.1 reference run on the same manifest: 3.13% (95% CI [2.93%, 3.34%]).
+    transcribe.cpp's F32 port matches that baseline within +0.002 percentage-points.
+    LibriSpeech is an English benchmark; SenseVoice's strongest case is Mandarin, and
+    AISHELL-1 (CER) is the recommended complementary check. These table values were
+    measured with ITN off, matching the FunASR reference; `scripts/wer/run.py` pins
+    `--no-itn` so the benchmark does not inherit the runtime default.

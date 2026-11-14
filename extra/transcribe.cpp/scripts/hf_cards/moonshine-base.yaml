@@ -1,0 +1,36 @@
+# Spec for the HF README of handy-computer/moonshine-base-gguf.
+# Prose only; numbers and metadata come from catalog/<variant>.json. See README.md.
+
+pin_date: 2026-05-05
+
+validation:
+  reference: transformers
+  commit: 07a8a84
+  date: 2026-05-05
+
+pipeline_tag: automatic-speech-recognition
+tags:
+  - gguf
+  - transcribe.cpp
+  - asr
+  - speech-to-text
+  - moonshine
+  - useful-sensors
+  - encoder-decoder
+
+summary: |
+  Useful Sensors Moonshine base — an encoder-decoder transformer for English
+  speech recognition. Consumes raw 16 kHz PCM directly via a three-layer Conv1d
+  stem (no STFT, no mel) and emits transcript-only output. Wider and deeper
+  than moonshine-tiny (8 encoder / 8 decoder layers, hidden size 416, partial
+  RoPE 0.62). English-only; no translation, no language detection, no
+  timestamps.
+
+wer:
+  notes: |
+    Decoded with the transcribe.cpp defaults (greedy, num_beams=1, max_length=194,
+    matching the upstream generation_config). Upstream reports 3.27% on the same split
+    (Moonshine paper, Table 2; also Open ASR Leaderboard). Our F32 reference baseline
+    lands at 3.28%, identical to upstream within rounding and well within the ±1.00 pp
+    Stage 7 acceptance gate. Q8_0 lands at 3.26%, slightly under F32 — that delta sits
+    inside the 95% bootstrap CI and is noise, not a real improvement.

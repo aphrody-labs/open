@@ -1,0 +1,32 @@
+# Spec for the HF README of handy-computer/nemotron-speech-streaming-en-0.6b-gguf.
+# Prose only; numbers and metadata come from catalog/<variant>.json. See README.md.
+
+pin_date: 2026-05-11
+
+# Validation pin for the most recent upload. Updated on each release;
+# older HF revisions carry whatever value was current at their upload time.
+validation:
+  reference: NeMo
+  commit: 12f1076
+  date: 2026-05-11
+
+pipeline_tag: automatic-speech-recognition
+tags:
+  - gguf
+  - transcribe.cpp
+  - asr
+  - speech-to-text
+  - parakeet
+  - conformer
+  - rnnt
+  - streaming
+  - cache-aware
+
+summary: |
+  English speech-to-text with punctuation and capitalization. A cache-aware streaming FastConformer encoder with an RNN-T transducer decoder. Runs in both offline and cache-aware streaming modes. The encoder preserves the upstream att_context_size=[70, 13] (1.12s) cache-aware attention mask end-to-end.
+
+wer:
+  source: LibriSpeech test-clean, offline
+  notes: |
+    Greedy RNN-T decoding. F32 reference baseline: 2.31%. NVIDIA's self-reported number
+    on the same split at att_context_size=[70, 13] (1.12s chunk, w/o PnC) is 2.32%.

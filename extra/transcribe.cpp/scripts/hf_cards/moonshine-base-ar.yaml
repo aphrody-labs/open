@@ -1,0 +1,49 @@
+# Spec for the HF README of handy-computer/moonshine-base-ar-gguf.
+# Prose only; numbers and metadata come from catalog/<variant>.json. See README.md.
+
+pin_date: 2026-05-12
+
+validation:
+  reference: transformers
+  commit: 90bf720
+  date: 2026-05-12
+
+pipeline_tag: automatic-speech-recognition
+tags:
+  - gguf
+  - transcribe.cpp
+  - asr
+  - speech-to-text
+  - moonshine
+  - useful-sensors
+  - encoder-decoder
+
+summary: |
+  UsefulSensors' Moonshine base fine-tuned on Arabic. Same
+  encoder-decoder transformer architecture as moonshine-base (62M
+  parameters): consumes 16 kHz raw PCM via a three-layer Conv1d stem (no
+  STFT, no mel filterbank) and emits transcript-only output. Single-language
+  (ar); no translation, no language detection, no timestamps.
+
+wer:
+  notes: |
+    Decoded with the transcribe.cpp defaults (greedy, num_beams=1, max_length=192,
+    matching the upstream generation_config).
+
+    UsefulSensors does not publish a per-language WER number
+    for this variant. As a comparable baseline we ran the Transformers F32
+    reference (`MoonshineForConditionalGeneration`, fp32 on MPS) on the
+    same manifest: **24.51% WER**. The C++ F32/F16 numbers
+    above match the reference within bootstrap-CI noise; Q8_0 introduces
+    a small additional drift from F16 (typically within 0.1pp).
+
+license_notes: |
+  Free for research and non-commercial use. Commercial use requires
+  registering with Moonshine AI and is limited to organizations under
+  US$1M annual revenue; read the
+  [license](https://github.com/moonshine-ai/moonshine/blob/main/LICENSE)
+  before using it. Moonshine AI releases its English and streaming models
+  under MIT; only these legacy language fine-tunes carry this license. The
+  agreement (`LICENSE`) and the required `NOTICE` ship in this repository.
+
+  Powered by Moonshine AI.

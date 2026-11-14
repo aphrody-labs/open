@@ -1,0 +1,26 @@
+version: 2
+archives:
+  - id: archive
+    name_template: "{{ .Binary }}-{{ .Tag }}-{{ .Os }}-{{ .Arch }}"
+before:
+builds:
+  - binary: pulumi-resource-sst
+    dir: provider
+    env:
+      - CGO_ENABLED=0
+    goarch:
+      - amd64
+      - arm64
+    goos:
+      - darwin
+      - windows
+      - linux
+    ldflags:
+      # The line below MUST align with the module in current provider/go.mod
+      - -X github.com/sst/pulumi-sst/provider/Version={{.Tag }}
+    main: ./cmd/pulumi-resource-sst/
+release:
+  disable: false
+  prerelease: auto
+snapshot:
+  name_template: "{{ .Tag }}-SNAPSHOT"

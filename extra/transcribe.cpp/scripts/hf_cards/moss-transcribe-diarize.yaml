@@ -1,0 +1,48 @@
+# Spec for the HF README of handy-computer/MOSS-Transcribe-Diarize-gguf.
+# Prose only; numbers and metadata come from catalog/<variant>.json. See README.md.
+
+pin_date: 2026-07-12
+
+validation:
+  reference: MOSS author repo (OpenMOSS/MOSS-Transcribe-Diarize)
+  commit: 3f5e15c
+  date: 2026-07-12
+
+pipeline_tag: automatic-speech-recognition
+tags:
+  - gguf
+  - transcribe.cpp
+  - asr
+  - speech-to-text
+  - moss
+  - audio-llm
+  - whisper-encoder
+  - qwen3
+  - diarization
+
+summary: |
+  Offline English/Chinese speech-to-text with speaker diarization. A 0.9B
+  audio-LLM: a Whisper-Medium encoder (24 layers, d_model=1024) feeds a
+  4x temporal merge + VQAdaptor bridge into a Qwen3-0.6B decoder (28 layers)
+  via audio-token injection. The model emits `[start][Sxx]text[end]`; the
+  runtime parses those generated markers into clean text and segment rows.
+  Speaker attribution is opt-in (`--diarize`) and returns structured speaker
+  ids/turns. Not a streaming model.
+
+wer:
+  notes: |
+    Scored with the Whisper-style English text normalizer and jiwer 3.x. MOSS emits the
+    diarized format `[start][Sxx]text[end]`; the bracket spans are metadata and are
+    de-diarized to a space (for both hypothesis and reference) before scoring, matching
+    the author-repo reference runner. These values describe this dataset only, not a
+    general quality ranking: a quant that scores slightly better here is not necessarily
+    better in real-world use, because dataset-specific decoding near-ties can make
+    quantization noise help or hurt individual utterances. The same-manifest MOSS
+    author-repo reference (bf16, greedy) lands at **2.07%** with 95% bootstrap CI
+    [1.82%, 2.40%]. The BF16 port lands at 2.08% (within +0.01 of the reference, well
+    inside the CI band); the lower-bit presets sit between 1.93% and 1.99% (statistical
+    noise) except Q4_K_M at 2.59%, whose excess is a handful of 4-bit tail failures (6
+    empty outputs, 5 English->Chinese language-drift utterances, 1 timestamp-token
+    repetition loop) rather than broad degradation. Prefer Q5_K_M or higher if those
+    tail failures matter. Reproduce with `scripts/wer/run.py` + `scripts/wer/score.py
+    --dediarize`; public `full_text` applies equivalent marker removal.
