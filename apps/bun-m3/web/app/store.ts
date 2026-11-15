@@ -1,7 +1,7 @@
 import { Injectable, computed, signal } from "@angular/core";
 
 export type Entry = { name: string; title: string; section: string; group: string; description: string; examples: number; runnable: number };
-export type Run = { skill: string; id: number; status: "pass" | "fail" | "timeout" | "skipped"; exit: number | null; ms: number; stdout: string; stderr: string; apis: string[]; reason?: string; at: string };
+export type Run = { skill: string; id: number; status: "pass" | "fail" | "timeout" | "serving" | "skipped"; exit: number | null; ms: number; stdout: string; stderr: string; apis: string[]; reason?: string; at: string };
 export type Block =
   | { t: "md"; html: string }
   | { t: "code"; id: number; lang: string; file: string | null; code: string; run: "script" | "test" | "shell" | null }
@@ -11,7 +11,7 @@ export type Job = { total: number; done: number; started: string; counts: Record
 export type Event = { type: "run" | "done"; skill?: string; id?: number; status?: Run["status"]; done: number; total: number };
 export type Coverage = {
   bun: { version: string; revision: string; total: number; used: number; entries: { name: string; kind: string; calls: number; used: boolean }[] };
-  runs: { runnable: number; executed: number; status: Partial<Record<Run["status"], number>> };
+  runs: { runnable: number; executed: number; status: Partial<Record<Run["status"], number>>; confinement: string };
   kit: { library: unknown; componentSets: number; m3Components: number; implemented: number; components: { name: string; figma: number; angular: string | null; selector: string | null; partial: string | null; reason: string | null }[] };
 };
 

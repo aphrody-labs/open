@@ -51,7 +51,7 @@ function tree(entries: ApiRow[]): Node[] {
     @if (store.coverage(); as c) {
       <mat-tab-group [selectedIndex]="tab()" (selectedIndexChange)="tab.set($event)" mat-stretch-tabs="false">
         <mat-tab label="Bun API">
-          <p class="lead">Bun {{ c.bun.version }} ({{ c.bun.revision.slice(0, 9) }}): {{ c.bun.used }} of {{ c.bun.total }} API entries accessed by {{ c.runs.executed | number }} executed examples.</p>
+          <p class="lead">Bun {{ c.bun.version }} ({{ c.bun.revision.slice(0, 9) }}): {{ c.bun.used }} of {{ c.bun.total }} API entries used by {{ c.runs.executed | number }} executed examples ({{ c.runs.confinement }}). A function counts when called, a class when constructed or a static member is called, a namespace when read or a member is used, a value when read.</p>
           <mat-progress-bar mode="determinate" [value]="(100 * c.bun.used) / c.bun.total" aria-label="Bun API coverage" />
           <div class="filters">
             <mat-radio-group [ngModel]="show()" (ngModelChange)="show.set($event)" aria-label="Show">

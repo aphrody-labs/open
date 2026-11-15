@@ -1,35 +1,45 @@
-// Runs the code examples of a Bun doc page: each example is written to its own sandbox directory and executed by
-// this very Bun (the compiled executable acts as `bun` through BUN_BE_BUN). Every access to the Bun API is
-// recorded: `Bun` is shadowed by a recording proxy and `bun` / `bun:*` imports go through generated shims, so the
-// coverage report measures what actually ran, not what the text mentions.
+// Runs the code examples of a Bun doc page and records which Bun APIs each one reaches. Each page has a working
+// directory outside any project; the examples run on this very Bun (a compiled executable acts as `bun` through
+// BUN_BE_BUN). Confinement: on Linux every run goes through bubblewrap when it is installed (read-only root,
+// private /tmp and home, own PID namespace); on Windows every run is in a Job Object that kills the whole process
+// tree on timeout and on exit. Recording: `Bun` is shadowed by a recording proxy and `bun` / `bun:*` imports go
+// through generated shims; calls and reads are appended to a per-run NDJSON file.
 import { Database } from "bun:sqlite";
+import { dlopen, FFIType } from "bun:ffi";
 import { copyFileSync, existsSync, linkSync, mkdirSync, rmSync, statSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { delimiter, dirname, isAbsolute, join, relative } from "node:path";
 
 export type Snip = { id: number; lang: string; file: string | null; code: string; run: "script" | "test" | "shell" | null };
-export type Run = { skill: string; id: number; status: "pass" | "fail" | "timeout" | "skipped"; exit: number | null; ms: number; stdout: string; stderr: string; apis: string[]; reason?: string; at: string };
+export type Status = "pass" | "fail" | "timeout" | "serving" | "skipped";
+export type Run = { skill: string; id: number; status: Status; exit: number | null; ms: number; stdout: string; stderr: string; apis: string[]; reason?: string; at: string };
 
 export const dataDir = Bun.env.BUN_M3_DATA ?? join(tmpdir(), "bun-m3");
 const runsDir = join(dataDir, "runs");
+const cacheDir = join(dataDir, "cache");
 mkdirSync(runsDir, { recursive: true });
-// Package-manager examples search upward for package.json, bunfig.toml and workspaces: the sandboxes must not
-// live under any project, or an example like `bun add` edits that project.
+mkdirSync(cacheDir, { recursive: true });
+// Package managers and module resolution search parent directories for package.json, bunfig.toml and
+// node_modules: under a project, an example like `bun add` would edit that project.
 for (let d = dataDir; ; ) {
-  for (const f of ["package.json", "bunfig.toml", "bun.lock", ".git"])
-    if (existsSync(join(d, f))) throw new Error(`BUN_M3_DATA (${dataDir}) is inside a project (${join(d, f)}); choose a directory outside any project`);
+  for (const f of ["package.json", "bunfig.toml", "node_modules"])
+    if (existsSync(join(d, f))) throw new Error(`BUN_M3_DATA (${dataDir}) is below ${join(d, f)}; choose a directory outside any project`);
   const up = dirname(d);
   if (up === d) break;
   d = up;
 }
 
-// `bun` on the sandbox PATH is this very Bun (a compiled executable acts as bun through BUN_BE_BUN)
+// `bun` on the sandbox PATH is this very Bun
 const binDir = join(dataDir, "bin");
 mkdirSync(binDir, { recursive: true });
 const bunBin = join(binDir, process.platform === "win32" ? "bun.exe" : "bun");
 if (!existsSync(bunBin) || statSync(bunBin).size !== statSync(process.execPath).size) {
   rmSync(bunBin, { force: true });
-  try { linkSync(process.execPath, bunBin); } catch { copyFileSync(process.execPath, bunBin); }
+  try {
+    linkSync(process.execPath, bunBin);
+  } catch {
+    copyFileSync(process.execPath, bunBin);
+  }
 }
 
 export const db = new Database(join(dataDir, "runs.sqlite"), { create: true, strict: true });
@@ -42,32 +52,37 @@ const all = db.prepare(`SELECT skill, id, status, apis FROM runs`);
 
 const row = (r: Record<string, unknown>): Run => ({ ...(r as unknown as Run), apis: JSON.parse(r.apis as string), reason: (r.reason as string | null) ?? undefined });
 export const runsOf = (skill: string) => (bySkill.all({ skill }) as Record<string, unknown>[]).map(row);
-export const allRuns = () => all.all() as { skill: string; id: number; status: Run["status"]; apis: string }[];
+export const allRuns = () => all.all() as { skill: string; id: number; status: Status; apis: string }[];
 
-// Recorder loaded by every instrumented example. Proxies wrap an empty shadow target so that the invariants of
-// Bun's non-configurable properties never apply; calls are forwarded to the real value with the real receiver.
+// Recorder loaded by every instrumented example. A proxy wraps an empty shadow target so that the invariants of
+// Bun's non-configurable properties never apply. Calls (`name()`) and reads of non-function values (`name`) are
+// appended once each to BUN_M3_COV (append, so child processes and workers of an example add to the same file).
+// Protocol lookups (then, toJSON, constructor, ...) are not uses. Arguments and receivers are unwrapped before
+// they reach native code, so Bun never sees a proxy.
 const recorder = `
+const fs = require("node:fs");
 const seen = new Set();
 const real = new WeakMap();
-// written as soon as a new API is reached: test runners and crashes do not always run exit handlers
-const note = (k) => { if (seen.has(k)) return; seen.add(k); require("node:fs").writeFileSync(process.env.BUN_M3_COV, JSON.stringify([...seen])); };
+const protocol = new Set(["then", "toJSON", "constructor", "prototype", "valueOf", "toString", "length", "name", "inspect", "$$typeof", "asymmetricMatch", "nodeType"]);
+const note = (k) => { if (seen.has(k)) return; seen.add(k); try { fs.appendFileSync(process.env.BUN_M3_COV, JSON.stringify(k) + "\\n"); } catch {} };
+const raw = (x) => (x !== null && (typeof x === "object" || typeof x === "function") && real.get(x)) || x;
 export function __cov(v, path) {
   if (v === null || (typeof v !== "object" && typeof v !== "function")) return v;
   const shadow = typeof v === "function" ? function () {} : {};
   const p = new Proxy(shadow, {
     get(_, k) {
       const x = Reflect.get(v, k, v);
-      if (typeof k !== "string") return x;
-      note(path + "." + k);
+      if (typeof k !== "string" || protocol.has(k)) return x;
+      if (typeof x !== "function") note(path + "." + k);
       return typeof x === "function" || (x && typeof x === "object") ? __cov(x, path + "." + k) : x;
     },
-    set(_, k, x) { return Reflect.set(v, k, x, v); },
+    set(_, k, x) { return Reflect.set(v, k, raw(x), v); },
     has(_, k) { return Reflect.has(v, k); },
     ownKeys(t) { return [...new Set([...Reflect.ownKeys(v), ...Reflect.ownKeys(t).filter((k) => !Reflect.getOwnPropertyDescriptor(t, k).configurable)])]; },
     getOwnPropertyDescriptor(t, k) { const d = Reflect.getOwnPropertyDescriptor(v, k); return d && !Reflect.getOwnPropertyDescriptor(t, k) ? { ...d, configurable: true } : Reflect.getOwnPropertyDescriptor(t, k); },
     getPrototypeOf() { return Reflect.getPrototypeOf(v); },
-    apply(_, self, args) { note(path); return Reflect.apply(v, real.get(self) ?? self, args); },
-    construct(_, args, nt) { note(path); return Reflect.construct(v, args, nt === p ? v : nt); },
+    apply(_, self, args) { note(path + "()"); return Reflect.apply(v, raw(self), args.map(raw)); },
+    construct(_, args, nt) { note(path + "()"); return Reflect.construct(v, args.map(raw), nt === p ? v : nt); },
   });
   real.set(p, v);
   return p;
@@ -105,13 +120,13 @@ function instrument(code: string, cov = "./.cov"): string {
   return `${shebang}${head.join(" ")}\n${rewritten.slice(shebang.length)}`;
 }
 
-// Examples whose effect reaches outside the sandbox directory are not run: global installs, upgrades,
-// publishing, shell configuration, the OS credential store, the clipboard and editor windows.
+// Examples whose effect reaches outside the working directory are not run: global installs, upgrades, publishing,
+// trusting lifecycle scripts, logins, shell configuration, the OS credential store, the clipboard and editor windows.
 const outsideScript = /\bBun\.secrets\b|\bsecrets\.(?:set|delete)\b|\bopenInEditor\b|\bwriteClipboard|\bclipboard\.write/;
-const outside = /^\s*(?:\$\s*)?bunx?\s+(?:upgrade|publish|feedback|completions|link|unlink)\b|\s(?:-g|--global)\b|\bpm\s+cache\s+rm\b|\b(?:login|logout|auth)\b/;
+const outside = /^\s*(?:\$\s*)?bunx?\s+(?:upgrade|publish|feedback|completions|link|unlink)\b|\s(?:-g|--global|--trust)\b|\bpm\s+(?:cache\s+rm|trust)\b|\b(?:login|logout|auth)\b/;
 
 function env(dir: string, cov: string): Record<string, string> {
-  const keep = ["PATH", "SystemRoot", "windir", "COMSPEC", "PATHEXT", "TEMP", "TMP", "TMPDIR", "LANG"];
+  const keep = ["PATH", "SystemRoot", "windir", "COMSPEC", "PATHEXT", "LANG"];
   const e: Record<string, string> = {};
   for (const k of keep) if (process.env[k]) e[k] = process.env[k]!;
   // no user-wide package binaries (`bun x` resolves inside the sandbox) and no Node.js: a `#!/usr/bin/env node`
@@ -119,22 +134,66 @@ function env(dir: string, cov: string): Record<string, string> {
   const node = process.platform === "win32" ? "node.exe" : "node";
   if (e.PATH) e.PATH = e.PATH.split(delimiter).filter((p) => p && !/[\\/](?:\.bun|npm|pnpm|yarn|node_modules|\.cargo)[\\/]?/i.test(p) && !existsSync(join(p, node))).join(delimiter);
   e.PATH = [binDir, e.PATH ?? ""].join(delimiter);
-  return { ...e, HOME: join(dir, ".home"), USERPROFILE: join(dir, ".home"), BUN_INSTALL: join(dir, ".bun"), BUN_INSTALL_CACHE_DIR: join(dataDir, "cache"), BUN_BE_BUN: "1", BUN_M3_COV: cov, NO_COLOR: "1" };
+  // home, temporary, configuration and cache directories all point inside the working directory
+  const home = join(dir, ".home"), tmp = join(dir, ".tmp");
+  const dirs = { HOME: home, USERPROFILE: home, APPDATA: join(home, "AppData", "Roaming"), LOCALAPPDATA: join(home, "AppData", "Local"), XDG_CONFIG_HOME: join(home, ".config"), XDG_CACHE_HOME: join(home, ".cache"), XDG_DATA_HOME: join(home, ".local", "share"), TEMP: tmp, TMP: tmp, TMPDIR: tmp };
+  for (const d of Object.values(dirs)) mkdirSync(d, { recursive: true });
+  return { ...e, ...dirs, BUN_INSTALL: join(dir, ".bun"), BUN_INSTALL_CACHE_DIR: cacheDir, BUN_BE_BUN: "1", BUN_M3_COV: cov, NO_COLOR: "1" };
+}
+
+// Linux: bubblewrap when installed. Read-only root, private /tmp and home (the user's files are not visible),
+// writable working directory and package cache, own PID, IPC and UTS namespaces, dies with the server.
+const bwrap = process.platform === "linux" ? Bun.which("bwrap") : null;
+function confine(cmd: string[], dir: string): string[] {
+  if (!bwrap) return cmd;
+  const binds = [["--bind", dir], ["--bind", cacheDir], ["--ro-bind", binDir], ["--ro-bind", dirname(process.execPath)]].flatMap(([o, p]) => [o!, p!, p!]);
+  return [bwrap, "--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc", "--tmpfs", "/tmp", "--tmpfs", homedir(), ...binds, "--unshare-pid", "--unshare-ipc", "--unshare-uts", "--die-with-parent", "--new-session", "--chdir", dir, "--", ...cmd];
+}
+export const confinement = bwrap ? `bubblewrap (${bwrap})` : process.platform === "win32" ? "Windows Job Object" : "process group";
+
+// Windows: one Job Object per run with JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE; closing it ends every process the
+// example started, so nothing outlives a run and no PID is looked up after the fact.
+const k32 =
+  process.platform === "win32"
+    ? dlopen("kernel32.dll", {
+        CreateJobObjectW: { args: [FFIType.ptr, FFIType.ptr], returns: FFIType.ptr },
+        SetInformationJobObject: { args: [FFIType.ptr, FFIType.i32, FFIType.ptr, FFIType.u32], returns: FFIType.i32 },
+        OpenProcess: { args: [FFIType.u32, FFIType.i32, FFIType.u32], returns: FFIType.ptr },
+        AssignProcessToJobObject: { args: [FFIType.ptr, FFIType.ptr], returns: FFIType.i32 },
+        TerminateJobObject: { args: [FFIType.ptr, FFIType.u32], returns: FFIType.i32 },
+        CloseHandle: { args: [FFIType.ptr], returns: FFIType.i32 },
+      }).symbols
+    : null;
+const JobObjectExtendedLimitInformation = 9, KILL_ON_JOB_CLOSE = 0x2000, PROCESS_SET_QUOTA = 0x0100, PROCESS_TERMINATE = 0x0001;
+export function jobFor(pid: number) {
+  if (!k32) return null;
+  const job = k32.CreateJobObjectW(null, null);
+  if (!job) return null;
+  // JOBOBJECT_EXTENDED_LIMIT_INFORMATION is 144 bytes on 64-bit Windows; LimitFlags is at offset 16
+  const info = new Uint8Array(144);
+  new DataView(info.buffer).setUint32(16, KILL_ON_JOB_CLOSE, true);
+  const limited = k32.SetInformationJobObject(job, JobObjectExtendedLimitInformation, info, info.byteLength) !== 0;
+  const proc = k32.OpenProcess(PROCESS_SET_QUOTA | PROCESS_TERMINATE, 0, pid);
+  const assigned = !!proc && k32.AssignProcessToJobObject(job, proc) !== 0;
+  if (proc) k32.CloseHandle(proc);
+  return { limited, assigned, kill: () => k32.TerminateJobObject(job, 1), close: () => k32.CloseHandle(job) };
 }
 
 const extOf = (lang: string) => ({ typescript: "ts", javascript: "js" })[lang] ?? lang;
 const clip = (s: string) => (s.length > 64_000 ? `${s.slice(0, 64_000)}\n[truncated]` : s);
 
-// The named files of a page (`db.ts`, `package.json`, `index.html`, ...) are written into its sandbox before any
-// example runs, as a reader following the page would have them; scripts are instrumented, other files kept as is.
-async function materialize(dir: string, page: Snip[]) {
-  for (const b of page) {
-    if (!b.file || isAbsolute(b.file) || b.file.split(/[\\/]/).includes("..")) continue;
-    const path = join(dir, b.file);
-    if (existsSync(path)) continue;
+// The named files of a page (`db.ts`, `package.json`, `index.html`, ...) are written before an example runs, as a
+// reader following the page has them at that point: the last version defined before the example, otherwise the
+// first one defined after it. Scripts are instrumented; other files are kept as they are.
+async function materialize(dir: string, page: Snip[], current: number) {
+  const byFile = Map.groupBy(page.filter((b) => b.file && !isAbsolute(b.file) && !b.file.split(/[\\/]/).includes("..")), (b) => b.file!);
+  for (const [file, versions] of byFile) {
+    const pick = versions.filter((b) => b.id < current).at(-1) ?? versions.find((b) => b.id > current);
+    if (!pick) continue;
+    const path = join(dir, file);
     mkdirSync(dirname(path), { recursive: true });
     const cov = relative(dirname(path), join(dir, ".cov")).replaceAll("\\", "/");
-    await Bun.write(path, b.run === "script" || b.run === "test" ? instrument(b.code, cov.startsWith(".") ? cov : `./${cov}`) : b.code);
+    await Bun.write(path, pick.run === "script" || pick.run === "test" ? instrument(pick.code, cov.startsWith(".") ? cov : `./${cov}`) : pick.code);
   }
 }
 
@@ -143,28 +202,26 @@ export async function run(skill: string, s: Snip, timeoutMs = 10_000, page: Snip
   const base = { skill, id: s.id, at, apis: [] as string[] };
   if (!s.run) return { ...base, status: "skipped", exit: null, ms: 0, stdout: "", stderr: "", reason: `not runnable (${s.lang || "plain"})` };
   if ((s.run === "shell" && outside.test(s.code)) || (s.run !== "shell" && outsideScript.test(s.code))) {
-    const r: Run = { ...base, status: "skipped", exit: null, ms: 0, stdout: "", stderr: "", reason: "acts outside the sandbox (global install, upgrade, publish, shell config, credential store, clipboard, editor)" };
+    const r: Run = { ...base, status: "skipped", exit: null, ms: 0, stdout: "", stderr: "", reason: "acts outside the working directory (global install, upgrade, publish, trust, login, shell config, credential store, clipboard, editor)" };
     persist(r);
     return r;
   }
-  // one directory per page: examples on a page build on each other (files written by one are read by the next)
+  // one directory per page: shell examples build on each other (init, add, run)
   const dir = join(runsDir, skill);
   mkdirSync(join(dir, ".cov"), { recursive: true });
-  mkdirSync(join(dir, ".home"), { recursive: true });
-  // each page sandbox is its own package root, so package-manager examples stop here
+  // the page directory is its own package root, and `node` there is an alias of bun
   if (!existsSync(join(dir, "package.json"))) await Bun.write(join(dir, "package.json"), `${JSON.stringify({ name: `sandbox-${skill}`, private: true })}\n`);
   if (!existsSync(join(dir, "bunfig.toml"))) await Bun.write(join(dir, "bunfig.toml"), "[run]\nbun = true\n");
   await Bun.write(join(dir, ".cov", "cov.js"), recorder);
   for (const [m, src] of Object.entries(shims)) if (src) await Bun.write(join(dir, ".cov", shimFile(m)), src);
-  await materialize(dir, page);
-  const cov = join(dir, ".cov", `seen-${s.id}.json`);
+  await materialize(dir, page, s.id);
+  const cov = join(dir, ".cov", `seen-${s.id}.ndjson`);
   rmSync(cov, { force: true });
   const exe = process.execPath;
   let cmd: string[];
   if (s.run === "shell") {
     const lines = s.code.split("\n").map((l) => l.replace(/^\s*\$\s+/, "")).filter((l) => /^\s*bunx?\s/.test(l));
     const script = lines.map((l) => l.replace(/^\s*bunx\s/, `"${exe}" x `).replace(/^\s*bun\s/, `"${exe}" `)).join("\n");
-    await Bun.write(join(dir, "commands.sh"), script);
     cmd = [exe, "exec", script];
   } else {
     const name = s.file && !s.file.includes("/") ? s.file : `snippet.${extOf(s.lang)}`;
@@ -173,19 +230,27 @@ export async function run(skill: string, s: Snip, timeoutMs = 10_000, page: Snip
     cmd = s.run === "test" ? [exe, "test", `./${file}`] : [exe, "run", `./${file}`];
   }
   const t0 = performance.now();
-  const p = Bun.spawn(cmd, { cwd: dir, env: env(dir, cov), stdin: "ignore", stdout: "pipe", stderr: "pipe", detached: process.platform !== "win32" });
-  // on timeout the whole process tree goes (a dev server an example starts outlives its parent otherwise)
+  const p = Bun.spawn(confine(cmd, dir), { cwd: dir, env: env(dir, cov), stdin: "ignore", stdout: "pipe", stderr: "pipe", detached: process.platform !== "win32" });
+  const job = jobFor(p.pid);
   let timedOut = false;
   const timer = setTimeout(() => {
     timedOut = true;
-    if (process.platform === "win32") Bun.spawnSync(["taskkill", "/T", "/F", "/PID", String(p.pid)], { stdout: "ignore", stderr: "ignore" });
-    else try { process.kill(-p.pid, "SIGKILL"); } catch { p.kill("SIGKILL"); }
+    if (job?.assigned) job.kill();
+    else
+      try {
+        process.kill(-p.pid, "SIGKILL");
+      } catch {
+        p.kill("SIGKILL");
+      }
   }, timeoutMs);
   const [stdout, stderr, exit] = await Promise.all([new Response(p.stdout).text(), new Response(p.stderr).text(), p.exited]);
   clearTimeout(timer);
+  job?.close();
   const ms = performance.now() - t0;
-  const apis: string[] = await Bun.file(cov).json().catch(() => []);
-  const status: Run["status"] = timedOut ? "timeout" : exit === 0 ? "pass" : "fail";
+  const apis = [...new Set((await Bun.file(cov).text().catch(() => "")).split("\n").filter(Boolean).map((l) => JSON.parse(l) as string))];
+  // a server example keeps serving until it is stopped: reaching the timeout after starting one is its success
+  const serving = apis.some((a) => /^Bun\.(?:serve|listen)\(\)$/.test(a)) && !stderr.trim();
+  const status: Status = timedOut ? (serving ? "serving" : "timeout") : exit === 0 ? "pass" : "fail";
   const r: Run = { ...base, status, exit, ms, stdout: clip(stdout), stderr: clip(stderr), apis, at };
   persist(r);
   return r;

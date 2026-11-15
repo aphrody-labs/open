@@ -23,7 +23,7 @@ import { map } from "rxjs";
 import { Store } from "./store.ts";
 
 const contrasts = ["standard", "medium", "high"] as const;
-const statusIcon: Record<string, string> = { pass: "check_circle", fail: "error", timeout: "timer", skipped: "block" };
+const statusIcon: Record<string, string> = { pass: "check_circle", fail: "error", timeout: "timer", serving: "dns", skipped: "block" };
 
 @Component({
   selector: "app-root",

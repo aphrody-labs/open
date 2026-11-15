@@ -12,7 +12,7 @@ import theme from "./theme/theme.json" with { type: "json" };
 import sources from "./sources.json" with { type: "json" };
 import { availableParallelism } from "node:os";
 import { join } from "node:path";
-import { allRuns, db, run, runsOf, type Run, type Snip } from "./runner.ts";
+import { allRuns, confinement, db, run, runsOf, type Snip, type Status } from "./runner.ts";
 
 const runRows = () => db.query("SELECT skill, id, status, ms, at FROM runs ORDER BY at DESC").all();
 
@@ -23,13 +23,13 @@ const argv = Bun.argv.slice(2);
 const port = Number(argv.includes("--port") ? argv[argv.indexOf("--port") + 1] : (Bun.env.PORT ?? 0));
 
 // Run-all queue: every runnable example of the selected pages, a worker per core.
-let job: { total: number; done: number; started: string; counts: Record<Run["status"], number> } | null = null;
+let job: { total: number; done: number; started: string; counts: Record<Status, number> } | null = null;
 const listeners = new Set<(e: object) => void>();
 const emit = (e: object) => listeners.forEach((l) => l(e));
 async function runAll(filter: (skill: string) => boolean, timeoutMs: number) {
   if (job && job.done < job.total) return job;
   const queue = Object.entries(S).filter(([k]) => filter(k)).flatMap(([skill, xs]) => xs.filter((s) => s.run).map((s) => ({ skill, s })));
-  const j = (job = { total: queue.length, done: 0, started: new Date().toISOString(), counts: { pass: 0, fail: 0, timeout: 0, skipped: 0 } });
+  const j = (job = { total: queue.length, done: 0, started: new Date().toISOString(), counts: { pass: 0, fail: 0, timeout: 0, serving: 0, skipped: 0 } });
   // examples of one page run in order (shared sandbox directory); pages run in parallel
   const byPage = Map.groupBy(queue, (q) => q.skill);
   const pagesQ = [...byPage.values()];
@@ -48,13 +48,22 @@ async function runAll(filter: (skill: string) => boolean, timeoutMs: number) {
 
 function coverage() {
   const runs = allRuns();
-  const used = new Map<string, number>();
-  for (const r of runs) for (const a of JSON.parse(r.apis) as string[]) used.set(a, (used.get(a) ?? 0) + 1);
-  // an API entry is used when it, or a member of it, was accessed
-  // the global object itself is used when any of its members is
-  for (const g of ["Bun", "HTMLRewriter", "BuildMessage", "ResolveMessage"]) if ([...used.keys()].some((u) => u.startsWith(`${g}.`) || u === `global:${g}`)) used.set(`global:${g}`, used.get(`global:${g}`) ?? 1);
-  const usedNames = [...used.keys()];
-  const entries = api.values.map((v) => ({ ...v, calls: used.get(v.name) ?? 0, used: used.has(v.name) || usedNames.some((u) => u.startsWith(`${v.name}.`) || u.startsWith(`${v.name}:`)) }));
+  // recorded names: `Bun.serve()` for a call or construction, `Bun.version` for a read of a non-function value
+  const recorded = new Map<string, number>();
+  for (const r of runs) for (const a of JSON.parse(r.apis) as string[]) recorded.set(a, (recorded.get(a) ?? 0) + 1);
+  const names = [...recorded.keys()];
+  const below = (n: string) => names.some((u) => u.startsWith(`${n}.`) || u.startsWith(`${n}:`));
+  // a function is used when called, a class when constructed or one of its static members is called, a namespace
+  // object when read or one of its members is used, any other value when read; a global when any member is used
+  const used = (v: { name: string; kind: string }) => {
+    const g = v.name.match(/^global:(.+)$/)?.[1];
+    if (g) return names.some((u) => u.startsWith(`${g}.`) || u.startsWith(`global:${g}`));
+    if (v.kind === "function") return recorded.has(`${v.name}()`);
+    if (v.kind === "class") return recorded.has(`${v.name}()`) || names.some((u) => u.startsWith(`${v.name}.`) && u.endsWith("()"));
+    if (v.kind === "object") return recorded.has(v.name) || below(v.name);
+    return recorded.has(v.name);
+  };
+  const entries = api.values.map((v) => ({ ...v, calls: recorded.get(`${v.name}()`) ?? recorded.get(v.name) ?? 0, used: used(v) }));
   const status = runs.reduce<Record<string, number>>((a, r) => ((a[r.status] = (a[r.status] ?? 0) + 1), a), {});
   const runnable = Object.values(S).flat().filter((s) => s.run).length;
   const m3 = Object.keys(kit.byComponent).map((name) => {
@@ -63,7 +72,7 @@ function coverage() {
   });
   return {
     bun: { version: Bun.version, revision: Bun.revision, total: entries.length, used: entries.filter((e) => e.used).length, entries },
-    runs: { runnable, executed: runs.length, status },
+    runs: { runnable, executed: runs.length, status, confinement },
     kit: { library: kit.library, componentSets: kit.componentSets, m3Components: m3.length, implemented: m3.filter((c) => c.angular).length, components: m3 },
   };
 }

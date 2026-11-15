@@ -87,7 +87,7 @@ export class CodeBlock {
   @Input({ required: true }) block!: Extract<Block, { t: "code" }>;
   readonly state = inject(PageState);
   private readonly sheet = inject(MatBottomSheet);
-  readonly statusIcon: Record<string, string> = { pass: "check_circle", fail: "error", timeout: "timer", skipped: "block" };
+  readonly statusIcon: Record<string, string> = { pass: "check_circle", fail: "error", timeout: "timer", serving: "dns", skipped: "block" };
   readonly run = computed(() => this.state.runs().get(this.block.id) ?? null);
   readonly running = computed(() => this.state.running().has(this.block.id));
   icon() {

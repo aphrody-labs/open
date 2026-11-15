@@ -45,11 +45,12 @@ import { Store, type Entry } from "./store.ts";
           <mat-card-actions><a matButton routerLink="/coverage" fragment="kit">Details</a></mat-card-actions>
         </mat-card>
         <mat-card appearance="raised">
-          <mat-card-header><mat-icon mat-card-avatar>play_circle</mat-icon><mat-card-title>Runs</mat-card-title><mat-card-subtitle>{{ c.runs.executed | number }} of {{ c.runs.runnable | number }}</mat-card-subtitle></mat-card-header>
+          <mat-card-header><mat-icon mat-card-avatar>play_circle</mat-icon><mat-card-title>Runs</mat-card-title><mat-card-subtitle>{{ c.runs.executed | number }} of {{ c.runs.runnable | number }}, {{ c.runs.confinement }}</mat-card-subtitle></mat-card-header>
           <mat-card-content>
             <mat-chip-set aria-label="Run results">
               <mat-chip><mat-icon matChipAvatar>check_circle</mat-icon>{{ c.runs.status.pass ?? 0 }} pass</mat-chip>
               <mat-chip><mat-icon matChipAvatar>error</mat-icon>{{ c.runs.status.fail ?? 0 }} fail</mat-chip>
+              <mat-chip><mat-icon matChipAvatar>dns</mat-icon>{{ c.runs.status.serving ?? 0 }} serving</mat-chip>
               <mat-chip><mat-icon matChipAvatar>timer</mat-icon>{{ c.runs.status.timeout ?? 0 }} timeout</mat-chip>
               <mat-chip><mat-icon matChipAvatar>block</mat-icon>{{ c.runs.status.skipped ?? 0 }} skipped</mat-chip>
             </mat-chip-set>
