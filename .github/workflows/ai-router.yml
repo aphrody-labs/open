@@ -53,3 +53,36 @@ jobs:
             target/release/ai-router*
             target/release/*ai_router.*
             crates/ai-router/include/ai_router.h
+  image:
+    # the service image, published for container platforms; built from a static binary
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      RUSTUP_TOOLCHAIN: stable
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            crates
+            packages/browser-control/crates
+            packages/sst/sdk/rust
+            .cargo
+          sparse-checkout-cone-mode: true
+      - run: sudo apt-get install -y musl-tools
+      - run: rustup toolchain install stable --profile minimal --target x86_64-unknown-linux-musl
+      - run: cargo build --release -p ai-router --target x86_64-unknown-linux-musl
+      - run: cp target/x86_64-unknown-linux-musl/release/ai-router crates/ai-router/deploy/
+      - name: Build, check and push
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/ai-router
+        run: |
+          docker build -f crates/ai-router/deploy/Containerfile -t "$IMAGE:${GITHUB_SHA::12}" -t "$IMAGE:latest" crates/ai-router/deploy
+          docker run -d --name air -p 8080:8080 "$IMAGE:latest"
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:8080/health && break; sleep 2; done
+          curl -sf http://127.0.0.1:8080/v1/models > /dev/null
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker push "$IMAGE:${GITHUB_SHA::12}"
+          docker push "$IMAGE:latest"

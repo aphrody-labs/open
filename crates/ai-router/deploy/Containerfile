@@ -1,0 +1,6 @@
+# The router service as a container for any container platform (serverless containers, Kubernetes, a single host).
+# The binary is static (musl) and carries its TLS roots, so the image holds nothing else.
+FROM scratch
+COPY ai-router /ai-router
+EXPOSE 8080
+ENTRYPOINT ["/ai-router", "serve", "--addr", "0.0.0.0:8080"]
