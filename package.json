@@ -182,6 +182,7 @@
   "scripts": {
     "aot": "bun scripts/aot.ts",
     "test-ts": "bun scripts/test-ts.ts",
-    "workspaces": "bun scripts/workspaces.ts --write"
+    "workspaces": "bun scripts/workspaces.ts --write",
+    "private": "bun scripts/check/private.ts"
   }
 }

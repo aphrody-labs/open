@@ -18,3 +18,7 @@ aot *args:
 # bun test per package (never root-wide): just test-ts [name-or-path ...]
 test-ts *pkgs:
     bun scripts/test-ts.ts {{pkgs}}
+
+# No private data of this machine in first-party files (terms read live; decision D24): just private [--fleet <file>]
+private *args:
+    bun scripts/check/private.ts {{args}}
