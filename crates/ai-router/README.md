@@ -25,6 +25,7 @@ Multi-provider AI router: a library with a C ABI, a CLI and an HTTP service comp
 ## Verified
 
 - Tests (`cargo test -p ai-router`): failover after a rate limit, offers without credentials never tried, Anthropic and Google answers translated to chat completions, local server first through the C ABI, the service answering OpenAI and Anthropic clients, native Anthropic and Google streaming (text and tool calls), embeddings and transcriptions routed to models of that kind (library and service), multipart model rewrite. CI builds and tests on Linux, Windows and macOS (`.github/workflows/ai-router.yml`), including the Bun binding against each build.
+- Live embeddings: on Windows, the CI build's service answered `POST /v1/embeddings` with `model: auto:local` through the local embedding model LM Studio served (two inputs, 768-dimension vectors), the chat models of the same servers left out.
 - Live: on Windows, the CI build found three local servers (Ollama, llama.cpp server, LM Studio) and over 8,000 catalog offers, answered through a local model as CLI and as a service (OpenAI and Anthropic endpoints).
 
 ## Not yet

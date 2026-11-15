@@ -1,0 +1,82 @@
+feature,area,priority,original,clone,notes
+The AI community building the future.: / (S01),home,must,yes,no,
+Item page /*/*: /*/* (S04 S37),/*/*,must,yes,no,
+Ai2: /allenai (S05),allenai,must,yes,no,
+Community Blog & Articles: /blog (S06),blog,must,yes,no,
+HuggingChat: /chat (S07),chat,must,yes,no,
+Form GET /chat on /chat,chat,should,yes,no,
+Collections: /collections (S08),collections,must,yes,no,
+Datasets: /datasets (S09),datasets,must,yes,no,
+Item page /datasets/*/*: /datasets/*/* (S10 S11 S57),datasets,must,yes,no,
+Form GET /datasets/*/* on /datasets/*/*,datasets,should,yes,no,
+Documentation: /docs (S12),docs,must,yes,no,
+Item page /docs/*: /docs/* (S13 S14),docs,should,yes,no,
+Form GET /docs/* on /docs/*,docs,should,yes,no,
+Hugging Face Enterprise: /enterprise (S15),enterprise,must,yes,no,
+Item page /*: /* (S16),/*,must,yes,no,
+Hardware – Hugging Face: /hardware (S17),hardware,must,yes,no,
+Hugging Face Inference Endpoints Inference Endpoints: /inference-endpoints (S18),home,must,yes,no,
+Item page /inference/*: /inference/* (S19),inference,must,yes,no,
+Join Hugging Face: /join (S20),join,must,yes,no,
+Form POST /join on /join,join,should,yes,no,
+Item page /join/*: /join/* (S21),join,must,yes,no,
+Languages - Hugging Face: /languages (S22),languages,must,yes,no,
+Learn: /learn (S23),learn,must,yes,no,
+Log In: /login (S24),login,must,yes,no,
+Form POST /login on /login,login,should,yes,no,
+Models: /models (S25),models,must,yes,no,
+Organizations: /organizations (S26),organizations,must,yes,no,
+Daily Papers: /papers (S27),papers,must,yes,no,
+Hugging Face – Posts: /posts (S28),posts,must,yes,no,
+Leveling up AI collaboration and compute.: /pricing (S29),pricing,must,yes,no,
+Hugging Face Pro Pro: /pro (S30),pro,must,yes,no,
+Spaces: /spaces (S31),spaces,must,yes,no,
+Item page /spaces/*/*: /spaces/*/* (S32 S33),spaces,must,yes,no,
+Hugging Face Storage Buckets Storage Buckets: /storage (S34),storage,must,yes,no,
+Hugging Face Enterprise Support: /support (S35),support,must,yes,no,
+Tasks: /tasks (S36),tasks,must,yes,no,
+Item page /*/*/*/main/*: /*/*/*/main/* (S42 S45),main,must,yes,no,
+Item page /*/*/*/main/*/*: /*/*/*/main/*/* (S43 S44),main,should,yes,no,
+Item page /blog/*/*: /blog/*/* (S46 S47),blog,must,yes,no,
+Item page /datasets/*/*/discussions/*: /datasets/*/*/discussions/* (S48),datasets,should,yes,no,
+Item page /docs/*/*/*/*/*/*: /docs/*/*/*/*/*/* (S49),docs,must,yes,no,
+Form GET /docs/*/*/*/*/*/* on /docs/*/*/*/*/*/*,docs,should,yes,no,
+Item page /docs/*/*: /docs/*/* (S50 S55),docs,must,yes,no,
+Form GET /docs/*/* on /docs/*/*,docs,should,yes,no,
+Item page /tasks/*: /tasks/* (S53),tasks,must,yes,no,
+Form GET /tasks/* on /tasks/*,tasks,should,yes,no,
+Item page /spaces/*/*/discussions/*: /spaces/*/*/discussions/* (S54),spaces,must,yes,no,
+Item page /organizations/*/*/*: /organizations/*/*/* (S56 S60),organizations,must,yes,no,
+Item page /papers/*: /papers/* (S58 S59),papers,must,yes,no,
+Form GET /papers/* on /papers/*,papers,should,yes,no,
+Item page /spaces/*/*/discussions: /spaces/*/*/discussions (S61),spaces,must,yes,no,
+Item page /buckets/*/*: /buckets/*/* (S62 S63),buckets,must,yes,no,
+Item page /collections/*/*: /collections/*/* (S64),collections,must,yes,no,
+API: spaces (48 operations),api,must,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: models (38 operations),api,must,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: datasets (37 operations),api,must,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: discussions (36 operations),api,must,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: scim (28 operations),api,must,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: jobs (23 operations),api,must,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: collections (20 operations),api,must,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: orgs (17 operations),api,must,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: users (16 operations),api,must,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: resource-groups (15 operations),api,must,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: containers (15 operations),api,must,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: buckets (15 operations),api,must,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: papers (8 operations),api,must,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: service-accounts (8 operations),api,must,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: webhooks (7 operations),api,should,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: inference-providers (7 operations),api,should,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: kernels (7 operations),api,should,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: repos (7 operations),api,should,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: notifications (5 operations),api,should,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: oauth (4 operations),api,should,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: sql-console (4 operations),api,should,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: blogs (3 operations),api,should,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: docs (3 operations),api,should,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: repo-search (3 operations),api,should,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: inference-endpoints (2 operations),api,should,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: tokens (1 operations),api,should,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: auth (1 operations),api,should,yes,no,from https://huggingface.co/.well-known/openapi.json
+API: agents (1 operations),api,should,yes,no,from https://huggingface.co/.well-known/openapi.json
