@@ -6,7 +6,7 @@
 // through generated shims; calls and reads are appended to a per-run NDJSON file.
 import { Database } from "bun:sqlite";
 import { dlopen, FFIType } from "bun:ffi";
-import { copyFileSync, existsSync, linkSync, mkdirSync, rmSync, statSync } from "node:fs";
+import { copyFileSync, existsSync, linkSync, mkdirSync, rmSync, statSync, statfsSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { delimiter, dirname, isAbsolute, join, relative } from "node:path";
 
@@ -255,6 +255,23 @@ export async function run(skill: string, s: Snip, timeoutMs = 10_000, page: Snip
   persist(r);
   return r;
 }
+
+// A page's working directory goes once its examples have run (results stay in the database). Free space is kept
+// above max(2 GiB, 5% of the file system): below it the shared package cache is dropped first, then the run stops.
+export function cleanPage(skill: string) {
+  rmSync(join(runsDir, skill), { recursive: true, force: true });
+}
+export function ensureSpace() {
+  const free = () => { const s = statfsSync(dataDir); return { avail: s.bavail * s.bsize, total: s.blocks * s.bsize }; };
+  const floor = (t: number) => Math.max(2 ** 31, t * 0.05);
+  let f = free();
+  if (f.avail >= floor(f.total)) return;
+  rmSync(cacheDir, { recursive: true, force: true });
+  mkdirSync(cacheDir, { recursive: true });
+  f = free();
+  if (f.avail < floor(f.total)) throw new Error(`not enough free space under ${dataDir}: ${Math.round(f.avail / 2 ** 20)} MiB`);
+}
+export const done = () => new Set((db.query("SELECT skill || '#' || id AS k FROM runs").all() as { k: string }[]).map((x) => x.k));
 
 function persist(r: Run) {
   save.run({ skill: r.skill, id: r.id, status: r.status, exit: r.exit, ms: r.ms, stdout: r.stdout, stderr: r.stderr, apis: JSON.stringify(r.apis), reason: r.reason ?? null, at: r.at });

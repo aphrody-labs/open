@@ -43,13 +43,14 @@ Decision D19: the M3 components of the app are Angular Material.
 - `gen/sources.ts`: sparse, shallow checkout of the fork (docs, bun-types); `sources.json` records the revision.
 - `gen/skills.ts`, `gen/pages.ts`, `gen/reference.ts`: skills, render trees (remark-mdx, Markdown by `Bun.markdown`), runnable examples; tab and group of each page come from the site navigation (`docs.json`).
 - `gen/theme.ts`, `gen/mat-sys.ts`: Theme Builder scheme from the press kit icon; Angular Material `--mat-sys-*` for three contrast levels.
-- `runner.ts`: each page gets a sandbox outside any project (its own `package.json`, `HOME`, `BUN_INSTALL`, no global binaries on `PATH`), the page's named files are written first, every `Bun` access and `bun` / `bun:*` import goes through a recording proxy, a timeout kills the whole process tree, and examples that act outside the sandbox (global installs, upgrade, publish, login, OS credential store, clipboard, editor) are reported as skipped.
+- `runner.ts`: each page gets a working directory outside any project (its own `package.json` and `bunfig.toml` with `run.bun`, so `node` is an alias of Bun; home, temp, AppData and XDG directories inside it; no global binaries and no Node.js on `PATH`). Every run is confined: bubblewrap on Linux (read-only root, private `/tmp` and home, own PID, IPC and UTS namespaces), a Job Object on Windows (the whole process tree ends on timeout and after every run). Calls and reads of `Bun` and of `bun` / `bun:*` exports go through a recording proxy that unwraps itself before native code; examples that act outside the directory (global installs, upgrade, publish, trust, login, OS credential store, clipboard, editor) are skipped; a server example that keeps serving until the timeout is `serving`.
 - `server.ts`: `Bun.serve` routes with the HTML import of the Angular client, the run API, server-sent events, the coverage report; results in `bun:sqlite`.
 
 ## Known limits
 
 - Angular runs in JIT mode: Angular's template compiler needs the TypeScript 6 compiler API (angular/angular#69704) and TypeScript 7 has none before 7.1; the project ships no TypeScript 6. The client moves to Angular AOT when compiler-cli supports TypeScript 7.
 - Bun's development server (HMR bundle) leaves rxjs `EMPTY` undefined for Angular Material's expansion panel; the production bundle is correct, so the app is served with `NODE_ENV=production`. To report upstream from the fork.
+- On Windows a run can still read the user's files and use the network; full isolation is the Linux run (bubblewrap), which is where the reference numbers come from.
 - A doc example is a fragment: many fail without the context the prose describes (missing files, servers, credentials). Failures are reported as they are, not hidden.
 - Angular Material has no implementation of 7 of the 37 M3 components (button group, carousel, FAB menu, loading indicator, navigation bar, navigation rail, split button) and partial ones for 5 (search, side sheet, time picker, toolbar, tooltip): `kit/angular-material.json`. Covering them needs another official implementation (Compose Multiplatform or Flutter, D4).
 

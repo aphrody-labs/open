@@ -12,7 +12,7 @@ import theme from "./theme/theme.json" with { type: "json" };
 import sources from "./sources.json" with { type: "json" };
 import { availableParallelism } from "node:os";
 import { join } from "node:path";
-import { allRuns, confinement, db, run, runsOf, type Snip, type Status } from "./runner.ts";
+import { allRuns, cleanPage, confinement, db, done, ensureSpace, run, runsOf, type Snip, type Status } from "./runner.ts";
 
 const runRows = () => db.query("SELECT skill, id, status, ms, at FROM runs ORDER BY at DESC").all();
 
@@ -26,15 +26,25 @@ const port = Number(argv.includes("--port") ? argv[argv.indexOf("--port") + 1] :
 let job: { total: number; done: number; started: string; counts: Record<Status, number> } | null = null;
 const listeners = new Set<(e: object) => void>();
 const emit = (e: object) => listeners.forEach((l) => l(e));
-async function runAll(filter: (skill: string) => boolean, timeoutMs: number) {
+async function runAll(filter: (skill: string) => boolean, timeoutMs: number, resume = false) {
   if (job && job.done < job.total) return job;
-  const queue = Object.entries(S).filter(([k]) => filter(k)).flatMap(([skill, xs]) => xs.filter((s) => s.run).map((s) => ({ skill, s })));
+  // resume: examples that already have a result are not run again
+  const finished = resume ? done() : new Set<string>();
+  const queue = Object.entries(S).filter(([k]) => filter(k)).flatMap(([skill, xs]) => xs.filter((s) => s.run && !finished.has(`${skill}#${s.id}`)).map((s) => ({ skill, s })));
   const j = (job = { total: queue.length, done: 0, started: new Date().toISOString(), counts: { pass: 0, fail: 0, timeout: 0, serving: 0, skipped: 0 } });
   // examples of one page run in order (shared sandbox directory); pages run in parallel
   const byPage = Map.groupBy(queue, (q) => q.skill);
   const pagesQ = [...byPage.values()];
+  let stopped: string | null = null;
   const worker = async () => {
-    for (let q = pagesQ.shift(); q; q = pagesQ.shift())
+    for (let q = pagesQ.shift(); q && !stopped; q = pagesQ.shift()) {
+      try {
+        ensureSpace();
+      } catch (e) {
+        stopped = String(e);
+        emit({ type: "stopped", reason: stopped, done: j.done, total: j.total });
+        break;
+      }
       for (const { skill, s } of q) {
         // a run that cannot even start (disk full, quota) is a failure of that example, not of the whole run
         const status: Status = await run(skill, s, timeoutMs, S[skill]).then((r) => r.status, (e) => (console.error(`${skill}#${s.id}: ${e}`), "fail"));
@@ -42,6 +52,8 @@ async function runAll(filter: (skill: string) => boolean, timeoutMs: number) {
         j.counts[status]++;
         emit({ type: "run", skill, id: s.id, status, done: j.done, total: j.total });
       }
+      cleanPage(q[0]!.skill);
+    }
   };
   Promise.all(Array.from({ length: availableParallelism() }, worker)).then(() => emit({ type: "done", ...j }));
   return j;
@@ -105,7 +117,7 @@ const server = Bun.serve({
       POST: async (req) => {
         const q = new URL(req.url).searchParams;
         const section = q.get("section");
-        return Response.json(await runAll((k) => !section || P[k]?.tab === section, Number(q.get("timeout") ?? 10_000)));
+        return Response.json(await runAll((k) => !section || P[k]?.tab === section, Number(q.get("timeout") ?? 10_000), q.has("resume")));
       },
       GET: () => Response.json(job),
     },
