@@ -1,0 +1,12 @@
+# Applies to every crate below this directory, nested upstream workspaces included
+# (their own .cargo/config.toml files merge with it; [profile] here wins over Cargo.toml).
+[profile.release]
+lto = "fat"
+codegen-units = 1
+opt-level = 3
+strip = "symbols"
+
+# lld through clang on Linux x86_64 (fr1); rustc 1.100 nightly also ships rust-lld.
+[target.x86_64-unknown-linux-gnu]
+linker = "clang"
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]

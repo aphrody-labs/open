@@ -5,7 +5,7 @@
   "type": "module",
   "main": "./src/index.tsx",
   "devDependencies": {
-    "@tsconfig/bun": "catalog:"
+    "@tsconfig/bun": "catalog:agents-benchmark"
   },
   "dependencies": {
     "hono": "^4.8.3"

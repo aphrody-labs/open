@@ -6,12 +6,12 @@
   "type": "module",
   "dependencies": {
     "remeda": "^2.33.7",
-    "zod": "catalog:"
+    "zod": "catalog:models.dev"
   },
   "main": "./src/index.ts",
   "devDependencies": {
-    "@tsconfig/bun": "catalog:",
-    "@types/bun": "catalog:",
-    "@types/node": "catalog:"
+    "@tsconfig/bun": "catalog:models.dev",
+    "@types/bun": "catalog:models.dev",
+    "@types/node": "catalog:models.dev"
   }
 }

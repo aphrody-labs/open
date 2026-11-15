@@ -8,6 +8,6 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "4.20250522.0",
-    "@tsconfig/bun": "catalog:"
+    "@tsconfig/bun": "catalog:models.dev"
   }
 }

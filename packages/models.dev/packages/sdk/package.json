@@ -59,10 +59,10 @@
   },
   "devDependencies": {
     "@models.dev/core": "workspace:*",
-    "@tsconfig/bun": "catalog:",
-    "@types/bun": "catalog:",
+    "@tsconfig/bun": "catalog:models.dev",
+    "@types/bun": "catalog:models.dev",
     "effect": "4.0.0-beta.83",
-    "typescript": "catalog:",
-    "zod": "catalog:"
+    "typescript": "catalog:models.dev",
+    "zod": "catalog:models.dev"
   }
 }

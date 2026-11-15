@@ -1,0 +1,45 @@
+# Root Rust workspace of aphrody-labs/open: the leaf crates that sit in no other workspace.
+# Upstream workspaces keep their own [workspace] and build in place (listed in `exclude`);
+# profiles and linker come from .cargo/config.toml. Details: docs/workspaces.md.
+[workspace]
+resolver = "3"
+members = [
+  "crates/clip",
+  "crates/hokum",
+  "crates/strobe",
+  "crates/terminal-control",
+  "packages/browser-control/crates/bc-studio",
+  "packages/sst/sdk/rust",
+]
+exclude = [
+  # nested upstream workspaces
+  "crates/deadbolt",
+  "crates/flicks",
+  "crates/hex",
+  "crates/isocast",
+  "crates/opentunnel",
+  "crates/rift",
+  "crates/rune",
+  "ecosystem/openai-codex/codex-rs",
+  "ecosystem/openai-codex/tools/argument-comment-lint",
+  "extra/net-tools",
+  "extra/niri",
+  "extra/transcribe.cpp",
+  "packages/grim/native",
+  "packages/nightmail/api/tear",
+  "packages/nightmail/gateway",
+  "packages/opentui/packages/rust",
+  # standalone leaf manifests that are not members (dev scripts, duplicate names, cloud examples)
+  # links = "ghostty-vt" itself, collides with libghostty-vt-sys pulled by terminal-control
+  "crates/opencode-pty",
+  # imports tree_sitter_language, absent from its tree-sitter ~0.20 pin (does not compile upstream)
+  "extra/tree-sitter-vue",
+  "crates/strobe/scripts/dev/background",
+  "crates/strobe/scripts/dev/bounce",
+  "crates/strobe/scripts/dev/tty-pairing",
+  "packages/ion/examples",
+  "packages/opencode/packages/process-daemon",
+  "packages/sst/examples",
+  "packages/v2/examples",
+  "packages/v2/packages/create-sst/bin/presets",
+]
