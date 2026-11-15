@@ -20,7 +20,8 @@ export type Block =
 const app = join(import.meta.dir, "..");
 const argv = Bun.argv.slice(2);
 const docs = argv.includes("--docs") ? argv[argv.indexOf("--docs") + 1]! : join(app, "../../.cache/bun-fork/docs");
-const { skills } = (await Bun.file(join(app, "skills.json")).json()) as { skills: { name: string; source: string; title: string; description: string; section: string }[] };
+// MDX and Markdown pages only: the bun-types reference pages come from gen/reference.ts
+const skills = ((await Bun.file(join(app, "skills.json")).json()) as { skills: { name: string; source: string; title: string; description: string; section: string }[] }).skills.filter((s) => /\.mdx?$/.test(s.source));
 
 // Navigation of the docs site (Mintlify docs.json): tab and group of every listed page; unlisted pages keep their folder.
 type NavNode = string | { tab?: string; group?: string; pages?: NavNode[]; groups?: NavNode[] };
@@ -29,7 +30,10 @@ const walkNav = (n: NavNode, tab: string, group: string) => {
   if (typeof n === "string") return void nav.set(n.replace(/^\//, "") + ".mdx", { tab, group });
   for (const c of [...(n.groups ?? []), ...(n.pages ?? [])]) walkNav(c, n.tab ?? tab, n.group ?? group);
 };
-for (const t of (await Bun.file(join(docs, "docs.json")).json()).navigation.tabs) walkNav(t, t.tab, t.tab);
+const tabs = (await Bun.file(join(docs, "docs.json")).json()).navigation.tabs as { tab: string; href?: string }[];
+for (const t of tabs) walkNav(t, t.tab, t.tab);
+// tabs that only link out (Blog -> https://bun.com/blog) own the pages under the same first path segment
+const byHref = new Map(tabs.filter((t) => t.href).map((t) => [new URL(t.href!).pathname.split("/")[1]!, t.tab]));
 // a page reached from a listed index page (lint rules from lint/rules/index) belongs where that index is
 const inherit = (source: string) => {
   for (let dir = source.split("/").slice(0, -1); dir.length; dir.pop()) {
@@ -114,7 +118,7 @@ for (const s of skills) {
   const b = blocks(src, tree.children ?? [], { n: 0 }, out);
   const walk = (xs: Block[]) => xs.forEach((x) => x.t === "jsx" && (jsxNames.set(x.name, (jsxNames.get(x.name) ?? 0) + 1), walk(x.children)));
   walk(b);
-  const where = nav.get(s.source) ?? inherit(s.source) ?? { tab: "Unlisted", group: s.source.includes("/") ? s.source.split("/")[0]! : "root" };
+  const where = nav.get(s.source) ?? inherit(s.source) ?? (byHref.has(s.source.split("/")[0]!) ? { tab: byHref.get(s.source.split("/")[0]!)!, group: s.source.split("/")[0]! } : null) ?? { tab: "Unlisted", group: s.source.includes("/") ? s.source.split("/")[0]! : "root" };
   pages[s.name] = { title: s.title, description: s.description, section: s.section, tab: where.tab, group: where.group, source: s.source, parser, blocks: b };
   if (out.length) snippets[s.name] = out;
   codeBlocks += out.length;
