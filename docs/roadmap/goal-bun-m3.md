@@ -46,6 +46,23 @@ Decision D19: the M3 components of the app are Angular Material.
 - `runner.ts`: each page gets a working directory outside any project (its own `package.json` and `bunfig.toml` with `run.bun`, so `node` is an alias of Bun; home, temp, AppData and XDG directories inside it; no global binaries and no Node.js on `PATH`). Every run is confined: bubblewrap on Linux (read-only root, private `/tmp` and home, own PID, IPC and UTS namespaces), a Job Object on Windows (the whole process tree ends on timeout and after every run). Calls and reads of `Bun` and of `bun` / `bun:*` exports go through a recording proxy that unwraps itself before native code; examples that act outside the directory (global installs, upgrade, publish, trust, login, OS credential store, clipboard, editor) are skipped; a server example that keeps serving until the timeout is `serving`.
 - `server.ts`: `Bun.serve` routes with the HTML import of the Angular client, the run API, server-sent events, the coverage report; results in `bun:sqlite`.
 
+## Results (reference run)
+
+Linux, bubblewrap (/usr/bin/bwrap), Bun 1.4.5 (64352244f), the executable built by `build.ts`; full report in [apps/bun-m3/coverage.json](../../apps/bun-m3/coverage.json) (`/api/coverage`).
+
+| Measure | Value |
+|---|---|
+| Examples run | 7541 of 7541 |
+| Pass | 3082 |
+| Serving until the timeout | 31 |
+| Fail | 4315 |
+| Timeout | 48 |
+| Skipped (act outside the directory) | 65 |
+| Bun API entries used | 184 of 407 |
+| M3 components implemented by Angular Material | 30 of 37, all rendered in a session |
+
+API entries no example reaches, by namespace: Bun.postgres 34, Bun.FFI 24, bun.jsc 23, Bun.CryptoHasher 21, Bun.SQL 20, Bun.dns 18, bun.ffi 9, Bun.secrets 4, Bun.unsafe 4, Bun.$ 3, Bun.Image 3, Bun.MD4 3, Bun.MD5 3, Bun.SHA1 3, Bun.SHA224 3, Bun.SHA256 3, Bun.SHA384 3, Bun.SHA512 3, Bun.SHA512_256 3, Bun.inspect 3, bun.sqlite 3, Bun.S3Client 2, bun.test 2, Bun.FetchSession 1, Bun.FileSystemRouter 1, Bun.ModuleGraph 1, Bun.allocUnsafe 1, Bun.concatArrayBuffers 1, Bun.cwd 1, Bun.deepMatch 1, Bun.embeddedFiles 1, Bun.enableANSIColors 1, Bun.fetch 1, Bun.indexOfLine 1, Bun.jest 1, Bun.mmap 1, Bun.openInEditor 1, Bun.origin 1, Bun.plugin 1, Bun.readableStreamToBlob 1, Bun.readableStreamToJSON 1, Bun.readableStreamToText 1, Bun.registerMacro 1, Bun.resolve 1, Bun.sha 1, Bun.shrink 1, Bun.version_with_sha 1, global.BuildMessage 1, global.ResolveMessage 1. The docs and bun-types have no runnable example that calls them; reaching them needs another source of real usage, such as the fork's own test suite.
+
 ## Known limits
 
 - Angular runs in JIT mode: Angular's template compiler needs the TypeScript 6 compiler API (angular/angular#69704) and TypeScript 7 has none before 7.1; the project ships no TypeScript 6. The client moves to Angular AOT when compiler-cli supports TypeScript 7.
