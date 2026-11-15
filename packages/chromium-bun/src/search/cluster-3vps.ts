@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Search cluster coordinator. The topology is read from infra/deploy.toml (`[nodes.*]`): a node's
+ * Search cluster coordinator. The topology is a TOML file with `[nodes.*]` tables (the Aphrody monorepo's
+ * infra/deploy.toml has that shape), named by CHROMIUM_BUN_TOPOLOGY; without it the cluster is empty. A node's
  * `role` decides which workloads it may run. Nothing here names a host.
  *   - role "production": crawl, indexing, BM25 shards, app hosting, search egress
  *   - role "cdn-edge-and-test": proxy / CDN only
  *   - any other role (for example "build"): excluded from the search cluster
  */
-import fleet from "../../../../infra/deploy.toml";
 import { ChromiumBunCrawler, type CrawlPageResult } from "./crawler.ts";
 import {
   APHRODY_TOP1_SUBDOMAIN_CATALOG,
@@ -63,11 +63,14 @@ interface FleetNodeToml {
   role: string;
 }
 
-export function loadClusterTopology(
-  nodes: Record<string, FleetNodeToml> = (
-    fleet as unknown as { nodes: Record<string, FleetNodeToml> }
-  ).nodes,
-): Record<ClusterNodeId, ClusterNodeSpec> {
+function readTopology(): Record<string, FleetNodeToml> {
+  const path = process.env.CHROMIUM_BUN_TOPOLOGY;
+  if (!path) return {};
+  const parsed = Bun.TOML.parse(require("node:fs").readFileSync(path, "utf8")) as { nodes?: Record<string, FleetNodeToml> };
+  return parsed.nodes ?? {};
+}
+
+export function loadClusterTopology(nodes: Record<string, FleetNodeToml> = readTopology()): Record<ClusterNodeId, ClusterNodeSpec> {
   const out: Record<ClusterNodeId, ClusterNodeSpec> = {};
   for (const [id, n] of Object.entries(nodes)) {
     out[id] = {
@@ -100,7 +103,7 @@ export function productionNode(
   const node = nodesWithRole("production", topology)[0];
   if (!node) {
     throw new Error(
-      'infra/deploy.toml declares no node with role = "production"',
+      'the topology (CHROMIUM_BUN_TOPOLOGY) declares no node with role = "production"',
     );
   }
   return node;
