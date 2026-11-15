@@ -7,3 +7,4 @@ screens.jsonl
 sources.json
 stages/*.log
 workflow.log
+stages/*.prompt.md

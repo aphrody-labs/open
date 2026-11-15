@@ -1,0 +1,3 @@
+Done: crates/hub web UI (ui.rs): home, /models, /datasets, /spaces lists with search, repository page with file list and resolve links; served only on Accept text/html, JSON for clients; light and dark tokens as CSS variables, escaped output, empty and 404 states, 390px layout. 5 tests pass on the build host (cargo test, copy of the crate).
+Not done: screenshots and a browser pass, Material 3 components, repo tabs (commits, settings, discussions), file viewer, users and orgs pages and token minting, huggingface_hub and hf-hub client runs, Xet, hf-mount, chat-ui, dataset viewer, jobs, screens beyond the three lists and the repository page.
+features.csv: lists and repository pages marked partial; every other row unchanged.

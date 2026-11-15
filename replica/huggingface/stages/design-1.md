@@ -1,0 +1,2 @@
+Done: design/tokens.json (light and dark roles, type, space, radius, shadow, layout from S04 and listing screens), tokens.css, tailwind.config.ts, components.md (all recon components with states and a11y); contrast report 12 pairs, 0 AA failures; open icons and fonts, brand accent left as a placeholder.
+Not done: primitives are not built in code or screenshotted (no web UI crate yet, UI is step 6 of the brief); tokens are estimated from screenshots, not colour-picked; features.csv clone column unchanged (no UI feature built, repo APIs stay as marked by the architect).

@@ -8,6 +8,7 @@ members = [
   "crates/ai-router",
   "crates/ai-router-tui",
   "crates/c-abi",
+  "crates/hub",
   "crates/clip",
   "crates/hokum",
   "crates/strobe",

@@ -1,0 +1,3 @@
+Done: huggingface_hub 2.4.0 run against crates/hub on the build host (14 calls: whoami, create_repo, upload_file, upload_folder with an LFS file, model_info, list_repo_files, hf_hub_download, LFS download, snapshot_download, list_models, list_repo_commits, refs, file_exists, delete_file): all pass after fixing 3 bugs (relative commitUrl, unauthenticated LFS PUT, missing commits endpoint); cargo test 5 pass. Script in crates/hub/tests/hf_client.py, bugs in bugs.md.
+Not done: Xet upload (B4, open S2: hf_xet default path 404 on xet-write-token), hf-hub (Rust), @huggingface/hub, git+LFS clients, Playwright and browser pass on the UI, a11y scan, test-plan.md.
+features.csv: only notes of the three API rows updated; clone values unchanged (partial).

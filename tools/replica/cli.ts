@@ -71,7 +71,7 @@ async function recon(seeds: { url: string; depth: number; from: string | null }[
   const sources = (existsSync(join(outDir, "sources.json")) ? JSON.parse(readFileSync(join(outDir, "sources.json"), "utf8")) : []) as Source[];
   writeFileSync(join(outDir, "recon.md"), reconMap(screens, sources, origin));
   const rows = mergeFeatures(outDir, features(screens, sources, origin));
-  writeFileSync(join(outDir, ".gitignore"), "screens/\nclone-screens/\npages/\nsources/\nindex/\nscreens.jsonl\nsources.json\nstages/*.log\nworkflow.log\n");
+  writeFileSync(join(outDir, ".gitignore"), "screens/\nclone-screens/\npages/\nsources/\nindex/\nscreens.jsonl\nsources.json\nstages/*.log\nstages/*.prompt.md\nworkflow.log\n");
   log(`recon: ${screens.length} screens, ${sources.length} sources, ${rows.length} features`);
   const idx = await py<{ model: string; device: string; documents: number }>(["index", outDir], log);
   log(`index: ${idx.documents} documents, ${idx.model} on ${idx.device}`);
