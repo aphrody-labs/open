@@ -1,0 +1,2361 @@
+{
+  "library": "Material 3 Design Kit (Figma community)",
+  "queries": 37,
+  "assets": 169,
+  "componentSets": 136,
+  "missing": [],
+  "byComponent": {
+    "app bar": [
+      "App bar",
+      "XR/XR App Bar",
+      "Bottom app bar",
+      "Search bar",
+      "XR/XR Navigation bar",
+      "Building Blocks/XR/Navigation bar/Nav item",
+      "Building Blocks/status-bar",
+      "Navigation Bar: Horizontal items",
+      "Building Blocks/Navigation bars/Horizontal nav item",
+      "Navigation Bar: Vertical items",
+      "Building Blocks/Navigation bars/Vertical nav item"
+    ],
+    "badge": [
+      "Badges",
+      "Building Blocks/XR/Navigation rail/Nav item",
+      "Building Blocks/XR/Navigation bar/Nav item",
+      "Building Blocks/Navigation bars/Vertical nav item",
+      "Building Blocks/Navigation rail/Horizontal nav item",
+      "Building Blocks/Navigation bars/Horizontal nav item",
+      "Building Blocks/Navigation rail/Vertical nav item"
+    ],
+    "bottom sheet": [
+      "Bottom sheet",
+      "Building Blocks/Bottom sheets/Content",
+      "Side Sheet",
+      "Building Blocks/Side sheets/Content",
+      "Bottom app bar"
+    ],
+    "button group": [
+      "Standard button group",
+      "Connected button group",
+      "Building Blocks/Button group/Connected segments/Medium",
+      "Building Blocks/Button group/Connected segments/XSmall",
+      "Building Blocks/Button group/Connected segments/Small",
+      "Building Blocks/Button group/Connected segments/Large",
+      "Building Blocks/Button group/Connected segments/Xlarge",
+      "Building Blocks/Segmented button/Button segment (end)",
+      "Building Blocks/Segmented button/Button segment (middle)",
+      "Building Blocks/Segmented button/Button segment (start)",
+      "Chip groups",
+      "Segmented button",
+      "Button - elevated",
+      "Button - tonal",
+      "Toggle button - tonal",
+      "Toggle button - outline",
+      "Button - outline",
+      "Button - text",
+      "Toggle button",
+      "Split button"
+    ],
+    "button": [
+      "Connected button group",
+      "Button - outline",
+      "Button - text",
+      "Toggle button",
+      "Split button",
+      "Toggle button - elevated",
+      "Toggle button - outline",
+      "Toggle button - tonal",
+      "Button - tonal",
+      "Button - elevated",
+      "Standard button group",
+      "Button",
+      "Building Blocks/Button group/Connected segments/Medium",
+      "Icon button togglable",
+      "Icon button",
+      "Icon button togglable - tonal",
+      "Icon button - tonal",
+      "Icon button - outline",
+      "Icon button - standard",
+      "Icon button togglable - outline"
+    ],
+    "card": [
+      "Horizontal card",
+      "Stacked card"
+    ],
+    "carousel": [
+      "Carousel",
+      "Carousel - Full screen",
+      "Building blocks/Multi-ratio items/1:1",
+      "Building blocks/General item",
+      "Building blocks/Multi-ratio items/4:3",
+      "Building blocks/Multi-ratio items/3:4",
+      "Building blocks/Multi-ratio items/9:16",
+      "Building blocks/Multi-ratio items/16:9"
+    ],
+    "checkbox": [
+      "Checkboxes",
+      "Building blocks/Trailing element",
+      "Building blocks/Leading element"
+    ],
+    "chip": [
+      "Chip groups",
+      "Input chip",
+      "Filter chip",
+      "Suggestion chip",
+      "Assistive chip"
+    ],
+    "date picker": [
+      "Modal date picker",
+      "Input date picker",
+      "Docked input date picker [desktop]",
+      "Keyboard picker",
+      "Dial picker"
+    ],
+    "dialog": [
+      "Basic dialog",
+      "Scrollable list dialog",
+      "XR/XR Dialog",
+      "List dialog"
+    ],
+    "divider": [
+      "Horizontal/Divider with subhead",
+      "Horizontal/Inset",
+      "Vertical/Middle-inset",
+      "Horizontal/Middle-inset",
+      "Vertical/Inset",
+      "Horizontal/Full-width",
+      "Vertical/Full-width"
+    ],
+    "extended FAB": [
+      "Extended FAB",
+      "FAB menu",
+      "XR/XR Navigation Rail",
+      "FAB"
+    ],
+    "FAB menu": [
+      "FAB menu",
+      "Menu item/Standard",
+      "Menu",
+      "Menu item/Vibrant",
+      "XR/XR Navigation Rail",
+      "menu",
+      "Building Blocks/Trailing element-selected",
+      "Building Blocks/Leading element",
+      "Building Blocks/Trailing element",
+      "Building Blocks/Menu list item: -4 density",
+      "Building Blocks/Menu list item",
+      "Building Blocks/Menu list item: -2 density",
+      "menu_open",
+      "Menu (baseline)",
+      "FAB",
+      "Extended FAB",
+      "Menu - Icon button Example",
+      "Menu with Text field - Example 1",
+      "Menu with Text field - Example 2"
+    ],
+    "floating action button": [],
+    "icon button": [
+      "Menu - Icon button Example",
+      "Icon button",
+      "Icon button togglable",
+      "Icon button togglable - tonal",
+      "Icon button - tonal",
+      "Icon button togglable - outline",
+      "Icon button - outline",
+      "Icon button - standard",
+      "Icon button togglable - standard",
+      "XR/Building Blocks/Tertiary container/Icon button toggleable",
+      "Building Blocks/Vibrant/Icon button toggleable",
+      "Building Blocks/Standard/Icon button toggleable",
+      "XR/Building Blocks/Surface high/Icon button",
+      "XR/Building Blocks/Surface/Icon button toggleable",
+      "XR/Building Blocks/Tertiary container/Icon button",
+      "Building Blocks/Standard/Icon button",
+      "XR/Building Blocks/Surface/Icon button",
+      "XR/Building Blocks/Surface high/Icon button toggleable",
+      "Building Blocks/Vibrant/Icon button",
+      "Split button"
+    ],
+    "list": [
+      "Scrollable list dialog",
+      "List dialog",
+      "List item - Accordion ",
+      "List Item - Swipe",
+      "List item",
+      "List",
+      "List item/List Item: -2 Density (baseline)",
+      "List item/List Item: 0 Density (baseline)",
+      "List item/List Item: -4 Density (baseline)",
+      "Building Blocks/Menu list item: -4 density",
+      "Building Blocks/Menu list item",
+      "Building Blocks/Menu list item: -2 density",
+      "List: -4 Density (baseline)",
+      "List (baseline)",
+      "List: -2 Density (baseline)",
+      "list",
+      "Building blocks/List item/Accordion buttton",
+      "Building blocks/Content",
+      "Building blocks/Leading element",
+      "Building blocks/Trailing element"
+    ],
+    "loading indicator": [
+      "Loading indicator",
+      "Focus indicator",
+      "Linear-indeterminate progress indicator",
+      "Circular-indeterminate progress indicator",
+      "Linear-determinate progress indicator",
+      "Circular-determinate progress indicator"
+    ],
+    "menu": [
+      "FAB menu",
+      "Menu",
+      "Menu (baseline)",
+      "Building Blocks/Menu list item: -2 density",
+      "Building Blocks/Menu list item",
+      "Building Blocks/Menu list item: -4 density",
+      "Menu item/Standard",
+      "Menu item/Vibrant",
+      "Menu with Text field - Example 2",
+      "Menu with Text field - Example 1",
+      "Menu - Icon button Example",
+      "menu",
+      "menu_open",
+      "Building Blocks/Trailing element",
+      "Building Blocks/Leading element",
+      "Building Blocks/Trailing element-selected"
+    ],
+    "navigation bar": [
+      "XR/XR Navigation bar",
+      "Navigation Bar: Horizontal items",
+      "Navigation Bar: Vertical items",
+      "Navigation Rail: Expanded",
+      "Building Blocks/XR/Navigation bar/Nav item",
+      "Building Blocks/Navigation bars/Horizontal nav item",
+      "Building Blocks/Navigation bars/Vertical nav item",
+      "Navigation Drawer",
+      "XR/XR Navigation Rail",
+      "Navigation Rail",
+      "App bar",
+      "Building Blocks/XR/Navigation rail/Nav item",
+      "Search bar",
+      "Building Blocks/Navigation rail/Vertical nav item",
+      "Building Blocks/Navigation rail/Horizontal nav item",
+      "Building Blocks/navigation",
+      "Building Blocks/status-bar",
+      "XR/XR App Bar",
+      "Building Blocks / Section header",
+      "Bottom app bar"
+    ],
+    "navigation drawer": [
+      "Navigation Drawer",
+      "Building Blocks / Nav item",
+      "XR/XR Navigation Rail",
+      "Navigation Rail: Expanded",
+      "Navigation Rail",
+      "XR/XR Navigation bar",
+      "Building Blocks/XR/Navigation rail/Nav item",
+      "Building Blocks/XR/Navigation bar/Nav item",
+      "Building Blocks/navigation",
+      "Navigation Bar: Vertical items",
+      "Building Blocks/Navigation rail/Vertical nav item",
+      "Navigation Bar: Horizontal items",
+      "Building Blocks/Navigation rail/Horizontal nav item",
+      "Building Blocks/Navigation bars/Vertical nav item",
+      "Building Blocks/Navigation bars/Horizontal nav item",
+      "Building Blocks / Section header",
+      "Examples/Layout grid"
+    ],
+    "navigation rail": [
+      "Navigation Rail",
+      "XR/XR Navigation Rail",
+      "Navigation Rail: Expanded",
+      "Building Blocks/XR/Navigation rail/Nav item",
+      "Building Blocks/Navigation rail/Vertical nav item",
+      "Building Blocks/Navigation rail/Horizontal nav item",
+      "Navigation Drawer",
+      "Building Blocks/XR/Navigation bar/Nav item",
+      "XR/XR Navigation bar",
+      "Building Blocks/navigation",
+      "Building Blocks/Navigation bars/Vertical nav item",
+      "Navigation Bar: Horizontal items",
+      "Navigation Bar: Vertical items",
+      "Building Blocks/Navigation bars/Horizontal nav item",
+      "Building Blocks / Section header",
+      "Examples/Layout grid",
+      "Building Blocks / Nav item"
+    ],
+    "progress indicator": [
+      "Circular-determinate progress indicator",
+      "Linear-determinate progress indicator",
+      "Linear-indeterminate progress indicator",
+      "Circular-indeterminate progress indicator",
+      "Loading indicator",
+      "Focus indicator"
+    ],
+    "radio button": [
+      "Radio buttons",
+      "radio_button_checked",
+      "radio_button_unchecked",
+      "Building Blocks/Button group/Connected segments/Medium",
+      "Building Blocks/Segmented button/Button segment (middle)",
+      "Building Blocks/Segmented button/Button segment (start)",
+      "Standard button group",
+      "Button - elevated",
+      "Connected button group",
+      "Button - tonal",
+      "Button - outline",
+      "Button - text",
+      "Toggle button",
+      "Split button",
+      "Button",
+      "Toggle button - elevated",
+      "Toggle button - outline",
+      "Toggle button - tonal",
+      "Icon button togglable",
+      "Icon button"
+    ],
+    "search": [
+      "Search full-screen layout",
+      "Search docked layout",
+      "Search full-screen layout (baseline)",
+      "Search docked layout (baseline)",
+      "Search bar",
+      "search",
+      "App bar"
+    ],
+    "segmented button": [
+      "Segmented button",
+      "Connected button group",
+      "Building Blocks/Segmented button/Button segment (start)",
+      "Building Blocks/Segmented button/Button segment (middle)",
+      "Building Blocks/Segmented button/Button segment (end)",
+      "Radio buttons",
+      "Building Blocks/Button group/Connected segments/Medium",
+      "Toggle button",
+      "Split button",
+      "Toggle button - elevated",
+      "Toggle button - outline",
+      "Toggle button - tonal",
+      "Standard button group",
+      "Icon button togglable",
+      "Icon button togglable - tonal",
+      "Icon button - tonal",
+      "Building Blocks/Button group/Connected segments/Small",
+      "Icon button - outline",
+      "Icon button - standard",
+      "Building Blocks/Button group/Connected segments/Large"
+    ],
+    "side sheet": [
+      "Side Sheet",
+      "Building Blocks/Side sheets/Content",
+      "Bottom sheet",
+      "Building Blocks/Bottom sheets/Content",
+      "Shape Set"
+    ],
+    "slider": [
+      "Standard slider",
+      "Range slider",
+      "Centered slider"
+    ],
+    "snackbar": [
+      "Snackbar"
+    ],
+    "split button": [
+      "Split button",
+      "Radio buttons",
+      "Building Blocks/Button group/Connected segments/Medium",
+      "Segmented button",
+      "Building Blocks/Segmented button/Button segment (end)",
+      "Building Blocks/Segmented button/Button segment (middle)",
+      "Building Blocks/Segmented button/Button segment (start)",
+      "Standard button group",
+      "Connected button group",
+      "Button - outline",
+      "Button - text",
+      "Toggle button",
+      "Button - elevated",
+      "Button - tonal",
+      "Button",
+      "Toggle button - tonal",
+      "Toggle button - outline",
+      "Toggle button - elevated",
+      "Icon button togglable",
+      "Icon button"
+    ],
+    "switch": [
+      "Switch",
+      "Building blocks/Trailing element",
+      "Building blocks/Leading element",
+      "List item/List Item: 0 Density (baseline)",
+      "List item/List Item: -4 Density (baseline)",
+      "List item/List Item: -2 Density (baseline)"
+    ],
+    "tabs": [
+      "Tabs",
+      "Secondary tabs/Label only",
+      "Secondary tabs/Icon and label",
+      "Primary tabs/Label only",
+      "Primary tabs/Icon only",
+      "Primary tabs/Icon and label"
+    ],
+    "text field": [
+      "Menu with Text field - Example 2",
+      "Menu with Text field - Example 1",
+      "Text field",
+      "text_fields",
+      "Building blocks/Trailing element",
+      "Building blocks/Content",
+      "Search docked layout",
+      "Search full-screen layout",
+      "Horizontal card",
+      "Stacked card",
+      "Building Blocks/XR/Navigation bar/Nav item",
+      "Building Blocks/XR/Navigation rail/Nav item",
+      "Snackbar",
+      "Building Blocks/Trailing element-selected",
+      "format_color_text",
+      "Building Blocks/Trailing element",
+      "Button - text",
+      "List item/List Item: -4 Density (baseline)",
+      "List item/List Item: 0 Density (baseline)",
+      "List item/List Item: -2 Density (baseline)"
+    ],
+    "time picker": [
+      "Keyboard picker",
+      "Dial picker",
+      "Modal date picker",
+      "Input date picker",
+      "Docked input date picker [desktop]"
+    ],
+    "toolbar": [
+      "Toolbar",
+      "XR/XR Toolbar",
+      "XR/Building Blocks/Tertiary container/Icon button toggleable",
+      "XR/Building Blocks/Tertiary container/Button toggleable",
+      "Building Blocks/Standard/Icon button toggleable",
+      "Building Blocks/Vibrant/Icon button toggleable",
+      "Building Blocks/Standard/Button toggleable",
+      "Building Blocks/Vibrant/Button toggleable",
+      "Building Blocks/Standard/Icon button",
+      "XR/Building Blocks/Surface/Icon button",
+      "XR/Building Blocks/Surface high/Button toggleable",
+      "Building Blocks/Vibrant/Icon button",
+      "XR/Building Blocks/Surface/Button toggleable",
+      "XR/Building Blocks/Surface high/Icon button toggleable",
+      "XR/Building Blocks/Tertiary container/Icon button",
+      "XR/Building Blocks/Surface/Icon button toggleable",
+      "XR/Building Blocks/Surface high/Icon button"
+    ],
+    "tooltip": [
+      "Rich Tooltip",
+      "Plain Tooltip"
+    ],
+    "FAB": [
+      "FAB",
+      "Extended FAB",
+      "FAB menu",
+      "XR/XR Navigation Rail"
+    ]
+  },
+  "list": [
+    {
+      "key": "23a20484e255cb14cf467ccc984ac918e457cefb",
+      "name": "App bar",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/App bar",
+      "updated": "2026-05-19T18:14:28Z",
+      "queries": [
+        "app bar",
+        "navigation bar",
+        "search"
+      ]
+    },
+    {
+      "key": "830e33056b7d4a1ef0f971a0469bbef1cb399e19",
+      "name": "Assistive chip",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Assistive chip",
+      "updated": "2025-09-02T17:16:18Z",
+      "queries": [
+        "chip"
+      ]
+    },
+    {
+      "key": "53751157f5709329944123f4b22b0f91a3b93278",
+      "name": "Badges",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Badges",
+      "updated": "2025-05-13T17:27:30Z",
+      "queries": [
+        "badge"
+      ]
+    },
+    {
+      "key": "8171ce19b4b8b7a873e91c719b7fb0fdc8a23794",
+      "name": "Basic dialog",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Basic dialog",
+      "updated": "2026-05-19T18:15:36Z",
+      "queries": [
+        "dialog"
+      ]
+    },
+    {
+      "key": "8f066e8acd27ddaa1271f29e267575d4c30a3d43",
+      "name": "Bottom app bar",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Bottom app bar",
+      "updated": "2025-11-14T21:56:11Z",
+      "queries": [
+        "app bar",
+        "bottom sheet",
+        "navigation bar"
+      ]
+    },
+    {
+      "key": "a3ecc23623bce0c4cf795c2c2efb64323cdbce44",
+      "name": "Bottom sheet",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Bottom sheet",
+      "updated": "2026-05-19T18:14:28Z",
+      "queries": [
+        "bottom sheet",
+        "side sheet"
+      ]
+    },
+    {
+      "key": "ca4d2227cd1bf6a5e9e24d5624e57c86a9a6cc0e",
+      "name": "Building Blocks / Nav item",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks / Nav item",
+      "updated": "2025-09-02T17:12:28Z",
+      "queries": [
+        "navigation drawer",
+        "navigation rail"
+      ]
+    },
+    {
+      "key": "6895b120948cbdd61f3de624e1d936762fece767",
+      "name": "Building Blocks / Section header",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks / Section header",
+      "updated": "2026-05-19T18:16:31Z",
+      "queries": [
+        "navigation bar",
+        "navigation drawer",
+        "navigation rail"
+      ]
+    },
+    {
+      "key": "dcceace311b6f8e6895efbda8fb2126a534a9f23",
+      "name": "Building Blocks/Bottom sheets/Content",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/Bottom sheets/Content",
+      "updated": "2025-09-02T17:13:35Z",
+      "queries": [
+        "bottom sheet",
+        "side sheet"
+      ]
+    },
+    {
+      "key": "677dad9349826dc5e3adc2b4eb7e9c1f450f46b0",
+      "name": "Building Blocks/Button group/Connected segments/Large",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/Button group/Connected segments/Large",
+      "updated": "2025-09-02T17:14:57Z",
+      "queries": [
+        "button group",
+        "segmented button"
+      ]
+    },
+    {
+      "key": "11b89dfc652ec79a0b0bc4d44b8e108582a076bb",
+      "name": "Building Blocks/Button group/Connected segments/Medium",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/Button group/Connected segments/Medium",
+      "updated": "2026-05-19T18:14:28Z",
+      "queries": [
+        "button group",
+        "button",
+        "radio button",
+        "segmented button",
+        "split button"
+      ]
+    },
+    {
+      "key": "3cf1c2c55631884838a8938c893529fabf27462b",
+      "name": "Building Blocks/Button group/Connected segments/Small",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/Button group/Connected segments/Small",
+      "updated": "2025-09-02T17:13:35Z",
+      "queries": [
+        "button group",
+        "segmented button"
+      ]
+    },
+    {
+      "key": "abeb9406ec59656f5f73428faa32fe77e64075f7",
+      "name": "Building Blocks/Button group/Connected segments/Xlarge",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/Button group/Connected segments/Xlarge",
+      "updated": "2025-09-02T17:14:57Z",
+      "queries": [
+        "button group"
+      ]
+    },
+    {
+      "key": "caee69328fbb4bfe30def5244d5fedfcbe1ab165",
+      "name": "Building Blocks/Button group/Connected segments/XSmall",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/Button group/Connected segments/XSmall",
+      "updated": "2025-09-02T17:13:35Z",
+      "queries": [
+        "button group"
+      ]
+    },
+    {
+      "key": "f85718c5b4c3d3941b15bd8fb9812963292d1c0f",
+      "name": "Building blocks/Content",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building blocks/Content",
+      "updated": "2026-05-19T18:13:45Z",
+      "queries": [
+        "list",
+        "text field"
+      ]
+    },
+    {
+      "key": "d8fdf9f5e0ee472aee507beda960f4338bd4f033",
+      "name": "Building blocks/General item",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/Building blocks/General item",
+      "updated": "2026-05-19T18:16:32Z",
+      "queries": [
+        "carousel"
+      ]
+    },
+    {
+      "key": "c59c13b616cbf071703992f9925315aee7fad127",
+      "name": "Building blocks/Leading element",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building blocks/Leading element",
+      "updated": "2026-05-19T18:16:03Z",
+      "queries": [
+        "checkbox",
+        "list",
+        "switch"
+      ]
+    },
+    {
+      "key": "900ead6e713e3402c5d6d9d74dbb086976af52c8",
+      "name": "Building Blocks/Leading element",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/Leading element",
+      "updated": "2026-05-19T18:13:45Z",
+      "queries": [
+        "FAB menu",
+        "menu"
+      ]
+    },
+    {
+      "key": "c57a4b2c7935b03f545e7745dd32606db98bb15f",
+      "name": "Building blocks/List item/Accordion buttton",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building blocks/List item/Accordion buttton",
+      "updated": "2026-01-07T18:25:30Z",
+      "queries": [
+        "list"
+      ]
+    },
+    {
+      "key": "2351fb528e8280d865fb073002ff74521d74f235",
+      "name": "Building Blocks/Menu list item",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/Menu list item",
+      "updated": "2026-05-19T18:16:03Z",
+      "queries": [
+        "FAB menu",
+        "list",
+        "menu"
+      ]
+    },
+    {
+      "key": "d668701eee12e08887540305d40ca6438c4a53ff",
+      "name": "Building Blocks/Menu list item: -2 density",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/Menu list item_ -2 density",
+      "updated": "2026-05-19T18:15:36Z",
+      "queries": [
+        "FAB menu",
+        "list",
+        "menu"
+      ]
+    },
+    {
+      "key": "d631534cf36a63602698b0295892e94b5651fbe6",
+      "name": "Building Blocks/Menu list item: -4 density",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/Menu list item_ -4 density",
+      "updated": "2026-05-19T18:14:28Z",
+      "queries": [
+        "FAB menu",
+        "list",
+        "menu"
+      ]
+    },
+    {
+      "key": "fecea65bbd9e0380046fbe6fbc1097fd7df39e52",
+      "name": "Building blocks/Multi-ratio items/1:1",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/Building blocks/Multi-ratio items/1_1",
+      "updated": "2026-05-19T18:16:32Z",
+      "queries": [
+        "carousel"
+      ]
+    },
+    {
+      "key": "094d4aa7995f06253e933a93bff6bffe1534f3c8",
+      "name": "Building blocks/Multi-ratio items/16:9",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/Building blocks/Multi-ratio items/16_9",
+      "updated": "2026-05-19T18:16:31Z",
+      "queries": [
+        "carousel"
+      ]
+    },
+    {
+      "key": "37c498310e03f3470e5085f38de6f82822f8f917",
+      "name": "Building blocks/Multi-ratio items/3:4",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/Building blocks/Multi-ratio items/3_4",
+      "updated": "2026-05-19T18:16:31Z",
+      "queries": [
+        "carousel"
+      ]
+    },
+    {
+      "key": "bd05dcfd45d5384f915e746e55fde2c40bd03ec3",
+      "name": "Building blocks/Multi-ratio items/4:3",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/Building blocks/Multi-ratio items/4_3",
+      "updated": "2026-05-19T18:16:31Z",
+      "queries": [
+        "carousel"
+      ]
+    },
+    {
+      "key": "4fb40586e4ec08fcb2b125745e3771445ae6b95c",
+      "name": "Building blocks/Multi-ratio items/9:16",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/Building blocks/Multi-ratio items/9_16",
+      "updated": "2026-05-19T18:16:31Z",
+      "queries": [
+        "carousel"
+      ]
+    },
+    {
+      "key": "5ea48ef438e1a60e7d3190b3403eab5acef728f1",
+      "name": "Building Blocks/navigation",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/navigation",
+      "updated": "2025-10-23T17:04:41Z",
+      "queries": [
+        "navigation bar",
+        "navigation drawer",
+        "navigation rail"
+      ]
+    },
+    {
+      "key": "25791e40439d5a1f5c226f2c501b4d5876cc9281",
+      "name": "Building Blocks/Navigation bars/Horizontal nav item",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/Navigation bars/Horizontal nav item",
+      "updated": "2025-09-02T17:12:07Z",
+      "queries": [
+        "app bar",
+        "badge",
+        "navigation bar",
+        "navigation drawer",
+        "navigation rail"
+      ]
+    },
+    {
+      "key": "f633226248791a112e27cb6ab42b37a6aa415aa6",
+      "name": "Building Blocks/Navigation bars/Vertical nav item",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/Navigation bars/Vertical nav item",
+      "updated": "2025-09-02T17:17:14Z",
+      "queries": [
+        "app bar",
+        "badge",
+        "navigation bar",
+        "navigation drawer",
+        "navigation rail"
+      ]
+    },
+    {
+      "key": "5900f92ab40c3b85cc06670c0ae48ea415e0d13b",
+      "name": "Building Blocks/Navigation rail/Horizontal nav item",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/Navigation rail/Horizontal nav item",
+      "updated": "2025-09-02T17:17:13Z",
+      "queries": [
+        "badge",
+        "navigation bar",
+        "navigation drawer",
+        "navigation rail"
+      ]
+    },
+    {
+      "key": "88820502a684b8895e6f84420e5eeba1dd85b76e",
+      "name": "Building Blocks/Navigation rail/Vertical nav item",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/Navigation rail/Vertical nav item",
+      "updated": "2025-09-02T17:12:28Z",
+      "queries": [
+        "badge",
+        "navigation bar",
+        "navigation drawer",
+        "navigation rail"
+      ]
+    },
+    {
+      "key": "b830392609e92bcf9799a22774afee799a1711e9",
+      "name": "Building Blocks/Segmented button/Button segment (end)",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/Segmented button/Button segment _end_",
+      "updated": "2025-11-14T21:56:11Z",
+      "queries": [
+        "button group",
+        "segmented button",
+        "split button"
+      ]
+    },
+    {
+      "key": "7e38cbdafa408fab4b05a42eea4a7bac47ead00d",
+      "name": "Building Blocks/Segmented button/Button segment (middle)",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/Segmented button/Button segment _middle_",
+      "updated": "2025-11-14T21:56:11Z",
+      "queries": [
+        "button group",
+        "radio button",
+        "segmented button",
+        "split button"
+      ]
+    },
+    {
+      "key": "fa46e2a806fc310f0bc977ae9da1d8bdff11e2a8",
+      "name": "Building Blocks/Segmented button/Button segment (start)",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/Segmented button/Button segment _start_",
+      "updated": "2025-11-14T21:56:11Z",
+      "queries": [
+        "button group",
+        "radio button",
+        "segmented button",
+        "split button"
+      ]
+    },
+    {
+      "key": "6abd5c4380129bf881b540ef6af6012f8fa12e70",
+      "name": "Building Blocks/Side sheets/Content",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/Side sheets/Content",
+      "updated": "2025-09-02T17:13:35Z",
+      "queries": [
+        "bottom sheet",
+        "side sheet"
+      ]
+    },
+    {
+      "key": "0899550fc9894d849b9ee498944641ed388bf2ff",
+      "name": "Building Blocks/Standard/Button toggleable",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/Standard/Button toggleable",
+      "updated": "2025-09-02T17:17:48Z",
+      "queries": [
+        "toolbar"
+      ]
+    },
+    {
+      "key": "cc54186b52058914dfd9cb7bd0bd9e32da385c53",
+      "name": "Building Blocks/Standard/Icon button",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/Standard/Icon button",
+      "updated": "2025-09-02T17:14:57Z",
+      "queries": [
+        "icon button",
+        "toolbar"
+      ]
+    },
+    {
+      "key": "5dc7af3f039df4b00e38a7bd5d1d2da20e5f2352",
+      "name": "Building Blocks/Standard/Icon button toggleable",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/Standard/Icon button toggleable",
+      "updated": "2025-09-02T17:17:13Z",
+      "queries": [
+        "icon button",
+        "toolbar"
+      ]
+    },
+    {
+      "key": "9ba30f3c7a2122d9ef05a0de9d62435e820e9ed7",
+      "name": "Building Blocks/status-bar",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/status-bar",
+      "updated": "2025-10-23T17:21:21Z",
+      "queries": [
+        "app bar",
+        "navigation bar"
+      ]
+    },
+    {
+      "key": "02c7bc68dda6605ef1cc6b3f84cd1250db57dfa9",
+      "name": "Building blocks/Trailing element",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building blocks/Trailing element",
+      "updated": "2026-05-19T18:14:28Z",
+      "queries": [
+        "checkbox",
+        "list",
+        "switch",
+        "text field"
+      ]
+    },
+    {
+      "key": "de1297f598f1c4f3cd7142510360756703364d7e",
+      "name": "Building Blocks/Trailing element",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/Trailing element",
+      "updated": "2026-05-19T18:13:45Z",
+      "queries": [
+        "FAB menu",
+        "menu",
+        "text field"
+      ]
+    },
+    {
+      "key": "4138a989246338e7d4990c926df1dc8fc09c1ffa",
+      "name": "Building Blocks/Trailing element-selected",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/Trailing element-selected",
+      "updated": "2026-05-19T18:15:36Z",
+      "queries": [
+        "FAB menu",
+        "menu",
+        "text field"
+      ]
+    },
+    {
+      "key": "5f9b2bf0b06cff66ab4efd35b2ff9bd7b7452505",
+      "name": "Building Blocks/Vibrant/Button toggleable",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/Vibrant/Button toggleable",
+      "updated": "2025-09-02T17:14:57Z",
+      "queries": [
+        "toolbar"
+      ]
+    },
+    {
+      "key": "45e7e8340b109d021a584c7e63c5e98399035026",
+      "name": "Building Blocks/Vibrant/Icon button",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/Vibrant/Icon button",
+      "updated": "2025-09-02T17:11:50Z",
+      "queries": [
+        "icon button",
+        "toolbar"
+      ]
+    },
+    {
+      "key": "c86942db4e4907ab5f23bce19e48c597074cb56b",
+      "name": "Building Blocks/Vibrant/Icon button toggleable",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/Vibrant/Icon button toggleable",
+      "updated": "2025-09-02T17:14:57Z",
+      "queries": [
+        "icon button",
+        "toolbar"
+      ]
+    },
+    {
+      "key": "2b27c2d33d305b66c7a7f9da766bca74984102a5",
+      "name": "Building Blocks/XR/Navigation bar/Nav item",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/XR/Navigation bar/Nav item",
+      "updated": "2025-09-02T17:16:18Z",
+      "queries": [
+        "app bar",
+        "badge",
+        "navigation bar",
+        "navigation drawer",
+        "navigation rail",
+        "text field"
+      ]
+    },
+    {
+      "key": "cec6f29cf3856fc4350595f8a0c06e91582f433c",
+      "name": "Building Blocks/XR/Navigation rail/Nav item",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Building Blocks/XR/Navigation rail/Nav item",
+      "updated": "2025-09-02T17:12:28Z",
+      "queries": [
+        "badge",
+        "navigation bar",
+        "navigation drawer",
+        "navigation rail",
+        "text field"
+      ]
+    },
+    {
+      "key": "ab924dce8b851fd820bd0d56da24a9c489311ae6",
+      "name": "Button",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Button",
+      "updated": "2026-05-19T18:16:30Z",
+      "queries": [
+        "button",
+        "radio button",
+        "split button"
+      ]
+    },
+    {
+      "key": "83034000281dcf9f147679e07ef11d2b65e311dc",
+      "name": "Button - elevated",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Button - elevated",
+      "updated": "2026-05-19T18:15:04Z",
+      "queries": [
+        "button group",
+        "button",
+        "radio button",
+        "split button"
+      ]
+    },
+    {
+      "key": "dd2040219668454df5aa170434636aa823624c1a",
+      "name": "Button - outline",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Button - outline",
+      "updated": "2026-05-19T18:16:30Z",
+      "queries": [
+        "button group",
+        "button",
+        "radio button",
+        "split button"
+      ]
+    },
+    {
+      "key": "c94bd76a8dbf75d7885f3015ad8474d898fca25b",
+      "name": "Button - text",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Button - text",
+      "updated": "2026-05-19T18:15:04Z",
+      "queries": [
+        "button group",
+        "button",
+        "radio button",
+        "split button",
+        "text field"
+      ]
+    },
+    {
+      "key": "bc43537f1f7aec7e0c159679f9a721e7aab9f100",
+      "name": "Button - tonal",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Button - tonal",
+      "updated": "2026-05-19T18:14:52Z",
+      "queries": [
+        "button group",
+        "button",
+        "radio button",
+        "split button"
+      ]
+    },
+    {
+      "key": "edc179a51f6728016f4ed2dd4ffd4714d2ee2632",
+      "name": "Carousel",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Carousel",
+      "updated": "2026-05-19T18:16:03Z",
+      "queries": [
+        "carousel"
+      ]
+    },
+    {
+      "key": "86253621c894b61ee41d38d42bbcc283da887627",
+      "name": "Carousel - Full screen",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Carousel - Full screen",
+      "updated": "2026-05-19T18:16:03Z",
+      "queries": [
+        "carousel"
+      ]
+    },
+    {
+      "key": "85957509b5fb5cde84e622a03f1f38839cc22e7e",
+      "name": "Centered slider",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Centered slider",
+      "updated": "2025-06-03T21:33:54Z",
+      "queries": [
+        "slider"
+      ]
+    },
+    {
+      "key": "b0c54da23fcaf1f2d07092703407af5c3c656e26",
+      "name": "Checkboxes",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Checkboxes",
+      "updated": "2025-09-02T17:13:35Z",
+      "queries": [
+        "checkbox"
+      ]
+    },
+    {
+      "key": "1d2a51c1c430f62eae0b53730ca3eccf7925784f",
+      "name": "Chip groups",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Chip groups",
+      "updated": "2025-09-02T17:13:12Z",
+      "queries": [
+        "button group",
+        "chip"
+      ]
+    },
+    {
+      "key": "45d44cfda78980d4af683cba32d066910207b6f1",
+      "name": "Circular-determinate progress indicator",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Circular-determinate progress indicator",
+      "updated": "2025-05-13T17:28:40Z",
+      "queries": [
+        "loading indicator",
+        "progress indicator"
+      ]
+    },
+    {
+      "key": "0f6663248f1907b46c8c4b28e4c94fee3b9bdcfe",
+      "name": "Circular-indeterminate progress indicator",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Circular-indeterminate progress indicator",
+      "updated": "2025-05-13T17:28:26Z",
+      "queries": [
+        "loading indicator",
+        "progress indicator"
+      ]
+    },
+    {
+      "key": "ab725aa6145ef6985ede897ea5a0baf007f98c4b",
+      "name": "Connected button group",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Connected button group",
+      "updated": "2026-05-19T18:16:03Z",
+      "queries": [
+        "button group",
+        "button",
+        "radio button",
+        "segmented button",
+        "split button"
+      ]
+    },
+    {
+      "key": "c7880f183aeaa1637c01ed610e226a1420e6faca",
+      "name": "Dial picker",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Dial picker",
+      "updated": "2026-05-19T18:14:28Z",
+      "queries": [
+        "date picker",
+        "time picker"
+      ]
+    },
+    {
+      "key": "a4270e80293fbd807d44c4c077dfefb92f089cc9",
+      "name": "Docked input date picker [desktop]",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Docked input date picker _desktop_",
+      "updated": "2026-05-19T18:14:28Z",
+      "queries": [
+        "date picker",
+        "time picker"
+      ]
+    },
+    {
+      "key": "1a4fc722742706882c9459ec7eab5e264f15dbbe",
+      "name": "Examples/Layout grid",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Examples/Layout grid",
+      "updated": "2025-05-13T17:25:48Z",
+      "queries": [
+        "navigation drawer",
+        "navigation rail"
+      ]
+    },
+    {
+      "key": "ccefc26b7e7a59ee386fadd4e3b01a58a357677c",
+      "name": "Extended FAB",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Extended FAB",
+      "updated": "2026-05-19T18:15:27Z",
+      "queries": [
+        "extended FAB",
+        "FAB menu",
+        "FAB"
+      ]
+    },
+    {
+      "key": "d50a484bd3e7c607851a8f29a8384c941ab51ac1",
+      "name": "FAB",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/FAB",
+      "updated": "2026-05-19T18:16:03Z",
+      "queries": [
+        "extended FAB",
+        "FAB menu",
+        "FAB"
+      ]
+    },
+    {
+      "key": "b12f2d060cb490714c77436dff796255b06ede8d",
+      "name": "FAB menu",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/FAB menu",
+      "updated": "2026-05-19T18:16:30Z",
+      "queries": [
+        "extended FAB",
+        "FAB menu",
+        "menu",
+        "FAB"
+      ]
+    },
+    {
+      "key": "a3c83c534d78babd0613f4f14c72ac25ebae90cf",
+      "name": "Filter chip",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Filter chip",
+      "updated": "2025-09-02T17:13:12Z",
+      "queries": [
+        "chip"
+      ]
+    },
+    {
+      "key": "8eff514fb93cbdb0e8cf34c2c61755cbb1a90113",
+      "name": "Focus indicator",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/Focus indicator",
+      "updated": "2025-10-24T19:08:38Z",
+      "queries": [
+        "loading indicator",
+        "progress indicator"
+      ]
+    },
+    {
+      "key": "c4006c545af89dbd518e2af8b299e4e7569f25f0",
+      "name": "format_color_text",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/format_color_text",
+      "updated": "2025-10-24T19:15:19Z",
+      "queries": [
+        "text field"
+      ]
+    },
+    {
+      "key": "78d3f1e228edbedd6296fda77df704a36224f12b",
+      "name": "Horizontal card",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Horizontal card",
+      "updated": "2026-05-19T18:16:03Z",
+      "queries": [
+        "card",
+        "text field"
+      ]
+    },
+    {
+      "key": "f02a5fa2dcf4b078588979f112963b1012ce0c23",
+      "name": "Horizontal/Divider with subhead",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/Horizontal/Divider with subhead",
+      "updated": "2026-05-19T18:16:32Z",
+      "queries": [
+        "divider"
+      ]
+    },
+    {
+      "key": "b7f38eebae3ae9bbf4c127fe0686fcf409d5ffc8",
+      "name": "Horizontal/Full-width",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/Horizontal/Full-width",
+      "updated": "2025-10-24T23:18:39Z",
+      "queries": [
+        "divider"
+      ]
+    },
+    {
+      "key": "646b09800d7cd44f780acf1d53d3ff0f89fa84d0",
+      "name": "Horizontal/Inset",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/Horizontal/Inset",
+      "updated": "2025-10-23T17:19:18Z",
+      "queries": [
+        "divider"
+      ]
+    },
+    {
+      "key": "9e04120bea3f1c06ccebfbf9bb3f6dd494d222c8",
+      "name": "Horizontal/Middle-inset",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/Horizontal/Middle-inset",
+      "updated": "2025-10-24T19:06:05Z",
+      "queries": [
+        "divider"
+      ]
+    },
+    {
+      "key": "dade3abcd81f1c97793476ce3090e8cd11819cb5",
+      "name": "Icon button",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Icon button",
+      "updated": "2025-09-02T17:16:05Z",
+      "queries": [
+        "button",
+        "icon button",
+        "radio button",
+        "split button"
+      ]
+    },
+    {
+      "key": "185636f538941f5915ec0a86c05fceea2c1295d7",
+      "name": "Icon button - outline",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Icon button - outline",
+      "updated": "2025-09-02T17:14:18Z",
+      "queries": [
+        "button",
+        "icon button",
+        "segmented button"
+      ]
+    },
+    {
+      "key": "dee6932fb2a593bf051991ec7b89c17491b63774",
+      "name": "Icon button - standard",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Icon button - standard",
+      "updated": "2025-09-02T17:15:07Z",
+      "queries": [
+        "button",
+        "icon button",
+        "segmented button"
+      ]
+    },
+    {
+      "key": "23df4d379eb6d7682dcf4fd92a4dca3f2445f624",
+      "name": "Icon button - tonal",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Icon button - tonal",
+      "updated": "2025-09-02T17:15:23Z",
+      "queries": [
+        "button",
+        "icon button",
+        "segmented button"
+      ]
+    },
+    {
+      "key": "4663c937cda706c49020b3bc74b1e504cb453058",
+      "name": "Icon button togglable",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Icon button togglable",
+      "updated": "2025-09-02T17:14:09Z",
+      "queries": [
+        "button",
+        "icon button",
+        "radio button",
+        "segmented button",
+        "split button"
+      ]
+    },
+    {
+      "key": "e26ff01372d3b023c0783eac9cd275da6195c503",
+      "name": "Icon button togglable - outline",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Icon button togglable - outline",
+      "updated": "2025-09-02T17:13:57Z",
+      "queries": [
+        "button",
+        "icon button"
+      ]
+    },
+    {
+      "key": "5d5a87313b65a50d0e7f0d0bbe1ef8a2dae00896",
+      "name": "Icon button togglable - standard",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Icon button togglable - standard",
+      "updated": "2025-09-02T17:17:26Z",
+      "queries": [
+        "icon button"
+      ]
+    },
+    {
+      "key": "a01dc1a8029a9d44d12ee13b4d3ad9323400d303",
+      "name": "Icon button togglable - tonal",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Icon button togglable - tonal",
+      "updated": "2025-09-02T17:15:56Z",
+      "queries": [
+        "button",
+        "icon button",
+        "segmented button"
+      ]
+    },
+    {
+      "key": "43bb4e7ba35f782f6ec354697a45f805a81cbabb",
+      "name": "Input chip",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Input chip",
+      "updated": "2025-09-02T17:13:12Z",
+      "queries": [
+        "chip"
+      ]
+    },
+    {
+      "key": "fac2daf7f21d509f03640e26a9e4c61737f94905",
+      "name": "Input date picker",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Input date picker",
+      "updated": "2026-05-19T18:14:28Z",
+      "queries": [
+        "date picker",
+        "time picker"
+      ]
+    },
+    {
+      "key": "0ba85df1bc8fb6d58c9a573af638933019323c4d",
+      "name": "Keyboard picker",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Keyboard picker",
+      "updated": "2026-05-19T18:14:28Z",
+      "queries": [
+        "date picker",
+        "time picker"
+      ]
+    },
+    {
+      "key": "2f02f075b410db543e8e9770cb399c14c583110e",
+      "name": "Linear-determinate progress indicator",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Linear-determinate progress indicator",
+      "updated": "2025-05-13T17:26:07Z",
+      "queries": [
+        "loading indicator",
+        "progress indicator"
+      ]
+    },
+    {
+      "key": "714a49e2ecdf470d71046463100d8caa7df9f802",
+      "name": "Linear-indeterminate progress indicator",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Linear-indeterminate progress indicator",
+      "updated": "2025-05-13T17:28:40Z",
+      "queries": [
+        "loading indicator",
+        "progress indicator"
+      ]
+    },
+    {
+      "key": "9bbce4a1a3a41702c33022b174d3f4ceaf7b7a17",
+      "name": "list",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/list",
+      "updated": "2025-10-24T19:12:26Z",
+      "queries": [
+        "list"
+      ]
+    },
+    {
+      "key": "950ed879898a25ac7f81c2dd3dd329fe077d644a",
+      "name": "List",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/List",
+      "updated": "2026-05-19T18:13:45Z",
+      "queries": [
+        "list"
+      ]
+    },
+    {
+      "key": "9f83e6e2b71a36ec758a4358f6e5b9d23eb5eb2d",
+      "name": "List (baseline)",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/List _baseline_",
+      "updated": "2026-05-19T18:16:31Z",
+      "queries": [
+        "list"
+      ]
+    },
+    {
+      "key": "f34d47f5b630f17b4b1bd23e40fc21aed86cb598",
+      "name": "List dialog",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/List dialog",
+      "updated": "2026-05-19T18:14:28Z",
+      "queries": [
+        "dialog",
+        "list"
+      ]
+    },
+    {
+      "key": "e51596a48a52120d41c1a8260b43e27018e3d4bb",
+      "name": "List item",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/List item",
+      "updated": "2026-05-19T18:15:14Z",
+      "queries": [
+        "list"
+      ]
+    },
+    {
+      "key": "0c523694cd5c4bab030c2c61496cb1d2d0f362b1",
+      "name": "List item - Accordion ",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/List item - Accordion",
+      "updated": "2026-05-19T18:16:03Z",
+      "queries": [
+        "list"
+      ]
+    },
+    {
+      "key": "4067a7cc42e8f07e76e6461037570a27b3883da1",
+      "name": "List Item - Swipe",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/List Item - Swipe",
+      "updated": "2026-05-19T18:15:14Z",
+      "queries": [
+        "list"
+      ]
+    },
+    {
+      "key": "071225a09b70a47d3620649f92b0b70d0d142795",
+      "name": "List item/List Item: -2 Density (baseline)",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/List item/List Item_ -2 Density _baseline_",
+      "updated": "2026-05-19T18:14:15Z",
+      "queries": [
+        "list",
+        "switch",
+        "text field"
+      ]
+    },
+    {
+      "key": "77649bbe934436a9b0e473b219411be23755ed3c",
+      "name": "List item/List Item: -4 Density (baseline)",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/List item/List Item_ -4 Density _baseline_",
+      "updated": "2026-05-19T18:16:12Z",
+      "queries": [
+        "list",
+        "switch",
+        "text field"
+      ]
+    },
+    {
+      "key": "29f9b2ecbc9f785174eba9adbcdb6d982d05b92e",
+      "name": "List item/List Item: 0 Density (baseline)",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/List item/List Item_ 0 Density _baseline_",
+      "updated": "2026-05-19T18:14:05Z",
+      "queries": [
+        "list",
+        "switch",
+        "text field"
+      ]
+    },
+    {
+      "key": "d81c17cbded062bb527b716cb412343b2a293c45",
+      "name": "List: -2 Density (baseline)",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/List_ -2 Density _baseline_",
+      "updated": "2026-05-19T18:16:32Z",
+      "queries": [
+        "list"
+      ]
+    },
+    {
+      "key": "5834d0e2de8a151fe421ea969f22532d3b8db3cd",
+      "name": "List: -4 Density (baseline)",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/List_ -4 Density _baseline_",
+      "updated": "2026-05-19T18:16:31Z",
+      "queries": [
+        "list"
+      ]
+    },
+    {
+      "key": "9ba8ab419ed610f820741d629e63798736c92e7c",
+      "name": "Loading indicator",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Loading indicator",
+      "updated": "2025-05-13T17:27:48Z",
+      "queries": [
+        "loading indicator",
+        "progress indicator"
+      ]
+    },
+    {
+      "key": "97154355925a7d9b473a492931fa05e47251e03c",
+      "name": "menu",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/menu",
+      "updated": "2025-10-23T16:56:48Z",
+      "queries": [
+        "FAB menu",
+        "menu"
+      ]
+    },
+    {
+      "key": "051ad0b8208035892442a2f5797001a75c330398",
+      "name": "Menu",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Menu",
+      "updated": "2026-05-19T18:13:45Z",
+      "queries": [
+        "FAB menu",
+        "menu"
+      ]
+    },
+    {
+      "key": "00e29602236893ce3131908c7e1fe454d50dfbdf",
+      "name": "Menu (baseline)",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Menu _baseline_",
+      "updated": "2026-05-19T18:13:45Z",
+      "queries": [
+        "FAB menu",
+        "menu"
+      ]
+    },
+    {
+      "key": "06f8deef44b59719cca657135463b1c619e8c9f2",
+      "name": "Menu - Icon button Example",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/Menu - Icon button Example",
+      "updated": "2026-05-19T18:16:31Z",
+      "queries": [
+        "FAB menu",
+        "icon button",
+        "menu"
+      ]
+    },
+    {
+      "key": "6d8ca12c11e6bd1c2f933d05a54d6909e0ca63a3",
+      "name": "Menu item/Standard",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Menu item/Standard",
+      "updated": "2026-05-19T18:16:30Z",
+      "queries": [
+        "FAB menu",
+        "menu"
+      ]
+    },
+    {
+      "key": "9704420e8b357f6a21a2c9d9ef59f34fe28e2ca8",
+      "name": "Menu item/Vibrant",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Menu item/Vibrant",
+      "updated": "2026-05-19T18:15:14Z",
+      "queries": [
+        "FAB menu",
+        "menu"
+      ]
+    },
+    {
+      "key": "25bbc41396f267efa1a91516f8986d3464f14b18",
+      "name": "Menu with Text field - Example 1",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/Menu with Text field - Example 1",
+      "updated": "2026-05-19T18:16:31Z",
+      "queries": [
+        "FAB menu",
+        "menu",
+        "text field"
+      ]
+    },
+    {
+      "key": "2b227dc2e1372c51613357708c3812d1746d0137",
+      "name": "Menu with Text field - Example 2",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/Menu with Text field - Example 2",
+      "updated": "2026-05-19T18:16:31Z",
+      "queries": [
+        "FAB menu",
+        "menu",
+        "text field"
+      ]
+    },
+    {
+      "key": "4d63ada4eec6243404a8218d97b5ee31fc50ce21",
+      "name": "menu_open",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/menu_open",
+      "updated": "2025-10-24T19:10:34Z",
+      "queries": [
+        "FAB menu",
+        "menu"
+      ]
+    },
+    {
+      "key": "d744e5079345102bcd9379ca3fe5f62fa3fa0d6c",
+      "name": "Modal date picker",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Modal date picker",
+      "updated": "2026-05-19T18:14:28Z",
+      "queries": [
+        "date picker",
+        "time picker"
+      ]
+    },
+    {
+      "key": "ea7ecee6955d7956473fde7169a29bde4656ed57",
+      "name": "Navigation Bar: Horizontal items",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Navigation Bar_ Horizontal items",
+      "updated": "2025-09-02T17:17:49Z",
+      "queries": [
+        "app bar",
+        "navigation bar",
+        "navigation drawer",
+        "navigation rail"
+      ]
+    },
+    {
+      "key": "d044e5ea85ee8d7479269dc54c5cb55b7156821d",
+      "name": "Navigation Bar: Vertical items",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Navigation Bar_ Vertical items",
+      "updated": "2025-09-02T17:12:07Z",
+      "queries": [
+        "app bar",
+        "navigation bar",
+        "navigation drawer",
+        "navigation rail"
+      ]
+    },
+    {
+      "key": "2e423d599a52f1d1c61335f521227c0db6f184af",
+      "name": "Navigation Drawer",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/Navigation Drawer",
+      "updated": "2026-05-19T18:16:31Z",
+      "queries": [
+        "navigation bar",
+        "navigation drawer",
+        "navigation rail"
+      ]
+    },
+    {
+      "key": "f006d1fc8382634f6e07fd4f440556d68c5618c2",
+      "name": "Navigation Rail",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Navigation Rail",
+      "updated": "2026-05-19T18:16:03Z",
+      "queries": [
+        "navigation bar",
+        "navigation drawer",
+        "navigation rail"
+      ]
+    },
+    {
+      "key": "e07e5a0ea6438bb3d099d8e41fd121730687072b",
+      "name": "Navigation Rail: Expanded",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Navigation Rail_ Expanded",
+      "updated": "2026-05-19T18:16:03Z",
+      "queries": [
+        "navigation bar",
+        "navigation drawer",
+        "navigation rail"
+      ]
+    },
+    {
+      "key": "6013eea930401507ad7fe6945e9be13efd8d26ff",
+      "name": "Plain Tooltip",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Plain Tooltip",
+      "updated": "2025-05-13T17:25:48Z",
+      "queries": [
+        "tooltip"
+      ]
+    },
+    {
+      "key": "0bb08721d57a28ea4d1fcac7f4102733c4404a64",
+      "name": "Primary tabs/Icon and label",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Primary tabs/Icon and label",
+      "updated": "2026-05-19T18:16:30Z",
+      "queries": [
+        "tabs"
+      ]
+    },
+    {
+      "key": "c273ab12bb1f5804020189535c4c77cf48cc6954",
+      "name": "Primary tabs/Icon only",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Primary tabs/Icon only",
+      "updated": "2026-05-19T18:13:45Z",
+      "queries": [
+        "tabs"
+      ]
+    },
+    {
+      "key": "94e100e3db494a412e33829f9d81d34b460e09dc",
+      "name": "Primary tabs/Label only",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Primary tabs/Label only",
+      "updated": "2026-05-19T18:14:28Z",
+      "queries": [
+        "tabs"
+      ]
+    },
+    {
+      "key": "aa0134adaa6451053bf3b6e00a2adcb99f92ba1e",
+      "name": "Radio buttons",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Radio buttons",
+      "updated": "2025-09-02T17:12:07Z",
+      "queries": [
+        "radio button",
+        "segmented button",
+        "split button"
+      ]
+    },
+    {
+      "key": "4c148a7c0d43909dabe83776e5e923d62b326a42",
+      "name": "radio_button_checked",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/radio_button_checked",
+      "updated": "2025-10-24T23:00:53Z",
+      "queries": [
+        "radio button"
+      ]
+    },
+    {
+      "key": "7af84be391de321746d5b8b2984f6ec08d8136f1",
+      "name": "radio_button_unchecked",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/radio_button_unchecked",
+      "updated": "2025-10-23T17:16:10Z",
+      "queries": [
+        "radio button"
+      ]
+    },
+    {
+      "key": "1ddc5e3f02fedca27dd0fac2a75a19e2ce19f39e",
+      "name": "Range slider",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Range slider",
+      "updated": "2025-06-03T21:33:36Z",
+      "queries": [
+        "slider"
+      ]
+    },
+    {
+      "key": "3944be44094b0e860ed306d36d689351acf25f00",
+      "name": "Rich Tooltip",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/Rich Tooltip",
+      "updated": "2026-05-19T18:16:31Z",
+      "queries": [
+        "tooltip"
+      ]
+    },
+    {
+      "key": "ed951aae0595ee63c1f619526b8d0377f1988390",
+      "name": "Scrollable list dialog",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Scrollable list dialog",
+      "updated": "2026-05-19T18:16:03Z",
+      "queries": [
+        "dialog",
+        "list"
+      ]
+    },
+    {
+      "key": "38c2286a089c341862b12bbfdce48b710ab29747",
+      "name": "search",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/search",
+      "updated": "2025-10-23T17:09:22Z",
+      "queries": [
+        "search"
+      ]
+    },
+    {
+      "key": "c0f91fc11bf2c0abd7d232c02d111a133b0a478a",
+      "name": "Search bar",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Search bar",
+      "updated": "2025-09-02T17:16:05Z",
+      "queries": [
+        "app bar",
+        "navigation bar",
+        "search"
+      ]
+    },
+    {
+      "key": "2eea33e85c69fc3116cf085b1ba0e6ce94024d62",
+      "name": "Search docked layout",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Search docked layout",
+      "updated": "2026-05-19T18:13:45Z",
+      "queries": [
+        "search",
+        "text field"
+      ]
+    },
+    {
+      "key": "d6f77fed01213f67225d85757240b276ce5b0b85",
+      "name": "Search docked layout (baseline)",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Search docked layout _baseline_",
+      "updated": "2026-05-19T18:13:45Z",
+      "queries": [
+        "search"
+      ]
+    },
+    {
+      "key": "62c6c181400ae94624214110f52c94a9ed2ee95b",
+      "name": "Search full-screen layout",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Search full-screen layout",
+      "updated": "2026-05-19T18:13:45Z",
+      "queries": [
+        "search",
+        "text field"
+      ]
+    },
+    {
+      "key": "0d88226ff66a58cb5a55ff7be33a82fd52a49173",
+      "name": "Search full-screen layout (baseline)",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Search full-screen layout _baseline_",
+      "updated": "2026-05-19T18:15:36Z",
+      "queries": [
+        "search"
+      ]
+    },
+    {
+      "key": "7e57504815b4650fe36967ffa5d2d1c0bbeb3f2a",
+      "name": "Secondary tabs/Icon and label",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Secondary tabs/Icon and label",
+      "updated": "2026-05-19T18:13:45Z",
+      "queries": [
+        "tabs"
+      ]
+    },
+    {
+      "key": "070fca64d6d5eb24343185cc014d2d3445b3991b",
+      "name": "Secondary tabs/Label only",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Secondary tabs/Label only",
+      "updated": "2026-05-19T18:14:28Z",
+      "queries": [
+        "tabs"
+      ]
+    },
+    {
+      "key": "ac5b8a73683e9ee4030724e83aaa9065df323dfa",
+      "name": "Segmented button",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Segmented button",
+      "updated": "2025-11-14T21:56:11Z",
+      "queries": [
+        "button group",
+        "segmented button",
+        "split button"
+      ]
+    },
+    {
+      "key": "1197504a16076aa79b93adc5334396976aa7d839",
+      "name": "Shape Set",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Shape Set",
+      "updated": "2025-06-03T21:32:15Z",
+      "queries": [
+        "side sheet"
+      ]
+    },
+    {
+      "key": "bd138156169905a581542d50703359e0c1450a43",
+      "name": "Side Sheet",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Side Sheet",
+      "updated": "2026-05-19T18:14:28Z",
+      "queries": [
+        "bottom sheet",
+        "side sheet"
+      ]
+    },
+    {
+      "key": "464661eb5ba25f3331fd708a502f15e8dbe87305",
+      "name": "Snackbar",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Snackbar",
+      "updated": "2025-09-02T17:17:48Z",
+      "queries": [
+        "snackbar",
+        "text field"
+      ]
+    },
+    {
+      "key": "4d5ac899d1ed2748b35f19fe08cfdf6d412f41f9",
+      "name": "Split button",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Split button",
+      "updated": "2026-05-19T18:15:36Z",
+      "queries": [
+        "button group",
+        "button",
+        "icon button",
+        "radio button",
+        "segmented button",
+        "split button"
+      ]
+    },
+    {
+      "key": "a79bb6c8ccfee2be2b9d5cefcb81fc2d88c62fff",
+      "name": "Stacked card",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Stacked card",
+      "updated": "2026-05-19T18:15:04Z",
+      "queries": [
+        "card",
+        "text field"
+      ]
+    },
+    {
+      "key": "f063601af1615f2f9a44f4721812bed3c0f85ea1",
+      "name": "Standard button group",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Standard button group",
+      "updated": "2026-05-19T18:14:28Z",
+      "queries": [
+        "button group",
+        "button",
+        "radio button",
+        "segmented button",
+        "split button"
+      ]
+    },
+    {
+      "key": "4851d51e7cd3b6f9988e35f1ea59cbd4d382627b",
+      "name": "Standard slider",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Standard slider",
+      "updated": "2025-09-02T17:12:07Z",
+      "queries": [
+        "slider"
+      ]
+    },
+    {
+      "key": "0d7e6a879673928b58ef377abe6270faf59577d1",
+      "name": "Suggestion chip",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Suggestion chip",
+      "updated": "2025-09-02T17:15:07Z",
+      "queries": [
+        "chip"
+      ]
+    },
+    {
+      "key": "1f6ff0e7afa1181d166c5dbd3856ba6135b75019",
+      "name": "Switch",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Switch",
+      "updated": "2025-09-02T17:17:48Z",
+      "queries": [
+        "switch"
+      ]
+    },
+    {
+      "key": "c4816e9ba31977046bf2fdeb5c45bfb7ea217ae5",
+      "name": "Tabs",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Tabs",
+      "updated": "2026-05-19T18:13:45Z",
+      "queries": [
+        "tabs"
+      ]
+    },
+    {
+      "key": "a54980c1c99c62912ab39e9e30fe5c267c98edb4",
+      "name": "Text field",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Text field",
+      "updated": "2025-09-02T17:11:50Z",
+      "queries": [
+        "text field"
+      ]
+    },
+    {
+      "key": "50fa0aa766545fd5434500adf2daae72be06b833",
+      "name": "text_fields",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/text_fields",
+      "updated": "2025-10-24T19:12:17Z",
+      "queries": [
+        "text field"
+      ]
+    },
+    {
+      "key": "62ad7a6e992132a2804972f0dafa1f7070722ce1",
+      "name": "Toggle button",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Toggle button",
+      "updated": "2026-05-19T18:15:14Z",
+      "queries": [
+        "button group",
+        "button",
+        "radio button",
+        "segmented button",
+        "split button"
+      ]
+    },
+    {
+      "key": "630c89a52c22de1ab56dee32d5b263ecf2b16eb5",
+      "name": "Toggle button - elevated",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Toggle button - elevated",
+      "updated": "2026-05-19T18:14:52Z",
+      "queries": [
+        "button",
+        "radio button",
+        "segmented button",
+        "split button"
+      ]
+    },
+    {
+      "key": "c0c6aca47d6afe39dd72bc2369cab34c7bf52395",
+      "name": "Toggle button - outline",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Toggle button - outline",
+      "updated": "2026-05-19T18:14:43Z",
+      "queries": [
+        "button group",
+        "button",
+        "radio button",
+        "segmented button",
+        "split button"
+      ]
+    },
+    {
+      "key": "66d02c63a2fdd50bcd60bdc933945ae6111348f8",
+      "name": "Toggle button - tonal",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Toggle button - tonal",
+      "updated": "2026-05-19T18:14:35Z",
+      "queries": [
+        "button group",
+        "button",
+        "radio button",
+        "segmented button",
+        "split button"
+      ]
+    },
+    {
+      "key": "864c87c0f86e064828a5d9093aa0a12cc51d1e88",
+      "name": "Toolbar",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/Toolbar",
+      "updated": "2026-05-19T18:16:03Z",
+      "queries": [
+        "toolbar"
+      ]
+    },
+    {
+      "key": "71c14e27f0ab438fcaa8da479315f06634dd3e88",
+      "name": "Vertical/Full-width",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/Vertical/Full-width",
+      "updated": "2025-10-23T17:23:12Z",
+      "queries": [
+        "divider"
+      ]
+    },
+    {
+      "key": "16c4d16bc7f33cc99b2adfe2c2dac03a1d846602",
+      "name": "Vertical/Inset",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/Vertical/Inset",
+      "updated": "2025-10-24T23:18:43Z",
+      "queries": [
+        "divider"
+      ]
+    },
+    {
+      "key": "55cac1f8ebb359c2b10e221925fba4d9a3fd50fc",
+      "name": "Vertical/Middle-inset",
+      "type": "component",
+      "path": "design_systems/Material 3 Design Kit/components/Vertical/Middle-inset",
+      "updated": "2025-10-23T17:23:15Z",
+      "queries": [
+        "divider"
+      ]
+    },
+    {
+      "key": "c7edb5b3ba40800d3448aa059ee31bfde86e5c34",
+      "name": "XR/Building Blocks/Surface high/Button toggleable",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/XR/Building Blocks/Surface high/Button toggleable",
+      "updated": "2025-09-02T17:12:07Z",
+      "queries": [
+        "toolbar"
+      ]
+    },
+    {
+      "key": "f23e857def15bfa487a0a8bd56bfc8f93d355481",
+      "name": "XR/Building Blocks/Surface high/Icon button",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/XR/Building Blocks/Surface high/Icon button",
+      "updated": "2025-09-02T17:17:48Z",
+      "queries": [
+        "icon button",
+        "toolbar"
+      ]
+    },
+    {
+      "key": "0a3e7fa9a7fb18a5024594a2fc059e45d0c11d59",
+      "name": "XR/Building Blocks/Surface high/Icon button toggleable",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/XR/Building Blocks/Surface high/Icon button toggleable",
+      "updated": "2025-09-02T17:17:13Z",
+      "queries": [
+        "icon button",
+        "toolbar"
+      ]
+    },
+    {
+      "key": "93962b316c7f6b49bf50d3da1f7ec2c8c998e2a3",
+      "name": "XR/Building Blocks/Surface/Button toggleable",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/XR/Building Blocks/Surface/Button toggleable",
+      "updated": "2025-09-02T17:14:57Z",
+      "queries": [
+        "toolbar"
+      ]
+    },
+    {
+      "key": "0fa4b83fee118198473fb3df50a43fa17d5e1546",
+      "name": "XR/Building Blocks/Surface/Icon button",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/XR/Building Blocks/Surface/Icon button",
+      "updated": "2025-09-02T17:11:50Z",
+      "queries": [
+        "icon button",
+        "toolbar"
+      ]
+    },
+    {
+      "key": "95540a9e86e87e25e1896af5d0ead3be09e8c30c",
+      "name": "XR/Building Blocks/Surface/Icon button toggleable",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/XR/Building Blocks/Surface/Icon button toggleable",
+      "updated": "2025-09-02T17:11:50Z",
+      "queries": [
+        "icon button",
+        "toolbar"
+      ]
+    },
+    {
+      "key": "6138db10875849a25b8ba2c60f63e42f10a7ca31",
+      "name": "XR/Building Blocks/Tertiary container/Button toggleable",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/XR/Building Blocks/Tertiary container/Button toggleable",
+      "updated": "2025-11-14T21:56:11Z",
+      "queries": [
+        "toolbar"
+      ]
+    },
+    {
+      "key": "d18fb1ddd06735376466f01a066ed00bfae61708",
+      "name": "XR/Building Blocks/Tertiary container/Icon button",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/XR/Building Blocks/Tertiary container/Icon button",
+      "updated": "2025-09-02T17:11:50Z",
+      "queries": [
+        "icon button",
+        "toolbar"
+      ]
+    },
+    {
+      "key": "8abcb27a3583c7f4344fc58c8e161cd0cf0f55ec",
+      "name": "XR/Building Blocks/Tertiary container/Icon button toggleable",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/XR/Building Blocks/Tertiary container/Icon button toggleable",
+      "updated": "2025-11-14T21:55:30Z",
+      "queries": [
+        "icon button",
+        "toolbar"
+      ]
+    },
+    {
+      "key": "04748dfd36c466ab1cec34b7fb28e373069c00bc",
+      "name": "XR/XR App Bar",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/XR/XR App Bar",
+      "updated": "2025-09-02T17:13:35Z",
+      "queries": [
+        "app bar",
+        "navigation bar"
+      ]
+    },
+    {
+      "key": "0481c35a93eec61db2148a56da89c1812b3db371",
+      "name": "XR/XR Dialog",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/XR/XR Dialog",
+      "updated": "2026-05-19T18:15:04Z",
+      "queries": [
+        "dialog"
+      ]
+    },
+    {
+      "key": "aeab96ffb999a8d3758ede46b92fccb9d33912f3",
+      "name": "XR/XR Navigation bar",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/XR/XR Navigation bar",
+      "updated": "2025-09-02T17:17:14Z",
+      "queries": [
+        "app bar",
+        "navigation bar",
+        "navigation drawer",
+        "navigation rail"
+      ]
+    },
+    {
+      "key": "f9a97fb8b0bcf3ab52f3f8406ace9c021334a3a7",
+      "name": "XR/XR Navigation Rail",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/XR/XR Navigation Rail",
+      "updated": "2026-05-19T18:15:04Z",
+      "queries": [
+        "extended FAB",
+        "FAB menu",
+        "navigation bar",
+        "navigation drawer",
+        "navigation rail",
+        "FAB"
+      ]
+    },
+    {
+      "key": "3fef21fec0f1c5ca822d42cb2db6a2b765523502",
+      "name": "XR/XR Toolbar",
+      "type": "component_set",
+      "path": "design_systems/Material 3 Design Kit/components/XR/XR Toolbar",
+      "updated": "2026-05-19T18:14:28Z",
+      "queries": [
+        "toolbar"
+      ]
+    }
+  ]
+}
