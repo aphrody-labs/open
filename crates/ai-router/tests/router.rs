@@ -124,3 +124,28 @@ fn local_servers_come_first_and_through_the_c_abi() {
     assert_eq!(offers.as_array().unwrap().len(), 1);
     unsafe { capi::aphrody_router_close(router) };
 }
+
+#[test]
+fn the_service_answers_openai_and_anthropic_clients() {
+    let (ok, _) = stand_in(200, json!({ "object": "chat.completion", "choices": [{ "index": 0, "message": { "role": "assistant", "content": "served" }, "finish_reason": "stop" }], "usage": { "prompt_tokens": 4, "completion_tokens": 1 } }));
+    set("AIR_T5_K");
+    let config = Config { catalog: Some(catalog(&[("svc", "@ai-sdk/openai-compatible", &ok, "AIR_T5_K", 0.0)])), local: Some(vec![]), ..Config::default() };
+    let router = Router::open(&config).unwrap();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || ai_router::server::serve(router, "127.0.0.1:0", |a| tx.send(a).unwrap()).unwrap());
+    let base = format!("http://{}", rx.recv().unwrap());
+    let models: Value = ureq::get(format!("{base}/v1/models")).call().unwrap().body_mut().read_json().unwrap();
+    assert_eq!(models["data"][0]["id"], "svc/m");
+    let openai: Value = ureq::post(format!("{base}/v1/chat/completions")).send_json(json!({ "messages": [{ "role": "user", "content": "hi" }] })).unwrap().body_mut().read_json().unwrap();
+    assert_eq!(openai["choices"][0]["message"]["content"], "served");
+    let anthropic: Value = ureq::post(format!("{base}/v1/messages"))
+        .send_json(json!({ "model": "auto", "max_tokens": 64, "system": "brief", "messages": [{ "role": "user", "content": [{ "type": "text", "text": "hi" }] }] }))
+        .unwrap()
+        .body_mut()
+        .read_json()
+        .unwrap();
+    assert_eq!(anthropic["type"], "message");
+    assert_eq!(anthropic["content"][0]["text"], "served");
+    assert_eq!(anthropic["stop_reason"], "end_turn");
+    assert_eq!(anthropic["usage"]["output_tokens"], 1);
+}

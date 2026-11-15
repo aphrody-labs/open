@@ -19,7 +19,7 @@ jobs:
       RUSTUP_TOOLCHAIN: nightly
       CARGO_TERM_COLOR: always
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           sparse-checkout: |
             crates
@@ -46,7 +46,7 @@ jobs:
             *) lib=libai_router.so ;;
           esac
           AI_ROUTER_LIB="$GITHUB_WORKSPACE/target/release/$lib" bun test
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ai-router-${{ runner.os }}
           path: |

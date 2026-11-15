@@ -27,6 +27,8 @@
 - R9b. Local first; every inference type and every cloud provider supported (D8).
 - R9c. The C ABI is consumed by Angular, Flutter, Compose, Rust, Zig, .NET and C++ without rewriting the core.
 
+State of R5 to R9c: `crates/ai-router` serves `/v1/chat/completions`, `/v1/models` and `/v1/messages` (R5); offers come from the models.dev catalog and the local OpenAI-compatible servers found on loopback, with credentials read from the variables the catalog names (R6); policies `auto`, `auto:local`, `auto:free`, `auto:cheap`, failover with an attempt trace (R7); C ABI in the shared `aphrody_*` ABI, HTTPS through rustls (R8, platform transport not yet); CLI and service (R9, TUI, desktop, mobile and serverless not yet); library and service (R9a); text chat only (R9b: other inference types not yet); Bun binding (R9c: other languages not yet). "Free and unlimited": zero-cost offers first and local models without a quota; no remote free offer is unlimited.
+
 ### UI
 - R10. Google's official components and tokens only; Aphrody identity through official theming.
 - R10a. Maximum coverage: Angular (fork), Flutter (desktop, mobile, web), Compose Multiplatform, a Rust framework at the same level (D3, D4).

@@ -8,7 +8,7 @@ Each phase ends according to the definition of done in [spec.md](spec.md).
 | 1 | Healthy monorepo: cross-platform clone, `bun.lock`, Bun AOT and Rust LTO builds green | D1 | Windows clone fixed (310 files dropped); `bun.lock` and builds remain |
 | 1b | Toolchain (Bazel + just, Turborepo, Bun, Cargo, LLVM); validation gates as Bun and Cargo plugins | D12, D13 | to start |
 | 2 | Angular forks (angular, components, angular-cli) following upstream, Bun patches, AOT and LTO | D3 | forks created in aphrody-labs; follow automation and patches to do |
-| 3 | Common C ABI core and AI router (library + service, local first) | D2, D8 to D11 | to start |
+| 3 | Common C ABI core and AI router (library + service, local first) | D2, D8 to D11 | in progress: `crates/ai-router` (library, C ABI `include/ai_router.h`, CLI, OpenAI- and Anthropic-compatible service), `packages/ai-router` (Bun binding), CI on Linux, Windows and macOS |
 | 4 | Aphrody theme on Angular Material, Flutter material, Compose material3, Rust framework | D4, D7 | to start |
 | 5 | Router surfaces on every target (web, Android, iOS, desktop, terminal, serverless, self-hosted) | phases 2 to 4, D5 | to start |
 | 6 | Reference archive of design.google + m3.material.io | D6 | to start |
