@@ -316,3 +316,22 @@ fn multipart_fields_are_read_without_decoding_binary_parts() {
     assert_eq!(ai_router::transport::multipart_field(&out, b, "model").as_deref(), Some("m2"));
     assert!(out.windows(7).any(|w| w == [0xff, 0x00, 0x2d, 0x2d, 0x7a, 0x7a, 0xfe]));
 }
+
+#[test]
+fn bearer_tokens_guard_the_service_and_non_loopback_needs_them() {
+    let (ok, _) = stand_in(200, completion("hi"));
+    set("AIR_T11");
+    let config = Config { catalog: Some(catalog(&[("p", "@ai-sdk/openai-compatible", &ok, "AIR_T11", 0.0)])), local: Some(vec![]), ..Config::default() };
+    let (tx, rx) = std::sync::mpsc::channel();
+    let router = Router::open(&config).unwrap();
+    std::thread::spawn(move || ai_router::server::serve_with(router, "127.0.0.1:0", vec!["s3cret".into()], |a| tx.send(a).unwrap()).unwrap());
+    let addr = rx.recv().unwrap();
+    let body = json!({ "messages": [{ "role": "user", "content": "hi" }] });
+    assert_eq!(ureq::post(format!("http://{addr}/v1/chat/completions")).config().http_status_as_error(false).build().send_json(&body).unwrap().status().as_u16(), 401);
+    let mut r = ureq::post(format!("http://{addr}/v1/chat/completions")).header("Authorization", "Bearer s3cret").send_json(&body).unwrap();
+    assert_eq!(serde_json::from_str::<Value>(&r.body_mut().read_to_string().unwrap()).unwrap()["choices"][0]["message"]["content"], "hi");
+    assert_eq!(ureq::get(format!("http://{addr}/health")).call().unwrap().status().as_u16(), 200);
+    // a public address without tokens is refused
+    let router = Router::open(&config).unwrap();
+    assert!(ai_router::server::serve_with(router, "0.0.0.0:0", vec![], |_| {}).is_err());
+}

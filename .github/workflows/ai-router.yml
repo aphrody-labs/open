@@ -80,7 +80,7 @@ jobs:
           IMAGE: ghcr.io/${{ github.repository_owner }}/ai-router
         run: |
           docker build -f crates/ai-router/deploy/Containerfile -t "$IMAGE:${GITHUB_SHA::12}" -t "$IMAGE:latest" crates/ai-router/deploy
-          docker run -d --name air -p 8080:8080 "$IMAGE:latest"
+          docker run -d --name air -e AI_ROUTER_TOKENS=ci-check -p 8080:8080 "$IMAGE:latest"
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:8080/health && break; sleep 2; done
           curl -sf http://127.0.0.1:8080/v1/models > /dev/null
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin

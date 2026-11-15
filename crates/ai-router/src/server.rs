@@ -14,15 +14,44 @@ fn reply(req: tiny_http::Request, status: u16, body: &Value) {
     let _ = req.respond(Response::from_string(body.to_string()).with_status_code(status).with_header(h));
 }
 
+/// Tokens accepted on `/v1/*` (AI_ROUTER_TOKENS, comma-separated). Empty: no authentication, loopback only.
+fn tokens() -> Vec<String> {
+    std::env::var("AI_ROUTER_TOKENS").unwrap_or_default().split(',').map(str::trim).filter(|t| !t.is_empty()).map(str::to_owned).collect()
+}
+
+fn ct_eq(a: &[u8], b: &[u8]) -> bool {
+    a.len() == b.len() && a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+}
+
 /// Serves until the process ends. `addr` like "127.0.0.1:0"; the bound address is returned through `on_ready`.
+/// A service reachable from other hosts spends the operator's provider credentials, so binding a non-loopback
+/// address needs AI_ROUTER_TOKENS (callers send one as `Authorization: Bearer`), or AI_ROUTER_OPEN=1 to accept that.
 pub fn serve(router: Router, addr: &str, on_ready: impl FnOnce(String)) -> Result<(), String> {
+    serve_with(router, addr, tokens(), on_ready)
+}
+
+/// `serve` with the accepted bearer tokens given (empty: no authentication, loopback only unless AI_ROUTER_OPEN=1).
+pub fn serve_with(router: Router, addr: &str, accepted: Vec<String>, on_ready: impl FnOnce(String)) -> Result<(), String> {
+    let loopback = addr.starts_with("127.") || addr.starts_with("[::1]") || addr.starts_with("localhost:");
+    if !loopback && accepted.is_empty() && std::env::var("AI_ROUTER_OPEN").as_deref() != Ok("1") {
+        return Err(format!("{addr}: set AI_ROUTER_TOKENS before serving beyond loopback (or AI_ROUTER_OPEN=1)"));
+    }
+    let accepted = Arc::new(accepted);
     let server = Server::http(addr).map_err(|e| format!("{addr}: {e}"))?;
     on_ready(server.server_addr().to_string());
     let router = Arc::new(router);
     for mut req in server.incoming_requests() {
         let router = router.clone();
+        let accepted = accepted.clone();
         std::thread::spawn(move || {
             let path = req.url().split('?').next().unwrap_or("").to_owned();
+            if path.starts_with("/v1/") && !accepted.is_empty() {
+                let given = req.headers().iter().find(|h| h.field.equiv("Authorization")).map(|h| h.value.as_str().trim().to_owned()).unwrap_or_default();
+                let token = given.strip_prefix("Bearer ").unwrap_or("").trim().as_bytes().to_vec();
+                if !accepted.iter().any(|t| ct_eq(t.as_bytes(), &token)) {
+                    return reply(req, 401, &json!({ "error": { "message": "missing or unknown bearer token", "type": "authentication_error" } }));
+                }
+            }
             // request bodies are read once, up to a limit, before any parsing
             let bytes = if *req.method() == Method::Post {
                 let limit = max_body();

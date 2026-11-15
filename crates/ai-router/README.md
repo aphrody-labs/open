@@ -14,7 +14,7 @@ Multi-provider AI router: a library with a C ABI, a CLI and an HTTP service comp
 | Surface | How |
 |---|---|
 | CLI | `ai-router models [policy] [--json]`, `ai-router chat [--model <policy or id>] <prompt>` |
-| Service | `ai-router serve [--addr host:port]`: `POST /v1/chat/completions`, `POST /v1/messages`, `POST /v1/embeddings`, `POST /v1/images/generations`, `POST /v1/audio/speech`, `POST /v1/audio/transcriptions`, `GET /v1/models`, `GET /health` |
+| Service | `ai-router serve [--addr host:port]` (beyond loopback it needs `AI_ROUTER_TOKENS`, comma-separated bearer tokens, or `AI_ROUTER_OPEN=1`): `POST /v1/chat/completions`, `POST /v1/messages`, `POST /v1/embeddings`, `POST /v1/images/generations`, `POST /v1/audio/speech`, `POST /v1/audio/transcriptions`, `GET /v1/models`, `GET /health` |
 | C ABI | `include/ai_router.h`: `aphrody_router_open`, `_chat`, `_models`, `_close`, `_last_error`; strings freed with `aphrody_free` (crate `c-abi`) |
 | Bun | `packages/ai-router` (bun:ffi), with streaming |
 | Terminal | `crates/ai-router-tui`: full-screen chat, streamed answers, policy switch |

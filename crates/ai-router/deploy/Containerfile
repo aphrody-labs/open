@@ -3,4 +3,5 @@
 FROM scratch
 COPY ai-router /ai-router
 EXPOSE 8080
+# serving beyond loopback needs AI_ROUTER_TOKENS (callers send one as a bearer token)
 ENTRYPOINT ["/ai-router", "serve", "--addr", "0.0.0.0:8080"]

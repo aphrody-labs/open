@@ -5,7 +5,8 @@
 //! `{rev}.sha` (head commit), `{rev}.lfs.json` (path -> {oid,size}), `.private` marker; `lfs/{oid}` content
 //! addressed objects (sha256); `cache/{key}` and `{key}.meta` mirror answers.
 //! Environment: `HUB_ADDR`, `HUB_DATA`, `HUB_UPSTREAM`, `HUB_UPSTREAM_TOKEN`, `HUB_TOKENS` (`token=user;...`,
-//! empty = open mode), `HUB_PUBLIC_URL`, `HUB_LFS_THRESHOLD` (bytes), `HUB_MAX_BODY` (bytes).
+//! empty = open mode), `HUB_PUBLIC_URL`, `HUB_LFS_THRESHOLD`, `HUB_MAX_BODY` (buffered bodies), `HUB_MAX_OBJECT` (LFS objects),
+//! `HUB_MAX_CONNECTIONS`, `HUB_SECRET` (signed upload links).
 use base64::{Engine, engine::general_purpose::STANDARD};
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
@@ -27,6 +28,8 @@ struct Cfg {
     public: Option<String>,
     lfs_threshold: u64,
     max_body: u64,
+    /// largest LFS object accepted (streamed to disk)
+    max_object: u64,
     /// key of the signed LFS upload links (HUB_SECRET, else random per process)
     secret: Vec<u8>,
 }
@@ -59,16 +62,39 @@ fn main() {
             .unwrap_or_default(),
         public: envv("HUB_PUBLIC_URL").map(|u| u.trim_end_matches('/').to_string()),
         lfs_threshold: envv("HUB_LFS_THRESHOLD").and_then(|v| v.parse().ok()).unwrap_or(10 * 1024 * 1024),
-        max_body: envv("HUB_MAX_BODY").and_then(|v| v.parse().ok()).unwrap_or(1 << 30),
+        max_body: envv("HUB_MAX_BODY").and_then(|v| v.parse().ok()).unwrap_or(64 << 20),
+        max_object: envv("HUB_MAX_OBJECT").and_then(|v| v.parse().ok()).unwrap_or(100 << 30),
         secret: envv("HUB_SECRET").map(String::into_bytes).unwrap_or_else(random_secret),
     };
     let addr = envv("HUB_ADDR").unwrap_or_else(|| "127.0.0.1:8090".into());
+    // beyond loopback the hub must not be open to writes, and links must not follow the client's Host header
+    let loopback = addr.starts_with("127.") || addr.starts_with("[::1]") || addr.starts_with("localhost:");
+    if !loopback && cfg.tokens.is_empty() && envv("HUB_OPEN").as_deref() != Some("1") {
+        eprintln!("{addr}: set HUB_TOKENS before serving beyond loopback (or HUB_OPEN=1 for an open hub)");
+        std::process::exit(2);
+    }
+    if !loopback && cfg.public.is_none() {
+        eprintln!("{addr}: set HUB_PUBLIC_URL (the https address clients use) before serving beyond loopback");
+        std::process::exit(2);
+    }
     let server = Server::http(&addr).expect("bind");
     let cfg = std::sync::Arc::new(cfg);
+    let limit: usize = envv("HUB_MAX_CONNECTIONS").and_then(|v| v.parse().ok()).unwrap_or(256);
+    let active = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
     for req in server.incoming_requests() {
-        // one thread per request: a long download never holds the others
-        let cfg = cfg.clone();
-        std::thread::spawn(move || handle(&cfg, req));
+        use std::sync::atomic::Ordering;
+        // one thread per request, up to HUB_MAX_CONNECTIONS at once: a long download never holds the others, and a
+        // flood of requests is answered 503 instead of exhausting memory
+        if active.fetch_add(1, Ordering::SeqCst) >= limit {
+            active.fetch_sub(1, Ordering::SeqCst);
+            let _ = req.respond(Response::from_string("{\"error\":\"busy\"}").with_status_code(503));
+            continue;
+        }
+        let (cfg, active) = (cfg.clone(), active.clone());
+        std::thread::spawn(move || {
+            handle(&cfg, req);
+            active.fetch_sub(1, Ordering::SeqCst);
+        });
     }
 }
 
@@ -169,9 +195,9 @@ fn lfs_put_stream(cfg: &Cfg, url: &str, h: &[(String, String)], body: &mut dyn R
             }
         };
         total += n as u64;
-        if total > cfg.max_body || std::io::Write::write_all(&mut out, &buf[..n]).is_err() {
+        if total > cfg.max_object || std::io::Write::write_all(&mut out, &buf[..n]).is_err() {
             let _ = fs::remove_file(&tmp);
-            return err(413, "object too large (HUB_MAX_BODY)");
+            return err(413, "object too large (HUB_MAX_OBJECT)");
         }
         hasher.update(&buf[..n]);
     }
@@ -226,8 +252,23 @@ fn hget<'a>(h: &'a [(String, String)], k: &str) -> Option<&'a str> {
     h.iter().find(|(a, _)| a == k).map(|(_, v)| v.as_str())
 }
 
+/// One path segment that stays inside its directory on every platform: no separators, no drive prefix (`C:`),
+/// no Windows device name (`con`, `nul`, `com1`...), no dot-only name.
 fn safe_seg(s: &str) -> bool {
-    !s.is_empty() && s != "." && s != ".." && !s.contains(['/', '\\', '\0'])
+    const DEVICES: [&str; 22] = ["con", "prn", "aux", "nul", "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8", "com9", "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9"];
+    let stem = s.split('.').next().unwrap_or("").to_ascii_lowercase();
+    !s.is_empty() && !s.chars().all(|c| c == '.') && !s.contains(['/', '\\', '\0', ':']) && !DEVICES.contains(&stem.as_str())
+}
+
+/// A revision name a writer may create: letters, digits, `.`, `_`, `-` (`/` kept for branch names, stored as
+/// %2F), no leading dot, and never the name of a revision's sidecar files (`.sha`, `.log`, `.lfs.json`).
+fn valid_rev(rev: &str) -> bool {
+    !rev.is_empty()
+        && rev.len() <= 100
+        && !rev.starts_with('.')
+        && rev.split('/').all(|p| !p.is_empty() && p.bytes().all(|b| b.is_ascii_alphanumeric() || b"._-".contains(&b)))
+        && ![".sha", ".log", ".lfs.json"].iter().any(|x| rev.ends_with(x))
+        && safe_seg(&rev_name(rev))
 }
 
 fn safe_path(p: &str) -> bool {
@@ -321,8 +362,10 @@ fn user_of(cfg: &Cfg, h: &[(String, String)]) -> Option<String> {
     if cfg.tokens.is_empty() {
         return Some("local".into());
     }
-    let t = hget(h, "authorization")?.strip_prefix("Bearer ")?.trim();
-    cfg.tokens.iter().find(|(k, _)| k == t).map(|(_, u)| u.clone())
+    let t = hget(h, "authorization")?.strip_prefix("Bearer ")?.trim().as_bytes();
+    // constant-time comparison: response timing tells nothing about a token's bytes
+    let eq = |a: &[u8], b: &[u8]| a.len() == b.len() && a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0;
+    cfg.tokens.iter().find(|(k, _)| eq(k.as_bytes(), t)).map(|(_, u)| u.clone())
 }
 
 fn can_write(cfg: &Cfg, ns: &str, user: &Option<String>) -> bool {
@@ -691,7 +734,7 @@ fn preupload(cfg: &Cfg, dir: &Path, rev: &str, body: &[u8]) -> R {
 
 fn commit(cfg: &Cfg, h: &[(String, String)], dir: &Path, rev: &str, body: &[u8]) -> R {
     let base = base_url(cfg, h);
-    if !safe_seg(&rev_name(rev)) {
+    if !valid_rev(rev) {
         return err(400, "Invalid revision");
     }
     let rvdir = dir.join(rev_name(rev));
@@ -865,7 +908,7 @@ fn mirror(cfg: &Cfg, url: &str, head: bool, h: &[(String, String)]) -> R {
     let tmp = cfg.data.join("cache").join(format!("{key}.part-{}", now()));
     let stored = fs::create_dir_all(cfg.data.join("cache"))
         .and_then(|_| fs::File::create(&tmp))
-        .and_then(|mut out| std::io::copy(&mut resp.body_mut().with_config().limit(u64::MAX).reader(), &mut out))
+        .and_then(|mut out| std::io::copy(&mut resp.body_mut().with_config().limit(cfg.max_object).reader(), &mut out))
         .and_then(|n| fs::rename(&tmp, &body_p).map(|_| n))
         .and_then(|n| fs::write(&meta_p, json!({ "status": 200, "headers": hmap(&headers), "len": n, "etag": etag }).to_string()).map(|_| n));
     match stored {
@@ -891,6 +934,7 @@ mod tests {
             public: Some("http://hub".into()),
             lfs_threshold: 8,
             max_body: 1 << 20,
+            max_object: 1 << 20,
             secret: b"test".to_vec(),
         }
     }
@@ -1023,6 +1067,22 @@ mod tests {
         // the stored object streams back with ranges
         let (st, _, r) = call(&c, Method::Get, &format!("/lfs-download/{oid}"), &[("range", "bytes=2-5")], "");
         assert_eq!((st, r.body.len()), (206, 4));
+    }
+
+    #[test]
+    fn segments_and_revisions_stay_inside_the_repository() {
+        for bad in ["C:", "C:evil", "con", "NUL.txt", "com1.json", "..", "...", "a/b", "a\\b"] {
+            assert!(!safe_seg(bad), "{bad}");
+        }
+        for good in ["config.json", "model-00001.safetensors", ".gitattributes"] {
+            assert!(safe_seg(good), "{good}");
+        }
+        for bad in ["main.sha", "x.lfs.json", "a.log", ".hidden", "", "a b", "a//b"] {
+            assert!(!valid_rev(bad), "{bad}");
+        }
+        for good in ["main", "v1.2.0", "refs-pr-1", "feature/x"] {
+            assert!(valid_rev(good), "{good}");
+        }
     }
 
     #[test]

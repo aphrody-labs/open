@@ -20,12 +20,17 @@ Large files never sit in memory: uploads stream to disk while their SHA-256 is c
 | `HUB_TOKENS` | `token=user;...`; empty means an open, single-user hub |
 | `HUB_PUBLIC_URL` | taken from the request's `Host` |
 | `HUB_LFS_THRESHOLD` | 10 MiB |
-| `HUB_MAX_BODY` | 1 GiB (JSON and commit bodies, LFS objects) |
+| `HUB_MAX_BODY` | 64 MiB (JSON and commit bodies, read whole) |
+| `HUB_MAX_OBJECT` | 100 GiB (one LFS object, streamed to disk) |
+| `HUB_MAX_CONNECTIONS` | 256 requests at once; more are answered 503 |
 | `HUB_SECRET` | random per process; set it when several processes serve one data directory |
+| `HUB_OPEN` | `1` lets a hub without `HUB_TOKENS` serve beyond loopback; otherwise it refuses to start |
+
+Beyond loopback the hub needs `HUB_TOKENS` and `HUB_PUBLIC_URL` (the https address of the proxy in front of it).
 
 ## Verified
 
-- `cargo test -p hub`: 7 tests (read and write paths, ranges, signed upload links, HMAC test vector).
+- `cargo test -p hub`: 8 tests (read and write paths, ranges, signed upload links, HMAC test vector, path segments and revision names).
 - `tests/hf_client.py` with the latest `huggingface_hub` against a hosted hub: whoami, create_repo, upload_file, upload_folder with an LFS file, model_info, list_repo_files, hf_hub_download, LFS download, snapshot_download, list_models, list_repo_commits, list_repo_refs, file_exists, delete_file.
 - Mirror of huggingface.co with `huggingface_hub`: model_info, hf_hub_download twice (second from the cache), snapshot_download with patterns; bytes identical to a direct download.
 
