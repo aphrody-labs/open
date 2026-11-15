@@ -7591,5 +7591,14 @@
       }
     ],
     "license": "MIT"
+  },
+  {
+    "name": "huggingface-skills",
+    "url": "https://github.com/huggingface/skills",
+    "path": "ecosystem/huggingface-skills",
+    "rev": "25910b3d0ba31a2ba102f901cdc9e008c278a69c",
+    "submodules": [],
+    "dropped_files": [],
+    "license": "Apache-2.0"
   }
 ]

@@ -1,0 +1,25 @@
+{
+  "name": "@aphrody/router-agent",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Agent of the AI layer: Hugging Face's MCP agent loop, ai-router as its model (local first, then zero cost, then cheapest), the Hugging Face skills through progressive disclosure, and the Hugging Face MCP server",
+  "type": "module",
+  "main": "src/index.ts",
+  "bin": {
+    "router-agent": "./src/cli.ts"
+  },
+  "scripts": {
+    "test": "bun test",
+    "check": "bun check src test"
+  },
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aphrody-labs/open.git",
+    "directory": "apps/router-agent"
+  },
+  "dependencies": {
+    "@huggingface/mcp-client": "^0.2.3",
+    "@modelcontextprotocol/sdk": "^1.32.2"
+  }
+}
