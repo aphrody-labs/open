@@ -1,0 +1,2981 @@
+{
+  "source": "GitHub repository search",
+  "config": "scripts/inventory/frameworks.json",
+  "records": [
+    {
+      "repo": "flutter/flutter",
+      "url": "https://github.com/flutter/flutter",
+      "description": "Flutter makes it easy and fast to build beautiful apps for mobile and beyond",
+      "language": "Dart",
+      "stars": 181278,
+      "pushed": "2026-11-14",
+      "license": "BSD-3-Clause",
+      "topics": [
+        "android",
+        "app-framework",
+        "cross-platform",
+        "dart",
+        "dart-platform",
+        "desktop",
+        "flutter",
+        "flutter-package",
+        "fuchsia",
+        "ios",
+        "linux-desktop",
+        "macos",
+        "material-design",
+        "mobile",
+        "mobile-development",
+        "skia",
+        "web",
+        "web-framework",
+        "windows"
+      ],
+      "categories": [
+        "reference"
+      ],
+      "queries": [
+        "repo:flutter/flutter"
+      ]
+    },
+    {
+      "repo": "vercel/next.js",
+      "url": "https://github.com/vercel/next.js",
+      "description": "The React Framework",
+      "language": "JavaScript",
+      "stars": 143525,
+      "pushed": "2026-11-15",
+      "license": "MIT",
+      "topics": [
+        "blog",
+        "browser",
+        "compiler",
+        "components",
+        "hybrid",
+        "nextjs",
+        "node",
+        "react",
+        "server-rendering",
+        "ssg",
+        "static",
+        "static-site-generator",
+        "universal",
+        "vercel"
+      ],
+      "categories": [
+        "reference"
+      ],
+      "queries": [
+        "repo:vercel/next.js"
+      ]
+    },
+    {
+      "repo": "shadcn-ui/ui",
+      "url": "https://github.com/shadcn-ui/ui",
+      "description": "Composable, accessible components with thoughtful defaults. Build your own component library with code you can customize, extend, and make your own.",
+      "language": "TypeScript",
+      "stars": 128206,
+      "pushed": "2026-11-13",
+      "license": "MIT",
+      "topics": [
+        "ai",
+        "base-ui",
+        "components",
+        "gen-ui",
+        "generative-ai",
+        "generative-ui",
+        "laravel",
+        "nextjs",
+        "radix-ui",
+        "react",
+        "react-aria",
+        "react-aria-components",
+        "shadcn",
+        "tailwindcss",
+        "tanstack",
+        "ui",
+        "vite"
+      ],
+      "categories": [
+        "reference"
+      ],
+      "queries": [
+        "repo:shadcn-ui/ui"
+      ]
+    },
+    {
+      "repo": "tauri-apps/tauri",
+      "url": "https://github.com/tauri-apps/tauri",
+      "description": "Build smaller, faster, and more secure desktop and mobile applications with a web frontend.",
+      "language": "Rust",
+      "stars": 112925,
+      "pushed": "2026-11-13",
+      "license": "Apache-2.0",
+      "topics": [
+        "app-framework",
+        "cross-platform",
+        "desktop",
+        "gui",
+        "high-performance",
+        "mobile",
+        "rust",
+        "web-frontend",
+        "webview"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "angular/angular",
+      "url": "https://github.com/angular/angular",
+      "description": "Deliver web apps with confidence 🚀",
+      "language": "TypeScript",
+      "stars": 101499,
+      "pushed": "2026-11-14",
+      "license": "MIT",
+      "topics": [
+        "angular",
+        "javascript",
+        "pwa",
+        "typescript",
+        "web",
+        "web-framework",
+        "web-performance"
+      ],
+      "categories": [
+        "reference"
+      ],
+      "queries": [
+        "repo:angular/angular"
+      ]
+    },
+    {
+      "repo": "tailwindlabs/tailwindcss",
+      "url": "https://github.com/tailwindlabs/tailwindcss",
+      "description": "A utility-first CSS framework for rapid UI development.",
+      "language": "TypeScript",
+      "stars": 98605,
+      "pushed": "2026-11-11",
+      "license": "MIT",
+      "topics": [
+        "css",
+        "css-framework",
+        "functional-css",
+        "postcss",
+        "responsive",
+        "tailwindcss",
+        "utility-classes"
+      ],
+      "categories": [
+        "reference"
+      ],
+      "queries": [
+        "repo:tailwindlabs/tailwindcss"
+      ]
+    },
+    {
+      "repo": "GyulyVGC/sniffnet",
+      "url": "https://github.com/GyulyVGC/sniffnet",
+      "description": "Comfortably monitor your network traffic 🕵️‍♂️",
+      "language": "Rust",
+      "stars": 42796,
+      "pushed": "2026-11-14",
+      "license": "Apache-2.0",
+      "topics": [
+        "app",
+        "application",
+        "cybersecurity",
+        "gui",
+        "iced",
+        "ip-geolocation",
+        "ipfix",
+        "linux",
+        "macos",
+        "network",
+        "network-monitoring",
+        "networking",
+        "packet-capture",
+        "packet-sniffer",
+        "pcap",
+        "rust",
+        "security",
+        "tool",
+        "utility",
+        "windows"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "DioxusLabs/dioxus",
+      "url": "https://github.com/DioxusLabs/dioxus",
+      "description": "Fullstack app framework for web, desktop, and mobile.",
+      "language": "Rust",
+      "stars": 39774,
+      "pushed": "2026-11-13",
+      "license": "Apache-2.0",
+      "topics": [
+        "android",
+        "css",
+        "desktop",
+        "html",
+        "ios",
+        "native",
+        "react",
+        "rust",
+        "ssr",
+        "ui",
+        "virtualdom",
+        "wasm",
+        "web"
+      ],
+      "categories": [
+        "rust-fullstack"
+      ],
+      "queries": [
+        "language:Rust topic:ssr"
+      ]
+    },
+    {
+      "repo": "yewstack/yew",
+      "url": "https://github.com/yewstack/yew",
+      "description": "Rust / Wasm framework for creating reliable and efficient web applications",
+      "language": "Rust",
+      "stars": 32855,
+      "pushed": "2026-10-30",
+      "license": "Apache-2.0",
+      "topics": [
+        "asmjs",
+        "concurrency",
+        "elm",
+        "emscripten",
+        "gui",
+        "jsx",
+        "multithreading",
+        "rust",
+        "wasm",
+        "web",
+        "web-framework",
+        "webworkers"
+      ],
+      "categories": [
+        "rust-native-ui",
+        "rust-web-frontend"
+      ],
+      "queries": [
+        "language:Rust topic:gui",
+        "language:Rust topic:wasm topic:web-framework"
+      ]
+    },
+    {
+      "repo": "googleworkspace/cli",
+      "url": "https://github.com/googleworkspace/cli",
+      "description": "Google Workspace CLI — one command-line tool for Drive, Gmail, Calendar, Sheets, Docs, Chat, Admin, and more. Dynamically built from Google Discovery Service. Includes AI agent skills.",
+      "language": "Rust",
+      "stars": 32317,
+      "pushed": "2026-11-03",
+      "license": "Apache-2.0",
+      "topics": [
+        "agent-skills",
+        "ai-agent",
+        "automation",
+        "cli",
+        "discovery-api",
+        "gemini-cli-extension",
+        "google-admin",
+        "google-api",
+        "google-calendar",
+        "google-chat",
+        "google-docs",
+        "google-drive",
+        "google-sheets",
+        "google-workspace",
+        "oauth2",
+        "rust"
+      ],
+      "categories": [
+        "rust-auth"
+      ],
+      "queries": [
+        "language:Rust topic:oauth2"
+      ]
+    },
+    {
+      "repo": "emilk/egui",
+      "url": "https://github.com/emilk/egui",
+      "description": "egui: an easy-to-use immediate mode GUI in Rust that runs on both web and native",
+      "language": "Rust",
+      "stars": 32290,
+      "pushed": "2026-11-13",
+      "license": "Apache-2.0",
+      "topics": [
+        "egui",
+        "game-development",
+        "gamedev",
+        "gui",
+        "imgui",
+        "rust",
+        "wasm"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "iced-rs/iced",
+      "url": "https://github.com/iced-rs/iced",
+      "description": "A cross-platform GUI library for Rust, inspired by Elm",
+      "language": "Rust",
+      "stars": 32038,
+      "pushed": "2026-11-13",
+      "license": "MIT",
+      "topics": [
+        "elm",
+        "graphics",
+        "gui",
+        "interface",
+        "renderer-agnostic",
+        "rust",
+        "toolkit",
+        "user-interface",
+        "widget",
+        "widgets"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "better-auth/better-auth",
+      "url": "https://github.com/better-auth/better-auth",
+      "description": "The most comprehensive authentication framework",
+      "language": "TypeScript",
+      "stars": 30747,
+      "pushed": "2026-11-15",
+      "license": "MIT",
+      "topics": [
+        "authentication",
+        "iam",
+        "oauth",
+        "oauth2",
+        "oidc",
+        "sso",
+        "stripe",
+        "typescript"
+      ],
+      "categories": [
+        "reference"
+      ],
+      "queries": [
+        "repo:better-auth/better-auth"
+      ]
+    },
+    {
+      "repo": "t8y2/dbx",
+      "url": "https://github.com/t8y2/dbx",
+      "description": "25 MB lightweight cross-platform database client for 100+ databases, including MySQL, PostgreSQL, SQLite, Redis, MongoDB, DuckDB, SQL Server, and Dameng. Built-in AI, MCP Server, CLI, desktop and Docker. | 轻量级跨平台数据库管理工具，支持 MySQL、PostgreSQL、SQLite、Redis、MongoDB、达梦等 100+ 数据库，提供桌面端、Docker、CLI、内置 AI 助手和 MCP。",
+      "language": "Rust",
+      "stars": 30352,
+      "pushed": "2026-11-14",
+      "license": "Apache-2.0",
+      "topics": [
+        "ai",
+        "cli",
+        "clickhouse",
+        "database",
+        "database-client",
+        "database-management",
+        "docker",
+        "gui",
+        "mcp",
+        "mongodb",
+        "mysql",
+        "postgresql",
+        "redis",
+        "rust",
+        "sql-server",
+        "sqlite",
+        "tauri",
+        "vue"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "slint-ui/slint",
+      "url": "https://github.com/slint-ui/slint",
+      "description": "Slint is an open-source declarative GUI toolkit to build native user interfaces for Rust, C++, JavaScript, or Python apps.",
+      "language": "Rust",
+      "stars": 24592,
+      "pushed": "2026-11-14",
+      "license": "NOASSERTION",
+      "topics": [
+        "cpp",
+        "declarative-ui",
+        "desktop",
+        "embedded-devices",
+        "gui",
+        "javascript",
+        "language",
+        "lsp-server",
+        "native",
+        "rust",
+        "rust-lang",
+        "toolkit",
+        "ui",
+        "user-interface",
+        "wasm",
+        "webassembly",
+        "widgets"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui",
+        "language:Rust topic:declarative-ui"
+      ]
+    },
+    {
+      "repo": "leptos-rs/leptos",
+      "url": "https://github.com/leptos-rs/leptos",
+      "description": "Build fast web applications with Rust.",
+      "language": "Rust",
+      "stars": 21522,
+      "pushed": "2026-11-12",
+      "license": "MIT",
+      "topics": [
+        "dom",
+        "fine-grained",
+        "isomorphic",
+        "reactive",
+        "rust",
+        "ssr",
+        "web",
+        "webassembly"
+      ],
+      "categories": [
+        "rust-web-frontend",
+        "rust-fullstack"
+      ],
+      "queries": [
+        "language:Rust topic:reactive topic:webassembly",
+        "language:Rust topic:ssr",
+        "language:Rust topic:isomorphic"
+      ]
+    },
+    {
+      "repo": "JetBrains/compose-multiplatform",
+      "url": "https://github.com/JetBrains/compose-multiplatform",
+      "description": "Compose Multiplatform, a modern UI framework for Kotlin that makes building performant and beautiful user interfaces easy and enjoyable.",
+      "language": "Kotlin",
+      "stars": 19489,
+      "pushed": "2026-11-15",
+      "license": "Apache-2.0",
+      "topics": [
+        "android",
+        "awt",
+        "compose",
+        "declarative-ui",
+        "desktop",
+        "gui",
+        "ios",
+        "javascript",
+        "kotlin",
+        "multiplatform",
+        "reactive",
+        "swing",
+        "ui",
+        "wasm",
+        "web",
+        "webassembly"
+      ],
+      "categories": [
+        "reference"
+      ],
+      "queries": [
+        "repo:JetBrains/compose-multiplatform"
+      ]
+    },
+    {
+      "repo": "mui/base-ui",
+      "url": "https://github.com/mui/base-ui",
+      "description": "Unstyled UI components for building accessible web apps and design systems. From the creators of Radix, Floating UI, and Material UI.",
+      "language": "TypeScript",
+      "stars": 11418,
+      "pushed": "2026-11-14",
+      "license": "MIT",
+      "topics": [
+        "accessibility",
+        "base-ui",
+        "components",
+        "design-system",
+        "react",
+        "react-components",
+        "ui",
+        "wai-aria"
+      ],
+      "categories": [
+        "reference"
+      ],
+      "queries": [
+        "repo:mui/base-ui"
+      ]
+    },
+    {
+      "repo": "crmne/spotifast",
+      "url": "https://github.com/crmne/spotifast",
+      "description": "Spotify, native and fast. One lightweight Rust app for your whole library, local playback, and Spotify Connect on Linux, macOS, and Windows.",
+      "language": "Rust",
+      "stars": 10349,
+      "pushed": "2026-11-14",
+      "license": "MIT",
+      "topics": [
+        "audio",
+        "cross-platform",
+        "desktop-app",
+        "egui",
+        "gui",
+        "librespot",
+        "linux",
+        "macos",
+        "mpris",
+        "music",
+        "music-player",
+        "rust",
+        "spotify",
+        "spotify-client",
+        "spotify-connect",
+        "windows"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "jely2002/youtube-dl-gui",
+      "url": "https://github.com/jely2002/youtube-dl-gui",
+      "description": "Open Video Downloader - A cross-platform GUI for youtube-dl made in Rust with Tauri and Vue + Typescript.",
+      "language": "Rust",
+      "stars": 9720,
+      "pushed": "2026-10-31",
+      "license": "AGPL-3.0",
+      "topics": [
+        "cross-platform-gui",
+        "downloader",
+        "tailwind",
+        "tauri",
+        "vue",
+        "youtube",
+        "youtube-dl",
+        "youtube-dl-gui",
+        "ytdl"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:cross-platform-gui"
+      ]
+    },
+    {
+      "repo": "FyroxEngine/Fyrox",
+      "url": "https://github.com/FyroxEngine/Fyrox",
+      "description": "3D and 2D game engine written in Rust",
+      "language": "Rust",
+      "stars": 9680,
+      "pushed": "2026-11-14",
+      "license": "MIT",
+      "topics": [
+        "3d",
+        "3d-engine",
+        "engine",
+        "game-development",
+        "game-engine",
+        "gamedev",
+        "gui",
+        "rendering",
+        "rust",
+        "rust-lang"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "koharu-rs/koharu",
+      "url": "https://github.com/koharu-rs/koharu",
+      "description": "ML-powered manga translator, written in Rust.",
+      "language": "Rust",
+      "stars": 6669,
+      "pushed": "2026-11-15",
+      "license": "Apache-2.0",
+      "topics": [
+        "computer-vision",
+        "deep-learning",
+        "gpu",
+        "gui",
+        "japanese",
+        "manga",
+        "rust",
+        "text-rendering",
+        "translation",
+        "webgpu"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "lldap/lldap",
+      "url": "https://github.com/lldap/lldap",
+      "description": "Light LDAP implementation",
+      "language": "Rust",
+      "stars": 6626,
+      "pushed": "2026-09-26",
+      "license": "GPL-3.0",
+      "topics": [
+        "authentication",
+        "ldap",
+        "opaque",
+        "rust",
+        "security",
+        "wasm",
+        "web-assembly"
+      ],
+      "categories": [
+        "rust-auth"
+      ],
+      "queries": [
+        "language:Rust topic:authentication"
+      ]
+    },
+    {
+      "repo": "mtkennerly/ludusavi",
+      "url": "https://github.com/mtkennerly/ludusavi",
+      "description": "Backup tool for PC game saves",
+      "language": "Rust",
+      "stars": 6563,
+      "pushed": "2026-11-09",
+      "license": "MIT",
+      "topics": [
+        "backup",
+        "cli",
+        "cross-platform",
+        "games",
+        "gui",
+        "saves",
+        "steam",
+        "steam-deck",
+        "steam-proton",
+        "steamdeck",
+        "videogames"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "rust-windowing/winit",
+      "url": "https://github.com/rust-windowing/winit",
+      "description": "Window handling library in pure Rust",
+      "language": "Rust",
+      "stars": 6272,
+      "pushed": "2026-11-13",
+      "license": "Apache-2.0",
+      "topics": [
+        "android",
+        "gui",
+        "ios",
+        "macos",
+        "rust",
+        "rust-lang",
+        "wasm",
+        "wayland",
+        "windowing",
+        "windows",
+        "x11"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "fschutt/azul",
+      "url": "https://github.com/fschutt/azul",
+      "description": "Desktop GUI Framework",
+      "language": "Rust",
+      "stars": 6139,
+      "pushed": "2026-11-14",
+      "license": "MIT",
+      "topics": [
+        "c",
+        "cpp",
+        "desktop",
+        "desktop-gui-framework",
+        "gui",
+        "gui-framework",
+        "gui-library",
+        "opengl",
+        "rust"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "OpenSelena/libreget",
+      "url": "https://github.com/OpenSelena/libreget",
+      "description": "Open-source download manager for courses (Udemy/Hotmart), YouTube, music & 1,800+ sites. Built with Tauri 2.0, Rust & Svelte.",
+      "language": "Rust",
+      "stars": 6123,
+      "pushed": "2026-11-14",
+      "license": "GPL-3.0",
+      "topics": [
+        "downloadmanager",
+        "gui",
+        "hacktoberfest",
+        "homebrew",
+        "lightweight",
+        "linux",
+        "linux-distribution",
+        "local-first",
+        "macos",
+        "macos-package",
+        "omniget",
+        "open-source",
+        "rust",
+        "svelte",
+        "tauri",
+        "trending",
+        "trending-repositories",
+        "windows",
+        "windows-desktop",
+        "ytdlp"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "martin-olivier/airgorah",
+      "url": "https://github.com/martin-olivier/airgorah",
+      "description": "A WiFi security auditing software",
+      "language": "Rust",
+      "stars": 5944,
+      "pushed": "2026-11-06",
+      "license": "MIT",
+      "topics": [
+        "gui",
+        "kali",
+        "linux-app",
+        "security",
+        "security-audit",
+        "wifi",
+        "wifi-security",
+        "wireless"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "trailbaseio/trailbase",
+      "url": "https://github.com/trailbaseio/trailbase",
+      "description": "An open, sub-millisecond, single-executable Firebase alternative with type-safe APIs, built-in WebAssembly runtime, realtime subscriptions, auth, MCP and admin UI built on Rust, SQLite (PG) & Wasmtime.",
+      "language": "Rust",
+      "stars": 5762,
+      "pushed": "2026-11-14",
+      "license": "OSL-3.0",
+      "topics": [
+        "authentication",
+        "database",
+        "rest-api",
+        "rust"
+      ],
+      "categories": [
+        "rust-auth"
+      ],
+      "queries": [
+        "language:Rust topic:authentication"
+      ]
+    },
+    {
+      "repo": "kanidm/kanidm",
+      "url": "https://github.com/kanidm/kanidm",
+      "description": "Kanidm: A simple, secure, and fast identity management platform",
+      "language": "Rust",
+      "stars": 5567,
+      "pushed": "2026-11-13",
+      "license": "MPL-2.0",
+      "topics": [
+        "authentication",
+        "iam",
+        "identity",
+        "identity-management",
+        "idm",
+        "ldap",
+        "oidc",
+        "radius",
+        "rust",
+        "scim",
+        "security",
+        "ssh-authentication",
+        "webauthn"
+      ],
+      "categories": [
+        "rust-auth"
+      ],
+      "queries": [
+        "language:Rust topic:authentication",
+        "language:Rust topic:oidc"
+      ]
+    },
+    {
+      "repo": "build-trust/ockam",
+      "url": "https://github.com/build-trust/ockam",
+      "description": "Orchestrate end-to-end encryption, cryptographic identities, mutual authentication, and authorization policies between distributed applications – at massive scale.",
+      "language": "Rust",
+      "stars": 4641,
+      "pushed": "2026-01-04",
+      "license": "Apache-2.0",
+      "topics": [
+        "authentication",
+        "authorization",
+        "credentials",
+        "distributed-systems",
+        "e2ee",
+        "encrypted-connections",
+        "encrypted-messages",
+        "encryption",
+        "end-to-end-encryption",
+        "identity",
+        "kafka",
+        "key-management",
+        "messaging",
+        "rust",
+        "security",
+        "snowflake",
+        "trust",
+        "zero-trust"
+      ],
+      "categories": [
+        "rust-auth"
+      ],
+      "queries": [
+        "language:Rust topic:authentication"
+      ]
+    },
+    {
+      "repo": "spacering-net/codeg",
+      "url": "https://github.com/spacering-net/codeg",
+      "description": "Collaborative multi-agent AI coding workspace: aggregate sessions from Claude Code, Codex, OpenCode, Pi, Grok Build, etc. Desktop app, self-hosted server, or Docker.",
+      "language": "Rust",
+      "stars": 4475,
+      "pushed": "2026-11-15",
+      "license": "Apache-2.0",
+      "topics": [
+        "acp",
+        "ade",
+        "agent",
+        "claude-code",
+        "code-generation",
+        "codex",
+        "deepseek-harness",
+        "grok-build",
+        "gui",
+        "multi-agent",
+        "opencode",
+        "pi",
+        "terminal",
+        "vibe-coding",
+        "worktrees"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "owu/wsl-dashboard",
+      "url": "https://github.com/owu/wsl-dashboard",
+      "description": "A GUI manager for WSL featuring a modern UI — a lightweight, low‑memory, high‑performance dashboard to manage WSL instances.  Install, list, start, stop, unregister, and configure your WSL distros​ from one place.",
+      "language": "Rust",
+      "stars": 4129,
+      "pushed": "2026-11-01",
+      "license": "GPL-3.0",
+      "topics": [
+        "auto-start",
+        "dashboard",
+        "gui",
+        "http-proxy",
+        "management",
+        "port-forwarding",
+        "rootfs",
+        "rust",
+        "slint",
+        "usbipd",
+        "wsl",
+        "wsl2"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "seed-rs/seed",
+      "url": "https://github.com/seed-rs/seed",
+      "description": "A Rust framework for creating web apps",
+      "language": "Rust",
+      "stars": 3830,
+      "pushed": "2026-11-01",
+      "license": "MIT",
+      "topics": [
+        "frontend-framework",
+        "rust",
+        "wasm",
+        "wasm-bindgen",
+        "web-framework",
+        "webassembly"
+      ],
+      "categories": [
+        "rust-web-frontend"
+      ],
+      "queries": [
+        "language:Rust topic:frontend-framework",
+        "language:Rust topic:wasm topic:web-framework"
+      ]
+    },
+    {
+      "repo": "redox-os/orbtk",
+      "url": "https://github.com/redox-os/orbtk",
+      "description": "The Rust UI-Toolkit.",
+      "language": "Rust",
+      "stars": 3778,
+      "pushed": "2022-10-18",
+      "license": "MIT",
+      "topics": [
+        "cross-platform",
+        "entity-component",
+        "gui",
+        "redox-os",
+        "rust",
+        "rust-lang",
+        "widgets"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "therealaleph/MasterHttpRelayVPN-RUST",
+      "url": "https://github.com/therealaleph/MasterHttpRelayVPN-RUST",
+      "description": "Rust port of @masterking32's MasterHttpRelayVPN — all credit to @masterking32 for the original idea and Python implementation. Free DPI bypass via a Google Apps Script relay with TLS SNI concealment. CLI + cross-platform desktop UI, HTTP + SOCKS5 proxy, no runtime deps.",
+      "language": "Rust",
+      "stars": 3644,
+      "pushed": "2026-10-12",
+      "license": "MIT",
+      "topics": [
+        "anti-censorship",
+        "censorship-circumvention",
+        "cross-platform",
+        "desktop-app",
+        "domain-fronting",
+        "dpi-bypass",
+        "egui",
+        "google-apps-script",
+        "gui",
+        "http-proxy",
+        "iran",
+        "mitm",
+        "proxy",
+        "rust",
+        "sni",
+        "socks5",
+        "tls"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "koute/stdweb",
+      "url": "https://github.com/koute/stdweb",
+      "description": "A standard library for the client-side Web",
+      "language": "Rust",
+      "stars": 3451,
+      "pushed": "2024-02-28",
+      "license": "Apache-2.0",
+      "topics": [
+        "asmjs",
+        "emscripten",
+        "gui",
+        "javascript",
+        "rust",
+        "web",
+        "webasm",
+        "webassembly"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "marc2332/freya",
+      "url": "https://github.com/marc2332/freya",
+      "description": "Cross-platform native GUI library for 🦀 Rust",
+      "language": "Rust",
+      "stars": 3399,
+      "pushed": "2026-11-14",
+      "license": "MIT",
+      "topics": [
+        "android",
+        "cross-platform",
+        "desktop",
+        "gui",
+        "native",
+        "rust",
+        "skia",
+        "web"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "PistonDevelopers/conrod",
+      "url": "https://github.com/PistonDevelopers/conrod",
+      "description": "An easy-to-use, 2D GUI library written entirely in Rust.",
+      "language": "Rust",
+      "stars": 3331,
+      "pushed": "2022-01-17",
+      "license": "NOASSERTION",
+      "topics": [
+        "gui",
+        "rust"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "imgui-rs/imgui-rs",
+      "url": "https://github.com/imgui-rs/imgui-rs",
+      "description": "Rust bindings for Dear ImGui",
+      "language": "Rust",
+      "stars": 3071,
+      "pushed": "2026-06-21",
+      "license": "Apache-2.0",
+      "topics": [
+        "gui",
+        "imgui",
+        "rust",
+        "rust-library"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "DefGuard/defguard",
+      "url": "https://github.com/DefGuard/defguard",
+      "description": "Zero-Trust access management with true WireGuard® 2FA/MFA",
+      "language": "Rust",
+      "stars": 2918,
+      "pushed": "2026-11-14",
+      "license": "NOASSERTION",
+      "topics": [
+        "authentication",
+        "forwardauth",
+        "keycloak",
+        "multifactor-authentication",
+        "oauth",
+        "oauth-provider",
+        "oauth2-server",
+        "oidc",
+        "oidc-provider",
+        "openid",
+        "openid-connect",
+        "openid-connect-provider",
+        "openvpn",
+        "pritunl",
+        "security",
+        "vpn",
+        "vpn-server",
+        "wireguard",
+        "wireguard-ui",
+        "yubikey"
+      ],
+      "categories": [
+        "rust-auth"
+      ],
+      "queries": [
+        "language:Rust topic:authentication",
+        "language:Rust topic:oidc"
+      ]
+    },
+    {
+      "repo": "xevrion/hatchzip",
+      "url": "https://github.com/xevrion/hatchzip",
+      "description": "HatchZip is a free, open-source archive extractor for Windows, macOS and Linux that extracts ZIP, 7z, RAR, tar and split archives in place, so it needs free space for the extracted files only. Desktop app and CLI.",
+      "language": "Rust",
+      "stars": 2907,
+      "pushed": "2026-11-13",
+      "license": "Apache-2.0",
+      "topics": [
+        "7z",
+        "7zip",
+        "archive",
+        "archive-extractor",
+        "cli",
+        "crash-safe",
+        "disk-space",
+        "extract",
+        "extractor",
+        "gui",
+        "in-place",
+        "linux",
+        "macos",
+        "rar",
+        "rust",
+        "tar",
+        "unrar",
+        "unzip",
+        "windows",
+        "zip"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "longbridge/nsh",
+      "url": "https://github.com/longbridge/nsh",
+      "description": "Native Shell is a native UI framework for iOS, Android, macOS, Windows, Linux and the web, built in Rust.",
+      "language": "Rust",
+      "stars": 2830,
+      "pushed": "2026-11-15",
+      "license": "NOASSERTION",
+      "topics": [
+        "cross-platform",
+        "gui",
+        "native",
+        "nsh"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "cunarist/rinf",
+      "url": "https://github.com/cunarist/rinf",
+      "description": "Rust for native business logic, Flutter for flexible and beautiful GUI",
+      "language": "Rust",
+      "stars": 2807,
+      "pushed": "2026-11-07",
+      "license": "MIT",
+      "topics": [
+        "android",
+        "app",
+        "cross-platform",
+        "dart",
+        "ffi",
+        "flutter",
+        "gui",
+        "ios",
+        "linux",
+        "macos",
+        "production-ready",
+        "restful-api",
+        "rust",
+        "web",
+        "windows"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "devflowinc/trieve",
+      "url": "https://github.com/devflowinc/trieve",
+      "description": "All-in-one platform for search, recommendations, RAG, and analytics offered via API",
+      "language": "Rust",
+      "stars": 2725,
+      "pushed": "2026-01-25",
+      "license": "MIT",
+      "topics": [
+        "actix",
+        "actix-web",
+        "ai",
+        "artificial-intelligence",
+        "diesel",
+        "embedding",
+        "hacktoberfest",
+        "llm",
+        "postgresql",
+        "qdrant",
+        "qdrant-vector-database",
+        "rag",
+        "retrieval-augmented-generation",
+        "rust",
+        "search",
+        "search-engine",
+        "solidjs",
+        "tailwindcss",
+        "vector-search"
+      ],
+      "categories": [
+        "rust-css"
+      ],
+      "queries": [
+        "language:Rust topic:tailwindcss"
+      ]
+    },
+    {
+      "repo": "tbillington/kondo",
+      "url": "https://github.com/tbillington/kondo",
+      "description": "Cleans dependencies and build artifacts from your projects.",
+      "language": "Rust",
+      "stars": 2592,
+      "pushed": "2026-04-24",
+      "license": "MIT",
+      "topics": [
+        "cargo",
+        "cleaner",
+        "cli",
+        "command-line",
+        "disk-space",
+        "gui",
+        "kondo",
+        "linux",
+        "macos",
+        "rust",
+        "unity",
+        "unity3d",
+        "windows"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "lanyeeee/bilibili-video-downloader",
+      "url": "https://github.com/lanyeeee/bilibili-video-downloader",
+      "description": "哔哩哔哩 bilibili B站 视频 下载器，图形界面 + nfo刮削 + 广告标记 + 字幕下载 + 弹幕下载，轻松将视频加入emby等媒体库",
+      "language": "Rust",
+      "stars": 2378,
+      "pushed": "2026-08-25",
+      "license": "MIT",
+      "topics": [
+        "bilibili",
+        "download",
+        "downloader",
+        "gui",
+        "naive-ui",
+        "rust",
+        "tauri",
+        "tauri-app",
+        "vue"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "vizia/vizia",
+      "url": "https://github.com/vizia/vizia",
+      "description": "A declarative GUI library written in Rust",
+      "language": "Rust",
+      "stars": 2356,
+      "pushed": "2026-11-14",
+      "license": "MIT",
+      "topics": [
+        "application",
+        "binding",
+        "css",
+        "declarative-ui",
+        "desktop",
+        "framework",
+        "graphical-user-interface",
+        "graphics",
+        "gui",
+        "reactive",
+        "rust",
+        "skia",
+        "toolkit",
+        "ui",
+        "user-interface"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui",
+        "language:Rust topic:declarative-ui"
+      ]
+    },
+    {
+      "repo": "yuezk/GlobalProtect-openconnect",
+      "url": "https://github.com/yuezk/GlobalProtect-openconnect",
+      "description": "GlobalProtect VPN client and CLI for macOS, Linux, FreeBSD, and OpenBSD. Built in Rust with SAML SSO, MFA, YubiKey, client certificates, and local SOCKS5 proxy mode.",
+      "language": "Rust",
+      "stars": 2341,
+      "pushed": "2026-11-15",
+      "license": "GPL-3.0",
+      "topics": [
+        "authentication",
+        "client-certificate-authentication",
+        "globalprotect",
+        "gui",
+        "linux",
+        "macos",
+        "mfa",
+        "nsh",
+        "nsh-apps",
+        "okta",
+        "openconnect",
+        "paloaltonetworks",
+        "rust",
+        "saml",
+        "tauri",
+        "tauri-apps",
+        "vpn",
+        "yubikey",
+        "yubikey-authenticators"
+      ],
+      "categories": [
+        "rust-native-ui",
+        "rust-auth"
+      ],
+      "queries": [
+        "language:Rust topic:gui",
+        "language:Rust topic:authentication"
+      ]
+    },
+    {
+      "repo": "framesurge/perseus",
+      "url": "https://github.com/framesurge/perseus",
+      "description": "A state-driven web development framework for Rust with full support for server-side rendering and static generation.",
+      "language": "Rust",
+      "stars": 2232,
+      "pushed": "2025-08-02",
+      "license": "MIT",
+      "topics": [
+        "isomorphic",
+        "rust",
+        "ssg",
+        "ssr",
+        "transitional-app"
+      ],
+      "categories": [
+        "rust-fullstack"
+      ],
+      "queries": [
+        "language:Rust topic:ssr",
+        "language:Rust topic:isomorphic"
+      ]
+    },
+    {
+      "repo": "flutter-rs/flutter-rs",
+      "url": "https://github.com/flutter-rs/flutter-rs",
+      "description": "Build beautiful desktop apps with flutter and rust. 🌠 (wip)",
+      "language": "Rust",
+      "stars": 2114,
+      "pushed": "2023-06-14",
+      "license": "MIT",
+      "topics": [
+        "flutter",
+        "gui",
+        "rust"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "rustmailer/bichon",
+      "url": "https://github.com/rustmailer/bichon",
+      "description": "Bichon – A lightweight, high-performance Rust email archiver with WebUI",
+      "language": "Rust",
+      "stars": 2087,
+      "pushed": "2026-11-15",
+      "license": "AGPL-3.0",
+      "topics": [
+        "backup",
+        "compression",
+        "email",
+        "email-archiver",
+        "email-archiving",
+        "imap",
+        "mail",
+        "oauth2",
+        "openapi",
+        "rust",
+        "search",
+        "self-hosted",
+        "selfhosted",
+        "tantivy",
+        "webui"
+      ],
+      "categories": [
+        "rust-auth"
+      ],
+      "queries": [
+        "language:Rust topic:oauth2"
+      ]
+    },
+    {
+      "repo": "ryanmcgrath/cacao",
+      "url": "https://github.com/ryanmcgrath/cacao",
+      "description": "Rust bindings for AppKit (macOS) and UIKit (iOS/tvOS). Experimental, but working!",
+      "language": "Rust",
+      "stars": 2081,
+      "pushed": "2025-02-03",
+      "license": "MIT",
+      "topics": [
+        "appkit",
+        "cocoa",
+        "gui",
+        "ios",
+        "macos",
+        "rust",
+        "uikit"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "gabdube/native-windows-gui",
+      "url": "https://github.com/gabdube/native-windows-gui",
+      "description": "A light windows GUI toolkit for rust",
+      "language": "Rust",
+      "stars": 2065,
+      "pushed": "2024-05-16",
+      "license": "MIT",
+      "topics": [
+        "gui",
+        "native",
+        "native-windows-gui",
+        "rust"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "ivanceras/sauron",
+      "url": "https://github.com/ivanceras/sauron",
+      "description": "A versatile web framework and library for building client-side and server-side web applications",
+      "language": "Rust",
+      "stars": 2065,
+      "pushed": "2025-01-27",
+      "license": "MIT",
+      "topics": [
+        "dom",
+        "elm",
+        "html",
+        "react",
+        "ssr",
+        "vdom",
+        "web"
+      ],
+      "categories": [
+        "rust-fullstack"
+      ],
+      "queries": [
+        "language:Rust topic:ssr"
+      ]
+    },
+    {
+      "repo": "audulus/rui",
+      "url": "https://github.com/audulus/rui",
+      "description": "Declarative Rust UI library",
+      "language": "Rust",
+      "stars": 2045,
+      "pushed": "2026-05-22",
+      "license": "MIT",
+      "topics": [
+        "declarative-ui",
+        "gpu",
+        "graphics",
+        "gui",
+        "immediate-gui",
+        "rust",
+        "ui",
+        "user-interface",
+        "vger",
+        "wgpu",
+        "winit"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui",
+        "language:Rust topic:declarative-ui"
+      ]
+    },
+    {
+      "repo": "Relm4/Relm4",
+      "url": "https://github.com/Relm4/Relm4",
+      "description": " Build truly native applications with ease!",
+      "language": "Rust",
+      "stars": 2000,
+      "pushed": "2026-11-12",
+      "license": "Apache-2.0",
+      "topics": [
+        "elm",
+        "gtk",
+        "gtk4",
+        "gui",
+        "hacktoberfest",
+        "native",
+        "relm",
+        "rust"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "vhakulinen/gnvim",
+      "url": "https://github.com/vhakulinen/gnvim",
+      "description": "GUI for neovim, without any web bloat",
+      "language": "Rust",
+      "stars": 1963,
+      "pushed": "2026-06-28",
+      "license": "MIT",
+      "topics": [
+        "gtk",
+        "gui",
+        "neovim",
+        "neovim-guis",
+        "nvim",
+        "rust",
+        "text-editor",
+        "ui"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "fltk-rs/fltk-rs",
+      "url": "https://github.com/fltk-rs/fltk-rs",
+      "description": "Rust bindings for the FLTK GUI library.",
+      "language": "Rust",
+      "stars": 1866,
+      "pushed": "2026-05-19",
+      "license": "MIT",
+      "topics": [
+        "bindings",
+        "fltk",
+        "graphics",
+        "gui",
+        "widgets"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "MoonZoon/MoonZoon",
+      "url": "https://github.com/MoonZoon/MoonZoon",
+      "description": "Rust Fullstack Framework",
+      "language": "Rust",
+      "stars": 1835,
+      "pushed": "2025-09-24",
+      "license": "MIT",
+      "topics": [
+        "framework",
+        "fullstack",
+        "moonzoon",
+        "rust",
+        "virtual-actors",
+        "wasm"
+      ],
+      "categories": [
+        "rust-fullstack"
+      ],
+      "queries": [
+        "language:Rust topic:fullstack"
+      ]
+    },
+    {
+      "repo": "LargeModGames/spotatui",
+      "url": "https://github.com/LargeModGames/spotatui",
+      "description": "Open-source music player for the desktop and the terminal. Spotify with one sign-in and no developer app, plus YouTube, local files, Subsonic/Navidrome, radio and Qobuz in one queue. Written in Rust.",
+      "language": "Rust",
+      "stars": 1834,
+      "pushed": "2026-11-15",
+      "license": "MIT",
+      "topics": [
+        "cli",
+        "desktop-app",
+        "gui",
+        "lyrics",
+        "music",
+        "music-player",
+        "navidrome",
+        "qobuz",
+        "radio",
+        "ratatui",
+        "rust",
+        "spotify",
+        "spotify-client",
+        "spotify-connect",
+        "spotify-tui",
+        "subsonic",
+        "tauri",
+        "terminal",
+        "tui",
+        "youtube"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "huytd/kanban-app",
+      "url": "https://github.com/huytd/kanban-app",
+      "description": "Kanban board built with Rust and Elm",
+      "language": "Rust",
+      "stars": 1802,
+      "pushed": "2018-05-09",
+      "license": "NOASSERTION",
+      "topics": [
+        "elm",
+        "gui",
+        "kanban",
+        "rust",
+        "webview"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "lanyeeee/jmcomic-downloader",
+      "url": "https://github.com/lanyeeee/jmcomic-downloader",
+      "description": "禁漫天堂 18comic.vip jmcomic 18comic 的多线程下载器，带图形界面 带收藏夹 免费下载收费的漫画，已打包exe 下载速度飞快",
+      "language": "Rust",
+      "stars": 1758,
+      "pushed": "2026-08-24",
+      "license": "MIT",
+      "topics": [
+        "18comic",
+        "downloader",
+        "gui",
+        "jmcomic",
+        "naive-ui",
+        "rust",
+        "tauri",
+        "tauri-app",
+        "vue"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "RibirX/Ribir",
+      "url": "https://github.com/RibirX/Ribir",
+      "description": "Non-intrusive GUI framework for Rust/WASM",
+      "language": "Rust",
+      "stars": 1739,
+      "pushed": "2026-04-21",
+      "license": "MIT",
+      "topics": [
+        "cross-platform",
+        "declarative",
+        "gui",
+        "native",
+        "non-intrusive",
+        "reactive",
+        "rust",
+        "ui",
+        "webassembly"
+      ],
+      "categories": [
+        "rust-native-ui",
+        "rust-web-frontend"
+      ],
+      "queries": [
+        "language:Rust topic:gui",
+        "language:Rust topic:reactive topic:webassembly"
+      ]
+    },
+    {
+      "repo": "ratatui/ratzilla",
+      "url": "https://github.com/ratatui/ratzilla",
+      "description": "Build terminal-themed web applications with Rust and WebAssembly. Powered by Ratatui.",
+      "language": "Rust",
+      "stars": 1482,
+      "pushed": "2026-10-23",
+      "license": "Apache-2.0",
+      "topics": [
+        "ratatui",
+        "rust",
+        "trunk",
+        "tui",
+        "wasm",
+        "wasm-bindgen",
+        "web",
+        "web-framework",
+        "web-sys",
+        "webassembly"
+      ],
+      "categories": [
+        "rust-web-frontend"
+      ],
+      "queries": [
+        "language:Rust topic:wasm topic:web-framework"
+      ]
+    },
+    {
+      "repo": "sebadob/rauthy",
+      "url": "https://github.com/sebadob/rauthy",
+      "description": "Single Sign-On Identity & Access Management via OpenID Connect, OAuth 2, PAM",
+      "language": "Rust",
+      "stars": 1450,
+      "pushed": "2026-11-12",
+      "license": "Apache-2.0",
+      "topics": [
+        "authentication",
+        "fido2",
+        "jwt",
+        "keycloak",
+        "mfa",
+        "oidc",
+        "oidc-provider",
+        "openid-connect",
+        "pam",
+        "passkey",
+        "rust",
+        "scim",
+        "server",
+        "single-sign-on",
+        "sso",
+        "webauthn"
+      ],
+      "categories": [
+        "rust-auth"
+      ],
+      "queries": [
+        "language:Rust topic:authentication",
+        "language:Rust topic:oidc"
+      ]
+    },
+    {
+      "repo": "pytauri/pytauri",
+      "url": "https://github.com/pytauri/pytauri",
+      "description": "Tauri binding for Python through Pyo3",
+      "language": "Rust",
+      "stars": 1437,
+      "pushed": "2026-11-11",
+      "license": "Apache-2.0",
+      "topics": [
+        "bindings",
+        "desktop-app",
+        "gui",
+        "python",
+        "tauri",
+        "webview"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "sergi0g/cup",
+      "url": "https://github.com/sergi0g/cup",
+      "description": "🥤Docker container updates made easy",
+      "language": "Rust",
+      "stars": 1372,
+      "pushed": "2026-11-06",
+      "license": "AGPL-3.0",
+      "topics": [
+        "cli",
+        "container",
+        "docker",
+        "docker-container",
+        "docker-image",
+        "dockerhub",
+        "react",
+        "rust",
+        "self-hosted",
+        "server",
+        "tailwindcss",
+        "terminal",
+        "update",
+        "update-checker",
+        "updates"
+      ],
+      "categories": [
+        "rust-css"
+      ],
+      "queries": [
+        "language:Rust topic:tailwindcss"
+      ]
+    },
+    {
+      "repo": "timhartmann7/omnyssh",
+      "url": "https://github.com/timhartmann7/omnyssh",
+      "description": "Fast, open-source SSH client and server manager for macOS, Windows and Linux. Desktop GUI and terminal TUI with a live metrics dashboard, tabbed terminal, SFTP file manager, port forwarding, one-click SSH keys and snippets. Built in Rust.",
+      "language": "Rust",
+      "stars": 1312,
+      "pushed": "2026-10-09",
+      "license": "Apache-2.0",
+      "topics": [
+        "cross-platform",
+        "desktop-app",
+        "devops",
+        "gui",
+        "homelab",
+        "port-forwarding",
+        "rust",
+        "server-monitoring",
+        "sftp",
+        "sftp-client",
+        "ssh",
+        "ssh-client",
+        "ssh-manager",
+        "ssh-tunnel",
+        "sysadmin",
+        "tauri",
+        "terminal",
+        "tui"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "square/sudo_pair",
+      "url": "https://github.com/square/sudo_pair",
+      "description": "Plugin for sudo that requires another human to approve and monitor privileged sudo sessions",
+      "language": "Rust",
+      "stars": 1270,
+      "pushed": "2023-09-06",
+      "license": "Apache-2.0",
+      "topics": [
+        "authentication",
+        "compliance",
+        "linux",
+        "pairing",
+        "pam",
+        "rust",
+        "security",
+        "sudo"
+      ],
+      "categories": [
+        "rust-auth"
+      ],
+      "queries": [
+        "language:Rust topic:authentication"
+      ]
+    },
+    {
+      "repo": "ramosbugs/oauth2-rs",
+      "url": "https://github.com/ramosbugs/oauth2-rs",
+      "description": "Extensible, strongly-typed Rust OAuth2 client library",
+      "language": "Rust",
+      "stars": 1212,
+      "pushed": "2026-02-22",
+      "license": "Apache-2.0",
+      "topics": [
+        "oauth2",
+        "pkce",
+        "rust"
+      ],
+      "categories": [
+        "rust-auth"
+      ],
+      "queries": [
+        "language:Rust topic:oauth2"
+      ]
+    },
+    {
+      "repo": "7ritn/VaulTLS",
+      "url": "https://github.com/7ritn/VaulTLS",
+      "description": "Selfhostable web app to make managing mTLS certificates a breeze",
+      "language": "Rust",
+      "stars": 1195,
+      "pushed": "2026-11-05",
+      "license": "GPL-3.0",
+      "topics": [
+        "mtls",
+        "oidc",
+        "rust",
+        "vue"
+      ],
+      "categories": [
+        "rust-auth"
+      ],
+      "queries": [
+        "language:Rust topic:oidc"
+      ]
+    },
+    {
+      "repo": "maxcountryman/axum-login",
+      "url": "https://github.com/maxcountryman/axum-login",
+      "description": "🪪 User identification, authentication, and authorization for Axum.",
+      "language": "Rust",
+      "stars": 1027,
+      "pushed": "2026-11-11",
+      "license": "MIT",
+      "topics": [
+        "access-control",
+        "authentication",
+        "authorization",
+        "axum",
+        "login"
+      ],
+      "categories": [
+        "rust-auth"
+      ],
+      "queries": [
+        "language:Rust topic:authentication"
+      ]
+    },
+    {
+      "repo": "veeso/tui-realm",
+      "url": "https://github.com/veeso/tui-realm",
+      "description": "👑 A ratatui framework to build stateful applications with a React/Elm inspired approach ",
+      "language": "Rust",
+      "stars": 1016,
+      "pushed": "2026-10-24",
+      "license": "MIT",
+      "topics": [
+        "console",
+        "crossterm",
+        "gui",
+        "ratatui",
+        "rust",
+        "stateful",
+        "stateful-tui",
+        "terminal",
+        "terminal-app",
+        "terminal-graphics",
+        "tui",
+        "tui-framework",
+        "tui-realm"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "lanyeeee/copymanga-downloader",
+      "url": "https://github.com/lanyeeee/copymanga-downloader",
+      "description": "拷贝漫画 copymanga 的多线程下载器，带图形界面 带收藏夹 支持下载下架的漫画 支持导出cbz和pdf，已打包exe 没有每分钟15次API请求的限制 下载速度飞快",
+      "language": "Rust",
+      "stars": 990,
+      "pushed": "2026-07-19",
+      "license": "MIT",
+      "topics": [
+        "copymanga",
+        "downloader",
+        "gui",
+        "manga-downloader",
+        "naive-ui",
+        "rust",
+        "tauri",
+        "tauri-app",
+        "vue",
+        "webview"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "autopilot-rs/autopy",
+      "url": "https://github.com/autopilot-rs/autopy",
+      "description": " A simple, cross-platform GUI automation module for Python and Rust.",
+      "language": "Rust",
+      "stars": 981,
+      "pushed": "2026-09-28",
+      "license": "Apache-2.0",
+      "topics": [
+        "automation",
+        "cross-platform",
+        "gui",
+        "input",
+        "python",
+        "simulation"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "lvgl/lv_binding_rust",
+      "url": "https://github.com/lvgl/lv_binding_rust",
+      "description": "LVGL bindings for Rust. A powerful and easy-to-use embedded GUI with many widgets, advanced visual effects (opacity, antialiasing, animations) and low memory requirements (16K RAM, 64K Flash). ",
+      "language": "Rust",
+      "stars": 956,
+      "pushed": "2025-01-22",
+      "license": "MIT",
+      "topics": [
+        "embedded",
+        "graphics",
+        "gui",
+        "lvgl",
+        "rust"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "gulbanana/gg",
+      "url": "https://github.com/gulbanana/gg",
+      "description": "GG - Gui for JJ",
+      "language": "Rust",
+      "stars": 878,
+      "pushed": "2026-10-20",
+      "license": "Apache-2.0",
+      "topics": [
+        "gui",
+        "jj",
+        "jujutsu",
+        "vcs"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "anp/moxie",
+      "url": "https://github.com/anp/moxie",
+      "description": "lightweight platform-agnostic tools for declarative UI",
+      "language": "Rust",
+      "stars": 835,
+      "pushed": "2026-07-02",
+      "license": "Apache-2.0",
+      "topics": [
+        "declarative-ui",
+        "incremental",
+        "rust",
+        "ui"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:declarative-ui"
+      ]
+    },
+    {
+      "repo": "WINSDK/bite",
+      "url": "https://github.com/WINSDK/bite",
+      "description": "Disassembler focused on comprehensive rust support.",
+      "language": "Rust",
+      "stars": 826,
+      "pushed": "2026-01-14",
+      "license": "MIT",
+      "topics": [
+        "demangler",
+        "dissassembler",
+        "gui",
+        "rust"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "sciter-sdk/rust-sciter",
+      "url": "https://github.com/sciter-sdk/rust-sciter",
+      "description": "Rust bindings for Sciter",
+      "language": "Rust",
+      "stars": 825,
+      "pushed": "2022-05-06",
+      "license": "MIT",
+      "topics": [
+        "gui",
+        "htmlayout",
+        "rust-bindings",
+        "sciter",
+        "tiscript"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:gui"
+      ]
+    },
+    {
+      "repo": "rust-ui/ui",
+      "url": "https://github.com/rust-ui/ui",
+      "description": "A Shadcn-inspired component registry for Rust. Build cross-platform apps for Web, Desktop, iOS and Android.",
+      "language": "Rust",
+      "stars": 819,
+      "pushed": "2026-11-08",
+      "license": "MIT",
+      "topics": [
+        "axum",
+        "components",
+        "cross-platform",
+        "desktop",
+        "leptos",
+        "mobile",
+        "rust",
+        "rust-ui",
+        "shadcn",
+        "shadcn-ui",
+        "tailwindcss",
+        "ui",
+        "wasm"
+      ],
+      "categories": [
+        "rust-components",
+        "rust-css"
+      ],
+      "queries": [
+        "language:Rust shadcn",
+        "language:Rust topic:tailwindcss"
+      ]
+    },
+    {
+      "repo": "ThinkWatchProject/ThinkWatch",
+      "url": "https://github.com/ThinkWatchProject/ThinkWatch",
+      "description": "Self-hosted AI API and MCP gateway for organizations: SSO and RBAC, per-user identity for MCP tool calls, PII redaction and tool-call guards, rate limits, budgets, cost accounting and audit logs.",
+      "language": "Rust",
+      "stars": 817,
+      "pushed": "2026-11-15",
+      "license": "NOASSERTION",
+      "topics": [
+        "ai-gateway",
+        "ai-governance",
+        "ai-proxy",
+        "audit-log",
+        "audit-logging",
+        "bastion-host",
+        "cost-tracking",
+        "helm-chart",
+        "llm-gateway",
+        "llm-observability",
+        "llm-proxy",
+        "llm-security",
+        "mcp-gateway",
+        "mcp-proxy",
+        "mcp-security",
+        "oidc",
+        "openai-proxy",
+        "rate-limiting",
+        "rbac",
+        "sso"
+      ],
+      "categories": [
+        "rust-auth"
+      ],
+      "queries": [
+        "language:Rust topic:oidc"
+      ]
+    },
+    {
+      "repo": "ferriskey/ferriskey",
+      "url": "https://github.com/ferriskey/ferriskey",
+      "description": "FerrisKey is an open-source IAM solution designed for modern cloud-native environments, high-performance and written in Rust.",
+      "language": "Rust",
+      "stars": 761,
+      "pushed": "2026-11-14",
+      "license": "Apache-2.0",
+      "topics": [
+        "autorization",
+        "cloud-native",
+        "hacktoberfest",
+        "iam",
+        "oauth2",
+        "oidc",
+        "react",
+        "rust",
+        "typescript"
+      ],
+      "categories": [
+        "rust-auth"
+      ],
+      "queries": [
+        "language:Rust topic:oauth2",
+        "language:Rust topic:oidc"
+      ]
+    },
+    {
+      "repo": "ideaplexa/voicetypr",
+      "url": "https://github.com/ideaplexa/voicetypr",
+      "description": "Voicetypr - AI powered offline voice to text dictation tool for busy founders, vibe coders, AI power users on macos, windows. Alternative to wispr flow and superwhisper.",
+      "language": "Rust",
+      "stars": 746,
+      "pushed": "2026-11-12",
+      "license": "AGPL-3.0",
+      "topics": [
+        "reactjs",
+        "shadcn-ui",
+        "tailwindcss",
+        "tauri",
+        "voice-assistant",
+        "voice-recognition",
+        "voice-to-text",
+        "whisper-ai"
+      ],
+      "categories": [
+        "rust-css"
+      ],
+      "queries": [
+        "language:Rust topic:tailwindcss"
+      ]
+    },
+    {
+      "repo": "gethopp/hopp",
+      "url": "https://github.com/gethopp/hopp",
+      "description": "The best OSS remote pair programming app.",
+      "language": "Rust",
+      "stars": 739,
+      "pushed": "2026-11-09",
+      "license": "AGPL-3.0",
+      "topics": [
+        "golang",
+        "multi-cursor",
+        "oss",
+        "pair-programming",
+        "postgresql",
+        "posthog",
+        "remote-control",
+        "rust",
+        "screen-sharing",
+        "self-hosted",
+        "shadcn-ui",
+        "tailwindcss",
+        "tauri",
+        "typescript",
+        "webrtc"
+      ],
+      "categories": [
+        "rust-css"
+      ],
+      "queries": [
+        "language:Rust topic:tailwindcss"
+      ]
+    },
+    {
+      "repo": "Cubxity/typstudio",
+      "url": "https://github.com/Cubxity/typstudio",
+      "description": "A W.I.P desktop application for a new typesetting language, typst.",
+      "language": "Rust",
+      "stars": 734,
+      "pushed": "2025-04-11",
+      "license": "GPL-3.0",
+      "topics": [
+        "desktop",
+        "gui",
+        "hacktoberfest",
+        "latex",
+        "rust",
+        "svelte",
+        "tailwindcss",
+        "tauri",
+        "typescript",
+        "typesetting",
+        "typst"
+      ],
+      "categories": [
+        "rust-css"
+      ],
+      "queries": [
+        "language:Rust topic:tailwindcss"
+      ]
+    },
+    {
+      "repo": "yisar/ijc",
+      "url": "https://github.com/yisar/ijc",
+      "description": "Itsy-bitsy JavaScript Compiler",
+      "language": "Rust",
+      "stars": 728,
+      "pushed": "2026-05-25",
+      "license": "MIT",
+      "topics": [
+        "resumable",
+        "server-side-rendering",
+        "ssr"
+      ],
+      "categories": [
+        "rust-fullstack"
+      ],
+      "queries": [
+        "language:Rust topic:ssr"
+      ]
+    },
+    {
+      "repo": "adriankumpf/tesla_auth",
+      "url": "https://github.com/adriankumpf/tesla_auth",
+      "description": "Securely generate API tokens for third-party access to your Tesla.",
+      "language": "Rust",
+      "stars": 663,
+      "pushed": "2026-09-14",
+      "license": "MIT",
+      "topics": [
+        "oauth2",
+        "rust",
+        "tesla",
+        "tesla-api",
+        "webview"
+      ],
+      "categories": [
+        "rust-auth"
+      ],
+      "queries": [
+        "language:Rust topic:oauth2"
+      ]
+    },
+    {
+      "repo": "ramosbugs/openidconnect-rs",
+      "url": "https://github.com/ramosbugs/openidconnect-rs",
+      "description": "OpenID Connect Library for Rust",
+      "language": "Rust",
+      "stars": 652,
+      "pushed": "2026-10-31",
+      "license": "MIT",
+      "topics": [
+        "authentication",
+        "google-authentication",
+        "oauth2-authentication",
+        "oauth2-client",
+        "openid-client",
+        "openid-connect",
+        "openidconnect-client",
+        "rust",
+        "rustlang",
+        "security"
+      ],
+      "categories": [
+        "rust-auth"
+      ],
+      "queries": [
+        "language:Rust topic:authentication"
+      ]
+    },
+    {
+      "repo": "manyougz/velotype",
+      "url": "https://github.com/manyougz/velotype",
+      "description": "Write at the speed of thought – Velotype is a high-performance native Markdown editor built with Rust and GPUI.⚡",
+      "language": "Rust",
+      "stars": 647,
+      "pushed": "2026-11-11",
+      "license": "NOASSERTION",
+      "topics": [
+        "editor",
+        "gpui",
+        "markdown",
+        "native-ui",
+        "rust-lang",
+        "wysiwyg"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:native-ui"
+      ]
+    },
+    {
+      "repo": "avencera/rustywind",
+      "url": "https://github.com/avencera/rustywind",
+      "description": "CLI for organizing Tailwind CSS classes",
+      "language": "Rust",
+      "stars": 636,
+      "pushed": "2026-11-02",
+      "license": "Apache-2.0",
+      "topics": [
+        "cli",
+        "tailwind-css",
+        "tailwindcss"
+      ],
+      "categories": [
+        "rust-css"
+      ],
+      "queries": [
+        "language:Rust topic:tailwindcss"
+      ]
+    },
+    {
+      "repo": "lennart-k/rustical",
+      "url": "https://github.com/lennart-k/rustical",
+      "description": "a calendar server aiming to be simple, fast and passwordless",
+      "language": "Rust",
+      "stars": 580,
+      "pushed": "2026-11-13",
+      "license": "AGPL-3.0",
+      "topics": [
+        "address-book",
+        "addressbook",
+        "axum",
+        "caldav",
+        "caldav-server",
+        "calendar",
+        "carddav",
+        "dav",
+        "dav-push",
+        "icalendar",
+        "ics",
+        "oidc",
+        "rust",
+        "vcf"
+      ],
+      "categories": [
+        "rust-auth"
+      ],
+      "queries": [
+        "language:Rust topic:oidc"
+      ]
+    },
+    {
+      "repo": "project-blinc/Blinc",
+      "url": "https://github.com/project-blinc/Blinc",
+      "description": "A declarative, reactive UI system with first-class state machines, spring physics animations, and GPU-accelerated rendering",
+      "language": "Rust",
+      "stars": 573,
+      "pushed": "2026-11-11",
+      "license": "Apache-2.0",
+      "topics": [
+        "application",
+        "declarative-ui",
+        "dsl",
+        "framework",
+        "gpu",
+        "render",
+        "ui",
+        "ui-framework",
+        "uikit",
+        "user-interface",
+        "ux"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:ui-framework",
+        "language:Rust topic:declarative-ui"
+      ]
+    },
+    {
+      "repo": "ZacharyZhang-NY/Ely-GPUI-Components",
+      "url": "https://github.com/ZacharyZhang-NY/Ely-GPUI-Components",
+      "description": "A component library for GPUI, in light and dark. Every component runs live in the browser.",
+      "language": "Rust",
+      "stars": 564,
+      "pushed": "2026-10-09",
+      "license": "MIT",
+      "topics": [
+        "design-system",
+        "gpui",
+        "rust",
+        "ui-components",
+        "webassembly"
+      ],
+      "categories": [
+        "rust-components"
+      ],
+      "queries": [
+        "language:Rust topic:ui-components"
+      ]
+    },
+    {
+      "repo": "GunduLabs/gaze",
+      "url": "https://github.com/GunduLabs/gaze",
+      "description": "Facial authentication for Linux",
+      "language": "Rust",
+      "stars": 559,
+      "pushed": "2026-11-14",
+      "license": "GPL-3.0",
+      "topics": [
+        "authentication",
+        "biometrics",
+        "face-recognition",
+        "linux",
+        "pam"
+      ],
+      "categories": [
+        "rust-auth"
+      ],
+      "queries": [
+        "language:Rust topic:authentication"
+      ]
+    },
+    {
+      "repo": "dfinity/internet-identity",
+      "url": "https://github.com/dfinity/internet-identity",
+      "description": "Internet Identity, the most prominent authentication system for modern web apps",
+      "language": "Rust",
+      "stars": 547,
+      "pushed": "2026-11-15",
+      "license": "NOASSERTION",
+      "topics": [
+        "authentication",
+        "blockchain",
+        "identity"
+      ],
+      "categories": [
+        "rust-auth"
+      ],
+      "queries": [
+        "language:Rust topic:authentication"
+      ]
+    },
+    {
+      "repo": "FrancescoXX/rustcrab",
+      "url": "https://github.com/FrancescoXX/rustcrab",
+      "description": "An Open Source project with everything you need to learn about Rust.",
+      "language": "Rust",
+      "stars": 534,
+      "pushed": "2026-05-09",
+      "license": "MIT",
+      "topics": [
+        "ai",
+        "backend",
+        "devtools",
+        "frontend",
+        "hacktoberfest",
+        "nextjs",
+        "opensource",
+        "react",
+        "rust",
+        "rust-lang",
+        "rustlang",
+        "tailwindcss",
+        "typescript",
+        "webdevelopment"
+      ],
+      "categories": [
+        "rust-css"
+      ],
+      "queries": [
+        "language:Rust topic:tailwindcss"
+      ]
+    },
+    {
+      "repo": "Synphonyte/leptos-use",
+      "url": "https://github.com/Synphonyte/leptos-use",
+      "description": "Collection of essential Leptos utilities inspired by React-Use / VueUse",
+      "language": "Rust",
+      "stars": 499,
+      "pushed": "2026-10-28",
+      "license": "Apache-2.0",
+      "topics": [
+        "dom",
+        "hooks",
+        "leptos",
+        "leptos-use",
+        "react-hooks",
+        "react-use",
+        "reactive",
+        "rust",
+        "solidjs-use",
+        "utility-library",
+        "vueuse",
+        "webassembly",
+        "yew-hooks"
+      ],
+      "categories": [
+        "rust-web-frontend"
+      ],
+      "queries": [
+        "language:Rust topic:reactive topic:webassembly"
+      ]
+    },
+    {
+      "repo": "klpod221/kerminal",
+      "url": "https://github.com/klpod221/kerminal",
+      "description": "// Modern Terminal Emulator & SSH Manager",
+      "language": "Rust",
+      "stars": 470,
+      "pushed": "2026-11-05",
+      "license": "GPL-3.0",
+      "topics": [
+        "command-automation",
+        "connection-manager",
+        "cross-platform",
+        "developer-tools",
+        "nodejs",
+        "productivity",
+        "remote-access",
+        "rust",
+        "sftp",
+        "ssh",
+        "ssh-client",
+        "ssh-tunnel",
+        "system-administration",
+        "tailwindcss",
+        "tauri",
+        "terminal",
+        "terminal-emulator",
+        "typescript",
+        "vue3",
+        "xterm"
+      ],
+      "categories": [
+        "rust-css"
+      ],
+      "queries": [
+        "language:Rust topic:tailwindcss"
+      ]
+    },
+    {
+      "repo": "cmackenzie1/torii-rs",
+      "url": "https://github.com/cmackenzie1/torii-rs",
+      "description": "Torii is a powerful authentication framework for Rust applications that gives you complete control over your users' data.",
+      "language": "Rust",
+      "stars": 457,
+      "pushed": "2026-09-05",
+      "license": "MIT",
+      "topics": [
+        "authentication",
+        "oauth2",
+        "oidc",
+        "passkey",
+        "rust",
+        "webauthn"
+      ],
+      "categories": [
+        "rust-auth"
+      ],
+      "queries": [
+        "language:Rust topic:authentication",
+        "language:Rust topic:oauth2",
+        "language:Rust topic:oidc"
+      ]
+    },
+    {
+      "repo": "anzellai/sky",
+      "url": "https://github.com/anzellai/sky",
+      "description": "Sky — an Elm-inspired language that compiles to Go. Hindley-Milner types, server-driven UI (Sky.Live), single binary output.",
+      "language": "Rust",
+      "stars": 443,
+      "pushed": "2026-11-15",
+      "license": "Apache-2.0",
+      "topics": [
+        "compiler",
+        "compiles-to-go",
+        "elm",
+        "elm-inspired",
+        "fullstack",
+        "functional-programming",
+        "go",
+        "haskell",
+        "liveview",
+        "lsp",
+        "production-ready-application",
+        "programming-language",
+        "server-driven-ui",
+        "sky",
+        "sky-lang",
+        "sky-language",
+        "sse",
+        "type-inference",
+        "typescript"
+      ],
+      "categories": [
+        "rust-fullstack"
+      ],
+      "queries": [
+        "language:Rust topic:fullstack"
+      ]
+    },
+    {
+      "repo": "RAUI-labs/raui",
+      "url": "https://github.com/RAUI-labs/raui",
+      "description": "Rust implementation of Renderer Agnostic User Interface",
+      "language": "Rust",
+      "stars": 413,
+      "pushed": "2026-10-04",
+      "license": "NOASSERTION",
+      "topics": [
+        "declarative-ui",
+        "gui",
+        "raui",
+        "rust",
+        "ui"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:declarative-ui"
+      ]
+    },
+    {
+      "repo": "replydev/cotp",
+      "url": "https://github.com/replydev/cotp",
+      "description": "Encrypted, command-line TOTP/HOTP authenticator app with import functionality.",
+      "language": "Rust",
+      "stars": 396,
+      "pushed": "2026-11-05",
+      "license": "GPL-3.0",
+      "topics": [
+        "authentication",
+        "authy",
+        "clipboard",
+        "commandline",
+        "google-authenticator",
+        "hotp",
+        "linux",
+        "rust",
+        "totp",
+        "totp-codes",
+        "tui-rs",
+        "windows",
+        "xchacha20-poly1305"
+      ],
+      "categories": [
+        "rust-auth"
+      ],
+      "queries": [
+        "language:Rust topic:authentication"
+      ]
+    },
+    {
+      "repo": "diptools/dip",
+      "url": "https://github.com/diptools/dip",
+      "description": "Rust application framework focuses on composability, ECS and Web3.  Powered by Bevy game engine, Tauri, and Dioxus. From desktop apps to the Metaverse.",
+      "language": "Rust",
+      "stars": 365,
+      "pushed": "2026-04-13",
+      "license": "NOASSERTION",
+      "topics": [
+        "bevy-engine",
+        "bevy-plugin",
+        "cross-platform",
+        "declarative-ui",
+        "desktop-app",
+        "dioxus",
+        "ecs",
+        "framework",
+        "rust"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:declarative-ui"
+      ]
+    },
+    {
+      "repo": "lovstudio/Ataru",
+      "url": "https://github.com/lovstudio/Ataru",
+      "description": "High-performance AI memory retrieval for local agent history — a Rust search core (SDK / API / JSON CLI) plus a desktop GUI. Tantivy + Jieba keyword search, optional semantic recall, stable Turn/Run/Session/Project IDs.",
+      "language": "Rust",
+      "stars": 362,
+      "pushed": "2026-08-24",
+      "license": "Apache-2.0",
+      "topics": [
+        "agent-memory",
+        "ai-memory",
+        "ai-tools",
+        "claude-code",
+        "desktop-app",
+        "full-text-search",
+        "local-first",
+        "memory-retrieval",
+        "rag",
+        "react",
+        "rust",
+        "search-engine",
+        "semantic-search",
+        "tailwindcss",
+        "tantivy",
+        "tauri",
+        "typescript",
+        "vector-search"
+      ],
+      "categories": [
+        "rust-css"
+      ],
+      "queries": [
+        "language:Rust topic:tailwindcss"
+      ]
+    },
+    {
+      "repo": "SecondHalfGames/yakui",
+      "url": "https://github.com/SecondHalfGames/yakui",
+      "description": "yakui is a declarative Rust UI library for games",
+      "language": "Rust",
+      "stars": 351,
+      "pushed": "2026-11-14",
+      "license": "Apache-2.0",
+      "topics": [
+        "declarative-ui",
+        "gamedev",
+        "gui",
+        "rust",
+        "ui",
+        "vulkan",
+        "wgpu",
+        "winit"
+      ],
+      "categories": [
+        "rust-native-ui"
+      ],
+      "queries": [
+        "language:Rust topic:declarative-ui"
+      ]
+    },
+    {
+      "repo": "better-auth-rs/better-auth-rs",
+      "url": "https://github.com/better-auth-rs/better-auth-rs",
+      "description": "🦀 Rust backend implementation of @better-auth.",
+      "language": "Rust",
+      "stars": 301,
+      "pushed": "2026-10-21",
+      "license": "Apache-2.0",
+      "topics": [
+        "authentication",
+        "iam",
+        "oauth",
+        "oidc",
+        "rust",
+        "sso"
+      ],
+      "categories": [
+        "rust-auth"
+      ],
+      "queries": [
+        "language:Rust topic:authentication",
+        "language:Rust topic:oidc"
+      ]
+    }
+  ]
+}
