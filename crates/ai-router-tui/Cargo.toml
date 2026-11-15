@@ -1,0 +1,13 @@
+[package]
+name = "ai-router-tui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Full-screen terminal chat over ai-router: streamed answers, policy switch, offer and attempts shown"
+publish = false
+
+[dependencies]
+ai-router = { path = "../ai-router" }
+ratatui = "0.30.2"
+serde_json.workspace = true
