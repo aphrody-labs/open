@@ -41,5 +41,5 @@ In the owner's Chrome 157, through claude-in-chrome:
 
 ## Gaps
 
-- The crawl timed out on three pages of Cloud Translation docs: overview, resources and languages. The supported-language count of Cloud Translation is therefore not recorded here.
+- Cloud Translation coverage, from the languages page (`cloud-translate/translate__docs__languages`): the NMT table has 208 rows, the Translation LLM table 127 (any to any within that list; the same list supports Adaptive Translation), and custom models 54. The first pass timed out on 16 pages; all 16 were fetched again, so the crawl holds 202+ pages with no failure.
 - No benchmark of these backends on Aphrody's own catalogs yet.
