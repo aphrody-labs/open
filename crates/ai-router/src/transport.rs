@@ -162,15 +162,15 @@ pub fn to_google(request: &Value) -> Value {
     if !system.is_empty() {
         body["systemInstruction"] = json!({ "parts": system });
     }
-    let mut gen = Map::new();
+    let mut generation = Map::new();
     if let Some(t) = request["temperature"].as_f64() {
-        gen.insert("temperature".into(), json!(t));
+        generation.insert("temperature".into(), json!(t));
     }
     if let Some(n) = request["max_tokens"].as_u64().or(request["max_completion_tokens"].as_u64()) {
-        gen.insert("maxOutputTokens".into(), json!(n));
+        generation.insert("maxOutputTokens".into(), json!(n));
     }
-    if !gen.is_empty() {
-        body["generationConfig"] = Value::Object(gen);
+    if !generation.is_empty() {
+        body["generationConfig"] = Value::Object(generation);
     }
     let decls: Vec<Value> = openai_tools(request).into_iter().map(|f| json!({ "name": f["name"], "description": f["description"], "parameters": f["parameters"] })).collect();
     if !decls.is_empty() {

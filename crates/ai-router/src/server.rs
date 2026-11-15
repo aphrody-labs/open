@@ -3,7 +3,6 @@
 
 use crate::Router;
 use serde_json::{json, Value};
-use std::io::Read;
 use std::sync::Arc;
 use tiny_http::{Header, Method, Response, Server};
 

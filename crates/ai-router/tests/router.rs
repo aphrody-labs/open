@@ -3,7 +3,6 @@
 use ai_router::{capi, Config, Router};
 use serde_json::{json, Value};
 use std::ffi::{CStr, CString};
-use std::io::Read;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
