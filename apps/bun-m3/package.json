@@ -1,5 +1,8 @@
 {
   "name": "bun-m3",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "@material/material-color-utilities": "^0.4.0"
+  }
 }

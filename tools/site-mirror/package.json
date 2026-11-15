@@ -1,0 +1,13 @@
+{
+  "name": "@aphrody/site-mirror",
+  "private": true,
+  "type": "module",
+  "description": "Render and mirror a whole site from its sitemap in real browsers: screenshots, DOM, every network response.",
+  "scripts": {
+    "mirror": "bun mirror.ts",
+    "browsers": "bun node_modules/playwright/cli.js install --with-deps chromium firefox webkit"
+  },
+  "dependencies": {
+    "playwright": "latest"
+  }
+}

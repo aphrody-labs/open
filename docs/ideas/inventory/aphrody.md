@@ -1,6 +1,6 @@
 # Inventaire du monorepo Aphrody
 
-Généré par `bun scripts/inventory/aphrody.ts` depuis aphrody-dev/src @ 49db7cf8. Données complètes : [aphrody.json](aphrody.json).
+Généré par `bun scripts/inventory/aphrody.ts` depuis aphrody-labs/aphrody @ 49db7cf8. Données complètes : [aphrody.json](aphrody.json).
 
 | Third party | Crates Rust | Paquets Bun | Apps | Docs | Fichiers suivis |
 |---|---|---|---|---|---|

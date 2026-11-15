@@ -1,4 +1,4 @@
-// Inventory of the Aphrody monorepo (aphrody-dev/src): third party (src.lock.json), first party (Cargo workspace
+// Inventory of the Aphrody monorepo (aphrody-labs/aphrody): third party (src.lock.json), first party (Cargo workspace
 // members, Bun workspaces, apps), documentation (every tracked .md/.mdx with its title). Read-only.
 // Output: docs/ideas/inventory/aphrody.{json,md}.
 // bun scripts/inventory/aphrody.ts [--src <path to the aphrody src checkout>]
@@ -63,7 +63,7 @@ for (const d of docs) {
 }
 
 const head = Bun.spawnSync(["git", "-C", src, "rev-parse", "--short", "HEAD"]).stdout.toString().trim();
-const data = { source: `aphrody-dev/src @ ${head}`, counts: { thirdParty: thirdParty.length, crates: crates.length, packages: packages.length, apps: apps.length, docs: docs.length, trackedFiles: trackedSet.size }, thirdParty, crates, packages, apps, docsByArea, docs };
+const data = { source: `aphrody-labs/aphrody @ ${head}`, counts: { thirdParty: thirdParty.length, crates: crates.length, packages: packages.length, apps: apps.length, docs: docs.length, trackedFiles: trackedSet.size }, thirdParty, crates, packages, apps, docsByArea, docs };
 const outDir = join(open, "docs/ideas/inventory");
 await Bun.write(join(outDir, "aphrody.json"), `${JSON.stringify(data, null, 2)}\n`);
 
