@@ -1,0 +1,7 @@
+{
+  "name": "ai-router",
+  "short_name": "ai-router",
+  "description": "Chat through every model you can reach: local first, then free, then the cheapest",
+  "start_url": "/",
+  "display": "standalone"
+}

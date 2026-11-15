@@ -1,0 +1,15 @@
+@import "@fontsource-variable/roboto-flex";
+@import "@fontsource-variable/material-symbols-outlined";
+
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined Variable";
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  direction: ltr;
+  font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+}
