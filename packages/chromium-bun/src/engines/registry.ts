@@ -214,21 +214,8 @@ export const ENGINES: readonly Engine[] = [
     language: "Zig",
     protocol: "cdp",
     upstream: gh("lightpanda-io/browser"),
-    thirdParty: null, // source absorbed first-party in packages/browser/native
+    thirdParty: null, // fork source lives in aphrody-labs/open (packages/browser/native)
     install: { via: "ay", tool: "lightpanda", bin: "lightpanda" },
-    serve: (port) => ["serve", "--host", "127.0.0.1", "--port", String(port)],
-  },
-  {
-    id: "lightpanda-fork",
-    js: "v8",
-    gpu: "none",
-    latest: { from: "github", repo: "lightpanda-io/browser" },
-    title: "Lightpanda built from packages/browser/native (fork aphrody-labs/browser, fr1)",
-    language: "Zig",
-    protocol: "cdp",
-    upstream: gh("lightpanda-io/browser"),
-    thirdParty: null,
-    install: { via: "build", host: "fr1", output: ["packages/browser/native/zig-out/bin"], bin: "lightpanda" },
     serve: (port) => ["serve", "--host", "127.0.0.1", "--port", String(port)],
   },
   {

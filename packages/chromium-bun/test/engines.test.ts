@@ -56,7 +56,6 @@ describe("engines registry", () => {
     const block = tools.slice(tools.indexOf('name = "lightpanda"'), tools.indexOf('name = "servo"'));
     for (const k of ["linux-x86_64", "linux-aarch64", "macos-x86_64", "macos-aarch64"])
       expect(block).toMatch(new RegExp(`sha256\\.${k} = "[0-9a-f]{64}"`));
-    expect(getEngine("lightpanda-fork").install).toMatchObject({ via: "build", host: "fr1" });
   });
 
   test("freePort returns a usable TCP port", () => {
