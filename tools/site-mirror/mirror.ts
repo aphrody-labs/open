@@ -6,7 +6,10 @@
 // Disallow rules are honoured for navigation.
 //
 // bun tools/site-mirror/mirror.ts --site https://m3.material.io --out /srv/mirror/m3 [--workers 4]
-//   [--engines chromium] [--limit N] [--max-bytes 104857600]
+//   [--engines chromium] [--limit N] [--max-bytes 104857600] [--prefix /docs/,/api/] [--follow]
+// --prefix keeps only pages whose path starts with one of the prefixes (sitemap and followed links).
+// --follow also crawls same-origin links found in each rendered page (breadth first, query and fragment dropped),
+// for sites whose sitemap misses pages or covers far more than the wanted section; --site may then be a deep URL.
 import { mkdirSync, appendFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { parseArgs } from "node:util";
@@ -20,6 +23,8 @@ const { values: a } = parseArgs({
     engines: { type: "string", default: "chromium" },
     limit: { type: "string" },
     "max-bytes": { type: "string", default: String(100 * 1024 * 1024) },
+    prefix: { type: "string" },
+    follow: { type: "boolean", default: false },
   },
 });
 if (!a.site || !a.out) {
@@ -48,7 +53,25 @@ const disallow: string[] = [];
     else if (star && key === "disallow" && val) disallow.push(val);
   }
 }
-const allowed = (u: string) => !disallow.some((d) => new URL(u).pathname.startsWith(d));
+const prefixes = (a.prefix ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+const inScope = (u: string) => {
+  const path = new URL(u).pathname;
+  return !prefixes.length || prefixes.some((x) => path.startsWith(x));
+};
+// robots.txt patterns: `*` matches any run of characters, a trailing `$` anchors the end (RFC 9309).
+const robotRe = disallow.map(
+  (d) => new RegExp(`^${d.replace(/[.+?^{}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\\\$$/, "$")}`),
+);
+const allowed = (u: string) => {
+  const x = new URL(u);
+  return inScope(u) && !robotRe.some((r) => r.test(x.pathname + x.search));
+};
+const canonical = (u: string) => {
+  const x = new URL(u);
+  x.hash = "";
+  x.search = "";
+  return x.href;
+};
 
 // sitemap(s)
 const pages = new Set<string>();
@@ -63,8 +86,9 @@ async function sitemap(u: string) {
     if (p.startsWith(origin) && allowed(p)) pages.add(p);
   }
 }
-await sitemap(`${origin}/sitemap.xml`);
-if (!pages.size) pages.add(`${origin}/`);
+// --follow starts from --site and walks links: large hosts (cloud.google.com) have sitemap indexes of thousands of files.
+if (!a.follow) await sitemap(`${origin}/sitemap.xml`);
+if (a.follow || !pages.size) pages.add(canonical(a.site));
 let queue = [...pages].sort();
 if (a.limit) queue = queue.slice(0, Number(a.limit));
 console.log(`${origin}: ${queue.length} pages, robots disallow ${JSON.stringify(disallow)}`);
@@ -74,6 +98,8 @@ const fileFor = (u: URL, type: string) => {
   let p = u.pathname.endsWith("/") ? `${u.pathname}index` : u.pathname;
   if (!/\.[a-z0-9]{1,6}$/i.test(p)) p += type.includes("html") ? ".html" : type.includes("json") ? ".json" : "";
   if (u.search) p += `__${Buffer.from(u.search).toString("base64url").slice(0, 80)}`;
+  // Tracking and API URLs can carry kilobytes of path parameters: long segments become a content-free hash.
+  p = p.split("/").map((seg) => (seg.length > 120 ? `h${Bun.hash(seg).toString(36)}` : seg)).join("/");
   return join(out, "files", u.host, p);
 };
 const slug = (u: string) => new URL(u).pathname.replace(/^\/|\/$/g, "").replace(/\//g, "__") || "index";
@@ -93,20 +119,31 @@ async function keep(r: Response) {
   const rec = { url, status: r.status(), type, bytes: body?.length ?? 0, kind: r.request().resourceType() };
   if (body && body.length <= maxBytes) {
     const f = fileFor(new URL(url), type);
-    mkdirSync(dirname(f), { recursive: true });
-    await Bun.write(f, body);
-    Object.assign(rec, { file: f.slice(out.length + 1) });
+    try {
+      mkdirSync(dirname(f), { recursive: true });
+      await Bun.write(f, body);
+      Object.assign(rec, { file: f.slice(out.length + 1) });
+    } catch (e) {
+      Object.assign(rec, { error: (e as Error).message.split("\n")[0] });
+    }
   }
   appendFileSync(manifest, `${JSON.stringify(rec)}\n`);
 }
 
+let busy = 0;
 async function worker(browser: Browser, engine: string, id: number) {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
   for (;;) {
     const url = queue.shift();
-    if (!url) break;
+    if (!url) {
+      // With --follow a busy worker may still enqueue links: idle workers wait until every worker is idle.
+      if (busy === 0) break;
+      await Bun.sleep(200);
+      continue;
+    }
     const shot = join(out, "screens", engine, `${slug(url)}.png`);
     if (existsSync(shot)) continue;
+    busy++;
     const page = await ctx.newPage();
     page.on("response", (r) => void keep(r));
     try {
@@ -122,6 +159,17 @@ async function worker(browser: Browser, engine: string, id: number) {
       await page.waitForLoadState("networkidle").catch(() => {});
       mkdirSync(dirname(shot), { recursive: true });
       await page.screenshot({ path: shot, fullPage: true });
+      if (a.follow) {
+        const links: string[] = await page.$$eval("a[href]", (as) => as.map((x) => (x as HTMLAnchorElement).href));
+        for (const l of links) {
+          if (!/^https?:/.test(l)) continue;
+          const c = canonical(l);
+          if (c.startsWith(origin) && allowed(c) && !pages.has(c)) {
+            pages.add(c);
+            queue.push(c);
+          }
+        }
+      }
       const dom = join(out, "dom", engine, `${slug(url)}.html`);
       mkdirSync(dirname(dom), { recursive: true });
       await Bun.write(dom, await page.content());
@@ -131,6 +179,7 @@ async function worker(browser: Browser, engine: string, id: number) {
       appendFileSync(join(out, "failures.txt"), `${engine}\t${url}\n`);
     } finally {
       await page.close();
+      busy--;
     }
   }
   await ctx.close();
