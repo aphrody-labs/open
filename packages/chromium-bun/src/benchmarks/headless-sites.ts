@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Banc headless sur sites réels : base agent-browser 0.42.0 (« before ») contre base + profil
- * (profiles/headless.json, « after »). Chrome jetable par tour (profil neuf = démarrage à froid),
- * sites visités en série dans un onglet comme un agent. Mesures : démarrage (DevToolsActivePort),
- * chargement (Page.navigate -> load), statut HTTP du document, RAM (Windows : octets privés ;
- * Linux : PSS) après chaque site, nombre de processus, WebGL.
+ * Headless benchmark on real sites: agent-browser 0.42.0 base ("before") against base + profile
+ * (profiles/headless.json, "after"). Disposable Chrome per round (fresh profile = cold start),
+ * sites visited in series in one tab like an agent. Measurements: startup (DevToolsActivePort),
+ * load (Page.navigate -> load), document HTTP status, RAM (Windows: private bytes;
+ * Linux: PSS) after each site, process count, WebGL.
  *
  *   bun src/benchmarks/headless-sites.ts [--variants "before;after;after-BackForwardCache;before+--disable-gpu"] [--runs 3] [--bin PATH] [--out f.json]
  */
@@ -37,14 +37,14 @@ export const SITES = [
 
 const os = currentOs();
 
-/** before | after | after-gpu-<mode>, suivis de +--arg (ajout) ou -FeatureName (retiré de --disable-features). */
+/** before | after | after-gpu-<mode>, followed by +--arg (added) or -FeatureName (removed from --disable-features). */
 function variantArgs(name: string): string[] {
   const [head, ...mods] = name.split(/(?=\+--|-[A-Z])/);
   let args: string[];
   if (head === "before") args = agentBrowserBaselineArgs();
   else {
     const m = /^after(?:-gpu-(software|hardware|off))?$/.exec(head!);
-    if (!m) throw new Error(`variante inconnue : ${name}`);
+    if (!m) throw new Error(`unknown variant: ${name}`);
     args = [
       ...agentBrowserBaselineArgs(),
       ...profileArgs(os, m[1] as GpuMode | undefined),
@@ -68,7 +68,7 @@ function variantArgs(name: string): string[] {
   return args;
 }
 
-// --- mémoire par processus ---------------------------------------------------------------
+// --- per-process memory ------------------------------------------------------------------
 type MemFn = (pid: number) => number | null;
 async function memFn(): Promise<MemFn> {
   if (os === "linux") {
@@ -94,7 +94,7 @@ async function memFn(): Promise<MemFn> {
       returns: FFIType.i32,
     },
   });
-  // PROCESS_MEMORY_COUNTERS_EX (x64, cb = 80) : PrivateUsage à l'octet 72.
+  // PROCESS_MEMORY_COUNTERS_EX (x64, cb = 80): PrivateUsage at byte 72.
   return (pid) => {
     const h = k32.symbols.OpenProcess(0x1000, 0, pid);
     if (!h) return null;
@@ -207,10 +207,10 @@ async function run(
   );
   const portFile = join(udd, "DevToolsActivePort");
   let portTxt = "";
-  // Chrome écrit le fichier pendant la lecture (EBUSY sous Windows) : réessayer.
+  // Chrome writes the file while it is read (EBUSY on Windows): retry.
   while (!portTxt.includes("\n")) {
     if (performance.now() - t0 > 30_000)
-      throw new Error("DevToolsActivePort absent après 30 s");
+      throw new Error("DevToolsActivePort missing after 30 s");
     try {
       if (existsSync(portFile)) portTxt = readFileSync(portFile, "utf8");
     } catch {}
@@ -388,13 +388,13 @@ if (import.meta.main) {
       : "/usr/bin/google-chrome");
   const mem = await memFn();
   const runs: RunResult[] = [];
-  // Variantes entrelacées (A, B, A, B, ...) : le bruit de la machine se répartit.
+  // Interleaved variants (A, B, A, B, ...): machine noise is spread out.
   for (let i = 0; i < runsN; i++) {
     for (const v of variants) {
       const r = await run(bin, v, mem);
       runs.push(r);
       console.error(
-        `${v} #${i + 1} : démarrage ${r.startupMs} ms, RAM ${r.finalRamMB} Mo, ${r.sites.filter((s) => s.ok).length}/${SITES.length} ok`,
+        `${v} #${i + 1}: startup ${r.startupMs} ms, RAM ${r.finalRamMB} MB, ${r.sites.filter((s) => s.ok).length}/${SITES.length} ok`,
       );
     }
   }

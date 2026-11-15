@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Matrice versionnée des moteurs : dernière version lue en direct à la source officielle (API JSON
+ * Versioned matrix of the engines: latest version read live from the official source (JSON API
  * Chrome for Testing, product-details de Mozilla, GitHub releases, npm, PyPI, crates.io, browsers.json
- * de Playwright à la version épinglée), version installée et exécutable résolu. Consommée par
- * `ay rt matrix` (src/rt), qui y ajoute les runtimes (Node, Deno, Bun, Python) et V8 / Dawn par canal.
+ * of Playwright at the pinned version), installed version and resolved executable. Consumed by
+ * `ay rt matrix` (src/rt), which adds the runtimes (Node, Deno, Bun, Python) and V8 / Dawn per channel.
  */
 import { basename, dirname } from "node:path";
 import {
@@ -64,7 +64,7 @@ export function sourceUrl(l: Latest): string {
   }
 }
 
-/** Dernière version publiée selon la source officielle, null si la source ne répond pas. */
+/** Latest version published according to the official source, null if the source does not answer. */
 export async function latestVersion(l: Latest): Promise<string | null> {
   const url = sourceUrl(l);
   try {
@@ -110,7 +110,7 @@ function installedVersion(e: Engine, path: string | null): string | null {
   if (i.via === "cft")
     return readCftIndex()[`${i.browser}@${i.channel}`]?.buildId ?? null;
   if (i.via === "playwright") {
-    // <cache>/<browser>-<révision>/... : la révision est le seul numéro fiable sans lancer le binaire.
+    // <cache>/<browser>-<revision>/...: the revision is the only reliable number without launching the binary.
     let d = dirname(path);
     while (d !== dirname(d) && !/-\d+$/.test(basename(d))) d = dirname(d);
     const m = /-(\d+)$/.exec(basename(d));

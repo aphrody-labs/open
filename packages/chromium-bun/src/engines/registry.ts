@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Registre unique des moteurs de navigation, d'automatisation et de crawl du dépôt.
- * Chaque entrée dit d'où vient le code (third_party/<nom>, fork aphrody-labs), comment le binaire
+ * Single registry of the repository's browsing, automation and crawl engines.
+ * Each entry says where the code comes from (third_party/<name>, aphrody-labs fork), how the binary
  * s'installe (ay up, Chrome for Testing, Playwright, uv tool, build distante) et quel protocole il
- * parle (CDP, WebDriver, MCP, CLI, bibliothèque). Aucune version n'est codée ici hors des épingles
- * des installeurs officiels (PINS) ; les binaires de release sont épinglés dans tools.toml.
+ * speaks (CDP, WebDriver, MCP, CLI, library). No version is hardcoded here outside the pins
+ * of the official installers (PINS); release binaries are pinned in tools.toml.
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -15,26 +15,26 @@ export type EngineProtocol =
 
 export type CftBrowser = "chrome" | "chrome-headless-shell";
 export type CftChannel = "stable" | "beta" | "dev" | "canary";
-/** Moteur JavaScript embarqué et implémentation WebGPU, pour la matrice et les combinaisons. */
+/** Embedded JavaScript engine and WebGPU implementation, for the matrix and the combinations. */
 export type JsEngine = "v8" | "javascriptcore" | "spidermonkey" | "none";
 export type GpuBackend = "dawn" | "wgpu" | "none";
 export type PlaywrightBrowser =
   "chromium" | "chromium-headless-shell" | "webkit";
 
 export type EngineInstall =
-  /** Binaire de release épinglé dans tools.toml, installé par `ay up <tool>`. */
+  /** Release binary pinned in tools.toml, installed by `ay up <tool>`. */
   | { via: "ay"; tool: string; bin: string }
   /** Chrome for Testing (API JSON officielle) par @puppeteer/browsers. */
   | { via: "cft"; browser: CftBrowser; channel: CftChannel }
-  /** Navigateurs Playwright (`playwright install`), cache partagé JS et Python. */
+  /** Playwright browsers (`playwright install`), cache shared by JS and Python. */
   | { via: "playwright"; browser: PlaywrightBrowser }
-  /** Outil Python isolé par `uv tool install`. */
+  /** Python tool isolated by `uv tool install`. */
   | { via: "uv"; spec: string; bin: string }
-  /** Construit hors du poste : fr1 (Chromium, LLVM) ou prd (le reste). */
+  /** Built off the workstation: fr1 (Chromium, LLVM) or prd (the rest). */
   | { via: "build"; host: "fr1" | "prd"; output?: string[]; bin?: string }
-  /** Bibliothèque consommée par dépendance (bun add, uv add, cargo), sans binaire. */
+  /** Library consumed as a dependency (bun add, uv add, cargo), no binary. */
   | { via: "dependency"; registry: "npm" | "pypi" | "crates"; name: string }
-  /** Navigateur installé par le système (Chrome, Edge). */
+  /** Browser installed by the system (Chrome, Edge). */
   | { via: "system" };
 
 export interface Engine {
@@ -43,20 +43,20 @@ export interface Engine {
   readonly language: string;
   readonly protocol: EngineProtocol;
   readonly upstream: string;
-  /** Dossier relatif à la racine du dépôt (third_party/<nom>) ou null si le code amont n'y est pas. */
+  /** Folder relative to the repository root (third_party/<name>) or null if the upstream code is not there. */
   readonly thirdParty: string | null;
   readonly install: EngineInstall;
-  /** Rôle dans la matrice quand le protocole ne suffit pas (bibliothèques de rendu, moteurs JS, WebGPU). */
+  /** Role in the matrix when the protocol is not enough (rendering libraries, JS engines, WebGPU). */
   readonly role?: "render" | "js-engine" | "gpu";
   readonly js: JsEngine;
   readonly gpu: GpuBackend;
-  /** Source officielle de la dernière version, interrogée par `engines matrix`. */
+  /** Official source of the latest version, queried by `engines matrix`. */
   readonly latest?: Latest;
-  /** argv (sans l'exécutable) qui expose le protocole sur 127.0.0.1:<port>. */
+  /** argv (without the executable) that exposes the protocol on 127.0.0.1:<port>. */
   serve?(port: number, profileDir: string): string[];
 }
 
-/** Versions des installeurs officiels lancés par `bun x` (npm et PyPI, vérifiées le 2026-11-13). */
+/** Versions of the official installers launched by `bun x` (npm and PyPI, verified on 2026-11-13). */
 export const PINS = {
   playwrightPython: "1.65.1",
   crawleePython: "1.11.2",
@@ -69,7 +69,7 @@ export const repoRoot = (): string =>
 
 export const binDir = (): string => join(homedir(), ".local", "bin");
 
-/** Cache des navigateurs téléchargés : APHRODY_BROWSERS, sinon LOCALAPPDATA (Windows) ou XDG_CACHE_HOME. */
+/** Cache of downloaded browsers: APHRODY_BROWSERS, otherwise LOCALAPPDATA (Windows) or XDG_CACHE_HOME. */
 export const browsersCache = (): string =>
   Bun.env.APHRODY_BROWSERS ||
   (process.platform === "win32"
@@ -148,7 +148,7 @@ export const ENGINES: readonly Engine[] = [
     id: "chromium",
     js: "v8",
     gpu: "dawn",
-    title: "Chromium du dépôt (gclient, build fr1)",
+    title: "Repository Chromium (gclient, fr1 build)",
     language: "C++",
     protocol: "cdp",
     upstream: "https://chromium.googlesource.com/chromium/src",
@@ -167,7 +167,7 @@ export const ENGINES: readonly Engine[] = [
     id: "chrome",
     js: "v8",
     gpu: "dawn",
-    title: "Chrome ou Edge du système",
+    title: "System Chrome or Edge",
     language: "C++",
     protocol: "cdp",
     upstream: "https://www.google.com/chrome/",
@@ -261,7 +261,7 @@ export const ENGINES: readonly Engine[] = [
     role: "js-engine",
     js: "v8",
     gpu: "none",
-    title: "V8 du Chromium du dépôt",
+    title: "V8 of the repository Chromium",
     language: "C++",
     protocol: "library",
     upstream: "https://chromium.googlesource.com/v8/v8",
@@ -338,7 +338,7 @@ export const ENGINES: readonly Engine[] = [
     js: "none",
     gpu: "none",
     latest: { from: "pypi", name: "playwright" },
-    title: "Playwright pour Python",
+    title: "Playwright for Python",
     language: "Python",
     protocol: "cli",
     upstream: gh("microsoft/playwright-python"),
@@ -354,7 +354,7 @@ export const ENGINES: readonly Engine[] = [
     js: "none",
     gpu: "none",
     latest: { from: "pypi", name: "crawlee" },
-    title: "Crawlee pour Python",
+    title: "Crawlee for Python",
     language: "Python",
     protocol: "cli",
     upstream: gh("apify/crawlee-python"),
@@ -467,12 +467,12 @@ export function getEngine(id: string): Engine {
   const e = ENGINES.find((x) => x.id === id);
   if (!e)
     throw new Error(
-      `moteur inconnu : ${id} (voir \`chromium-bun engines list\`)`,
+      `unknown engine: ${id} (see \`chromium-bun engines list\`)`,
     );
   return e;
 }
 
-/** Correspondance canal -> exécutable écrite par l'installation Chrome for Testing. */
+/** Channel -> executable mapping written by the Chrome for Testing installation. */
 export const cftIndexFile = (): string => join(cftCache(), "channels.json");
 export const readCftIndex = (): Record<
   string,
@@ -573,7 +573,7 @@ function systemChrome(): string | null {
   return null;
 }
 
-/** Exécutable du moteur s'il est présent sur cette machine, sinon null (aucun téléchargement). */
+/** Engine executable if present on this machine, otherwise null (no download). */
 export function resolveExecutable(engine: Engine): string | null {
   const i = engine.install;
   switch (i.via) {
@@ -582,7 +582,7 @@ export function resolveExecutable(engine: Engine): string | null {
       return existsSync(local) ? local : (Bun.which(i.bin) ?? null);
     }
     case "uv": {
-      // uv tool install écrit dans UV_TOOL_BIN_DIR = binDir() ; un homonyme ailleurs (bun global) ne compte pas.
+      // uv tool install writes to UV_TOOL_BIN_DIR = binDir(); a namesake elsewhere (global bun) does not count.
       const local = join(binDir(), exe(i.bin));
       return existsSync(local) ? local : null;
     }
@@ -606,7 +606,7 @@ export function resolveExecutable(engine: Engine): string | null {
   }
 }
 
-/** Premier Chromium disponible : CHROME_PATH, build du dépôt, Chrome for Testing stable, Playwright, système. */
+/** First available Chromium: CHROME_PATH, repository build, stable Chrome for Testing, Playwright, system. */
 export function resolveChromium(): string | null {
   if (Bun.env.CHROME_PATH && existsSync(Bun.env.CHROME_PATH))
     return Bun.env.CHROME_PATH;

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Installation et mise à jour idempotentes des moteurs (Windows et Linux), uniquement par les
+ * Idempotent installation and update of the engines (Windows and Linux), only through
  * installeurs officiels : `ay up` (tools.toml), @puppeteer/browsers (Chrome for Testing),
  * `playwright install`, `uv tool install`. Rien n'est compilé ici : les entrées `build` renvoient
  * vers fr1 (Chromium, V8) ou prd (Blitz, JavaScriptCore).
@@ -48,7 +48,7 @@ async function run(
 
 const last = (s: string) => s.trim().split(/\r?\n/).pop() ?? "";
 
-/** Moteurs installables par défaut : tout ce qui a un binaire téléchargeable pour cette plate-forme. */
+/** Engines installable by default: everything with a downloadable binary for this platform. */
 export const DEFAULT_INSTALL: readonly string[] = [
   "chrome@stable",
   "chrome-headless-shell@stable",
@@ -73,7 +73,7 @@ export async function installEngines(
   const done = (e: Engine, ok: boolean, detail: string) =>
     results.push({ id: e.id, ok, path: resolveExecutable(e), detail });
 
-  // 1. Binaires de release : un seul `ay up` pour tous (ay compare la version et ne refait rien si elle est à jour).
+  // 1. Release binaries: a single `ay up` for all (ay compares the version and does nothing if up to date).
   const ay = engines.filter((e) => e.install.via === "ay");
   if (ay.length) {
     const tools = ay.map((e) => (e.install as { tool: string }).tool);
@@ -81,7 +81,7 @@ export async function installEngines(
     for (const e of ay) done(e, r.ok, r.ok ? "ay up" : last(r.out));
   }
 
-  // 2. Chrome for Testing : @puppeteer/browsers résout le canal via l'API JSON officielle et réutilise le cache.
+  // 2. Chrome for Testing: @puppeteer/browsers resolves the channel through the official JSON API and reuses the cache.
   const cft = engines.filter((e) => e.install.via === "cft");
   if (cft.length) {
     mkdirSync(cftCache(), { recursive: true });
@@ -108,7 +108,7 @@ export async function installEngines(
     }
   }
 
-  // 3. Navigateurs Playwright, cache commun aux liaisons JS et Python.
+  // 3. Playwright browsers, cache shared by the JS and Python bindings.
   const pw = engines.filter((e) => e.install.via === "playwright");
   if (pw.length) {
     const names = pw.map((e) => (e.install as { browser: string }).browser);
@@ -128,7 +128,7 @@ export async function installEngines(
       done(e, r.ok, r.ok ? `playwright ${PINS.playwright}` : last(r.out));
   }
 
-  // 4. Outils Python isolés ; uv ne réinstalle pas une spécification déjà satisfaite.
+  // 4. Isolated Python tools; uv does not reinstall an already satisfied specification.
   for (const e of engines.filter((x) => x.install.via === "uv")) {
     const i = e.install as { spec: string };
     const r = await run(["uv", "tool", "install", i.spec], {
@@ -144,12 +144,12 @@ export async function installEngines(
       done(
         e,
         resolveExecutable(e) !== null,
-        `build sur ${e.install.host} (${e.thirdParty})`,
+        `build on ${e.install.host} (${e.thirdParty})`,
       );
     else if (v === "dependency")
-      done(e, true, `dépendance ${e.install.registry} ${e.install.name}`);
+      done(e, true, `dependency ${e.install.registry} ${e.install.name}`);
     else if (v === "system")
-      done(e, resolveExecutable(e) !== null, "navigateur du système");
+      done(e, resolveExecutable(e) !== null, "system browser");
   }
   return ids.map((id) => results.find((r) => r.id === id)!);
 }

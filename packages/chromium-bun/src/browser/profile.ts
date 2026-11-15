@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * Profil headless/cloud (profiles/headless.json) : arguments de lancement, politiques Linux,
- * configuration agent-browser et lanceur persistant (service fr1). Autonome : n'importe que le JSON,
- * pour être copié tel quel sur fr1 (`just chromium-headless-deploy`).
+ * agent-browser configuration and persistent launcher (fr1 service). Standalone: imports only the JSON,
+ * so it can be copied as is to fr1 (`just chromium-headless-deploy`).
  *
  *   bun src/browser/profile.ts args [--os linux|win] [--gpu software|hardware|off]
  *   bun src/browser/profile.ts policies
@@ -23,7 +23,7 @@ export function currentOs(): ProfileOs {
   return process.platform === "win32" ? "win" : "linux";
 }
 
-/** Arguments du profil pour un OS ; un seul --disable-features (dernière valeur gagnante, base/command_line.cc). */
+/** Profile arguments for an OS; a single --disable-features (last value wins, base/command_line.cc). */
 export function profileArgs(
   os: ProfileOs = currentOs(),
   gpu: GpuMode = profile.gpu.default[os] as GpuMode,
@@ -38,12 +38,12 @@ export function profileArgs(
   return args;
 }
 
-/** Arguments d'office d'agent-browser (base « avant » des mesures). */
+/** Arguments agent-browser always passes ("before" base of the measurements). */
 export function agentBrowserBaselineArgs(): string[] {
   return [...profile.agentBrowserBaseline.common];
 }
 
-/** Base agent-browser puis profil, dans l'ordre où agent-browser les assemble (arguments utilisateur en dernier). */
+/** agent-browser base then profile, in the order agent-browser assembles them (user arguments last). */
 export function agentBrowserEffectiveArgs(
   os: ProfileOs = currentOs(),
   gpu?: GpuMode,
@@ -59,7 +59,7 @@ export function linuxPolicies(): Record<string, unknown> {
   );
 }
 
-/** Arguments que l'on peut ajouter à agent-browser : ceux qu'il passe déjà sont omis (sauf --disable-features, à remplacer). */
+/** Arguments that can be added to agent-browser: those it already passes are omitted (except --disable-features, to be replaced). */
 export function agentBrowserExtraArgs(
   os: ProfileOs = currentOs(),
   gpu?: GpuMode,
@@ -72,7 +72,7 @@ export function agentBrowserConfigPath(): string {
   return join(homedir(), ".agent-browser", "config.json");
 }
 
-/** Fusionne la clé `args` (chaîne, une ligne par argument) dans ~/.agent-browser/config.json. */
+/** Merges the `args` key (string, one line per argument) into ~/.agent-browser/config.json. */
 export function writeAgentBrowserConfig(
   os: ProfileOs = currentOs(),
   gpu?: GpuMode,
@@ -104,7 +104,7 @@ async function launch(argv: string[]): Promise<never> {
   const port = flag(argv, "--port") ?? "9222";
   const udd = flag(argv, "--user-data-dir");
   if (!udd)
-    throw new Error("--user-data-dir requis (CDP refuse le profil par défaut)");
+    throw new Error("--user-data-dir required (CDP refuses the default profile)");
   mkdirSync(udd, { recursive: true });
   const bin = flag(argv, "--bin") ?? defaultBinary(os);
   const proc = Bun.spawn(

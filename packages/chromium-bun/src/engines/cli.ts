@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // chromium-bun engines list | matrix | channels | path <id> | install [id...] | launch <id> [--port N]
-// Exécutable seul (bun packages/chromium-bun/src/engines/cli.ts ...) sans charger le reste du paquet ; `ay rt` l'appelle ainsi.
+// Standalone executable (bun packages/chromium-bun/src/engines/cli.ts ...) without loading the rest of the package; `ay rt` calls it that way.
 import { runBackendCommand } from "./backend.ts";
 import { DEFAULT_INSTALL, installEngines } from "./install.ts";
 import { launchEngine } from "./launch.ts";
@@ -49,7 +49,7 @@ export async function runEnginesCommand(args: string[]): Promise<number> {
       return 0;
     }
     case "channels": {
-      // Versions des canaux Chrome for Testing (API JSON officielle) face au cache local.
+      // Chrome for Testing channel versions (official JSON API) against the local cache.
       const live = (await (await fetch(CFT_JSON)).json()) as {
         channels: Record<string, { version: string; revision: string }>;
       };
@@ -97,7 +97,7 @@ export async function runEnginesCommand(args: string[]): Promise<number> {
         await running.close();
         return 0;
       }
-      // Reste au premier plan jusqu'à Ctrl+C.
+      // Stays in the foreground until Ctrl+C.
       await new Promise<void>((resolve) =>
         process.once("SIGINT", () => resolve()),
       );
@@ -114,13 +114,13 @@ export async function runEnginesCommand(args: string[]): Promise<number> {
 function usage(): number {
   console.error(
     [
-      "chromium-bun engines list [--json]          registre, protocole, installation, exécutable résolu",
-      "chromium-bun engines matrix [--json]        dernière version (source officielle, en direct), installée, moteur JS, WebGPU",
+      "chromium-bun engines list [--json]          registry, protocol, installation, resolved executable",
+      "chromium-bun engines matrix [--json]        latest version (official source, live), installed, JS engine, WebGPU",
       "chromium-bun engines channels               canaux Chrome for Testing (API JSON officielle) et cache local",
-      "chromium-bun engines path <id>              exécutable du moteur (code 1 si absent)",
+      "chromium-bun engines path <id>              engine executable (exit code 1 if missing)",
       "chromium-bun engines install [id...]        installation idempotente (ay up, CfT, Playwright, uv tool)",
-      "chromium-bun engines launch <id> [--port N] [--probe]   expose CDP ou WebDriver sur 127.0.0.1",
-      "chromium-bun engines backend list|pick|use [id] [--need cdp,webgpu] [--js ..] [--channel ..] [--write]   backend C++ choisi dans le registre",
+      "chromium-bun engines launch <id> [--port N] [--probe]   exposes CDP or WebDriver on 127.0.0.1",
+      "chromium-bun engines backend list|pick|use [id] [--need cdp,webgpu] [--js ..] [--channel ..] [--write]   C++ backend chosen from the registry",
     ].join("\n"),
   );
   return 2;

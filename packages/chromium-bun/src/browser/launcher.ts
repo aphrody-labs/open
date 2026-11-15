@@ -21,7 +21,7 @@ export interface LaunchedChromiumInstance extends AsyncDisposable {
   close(): Promise<void>;
 }
 
-/** Chromium local résolu par le registre des moteurs (engines/registry.ts), sans chemin codé en dur. */
+/** Local Chromium resolved by the engine registry (engines/registry.ts), no hardcoded path. */
 export function findLocalChromiumBinary(): string | null {
   return resolveChromium();
 }

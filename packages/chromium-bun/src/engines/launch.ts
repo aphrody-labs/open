@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Lance un moteur headless qui expose CDP (Chrome for Testing, Chromium, Playwright Chromium,
- * Obscura) ou WebDriver (Servo) sur 127.0.0.1, et rend son point d'accès. Le pilotage
- * CDP passe par le client existant (browser/cdp-client.ts) ; Playwright et Puppeteer s'y connectent
+ * Launches a headless engine that exposes CDP (Chrome for Testing, Chromium, Playwright Chromium,
+ * Obscura) or WebDriver (Servo) on 127.0.0.1, and returns its endpoint. CDP
+ * driving goes through the existing client (browser/cdp-client.ts); Playwright and Puppeteer connect to it
  * aussi (connectOverCDP, connect({ browserURL })).
  */
 import { mkdtempSync, rmSync } from "node:fs";
@@ -17,14 +17,14 @@ export interface RunningEngine extends AsyncDisposable {
   readonly port: number;
   /** http://127.0.0.1:<port> : base CDP (/json/version) ou WebDriver (/status). */
   readonly endpoint: string;
-  /** CDP : URL WebSocket du navigateur ; WebDriver classique : null. */
+  /** CDP: browser WebSocket URL; classic WebDriver: null. */
   readonly webSocketDebuggerUrl: string | null;
   readonly version: string;
   connect(): Promise<ChromiumBunCdpClient>;
   close(): Promise<void>;
 }
 
-/** Port TCP libre choisi par le système. */
+/** Free TCP port chosen by the system. */
 export function freePort(): number {
   const s = Bun.serve({
     hostname: "127.0.0.1",
@@ -62,7 +62,7 @@ export async function launchEngine(
     );
   const executable = resolveExecutable(engine);
   if (!executable)
-    throw new Error(`${id} absent : \`chromium-bun engines install ${id}\``);
+    throw new Error(`${id} missing: \`chromium-bun engines install ${id}\``);
   const port = options.port ?? freePort();
   const profileDir = mkdtempSync(
     join(tmpdir(), `engine-${engine.id.replace(/[^\w-]/g, "_")}-`),
@@ -81,7 +81,7 @@ export async function launchEngine(
       proc.kill();
       await proc.exited;
     } catch {}
-    // Chrome laisse parfois des processus fils quelques instants : nettoyage au mieux.
+    // Chrome sometimes leaves child processes around for a few moments: best-effort cleanup.
     try {
       rmSync(profileDir, { recursive: true, force: true, maxRetries: 5 });
     } catch {}
@@ -94,14 +94,14 @@ export async function launchEngine(
       const err = await new Response(proc.stderr).text();
       await close();
       throw new Error(
-        `${id} s'est arrêté (code ${proc.exitCode}) : ${err.slice(-400)}`,
+        `${id} exited (code ${proc.exitCode}): ${err.slice(-400)}`,
       );
     }
     info = await probe(engine, base).catch(() => null);
     if (!info) {
       if (Date.now() > deadline) {
         await close();
-        throw new Error(`${id} injoignable sur ${base}`);
+        throw new Error(`${id} unreachable on ${base}`);
       }
       await Bun.sleep(150);
     }
