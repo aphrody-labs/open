@@ -1,0 +1,61 @@
+---
+name: bun-lint-rules-react-rule-suppression
+description: "Disallow comments that turn off `rules-of-hooks` or `exhaustive-deps`. Use when working with Bun: react-hooks/rule-suppression (bun docs lint/rules/react/rule-suppression.mdx)."
+---
+
+# react-hooks/rule-suppression
+
+React Compiler only optimizes code that follows the rules of React. If a component or a hook has a comment that turns off `react-hooks/rules-of-hooks` or `react-hooks/exhaustive-deps`, the compiler doesn't trust it and skips the whole function. You lose the optimization, and nothing else tells you.
+
+An `eslint-disable-next-line` comment counts for the function it's in. An `eslint-disable` comment counts for every component and hook in the file. `oxlint-disable` comments and the names `react/rules-of-hooks` and `react/exhaustive-deps` count too.
+
+This rule only reports with an oxlint config, as `react/rule-suppression`. With `bunfig.toml` or an ESLint config you can turn it on, but it reports nothing, same as in `eslint-plugin-react-hooks`.
+
+```json .oxlintrc.json
+{
+  "plugins": ["react"],
+  "rules": { "react/rule-suppression": "error" }
+}
+```
+
+{/* never reports */}
+
+## Examples
+
+Reported:
+
+{/* bad {"config": "oxlint"} */}
+```jsx
+
+function Title({ text }) {
+  useEffect(() => {
+    document.title = text;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return <h1>{text}</h1>;
+}
+```
+
+Not reported:
+
+{/* good {"config": "oxlint"} */}
+```jsx
+
+function Title({ text }) {
+  useEffect(() => {
+    document.title = text;
+  }, [text]);
+  return <h1>{text}</h1>;
+}
+```
+
+Comments about other rules don't matter:
+
+{/* good {"config": "oxlint"} */}
+```jsx
+function Title({ text }) {
+  // eslint-disable-next-line no-console
+  console.log(text);
+  return <h1>{text}</h1>;
+}
+```

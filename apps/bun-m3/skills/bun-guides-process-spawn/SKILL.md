@@ -1,0 +1,44 @@
+---
+name: bun-guides-process-spawn
+description: "Spawn a child process. Use when working with Bun: Spawn a child process (bun docs guides/process/spawn.mdx)."
+---
+
+# Spawn a child process
+
+Use [`Bun.spawn()`](/runtime/child-process) to spawn a child process.
+
+```ts
+const proc = Bun.spawn(["echo", "hello"]);
+
+// await completion
+await proc.exited;
+```
+
+---
+
+The second argument is a configuration object.
+
+```ts
+const proc = Bun.spawn(["echo", "Hello, world!"], {
+  cwd: "/tmp",
+  env: { FOO: "bar" },
+  onExit(proc, exitCode, signalCode, error) {
+    // exit handler
+  },
+});
+```
+
+---
+
+By default, `proc.stdout` is a `ReadableStream` of the child process's `stdout`.
+
+```ts
+const proc = Bun.spawn(["echo", "hello"]);
+
+const output = await proc.stdout.text();
+output; // => "hello\n"
+```
+
+---
+
+See [Child processes](/runtime/child-process).

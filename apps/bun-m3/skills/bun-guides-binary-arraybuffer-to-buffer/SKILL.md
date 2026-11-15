@@ -1,0 +1,28 @@
+---
+name: bun-guides-binary-arraybuffer-to-buffer
+description: "Convert an ArrayBuffer to a Buffer. Use when working with Bun: Convert an ArrayBuffer to a Buffer (bun docs guides/binary/arraybuffer-to-buffer.mdx)."
+---
+
+# Convert an ArrayBuffer to a Buffer
+
+The Node.js [`Buffer`](https://nodejs.org/api/buffer.html) API predates the introduction of `ArrayBuffer` into the JavaScript language. Bun implements both.
+
+Use the static `Buffer.from()` method to create a `Buffer` from an `ArrayBuffer`.
+
+```ts
+const arrBuffer = new ArrayBuffer(64);
+const nodeBuffer = Buffer.from(arrBuffer);
+```
+
+---
+
+To create a `Buffer` that only views a portion of the underlying buffer, pass the offset and length to `Buffer.from()`.
+
+```ts
+const arrBuffer = new ArrayBuffer(64);
+const nodeBuffer = Buffer.from(arrBuffer, 0, 16); // view first 16 bytes
+```
+
+---
+
+See [Binary Data](/runtime/binary-data#conversion).

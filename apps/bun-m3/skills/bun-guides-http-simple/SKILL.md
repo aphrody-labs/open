@@ -1,0 +1,21 @@
+---
+name: bun-guides-http-simple
+description: "Write a simple HTTP server. Use when working with Bun: Write a simple HTTP server (bun docs guides/http/simple.mdx)."
+---
+
+# Write a simple HTTP server
+
+This code starts an HTTP server listening on port `3000`. It responds to every request with a `200` status and the body `"Welcome to Bun!"`.
+
+See [`Bun.serve`](/runtime/http/server) for details.
+
+```ts server.ts icon="/icons/typescript.svg"
+const server = Bun.serve({
+  port: 3000,
+  fetch(request) {
+    return new Response("Welcome to Bun!");
+  },
+});
+
+console.log(`Listening on ${server.url}`);
+```

@@ -1,0 +1,91 @@
+---
+name: bun-guides-deployment-render
+description: "Deploy a Bun application on Render. Use when working with Bun: Deploy a Bun application on Render (bun docs guides/deployment/render.mdx)."
+---
+
+# Deploy a Bun application on Render
+
+[Render](https://render.com/) is a cloud platform for building, deploying, and scaling apps.
+
+It provides auto deploys from GitHub, a global CDN, private networks, automatic HTTPS setup, and managed PostgreSQL and Redis-compatible Key Value stores.
+
+Render supports Bun natively. You can deploy Bun apps as web services, background workers, cron jobs, and more.
+
+---
+
+As an example, this guide deploys an Express HTTP server to Render.
+
+	
+#### Step: Step 1
+
+		Create a new GitHub repo named `myapp`. Git clone it locally.
+
+    	```sh
+    	git clone git@github.com:my-github-username/myapp.git
+    	cd myapp
+    	```
+    	
+    	
+#### Step: Step 2
+
+    	Add the Express library.
+
+    	```sh
+    	bun add express
+    	```
+
+    
+
+    
+#### Step: Step 3
+
+    	Define a server with Express:
+
+    	```ts app.ts icon="/icons/typescript.svg"
+    	import express from "express";
+
+    	const app = express();
+    	const port = process.env.PORT || 3001;
+
+    	app.get("/", (req, res) => {
+    		res.send("Hello World!");
+    	});
+
+    	app.listen(port, () => {
+    		console.log(`Listening on port ${port}...`);
+    	});
+    	```
+    
+    
+#### Step: Step 4
+
+    	Commit your changes and push to GitHub.
+
+    	```sh terminal icon="terminal"
+    	git add app.ts bun.lock package.json
+    	git commit -m "Create simple Express app"
+    	git push origin main
+    	```
+    
+    
+#### Step: Step 5
+
+    	In your [Render Dashboard](https://dashboard.render.com/), click `New` > `Web Service` and connect your `myapp` repo.
+
+    
+    
+#### Step: Step 6
+
+    	In the Render UI, provide the following values during web service creation:
+
+    	|                   |               |
+    	| ----------------- | ------------- |
+    	| **Runtime**       | `Node`        |
+    	| **Build Command** | `bun install` |
+    	| **Start Command** | `bun app.ts`  |
+
+    
+
+Once the build finishes, your web service is live at its assigned `onrender.com` URL.
+
+View the [deploy logs](https://docs.render.com/logging#logs-for-an-individual-deploy-or-job) for details. See [Render's documentation](https://docs.render.com/deploys) for more on deploys.

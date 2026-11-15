@@ -1,0 +1,17 @@
+---
+name: bun-guides-binary-blob-to-stream
+description: "Convert a Blob to a ReadableStream. Use when working with Bun: Convert a Blob to a ReadableStream (bun docs guides/binary/blob-to-stream.mdx)."
+---
+
+# Convert a Blob to a ReadableStream
+
+The [`Blob`](https://developer.mozilla.org/en-US/docs/Web/API/Blob) class provides several methods for consuming its contents in different formats, including `.stream()`, which returns a `ReadableStream`.
+
+```ts
+const blob = new Blob(["hello world"]);
+const stream = blob.stream();
+```
+
+---
+
+See [Binary Data](/runtime/binary-data#conversion).

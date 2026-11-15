@@ -1,0 +1,25 @@
+---
+name: bun-guides-test-bail
+description: "Bail early with the Bun test runner. Use when working with Bun: Bail early with the Bun test runner (bun docs guides/test/bail.mdx)."
+---
+
+# Bail early with the Bun test runner
+
+Use the `--bail` flag to abort a test run after the first failure, so a continuous integration run fails as early as possible.
+
+```sh terminal icon="terminal"
+bun test --bail
+```
+
+---
+
+To bail after a certain number of failures, pass a number after the flag.
+
+```sh terminal icon="terminal"
+# bail after 10 failures
+bun test --bail=10
+```
+
+---
+
+See [`bun test`](/test).

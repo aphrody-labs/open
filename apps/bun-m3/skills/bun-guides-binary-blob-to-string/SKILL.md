@@ -1,0 +1,18 @@
+---
+name: bun-guides-binary-blob-to-string
+description: "Convert a Blob to a string. Use when working with Bun: Convert a Blob to a string (bun docs guides/binary/blob-to-string.mdx)."
+---
+
+# Convert a Blob to a string
+
+The [`Blob`](https://developer.mozilla.org/en-US/docs/Web/API/Blob) class provides several methods for consuming its contents in different formats, including `.text()`.
+
+```ts
+const blob = new Blob(["hello world"]);
+const str = await blob.text();
+// => "hello world"
+```
+
+---
+
+See [Binary Data](/runtime/binary-data#conversion).

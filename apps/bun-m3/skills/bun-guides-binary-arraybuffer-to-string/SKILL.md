@@ -1,0 +1,18 @@
+---
+name: bun-guides-binary-arraybuffer-to-string
+description: "Convert an ArrayBuffer to a string. Use when working with Bun: Convert an ArrayBuffer to a string (bun docs guides/binary/arraybuffer-to-string.mdx)."
+---
+
+# Convert an ArrayBuffer to a string
+
+Bun implements the Web-standard [`TextDecoder`](https://developer.mozilla.org/en-US/docs/Web/API/TextDecoder) class for converting between binary data types and strings.
+
+```ts
+const buf = new ArrayBuffer(64);
+const decoder = new TextDecoder();
+const str = decoder.decode(buf);
+```
+
+---
+
+See [Binary Data](/runtime/binary-data#conversion).

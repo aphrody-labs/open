@@ -17,6 +17,11 @@
 - R18. L'installation des outils est reproductible et idempotente sur chaque hôte.
 - R19. Chaque exécution du banc enregistre outil, version, hôte, cible, mesures, artefacts ; elle reprend là où elle s'est arrêtée.
 - R20. La génération sitemap → application est jugée par différence de pixels et de DOM contre le rendu de référence (Chrome for Testing).
+- R21. Outil sans build pour une plateforme (ex. Lightpanda sous Windows) : fork, patch, push, release, puis distribution par `ay` et le téléchargement Aphrody avec mise à jour automatique. Outil inexistant : on le crée selon les pratiques des frameworks, des grands clouds, des stores et des gestionnaires de paquets.
+
+## Premier cas R21 : Lightpanda sous Windows
+
+La PR amont lightpanda-io/browser#3753 (« native Windows support », 26 fichiers, +1436/-108, ouverte) remplit le `WindowsIO` laissé vide dans `Server.zig` et adapte `build.zig` (MSVC, SDK Windows, bibliothèques système). Plan : l'appliquer sur `aphrody-labs/browser`, construire, tester, publier une release Windows, l'ajouter à `scripts/hosts/tools.json`.
 
 ## Phases ajoutées
 

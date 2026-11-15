@@ -1,0 +1,20 @@
+---
+name: bun-guides-write-file-response
+description: "Write a Response to a file. Use when working with Bun: Write a Response to a file (bun docs guides/write-file/response.mdx)."
+---
+
+# Write a Response to a file
+
+Use [`Bun.write()`](/runtime/file-io#writing-files-bun-write) to write a `Response` to disk. Bun writes the body of the `Response` to the destination.
+
+The first argument is a _destination_, like an absolute path or `BunFile` instance. The second argument is the _data_ to write.
+
+```ts
+const result = await fetch("https://bun.com");
+const path = "./file.txt";
+await Bun.write(path, result);
+```
+
+---
+
+See [`Bun.write()`](/runtime/file-io#writing-files-bun-write).

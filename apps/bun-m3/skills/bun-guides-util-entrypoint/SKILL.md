@@ -1,0 +1,20 @@
+---
+name: bun-guides-util-entrypoint
+description: "Check if the current file is the entrypoint. Use when working with Bun: Check if the current file is the entrypoint (bun docs guides/util/entrypoint.mdx)."
+---
+
+# Check if the current file is the entrypoint
+
+Bun provides a handful of module-specific utilities on the [`import.meta`](/runtime/module-resolution#import-meta) object. Use `import.meta.main` to check if the current file is the entrypoint of the current process.
+
+```ts index.ts icon="/icons/typescript.svg"
+if (import.meta.main) {
+  // this file is directly executed with `bun run`
+} else {
+  // this file is being imported by another file
+}
+```
+
+---
+
+See [`import.meta`](/runtime/module-resolution#import-meta).

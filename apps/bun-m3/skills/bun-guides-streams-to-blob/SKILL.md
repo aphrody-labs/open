@@ -1,0 +1,19 @@
+---
+name: bun-guides-streams-to-blob
+description: "Convert a ReadableStream to a Blob. Use when working with Bun: Convert a ReadableStream to a Blob (bun docs guides/streams/to-blob.mdx)."
+---
+
+# Convert a ReadableStream to a Blob
+
+Bun provides several conveniences for reading the contents of a [`ReadableStream`](https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream) into other formats. To read a stream into a `Blob`, call its `blob()` method.
+
+```ts
+const stream = new ReadableStream();
+const blob = await stream.blob();
+```
+
+`Bun.readableStreamToBlob(stream)` does the same thing, but is deprecated in favor of `stream.blob()`.
+
+---
+
+See [Bun's other `ReadableStream` conversion functions](/runtime/utils#bun-readablestreamto).

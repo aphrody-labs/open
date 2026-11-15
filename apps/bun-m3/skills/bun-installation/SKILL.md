@@ -1,0 +1,354 @@
+---
+name: bun-installation
+description: "Install Bun with npm, Homebrew, Docker, or the official script. Use when working with Bun: Installation (bun docs installation.mdx)."
+---
+
+# Installation
+
+## Overview
+
+Bun ships as a single, dependency-free executable. Install it with the install script, a package manager, or Docker on macOS, Linux, and Windows.
+
+> **Tip**
+>
+> After installation, verify with `bun --version` and `bun --revision`.
+
+## Installation
+
+  
+#### macOS & Linux
+
+    
+      ```bash curl icon="globe"
+      curl -fsSL https://bun.com/install | bash
+      ```
+
+    
+    > **Note**
+>
+> **Linux users:** You need the `unzip` package to install Bun (`sudo apt install unzip`). We recommend kernel version 5.6 or higher. Bun runs on kernels as old as 3.10 (RHEL 7) with graceful degradation of newer syscalls. Use `uname -r` to check your kernel version.
+
+  
+
+  
+#### Windows
+
+    
+      ```powershell PowerShell icon="terminal"
+      powershell -c "irm bun.sh/install.ps1|iex"
+      ```
+
+    
+    > **Warning**
+>
+> Bun requires Windows 10 version 1809 or later.
+
+    For support and discussion, join the **#windows** channel on the [Discord](https://bun.com/discord).
+
+  
+
+    
+#### Package Managers
+
+    	
+
+    	```bash npm icon="npm"
+    	npm install -g bun # the last `npm` command you'll ever need
+    	```
+
+    	```bash Homebrew icon="/icons/homebrew.svg"
+    	brew install oven-sh/bun/bun
+    	```
+
+    	```bash Scoop icon="terminal"
+    	scoop install bun
+    	```
+
+    	
+
+    
+
+  
+#### Docker
+
+    Bun provides a Docker image that supports both Linux x64 and arm64.
+
+    ```bash Docker icon="docker"
+    docker pull oven/bun
+    docker run --rm --init --ulimit memlock=-1:-1 oven/bun
+    ```
+
+    ### Image Variants
+
+    Bun also publishes image variants for different operating systems:
+
+    ```bash Docker icon="docker"
+    docker pull oven/bun:debian
+    docker pull oven/bun:slim
+    docker pull oven/bun:distroless
+    docker pull oven/bun:alpine
+    ```
+
+  
+
+To check that Bun was installed successfully, open a new terminal window and run:
+
+```bash terminal icon="terminal"
+bun --version
+# Output: 1.x.y
+
+# See the precise commit of `oven-sh/bun` that you're using
+bun --revision
+# Output: 1.x.y+b7982ac13189
+```
+
+> **Warning**
+>
+> If you've installed Bun but are seeing a `command not found` error, you may have to manually add the installation
+  directory (`~/.bun/bin`) to your `PATH`.
+
+#### Add Bun to your PATH
+
+  
+    
+#### macOS & Linux
+
+      
+        
+#### Step: Determine which shell you're using
+
+        ```bash terminal icon="terminal"
+        echo $SHELL
+        # /bin/zsh  or /bin/bash or /bin/fish
+        ```
+        
+        
+#### Step: Open your shell configuration file
+
+          - For bash: `~/.bashrc`
+          - For zsh: `~/.zshrc`
+          - For fish: `~/.config/fish/config.fish`
+        
+        
+        
+#### Step: Add the Bun directory to PATH
+
+          Add these lines to your configuration file:
+          ```bash terminal icon="terminal"
+          export BUN_INSTALL="$HOME/.bun"
+          export PATH="$BUN_INSTALL/bin:$PATH"
+          ```
+        
+        
+        
+#### Step: Reload your shell configuration
+
+          ```bash terminal icon="terminal"
+          source ~/.bashrc  # or ~/.zshrc
+          ```
+        
+      
+    
+    
+#### Windows
+
+      
+        
+#### Step: Determine if the bun binary is properly installed
+
+        ```bash terminal icon="terminal"
+        & "$env:USERPROFILE\.bun\bin\bun" --version
+        ```
+
+        If the command runs successfully but `bun --version` is not recognized, bun is not in your system's PATH. To fix this, open a PowerShell terminal and run the following command:
+
+        ```bash terminal icon="terminal"
+        [System.Environment]::SetEnvironmentVariable(
+          "Path",
+          [System.Environment]::GetEnvironmentVariable("Path", "User") + ";$env:USERPROFILE\.bun\bin",
+          [System.EnvironmentVariableTarget]::User
+        )
+        ```
+
+        
+        
+#### Step: Restart your terminal
+
+           Restart your terminal and test with `bun --version`.
+
+          ```bash terminal icon="terminal"
+          bun --version
+          ```
+        
+      
+    
+
+  
+
+---
+
+## Upgrading
+
+Once installed, the binary can upgrade itself:
+
+```bash terminal icon="terminal"
+bun upgrade
+```
+
+> **Tip**
+>
+> **Homebrew users** <br />
+To avoid conflicts with Homebrew, use `brew upgrade bun` instead.
+
+**Scoop users** <br />
+To avoid conflicts with Scoop, use `scoop update bun` instead.
+
+---
+
+## Canary Builds
+
+[-> View canary build](https://github.com/oven-sh/bun/releases/tag/canary)
+
+Bun automatically releases an (untested) canary build on every commit to main. To upgrade to the latest canary build:
+
+```bash terminal icon="terminal"
+# Upgrade to latest canary
+bun upgrade --canary
+
+# Switch back to stable
+bun upgrade --stable
+```
+
+Use a canary build to test new features and bug fixes before they reach a stable release. To help the Bun team fix bugs faster, canary builds automatically upload crash reports.
+
+---
+
+## Installing Older Versions
+
+Since Bun is a single binary, you can install older versions by re-running the installer script with a specific version.
+
+  
+#### Linux & macOS
+
+    To install a specific version, pass the git tag to the install script:
+
+    ```bash terminal icon="terminal"
+    curl -fsSL https://bun.com/install | bash -s "bun-v1.3.3"
+    ```
+
+  
+  
+#### Windows
+
+    On Windows, pass the version number to the PowerShell install script:
+
+    ```powershell PowerShell icon="windows"
+    iex "& {$(irm https://bun.com/install.ps1)} -Version 1.3.3"
+    ```
+
+  
+
+---
+
+## Direct Downloads
+
+To download Bun binaries directly, visit the [releases page on GitHub](https://github.com/oven-sh/bun/releases).
+
+### Latest Version Downloads
+
+  
+- [Linux x64](https://github.com/oven-sh/bun/releases/latest/download/bun-linux-x64.zip)
+
+    glibc, Nehalem or newer
+  
+  
+- [Linux ARM64](https://github.com/oven-sh/bun/releases/latest/download/bun-linux-aarch64.zip)
+
+    ARM64 Linux systems
+  
+  
+- [Windows x64](https://github.com/oven-sh/bun/releases/latest/download/bun-windows-x64.zip)
+
+    Nehalem or newer
+  
+  
+- [Windows ARM64](https://github.com/oven-sh/bun/releases/latest/download/bun-windows-aarch64.zip)
+
+    Windows on ARM (Snapdragon, etc.)
+  
+  
+- [macOS ARM64](https://github.com/oven-sh/bun/releases/latest/download/bun-darwin-aarch64.zip)
+
+    Apple Silicon (M1/M2/M3)
+  
+  
+- [macOS x64](https://github.com/oven-sh/bun/releases/latest/download/bun-darwin-x64.zip)
+
+    Intel Macs
+  
+
+### Musl Binaries
+
+For distributions without `glibc` (Alpine Linux, Void Linux):
+
+- [Linux x64 musl](https://github.com/oven-sh/bun/releases/latest/download/bun-linux-x64-musl.zip)
+- [Linux ARM64 musl](https://github.com/oven-sh/bun/releases/latest/download/bun-linux-aarch64-musl.zip)
+
+> **Note**
+>
+> Bun's glibc binaries require glibc 2.17 or newer. If you encounter an error like `bun:
+  /lib/x86_64-linux-gnu/libc.so.6: version GLIBC_... not found`, try using the musl binary. Bun's install script
+  automatically chooses the correct binary for your system.
+
+---
+
+## CPU Requirements
+
+Bun ships a single x64 binary per platform. It targets the Nehalem microarchitecture (SSE4.2) and selects AVX2/AVX-512
+code paths at runtime when the CPU supports them, so there is no separate "baseline" download to choose.
+
+| Platform | Intel Requirement               | AMD Requirement    |
+| -------- | ------------------------------- | ------------------ |
+| x64      | Nehalem (1st gen Core) or newer | Bulldozer or newer |
+
+> **Note**
+>
+> Bun does not support x64 CPUs without the SSE4.2 extension. Bun requires macOS 13.0 or later. The `-baseline` release
+  assets and `@oven/bun-*-x64-baseline` npm packages are kept as aliases of the single x64 binary for backward
+  compatibility with older install scripts.
+
+---
+
+## Uninstall
+
+To remove Bun from your system:
+
+	
+#### macOS & Linux
+
+  ```bash terminal icon="terminal"
+  rm -rf ~/.bun
+  ```
+  
+
+    
+#### Windows
+
+    	```powershell PowerShell icon="windows"
+    powershell -c ~\.bun\uninstall.ps1
+    ```
+    
+
+    
+#### Package Managers
+
+    	
+    		```bash npm icon="npm"
+      npm uninstall -g bun
+      ```
+      ```bash Homebrew icon="/icons/homebrew.svg"
+      brew uninstall bun
+      ```
+      ```bash Scoop icon="terminal"
+      scoop uninstall bun
+      ```

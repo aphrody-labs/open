@@ -1,0 +1,16 @@
+---
+name: bun-guides-util-import-meta-dir
+description: "Get the directory of the current file. Use when working with Bun: Get the directory of the current file (bun docs guides/util/import-meta-dir.mdx)."
+---
+
+# Get the directory of the current file
+
+Bun provides a handful of module-specific utilities on the [`import.meta`](/runtime/module-resolution#import-meta) object. Use `import.meta.dir` to retrieve the absolute path to the directory containing the current file.
+
+```ts /a/b/c.ts icon="/icons/typescript.svg"
+import.meta.dir; // => "/a/b"
+```
+
+---
+
+See [`import.meta`](/runtime/module-resolution#import-meta).

@@ -1,0 +1,23 @@
+---
+name: bun-guides-read-file-mime
+description: "Get the MIME type of a file. Use when working with Bun: Get the MIME type of a file (bun docs guides/read-file/mime.mdx)."
+---
+
+# Get the MIME type of a file
+
+The `Bun.file()` function accepts a path and returns a `BunFile` instance. The `BunFile` class extends `Blob`, so use the `.type` property to read the MIME type.
+
+```ts
+const file = Bun.file("./package.json");
+file.type; // application/json;charset=utf-8
+
+const html = Bun.file("./index.html");
+html.type; // text/html;charset=utf-8
+
+const image = Bun.file("./image.png");
+image.type; // image/png
+```
+
+---
+
+See [File I/O](/runtime/file-io) for more on working with `BunFile`.

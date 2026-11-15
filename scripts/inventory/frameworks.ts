@@ -92,7 +92,9 @@ async function github(cat: string, q: string) {
   return kept;
 }
 
-for (const c of cfg.categories) {
+// --render: rebuild frameworks.md from an existing frameworks.json without querying the registries again
+const renderOnly = Bun.argv.includes("--render");
+for (const c of renderOnly ? [] : cfg.categories) {
   for (const s of c.sources) {
     const n = s.crates ? await crates(c.id, s.crates) : s.npm ? await npm(c.id, s.npm) : s.nuget ? await nuget(c.id, s.nuget) : await github(c.id, s.github);
     console.log(`${c.id}: ${JSON.stringify(s)} -> ${n}`);
@@ -109,9 +111,11 @@ for (const e of recs.values()) {
   e.description ??= m.description;
 }
 
-const records = [...recs.values()]
+const records = renderOnly
+  ? (await Bun.file(join(root, "docs/ideas/inventory/frameworks.json")).json()).records.map((r: any) => ({ ...r, name: r.repo ?? r.name }))
+  : [...recs.values()]
   .filter((e) => !e.archived)
-  .map((e) => ({ ...e, categories: [...e.categories], sources: [...e.sources], url: e.repo ? `https://github.com/${e.repo}` : null }))
+  .map((e) => ({ ...e, name: e.repo ?? e.name, categories: [...e.categories], sources: [...e.sources], url: e.repo ? `https://github.com/${e.repo}` : null }))
   .sort((a, b) => (b.stars ?? -1) - (a.stars ?? -1));
 
 const outDir = join(root, "docs/ideas/inventory");
