@@ -31,7 +31,7 @@ export type EngineInstall =
   /** Outil Python isolé par `uv tool install`. */
   | { via: "uv"; spec: string; bin: string }
   /** Construit hors du poste : fr1 (Chromium, LLVM) ou prd (le reste). */
-  | { via: "build"; host: "fr1" | "prd"; output?: string[] }
+  | { via: "build"; host: "fr1" | "prd"; output?: string[]; bin?: string }
   /** Bibliothèque consommée par dépendance (bun add, uv add, cargo), sans binaire. */
   | { via: "dependency"; registry: "npm" | "pypi" | "crates"; name: string }
   /** Navigateur installé par le système (Chrome, Edge). */
@@ -204,6 +204,19 @@ export const ENGINES: readonly Engine[] = [
     thirdParty: "third_party/obscura",
     install: { via: "ay", tool: "obscura", bin: "obscura" },
     serve: (port) => ["serve", "--port", String(port)],
+  },
+  {
+    id: "lightpanda",
+    js: "v8",
+    gpu: "none",
+    latest: { from: "github", repo: "lightpanda-io/browser" },
+    title: "Lightpanda (Zig headless browser, absorbed in packages/browser)",
+    language: "Zig",
+    protocol: "cdp",
+    upstream: gh("lightpanda-io/browser"),
+    thirdParty: null, // absorbed first-party in packages/browser/native (fork aphrody-labs/browser)
+    install: { via: "build", host: "fr1", output: ["packages/browser/native/zig-out/bin"], bin: "lightpanda" },
+    serve: (port) => ["serve", "--host", "127.0.0.1", "--port", String(port)],
   },
   {
     id: "servo",
@@ -583,7 +596,7 @@ export function resolveExecutable(engine: Engine): string | null {
       if (engine.id === "chromium" && Bun.env.CHROMIUM_PATH)
         return Bun.env.CHROMIUM_PATH;
       for (const out of i.output ?? []) {
-        const p = join(repoRoot(), out, exe("chrome"));
+        const p = join(repoRoot(), out, exe(i.bin ?? "chrome"));
         if (existsSync(p)) return p;
       }
       return null;
