@@ -12,6 +12,8 @@ const UA = "aphrody-open-inventory (github.com/aphrody-labs/open)";
 const token = Bun.env.GH_TOKEN ?? Bun.spawnSync(["gh", "auth", "token"]).stdout.toString().trim();
 const gh: Record<string, string> = { accept: "application/vnd.github+json", "user-agent": UA, ...(token ? { authorization: `Bearer ${token}` } : {}) };
 const libraryRe = new RegExp(cfg.libraryPattern, "i");
+// categories that keep every repository their queries return (no library filter, no star floor)
+const everyRepository = new Set<string>(cfg.categories.filter((c: { everyRepository?: boolean }) => c.everyRepository).map((c: { id: string }) => c.id));
 
 async function getJson(url: string, headers: Record<string, string> = { "user-agent": UA }, pause = 0): Promise<any> {
   for (let attempt = 0; attempt < 6; attempt++) {
@@ -84,8 +86,8 @@ async function github(cat: string, q: string) {
   for (const r of d?.items ?? []) {
     const slug = r.full_name.toLowerCase();
     ghMeta.set(slug, r);
-    const looksLibrary = cat === "reference" || libraryRe.test(`${r.description ?? ""} ${(r.topics ?? []).join(" ")}`);
-    if (r.archived || !looksLibrary || (cat !== "reference" && r.stargazers_count < cfg.minStars)) continue;
+    const looksLibrary = everyRepository.has(cat) || libraryRe.test(`${r.description ?? ""} ${(r.topics ?? []).join(" ")}`);
+    if (r.archived || !looksLibrary || (!everyRepository.has(cat) && r.stargazers_count < cfg.minStars)) continue;
     add(cat, `github ${q}`, { key: slug, name: r.full_name, repo: slug, description: r.description });
     kept++;
   }

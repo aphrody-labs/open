@@ -44,10 +44,50 @@
       "url": "https://github.com/flutter/flutter"
     },
     {
+      "repo": "huggingface/transformers",
+      "description": "🤗 Transformers: the model-definition framework for state-of-the-art machine learning models in text, vision, audio, and multimodal models, for both inference and training. ",
+      "language": "Python",
+      "stars": 168997,
+      "pushed": "2026-11-15",
+      "license": "Apache-2.0",
+      "topics": [
+        "audio",
+        "deep-learning",
+        "deepseek",
+        "gemma",
+        "glm",
+        "hacktoberfest",
+        "llm",
+        "machine-learning",
+        "model-hub",
+        "natural-language-processing",
+        "nlp",
+        "pretrained-models",
+        "python",
+        "pytorch",
+        "pytorch-transformers",
+        "qwen",
+        "speech-recognition",
+        "transformer",
+        "vlm"
+      ],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/transformers",
+      "name": "huggingface/transformers",
+      "url": "https://github.com/huggingface/transformers"
+    },
+    {
       "repo": "vercel/next.js",
       "description": "The React Framework",
       "language": "JavaScript",
-      "stars": 143525,
+      "stars": 143526,
       "pushed": "2026-11-15",
       "license": "MIT",
       "topics": [
@@ -82,7 +122,7 @@
       "repo": "shadcn-ui/ui",
       "description": "Add components to your apps.",
       "language": "TypeScript",
-      "stars": 128206,
+      "stars": 128211,
       "pushed": "2026-11-13",
       "license": "MIT",
       "topics": [
@@ -109,22 +149,22 @@
         {
           "kind": "npm",
           "name": "shadcn",
-          "downloads": 62804938
+          "downloads": 65778238
         },
         {
           "kind": "npm",
           "name": "@shadcn/react",
-          "downloads": 20834607
+          "downloads": 22672835
         },
         {
           "kind": "npm",
           "name": "@shadcn/registry",
-          "downloads": 23218872
+          "downloads": 25595236
         },
         {
           "kind": "npm",
           "name": "@shadcn/helpers",
-          "downloads": 522741
+          "downloads": 546123
         }
       ],
       "categories": [
@@ -143,7 +183,7 @@
       "repo": "shadcn/ui",
       "description": "Add @shadcn/ui components to your app.",
       "language": "TypeScript",
-      "stars": 128206,
+      "stars": 128211,
       "pushed": "2026-11-13",
       "license": "MIT",
       "topics": [
@@ -170,7 +210,7 @@
         {
           "kind": "npm",
           "name": "@shadcn/ui",
-          "downloads": 643613
+          "downloads": 680260
         }
       ],
       "categories": [
@@ -187,7 +227,7 @@
       "repo": "tauri-apps/tauri",
       "description": "Utilities for Tauri",
       "language": "Rust",
-      "stars": 112925,
+      "stars": 112933,
       "pushed": "2026-11-13",
       "license": "Apache-2.0",
       "topics": [
@@ -206,42 +246,42 @@
         {
           "kind": "crate",
           "name": "tauri-utils",
-          "downloads": 45559377
+          "downloads": 45609387
         },
         {
           "kind": "crate",
           "name": "tauri",
-          "downloads": 44738768
+          "downloads": 44788145
         },
         {
           "kind": "crate",
           "name": "tauri-build",
-          "downloads": 44552433
+          "downloads": 44602602
         },
         {
           "kind": "crate",
           "name": "tauri-macros",
-          "downloads": 44322838
+          "downloads": 44372471
         },
         {
           "kind": "crate",
           "name": "tauri-codegen",
-          "downloads": 44307254
+          "downloads": 44356927
         },
         {
           "kind": "crate",
           "name": "tauri-runtime",
-          "downloads": 44103388
+          "downloads": 44152668
         },
         {
           "kind": "crate",
           "name": "tauri-runtime-wry",
-          "downloads": 44079573
+          "downloads": 44128737
         },
         {
           "kind": "crate",
           "name": "tauri-plugin",
-          "downloads": 36524484
+          "downloads": 36566845
         }
       ],
       "categories": [
@@ -259,7 +299,7 @@
       "repo": "angular/angular",
       "description": "Deliver web apps with confidence 🚀",
       "language": "TypeScript",
-      "stars": 101500,
+      "stars": 101504,
       "pushed": "2026-11-14",
       "license": "MIT",
       "topics": [
@@ -313,7 +353,7 @@
       "repo": "tailwindlabs/tailwindcss",
       "description": "A utility-first CSS framework for rapid UI development.",
       "language": "TypeScript",
-      "stars": 98605,
+      "stars": 98606,
       "pushed": "2026-11-11",
       "license": "MIT",
       "topics": [
@@ -341,8 +381,8 @@
       "repo": "sveltejs/svelte",
       "description": "web development for the rest of us",
       "language": "JavaScript",
-      "stars": 88751,
-      "pushed": "2026-11-14",
+      "stars": 88754,
+      "pushed": "2026-11-15",
       "license": "MIT",
       "topics": [
         "compiler",
@@ -382,7 +422,7 @@
         {
           "kind": "npm",
           "name": "material-design-icons",
-          "downloads": 513637
+          "downloads": 534851
         }
       ],
       "categories": [
@@ -440,7 +480,7 @@
       "repo": "fastapi/full-stack-fastapi-template",
       "description": "Full-stack web application template with FastAPI, React, SQLModel, PostgreSQL, Vite, Tailwind CSS, shadcn/ui, FastAPI Cloud, and Docker Compose.",
       "language": "TypeScript",
-      "stars": 46250,
+      "stars": 46251,
       "pushed": "2026-11-14",
       "license": "MIT",
       "topics": [
@@ -481,7 +521,7 @@
       "repo": "vuetifyjs/vuetify",
       "description": "🐉 Vue Component Framework",
       "language": "TypeScript",
-      "stars": 41041,
+      "stars": 41042,
       "pushed": "2026-11-14",
       "license": "NOASSERTION",
       "topics": [
@@ -521,7 +561,7 @@
       "repo": "chakra-ui/chakra-ui",
       "description": "Chakra UI is a component system for building SaaS products with speed ⚡️",
       "language": "TypeScript",
-      "stars": 40727,
+      "stars": 40728,
       "pushed": "2026-11-15",
       "license": "MIT",
       "topics": [
@@ -581,7 +621,7 @@
         {
           "kind": "crate",
           "name": "dioxus-ssr",
-          "downloads": 1491791
+          "downloads": 1493542
         }
       ],
       "categories": [
@@ -599,7 +639,7 @@
       "repo": "jcodesmore/ai-website-cloner-template",
       "description": "Clone any website with one command using AI coding agents",
       "language": "TypeScript",
-      "stars": 39148,
+      "stars": 39156,
       "pushed": "2026-11-10",
       "license": "MIT",
       "topics": [
@@ -636,10 +676,87 @@
       "url": "https://github.com/jcodesmore/ai-website-cloner-template"
     },
     {
+      "repo": "huggingface/pytorch-image-models",
+      "description": "The largest collection of PyTorch image encoders / backbones. Including train, eval, inference, export scripts, and pretrained weights -- ResNet, ResNeXT, EfficientNet, NFNet, Vision Transformer (ViT), MobileNetV4, MobileNet-V3 & V2, RegNet, DPN, CSPNet, Swin Transformer, MaxViT, CoAtNet, ConvNeXt, and more",
+      "language": "Python",
+      "stars": 37285,
+      "pushed": "2026-11-14",
+      "license": "Apache-2.0",
+      "topics": [
+        "augmix",
+        "convnext",
+        "distributed-training",
+        "efficientnet",
+        "image-classification",
+        "imagenet",
+        "maxvit",
+        "mixnet",
+        "mobile-deep-learning",
+        "mobilenet-v2",
+        "mobilenetv3",
+        "nfnets",
+        "normalization-free-training",
+        "optimizer",
+        "pretrained-models",
+        "pretrained-weights",
+        "pytorch",
+        "randaugment",
+        "resnet",
+        "vision-transformer-models"
+      ],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/pytorch-image-models",
+      "name": "huggingface/pytorch-image-models",
+      "url": "https://github.com/huggingface/pytorch-image-models"
+    },
+    {
+      "repo": "huggingface/diffusers",
+      "description": "🤗 Diffusers: State-of-the-art diffusion models for image, video, and audio generation in PyTorch.",
+      "language": "Python",
+      "stars": 34919,
+      "pushed": "2026-11-15",
+      "license": "Apache-2.0",
+      "topics": [
+        "deep-learning",
+        "diffusion",
+        "flux",
+        "image-generation",
+        "image2image",
+        "image2video",
+        "latent-diffusion-models",
+        "pytorch",
+        "qwen-image",
+        "score-based-generative-modeling",
+        "stable-diffusion",
+        "stable-diffusion-diffusers",
+        "text2image",
+        "text2video",
+        "video2video"
+      ],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/diffusers",
+      "name": "huggingface/diffusers",
+      "url": "https://github.com/huggingface/diffusers"
+    },
+    {
       "repo": "yewstack/yew",
       "description": "Rust / Wasm framework for creating reliable and efficient web applications",
       "language": "Rust",
-      "stars": 32855,
+      "stars": 32856,
       "pushed": "2026-10-30",
       "license": "Apache-2.0",
       "topics": [
@@ -661,7 +778,7 @@
         {
           "kind": "crate",
           "name": "yew-macro",
-          "downloads": 5078390
+          "downloads": 5079307
         }
       ],
       "categories": [
@@ -681,7 +798,7 @@
       "repo": "emilk/egui",
       "description": "Minimal 2D math library for GUI work",
       "language": "Rust",
-      "stars": 32290,
+      "stars": 32291,
       "pushed": "2026-11-13",
       "license": "Apache-2.0",
       "topics": [
@@ -698,37 +815,37 @@
         {
           "kind": "crate",
           "name": "emath",
-          "downloads": 32718027
+          "downloads": 32737600
         },
         {
           "kind": "crate",
           "name": "egui",
-          "downloads": 31557965
+          "downloads": 31577114
         },
         {
           "kind": "crate",
           "name": "epaint",
-          "downloads": 31525441
+          "downloads": 31544824
         },
         {
           "kind": "crate",
           "name": "egui-winit",
-          "downloads": 26900780
+          "downloads": 26917611
         },
         {
           "kind": "crate",
           "name": "egui_glow",
-          "downloads": 25165949
+          "downloads": 25181153
         },
         {
           "kind": "crate",
           "name": "eframe",
-          "downloads": 24925203
+          "downloads": 24940218
         },
         {
           "kind": "crate",
           "name": "epaint_default_fonts",
-          "downloads": 19044303
+          "downloads": 19061074
         }
       ],
       "categories": [
@@ -745,7 +862,7 @@
       "repo": "iced-rs/iced",
       "description": "A cross-platform GUI library for Rust, inspired by Elm",
       "language": "Rust",
-      "stars": 32038,
+      "stars": 32039,
       "pushed": "2026-11-13",
       "license": "MIT",
       "topics": [
@@ -776,7 +893,7 @@
       "repo": "better-auth/better-auth",
       "description": "The most comprehensive authentication framework",
       "language": "TypeScript",
-      "stars": 30747,
+      "stars": 30748,
       "pushed": "2026-11-15",
       "license": "MIT",
       "topics": [
@@ -802,10 +919,50 @@
       "url": "https://github.com/better-auth/better-auth"
     },
     {
+      "repo": "huggingface/smolagents",
+      "description": "🤗 smolagents: a barebones library for agents that think in code.",
+      "language": "Python",
+      "stars": 30377,
+      "pushed": "2026-11-10",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/smolagents",
+      "name": "huggingface/smolagents",
+      "url": "https://github.com/huggingface/smolagents"
+    },
+    {
+      "repo": "huggingface/lerobot",
+      "description": "🤗 LeRobot: Making AI for Robotics more accessible with end-to-end learning",
+      "language": "Python",
+      "stars": 28885,
+      "pushed": "2026-11-15",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/lerobot",
+      "name": "huggingface/lerobot",
+      "url": "https://github.com/huggingface/lerobot"
+    },
+    {
       "repo": "tailwindlabs/headlessui",
       "description": "Completely unstyled, fully accessible UI components, designed to integrate beautifully with Tailwind CSS.",
       "language": "TypeScript",
-      "stars": 28830,
+      "stars": 28831,
       "pushed": "2026-04-13",
       "license": "MIT",
       "topics": [
@@ -834,7 +991,7 @@
       "repo": "onlook-dev/onlook",
       "description": "The Developer Tool for Visual Engineers • An Open-Source AI-First Design tool • Visually build, style, and edit your code with AI • World's best, top-most agent recommended #1 Developer tool for Designers and Visual Engineers to design with Real Code.",
       "language": "TypeScript",
-      "stars": 27218,
+      "stars": 27219,
       "pushed": "2026-10-21",
       "license": "Apache-2.0",
       "topics": [
@@ -872,6 +1029,26 @@
       "url": "https://github.com/onlook-dev/onlook"
     },
     {
+      "repo": "huggingface/open-r1",
+      "description": "Fully open reproduction of DeepSeek-R1",
+      "language": "Python",
+      "stars": 26481,
+      "pushed": "2026-10-26",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/open-r1",
+      "name": "huggingface/open-r1",
+      "url": "https://github.com/huggingface/open-r1"
+    },
+    {
       "repo": "angular/components",
       "description": "Component infrastructure and Material Design components for Angular",
       "language": "TypeScript",
@@ -902,7 +1079,7 @@
       "repo": "slint-ui/slint",
       "description": "Slint is an open-source declarative GUI toolkit to build native user interfaces for Rust, C++, JavaScript, or Python apps.",
       "language": "Rust",
-      "stars": 24592,
+      "stars": 24595,
       "pushed": "2026-11-14",
       "license": "NOASSERTION",
       "topics": [
@@ -982,7 +1159,7 @@
       "repo": "magicuidesign/magicui",
       "description": "UI Library for Design Engineers. Animated components and effects you can copy and paste into your apps. Free. Open Source.",
       "language": "MDX",
-      "stars": 23280,
+      "stars": 23285,
       "pushed": "2026-11-13",
       "license": "MIT",
       "topics": [
@@ -1045,10 +1222,78 @@
       "url": "https://github.com/herotransitions/hero"
     },
     {
+      "repo": "huggingface/datasets",
+      "description": "🤗 The largest hub of ready-to-use datasets for AI models with fast, easy-to-use and efficient data manipulation tools",
+      "language": "Python",
+      "stars": 22140,
+      "pushed": "2026-11-12",
+      "license": "Apache-2.0",
+      "topics": [
+        "ai",
+        "artificial-intelligence",
+        "computer-vision",
+        "dataset-hub",
+        "datasets",
+        "deep-learning",
+        "huggingface",
+        "llm",
+        "machine-learning",
+        "natural-language-processing",
+        "nlp",
+        "numpy",
+        "pandas",
+        "pytorch",
+        "speech",
+        "tensorflow"
+      ],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/datasets",
+      "name": "huggingface/datasets",
+      "url": "https://github.com/huggingface/datasets"
+    },
+    {
+      "repo": "huggingface/peft",
+      "description": "🤗 PEFT: State-of-the-art Parameter-Efficient Fine-Tuning.",
+      "language": "Python",
+      "stars": 21890,
+      "pushed": "2026-11-15",
+      "license": "Apache-2.0",
+      "topics": [
+        "adapter",
+        "diffusion",
+        "fine-tuning",
+        "llm",
+        "lora",
+        "parameter-efficient-learning",
+        "peft",
+        "python",
+        "pytorch",
+        "transformers"
+      ],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/peft",
+      "name": "huggingface/peft",
+      "url": "https://github.com/huggingface/peft"
+    },
+    {
       "repo": "open-dev-society/openstock",
       "description": "OpenStock is an open-source alternative to expensive market platforms. Track real-time prices, set personalized alerts, and explore detailed company insights — built openly, for everyone, forever free.",
       "language": "TypeScript",
-      "stars": 21479,
+      "stars": 21480,
       "pushed": "2026-11-09",
       "license": "AGPL-3.0",
       "topics": [
@@ -1072,10 +1317,30 @@
       "url": "https://github.com/open-dev-society/openstock"
     },
     {
+      "repo": "huggingface/candle",
+      "description": "Minimalist ML framework for Rust",
+      "language": "Rust",
+      "stars": 21320,
+      "pushed": "2026-11-10",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Rust"
+      ],
+      "key": "huggingface/candle",
+      "name": "huggingface/candle",
+      "url": "https://github.com/huggingface/candle"
+    },
+    {
       "repo": "longbridge/gpui-kit",
       "description": "GPUI Component: the styled component library of GPUI Kit, with 60+ desktop UI components for GPUI.",
       "language": "Rust",
-      "stars": 20704,
+      "stars": 20711,
       "pushed": "2026-11-15",
       "license": "NOASSERTION",
       "topics": [
@@ -1089,17 +1354,17 @@
         {
           "kind": "crate",
           "name": "gpui-component",
-          "downloads": 591717
+          "downloads": 594178
         },
         {
           "kind": "crate",
           "name": "gpui-kit-assets",
-          "downloads": 461656
+          "downloads": 464332
         },
         {
           "kind": "crate",
           "name": "gpui-kit",
-          "downloads": 377964
+          "downloads": 379825
         }
       ],
       "categories": [
@@ -1116,7 +1381,7 @@
       "repo": "longbridge/gpui-component",
       "description": "Default bundled assets for GPUI Component.",
       "language": "Rust",
-      "stars": 20704,
+      "stars": 20711,
       "pushed": "2026-11-15",
       "license": "NOASSERTION",
       "topics": [
@@ -1130,7 +1395,7 @@
         {
           "kind": "crate",
           "name": "gpui-component-assets",
-          "downloads": 59626
+          "downloads": 59718
         }
       ],
       "categories": [
@@ -1144,10 +1409,30 @@
       "url": "https://github.com/longbridge/gpui-component"
     },
     {
+      "repo": "huggingface/trl",
+      "description": "Train transformer language models with reinforcement learning.",
+      "language": "Python",
+      "stars": 19737,
+      "pushed": "2026-11-15",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/trl",
+      "name": "huggingface/trl",
+      "url": "https://github.com/huggingface/trl"
+    },
+    {
       "repo": "vercel-labs/json-render",
       "description": "shadcn/ui component library for @json-render/core. JSON becomes beautiful Tailwind-styled React components.",
       "language": "TypeScript",
-      "stars": 19635,
+      "stars": 19638,
       "pushed": "2026-11-14",
       "license": "Apache-2.0",
       "topics": [],
@@ -1156,7 +1441,7 @@
         {
           "kind": "npm",
           "name": "@json-render/shadcn",
-          "downloads": 956035
+          "downloads": 992716
         }
       ],
       "categories": [
@@ -1207,6 +1492,26 @@
       "url": "https://github.com/jetbrains/compose-multiplatform"
     },
     {
+      "repo": "huggingface/sentence-transformers",
+      "description": "State-of-the-Art Embeddings, Retrieval, and Reranking",
+      "language": "Python",
+      "stars": 19285,
+      "pushed": "2026-11-13",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/sentence-transformers",
+      "name": "huggingface/sentence-transformers",
+      "url": "https://github.com/huggingface/sentence-transformers"
+    },
+    {
       "repo": "material-components/material-components-android",
       "description": "[MAINTENANCE MODE] Modular and customizable Material Design UI components for Android",
       "language": "Java",
@@ -1234,7 +1539,7 @@
       "repo": "udecode/plate",
       "description": "Add Plate components to your apps.",
       "language": "TypeScript",
-      "stars": 16706,
+      "stars": 16707,
       "pushed": "2026-11-15",
       "license": "NOASSERTION",
       "topics": [
@@ -1268,7 +1573,7 @@
       "repo": "materialdesigninxaml/materialdesigninxamltoolkit",
       "description": "ResourceDictionary instances containing Material Design templates and styles for WPF controls in .NET.",
       "language": "C#",
-      "stars": 16301,
+      "stars": 16302,
       "pushed": "2026-11-01",
       "license": "MIT",
       "topics": [
@@ -1334,7 +1639,7 @@
         {
           "kind": "npm",
           "name": "@rjsf/shadcn",
-          "downloads": 425607
+          "downloads": 449065
         }
       ],
       "categories": [
@@ -1348,10 +1653,40 @@
       "url": "https://github.com/rjsf-team/react-jsonschema-form"
     },
     {
+      "repo": "huggingface/speech-to-speech",
+      "description": "Build voice agents with open-source models",
+      "language": "Python",
+      "stars": 13694,
+      "pushed": "2026-11-14",
+      "license": "Apache-2.0",
+      "topics": [
+        "ai",
+        "assistant",
+        "language-model",
+        "machine-learning",
+        "python",
+        "speech",
+        "speech-synthesis",
+        "speech-to-text",
+        "speech-translation"
+      ],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/speech-to-speech",
+      "name": "huggingface/speech-to-speech",
+      "url": "https://github.com/huggingface/speech-to-speech"
+    },
+    {
       "repo": "assistant-ui/assistant-ui",
       "description": "Open-source TypeScript/React library for building production-grade AI chat experiences",
       "language": "TypeScript",
-      "stars": 13209,
+      "stars": 13224,
       "pushed": "2026-11-15",
       "license": "MIT",
       "topics": [
@@ -1371,7 +1706,7 @@
         {
           "kind": "npm",
           "name": "@assistant-ui/react",
-          "downloads": 10673833
+          "downloads": 11195015
         },
         {
           "kind": "npm",
@@ -1455,7 +1790,7 @@
       "repo": "cosmicmind/material",
       "description": "A UI/UX framework for creating beautiful applications.",
       "language": "Swift",
-      "stars": 12020,
+      "stars": 12021,
       "pushed": "2022-05-16",
       "license": "MIT",
       "topics": [
@@ -1523,7 +1858,7 @@
         {
           "kind": "npm",
           "name": "bootstrap-table",
-          "downloads": 153433
+          "downloads": 160480
         }
       ],
       "categories": [
@@ -1577,7 +1912,7 @@
       "repo": "material-components/material-web",
       "description": "Material Design Web Components",
       "language": "SCSS",
-      "stars": 11443,
+      "stars": 11445,
       "pushed": "2026-11-13",
       "license": "Apache-2.0",
       "topics": [
@@ -1609,8 +1944,8 @@
       "repo": "mui/base-ui",
       "description": "Unstyled UI components for building accessible web apps and design systems. From the creators of Radix, Floating UI, and Material UI.",
       "language": "TypeScript",
-      "stars": 11418,
-      "pushed": "2026-11-14",
+      "stars": 11420,
+      "pushed": "2026-11-15",
       "license": "MIT",
       "topics": [
         "accessibility",
@@ -1635,6 +1970,54 @@
       "key": "mui/base-ui",
       "name": "mui/base-ui",
       "url": "https://github.com/mui/base-ui"
+    },
+    {
+      "repo": "huggingface/skills",
+      "description": "Give your agents the power of the Hugging Face ecosystem",
+      "language": "Python",
+      "stars": 11351,
+      "pushed": "2026-11-13",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/skills",
+      "name": "huggingface/skills",
+      "url": "https://github.com/huggingface/skills"
+    },
+    {
+      "repo": "huggingface/tokenizers",
+      "description": "💥 Fast State-of-the-Art Tokenizers optimized for Research and Production",
+      "language": "Rust",
+      "stars": 11246,
+      "pushed": "2026-11-12",
+      "license": "Apache-2.0",
+      "topics": [
+        "bert",
+        "gpt",
+        "language-model",
+        "natural-language-processing",
+        "natural-language-understanding",
+        "nlp",
+        "transformers"
+      ],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Rust"
+      ],
+      "key": "huggingface/tokenizers",
+      "name": "huggingface/tokenizers",
+      "url": "https://github.com/huggingface/tokenizers"
     },
     {
       "repo": "ramotion/animated-tab-bar",
@@ -1662,6 +2045,36 @@
       "key": "ramotion/animated-tab-bar",
       "name": "ramotion/animated-tab-bar",
       "url": "https://github.com/ramotion/animated-tab-bar"
+    },
+    {
+      "repo": "huggingface/chat-ui",
+      "description": "The open source codebase powering HuggingChat",
+      "language": "TypeScript",
+      "stars": 11035,
+      "pushed": "2026-11-15",
+      "license": "Apache-2.0",
+      "topics": [
+        "chatgpt",
+        "hacktoberfest",
+        "huggingface",
+        "llm",
+        "svelte",
+        "svelte-kit",
+        "sveltekit",
+        "tailwindcss",
+        "typescript"
+      ],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:TypeScript"
+      ],
+      "key": "huggingface/chat-ui",
+      "name": "huggingface/chat-ui",
+      "url": "https://github.com/huggingface/chat-ui"
     },
     {
       "repo": "cosscom/ui",
@@ -1716,7 +2129,7 @@
         {
           "kind": "npm",
           "name": "shadcn-vue",
-          "downloads": 458636
+          "downloads": 486726
         }
       ],
       "categories": [
@@ -1790,7 +2203,7 @@
       "repo": "douyinfe/semi-design",
       "description": "🚀A modern, comprehensive, flexible design system and React UI library, AI-friendly built-in.🎨Provide 3000+ Design Tokens, easy to build your design system. Make Semi Design to Any Design.🧑🏻‍💻 Design to Code in one click",
       "language": "TypeScript",
-      "stars": 10489,
+      "stars": 10488,
       "pushed": "2026-11-12",
       "license": "NOASSERTION",
       "topics": [
@@ -1822,8 +2235,8 @@
       "repo": "crmne/spotifast",
       "description": "Spotify, native and fast. One lightweight Rust app for your whole library, local playback, and Spotify Connect on Linux, macOS, and Windows.",
       "language": "Rust",
-      "stars": 10349,
-      "pushed": "2026-11-14",
+      "stars": 10352,
+      "pushed": "2026-11-15",
       "license": "MIT",
       "topics": [
         "audio",
@@ -1883,6 +2296,26 @@
       "url": "https://github.com/ramotion/folding-cell"
     },
     {
+      "repo": "huggingface/accelerate",
+      "description": "🚀 A simple way to launch, train, and use PyTorch models on almost any device and distributed configuration, automatic mixed precision (including fp8), and easy-to-configure FSDP and DeepSpeed support",
+      "language": "Python",
+      "stars": 9946,
+      "pushed": "2026-11-14",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/accelerate",
+      "name": "huggingface/accelerate",
+      "url": "https://github.com/huggingface/accelerate"
+    },
+    {
       "repo": "vuematerial/vue-material",
       "description": "Vue.js Framework - ready-to-use Vue components with Material Design, free forever.",
       "language": "Vue",
@@ -1914,8 +2347,8 @@
       "repo": "fyroxengine/fyrox",
       "description": "3D and 2D game engine written in Rust",
       "language": "Rust",
-      "stars": 9680,
-      "pushed": "2026-11-14",
+      "stars": 9681,
+      "pushed": "2026-11-15",
       "license": "MIT",
       "topics": [
         "3d",
@@ -1996,7 +2429,7 @@
       "repo": "miurla/morphic",
       "description": "An AI-powered search engine with a generative UI",
       "language": "TypeScript",
-      "stars": 9332,
+      "stars": 9333,
       "pushed": "2026-11-13",
       "license": "Apache-2.0",
       "topics": [
@@ -2049,12 +2482,12 @@
         {
           "kind": "npm",
           "name": "shadcn-svelte",
-          "downloads": 994135
+          "downloads": 1040485
         },
         {
           "kind": "npm",
           "name": "@shadcn-svelte/primitives",
-          "downloads": 63962
+          "downloads": 66058
         }
       ],
       "categories": [
@@ -2101,7 +2534,7 @@
       "repo": "snouzy/workout-cool",
       "description": "🏋 Modern open-source fitness coaching platform. Create workout plans, track progress, and access a comprehensive exercise database.",
       "language": "TypeScript",
-      "stars": 8689,
+      "stars": 8690,
       "pushed": "2026-11-02",
       "license": "MIT",
       "topics": [
@@ -2206,7 +2639,7 @@
       "repo": "nolly-studio/cult-ui",
       "description": "Animated components for design engineers. 150+ free shadcn/ui components, built with Tailwind CSS and Motion. MIT licensed.",
       "language": "TypeScript",
-      "stars": 7424,
+      "stars": 7435,
       "pushed": "2026-10-29",
       "license": "MIT",
       "topics": [
@@ -2266,7 +2699,7 @@
       "repo": "miantiao-me/sink",
       "description": "⚡ A Simple, Speedy, Secure, and Serverless Link Shortener with Analytics, Running Entirely on Cloudflare.",
       "language": "TypeScript",
-      "stars": 7278,
+      "stars": 7280,
       "pushed": "2026-10-27",
       "license": "AGPL-3.0",
       "topics": [
@@ -2296,7 +2729,7 @@
       "repo": "kiranism/next-shadcn-dashboard-starter",
       "description": "Free, open source, AI-first admin dashboard template built with Next.js 16, shadcn/ui, Tailwind CSS, and TypeScript. Production-ready tables, forms, auth, and billing. MIT licensed.",
       "language": "TypeScript",
-      "stars": 7275,
+      "stars": 7278,
       "pushed": "2026-11-08",
       "license": "MIT",
       "topics": [
@@ -2337,152 +2770,152 @@
         {
           "kind": "crate",
           "name": "topcoat-core",
-          "downloads": 119359
+          "downloads": 119651
         },
         {
           "kind": "crate",
           "name": "topcoat-core-grammar",
-          "downloads": 117218
+          "downloads": 117508
         },
         {
           "kind": "crate",
           "name": "topcoat-view",
-          "downloads": 117064
+          "downloads": 117354
         },
         {
           "kind": "crate",
           "name": "topcoat-asset",
-          "downloads": 116705
+          "downloads": 116997
         },
         {
           "kind": "crate",
           "name": "topcoat-view-grammar",
-          "downloads": 116327
+          "downloads": 116617
         },
         {
           "kind": "crate",
           "name": "topcoat-font",
-          "downloads": 115066
+          "downloads": 115356
         },
         {
           "kind": "crate",
           "name": "topcoat-router",
-          "downloads": 113411
+          "downloads": 113685
         },
         {
           "kind": "crate",
           "name": "topcoat-view-macro",
-          "downloads": 112850
+          "downloads": 113139
         },
         {
           "kind": "crate",
           "name": "topcoat",
-          "downloads": 111583
+          "downloads": 111876
         },
         {
           "kind": "crate",
           "name": "topcoat-core-macro",
-          "downloads": 111272
+          "downloads": 111561
         },
         {
           "kind": "crate",
           "name": "topcoat-router-grammar",
-          "downloads": 109764
+          "downloads": 110037
         },
         {
           "kind": "crate",
           "name": "topcoat-router-macro",
-          "downloads": 109240
+          "downloads": 109513
         },
         {
           "kind": "crate",
           "name": "topcoat-runtime",
-          "downloads": 109156
+          "downloads": 109429
         },
         {
           "kind": "crate",
           "name": "topcoat-cookie",
-          "downloads": 108542
+          "downloads": 108815
         },
         {
           "kind": "crate",
           "name": "topcoat-session",
-          "downloads": 107028
+          "downloads": 107264
         },
         {
           "kind": "crate",
           "name": "topcoat-mail",
-          "downloads": 103902
+          "downloads": 104058
         },
         {
           "kind": "crate",
           "name": "topcoat-runtime-grammar",
-          "downloads": 96637
+          "downloads": 96890
         },
         {
           "kind": "crate",
           "name": "topcoat-runtime-macro",
-          "downloads": 96059
+          "downloads": 96312
         },
         {
           "kind": "crate",
           "name": "topcoat-font-grammar",
-          "downloads": 88946
+          "downloads": 89194
         },
         {
           "kind": "crate",
           "name": "topcoat-font-macro",
-          "downloads": 84940
+          "downloads": 85187
         },
         {
           "kind": "crate",
           "name": "topcoat-icon",
-          "downloads": 57844
+          "downloads": 58067
         },
         {
           "kind": "crate",
           "name": "topcoat-icon-grammar",
-          "downloads": 57717
+          "downloads": 57940
         },
         {
           "kind": "crate",
           "name": "topcoat-icon-macro",
-          "downloads": 57026
+          "downloads": 57248
         },
         {
           "kind": "crate",
           "name": "topcoat-tailwind",
-          "downloads": 48224
+          "downloads": 48373
         },
         {
           "kind": "crate",
           "name": "topcoat-ui-registry",
-          "downloads": 38667
+          "downloads": 38765
         },
         {
           "kind": "crate",
           "name": "topcoat-mail-grammar",
-          "downloads": 23503
+          "downloads": 23509
         },
         {
           "kind": "crate",
           "name": "topcoat-htmx",
-          "downloads": 21691
+          "downloads": 21720
         },
         {
           "kind": "crate",
           "name": "topcoat-cli",
-          "downloads": 16900
+          "downloads": 16945
         },
         {
           "kind": "crate",
           "name": "topcoat-ui",
-          "downloads": 16512
+          "downloads": 16556
         },
         {
           "kind": "crate",
           "name": "topcoat-l10n",
-          "downloads": 14938
+          "downloads": 15069
         }
       ],
       "categories": [
@@ -2500,7 +2933,7 @@
       "description": "An open-source UI component library for building high-quality, accessible design systems and web apps for Vue. Previously Radix Vue",
       "language": "TypeScript",
       "stars": 6958,
-      "pushed": "2026-11-13",
+      "pushed": "2026-11-15",
       "license": "MIT",
       "topics": [
         "accessibility",
@@ -2616,12 +3049,12 @@
         {
           "kind": "crate",
           "name": "dpi",
-          "downloads": 75377125
+          "downloads": 75468847
         },
         {
           "kind": "crate",
           "name": "winit",
-          "downloads": 66350609
+          "downloads": 66392999
         }
       ],
       "categories": [
@@ -2639,7 +3072,7 @@
       "repo": "zerostaticthemes/square-ui",
       "description": "Collection of beautifully crafted open-source layouts UI built with shadcn/ui.",
       "language": "TypeScript",
-      "stars": 6177,
+      "stars": 6178,
       "pushed": "2026-09-15",
       "license": "NOASSERTION",
       "topics": [
@@ -2769,7 +3202,7 @@
       "repo": "arco-design/arco-design",
       "description": "A comprehensive React UI components library based on Arco Design",
       "language": "TypeScript",
-      "stars": 5766,
+      "stars": 5767,
       "pushed": "2026-11-13",
       "license": "MIT",
       "topics": [
@@ -2792,6 +3225,30 @@
       "key": "arco-design/arco-design",
       "name": "arco-design/arco-design",
       "url": "https://github.com/arco-design/arco-design"
+    },
+    {
+      "repo": "huggingface/alignment-handbook",
+      "description": "Robust recipes to align language models with human and AI preferences",
+      "language": "Python",
+      "stars": 5713,
+      "pushed": "2026-09-23",
+      "license": "Apache-2.0",
+      "topics": [
+        "llm",
+        "rlhf",
+        "transformers"
+      ],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/alignment-handbook",
+      "name": "huggingface/alignment-handbook",
+      "url": "https://github.com/huggingface/alignment-handbook"
     },
     {
       "repo": "ekmas/neobrutalism-components",
@@ -2827,6 +3284,26 @@
       "key": "ekmas/neobrutalism-components",
       "name": "ekmas/neobrutalism-components",
       "url": "https://github.com/ekmas/neobrutalism-components"
+    },
+    {
+      "repo": "huggingface/parler-tts",
+      "description": "Inference and training library for high-quality TTS models.",
+      "language": "Python",
+      "stars": 5597,
+      "pushed": "2024-12-10",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/parler-tts",
+      "name": "huggingface/parler-tts",
+      "url": "https://github.com/huggingface/parler-tts"
     },
     {
       "repo": "serafimcloud/21st",
@@ -2961,7 +3438,7 @@
       "repo": "chakra-ui/ark",
       "description": "Unstyled, accessible UI components for your design System. Works in React, Vue, Solid, and Svelte.",
       "language": "TypeScript",
-      "stars": 5470,
+      "stars": 5471,
       "pushed": "2026-11-14",
       "license": "MIT",
       "topics": [
@@ -3166,46 +3643,36 @@
       "url": "https://github.com/bernaferrari/figmatocode"
     },
     {
-      "repo": "unovue/inspira-ui",
-      "description": "Build beautiful website using Vue & Nuxt.",
-      "language": "Vue",
-      "stars": 5094,
-      "pushed": "2026-10-17",
-      "license": "MIT",
+      "repo": "huggingface/text-embeddings-inference",
+      "description": "A blazing fast inference solution for text embeddings models",
+      "language": "Rust",
+      "stars": 5122,
+      "pushed": "2026-11-10",
+      "license": "Apache-2.0",
       "topics": [
-        "components",
-        "nuxt",
-        "nuxt3",
-        "nuxtjs",
-        "shadcn-ui",
-        "shadcn-vue",
-        "tailwindcss",
-        "tailwindcss-v4",
-        "ui-components",
-        "ui-library",
-        "vue",
-        "vue3",
-        "vuejs",
-        "vuejs-components",
-        "vuejs3"
+        "ai",
+        "embeddings",
+        "huggingface",
+        "llm",
+        "ml"
       ],
       "archived": false,
       "packages": [],
       "categories": [
-        "ui-js-ts"
+        "huggingface"
       ],
       "sources": [
-        "github topic:shadcn-ui"
+        "github org:huggingface language:Rust"
       ],
-      "key": "unovue/inspira-ui",
-      "name": "unovue/inspira-ui",
-      "url": "https://github.com/unovue/inspira-ui"
+      "key": "huggingface/text-embeddings-inference",
+      "name": "huggingface/text-embeddings-inference",
+      "url": "https://github.com/huggingface/text-embeddings-inference"
     },
     {
       "repo": "manavarya09/design-extract",
       "description": "Extract any website's complete design system with one command. DTCG tokens, semantic+primitive+composite, MCP server for Claude Code/Cursor/Windsurf, multi-platform emitters (iOS SwiftUI, Android Compose, Flutter, WordPress), Tailwind v4, Figma variables, shadcn/ui, CSS health audit, WCAG remediation, Chrome extension. MIT, Playwright, Node 20+.",
       "language": "HTML",
-      "stars": 5094,
+      "stars": 5097,
       "pushed": "2026-11-13",
       "license": "MIT",
       "topics": [
@@ -3243,6 +3710,62 @@
       "url": "https://github.com/manavarya09/design-extract"
     },
     {
+      "repo": "unovue/inspira-ui",
+      "description": "Build beautiful website using Vue & Nuxt.",
+      "language": "Vue",
+      "stars": 5094,
+      "pushed": "2026-10-17",
+      "license": "MIT",
+      "topics": [
+        "components",
+        "nuxt",
+        "nuxt3",
+        "nuxtjs",
+        "shadcn-ui",
+        "shadcn-vue",
+        "tailwindcss",
+        "tailwindcss-v4",
+        "ui-components",
+        "ui-library",
+        "vue",
+        "vue3",
+        "vuejs",
+        "vuejs-components",
+        "vuejs3"
+      ],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "ui-js-ts"
+      ],
+      "sources": [
+        "github topic:shadcn-ui"
+      ],
+      "key": "unovue/inspira-ui",
+      "name": "unovue/inspira-ui",
+      "url": "https://github.com/unovue/inspira-ui"
+    },
+    {
+      "repo": "huggingface/nanovlm",
+      "description": "The simplest, fastest repository for training/finetuning small-sized VLMs.",
+      "language": "Python",
+      "stars": 5075,
+      "pushed": "2025-10-27",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/nanovlm",
+      "name": "huggingface/nanovlm",
+      "url": "https://github.com/huggingface/nanovlm"
+    },
+    {
       "repo": "tauri-apps/wry",
       "description": "Cross-platform WebView rendering library",
       "language": "Rust",
@@ -3255,7 +3778,7 @@
         {
           "kind": "crate",
           "name": "wry",
-          "downloads": 48294725
+          "downloads": 48350233
         }
       ],
       "categories": [
@@ -3272,7 +3795,7 @@
       "repo": "imskyleen/animate-ui",
       "description": "Animated drop-in primitives for Radix UI, Base UI and React Aria, built with Motion.",
       "language": "TypeScript",
-      "stars": 4995,
+      "stars": 4996,
       "pushed": "2026-11-09",
       "license": "NOASSERTION",
       "topics": [
@@ -3291,7 +3814,7 @@
         {
           "kind": "npm",
           "name": "@animate-ui/react",
-          "downloads": 96950
+          "downloads": 107761
         }
       ],
       "categories": [
@@ -3309,8 +3832,8 @@
       "repo": "surveyjs/surveyjs",
       "description": "Framework-independent core of SurveyJS Form Library. Provides the form model and logic used by survey-react-ui, survey-angular-ui, survey-vue3-ui, and survey-js-ui to render dynamic, JSON-based forms and collect responses.",
       "language": "TypeScript",
-      "stars": 4930,
-      "pushed": "2026-11-14",
+      "stars": 4931,
+      "pushed": "2026-11-15",
       "license": "MIT",
       "topics": [
         "angular",
@@ -3339,17 +3862,17 @@
         {
           "kind": "npm",
           "name": "survey-core",
-          "downloads": 1708554
+          "downloads": 1782936
         },
         {
           "kind": "npm",
           "name": "survey-react-ui",
-          "downloads": 1190861
+          "downloads": 1240495
         },
         {
           "kind": "npm",
           "name": "survey-js-ui",
-          "downloads": 67796
+          "downloads": 70480
         }
       ],
       "categories": [
@@ -3366,8 +3889,8 @@
       "repo": "surveyjs/survey-library",
       "description": "Angular form library for rendering dynamic, JSON-based forms and surveys. Collect user responses and store them in your own database.",
       "language": "TypeScript",
-      "stars": 4930,
-      "pushed": "2026-11-14",
+      "stars": 4931,
+      "pushed": "2026-11-15",
       "license": "MIT",
       "topics": [
         "angular",
@@ -3410,6 +3933,53 @@
       "url": "https://github.com/surveyjs/survey-library"
     },
     {
+      "repo": "vercel-labs/ui",
+      "description": "A library of behaviors to build your components. Made for agents.",
+      "language": "TypeScript",
+      "stars": 4685,
+      "pushed": "2026-11-15",
+      "license": "Apache-2.0",
+      "topics": [
+        "accessibility",
+        "agent",
+        "agents",
+        "aria",
+        "behaviors",
+        "component",
+        "component-library",
+        "headless",
+        "mcp",
+        "react",
+        "solid",
+        "svelte",
+        "vue",
+        "web-components",
+        "webmcp"
+      ],
+      "archived": false,
+      "packages": [
+        {
+          "kind": "npm",
+          "name": "@ui-sdk/core",
+          "downloads": 74639
+        },
+        {
+          "kind": "npm",
+          "name": "@ui-sdk/react",
+          "downloads": 58017
+        }
+      ],
+      "categories": [
+        "ui-js-ts"
+      ],
+      "sources": [
+        "npm keywords:shadcn"
+      ],
+      "key": "vercel-labs/ui",
+      "name": "vercel-labs/ui",
+      "url": "https://github.com/vercel-labs/ui"
+    },
+    {
       "repo": "alibaba-fusion/next",
       "description": "🦍 A configurable component library for web built on React. ",
       "language": "TypeScript",
@@ -3438,46 +4008,32 @@
       "url": "https://github.com/alibaba-fusion/next"
     },
     {
-      "repo": "vercel-labs/ui",
-      "description": "UI SDK for React.",
-      "language": "TypeScript",
-      "stars": 4612,
-      "pushed": "2026-11-14",
+      "repo": "huggingface/autotrain-advanced",
+      "description": "🤗 AutoTrain Advanced",
+      "language": "Python",
+      "stars": 4621,
+      "pushed": "2026-11-13",
       "license": "Apache-2.0",
       "topics": [
-        "accessibility",
-        "agent",
-        "agents",
-        "aria",
-        "behaviors",
-        "component",
-        "component-library",
-        "headless",
-        "mcp",
-        "react",
-        "solid",
-        "svelte",
-        "vue",
-        "web-components",
-        "webmcp"
+        "autotrain",
+        "deep-learning",
+        "huggingface",
+        "machine-learning",
+        "natural-language-processing",
+        "natural-language-understanding",
+        "python"
       ],
       "archived": false,
-      "packages": [
-        {
-          "kind": "npm",
-          "name": "@ui-sdk/react",
-          "downloads": 27926
-        }
-      ],
+      "packages": [],
       "categories": [
-        "ui-js-ts"
+        "huggingface"
       ],
       "sources": [
-        "npm keywords:shadcn"
+        "github org:huggingface language:Python"
       ],
-      "key": "vercel-labs/ui",
-      "name": "vercel-labs/ui",
-      "url": "https://github.com/vercel-labs/ui"
+      "key": "huggingface/autotrain-advanced",
+      "name": "huggingface/autotrain-advanced",
+      "url": "https://github.com/huggingface/autotrain-advanced"
     },
     {
       "repo": "zdhxiong/mdui",
@@ -3512,7 +4068,7 @@
       "repo": "linebender/vello",
       "description": "Glifo provides APIs for efficiently rendering text.",
       "language": "Rust",
-      "stars": 4503,
+      "stars": 4505,
       "pushed": "2026-11-13",
       "license": "Apache-2.0",
       "topics": [],
@@ -3521,7 +4077,7 @@
         {
           "kind": "crate",
           "name": "glifo",
-          "downloads": 8687229
+          "downloads": 8715238
         }
       ],
       "categories": [
@@ -3538,7 +4094,7 @@
       "repo": "dioxuslabs/blitz",
       "description": "Interop crate for the stylo and taffy crates",
       "language": "Rust",
-      "stars": 4470,
+      "stars": 4472,
       "pushed": "2026-11-15",
       "license": "Apache-2.0",
       "topics": [],
@@ -3547,7 +4103,7 @@
         {
           "kind": "crate",
           "name": "stylo_taffy",
-          "downloads": 293699
+          "downloads": 294228
         }
       ],
       "categories": [
@@ -3588,7 +4144,7 @@
         {
           "kind": "npm",
           "name": "basecoat-css",
-          "downloads": 132046
+          "downloads": 143152
         }
       ],
       "categories": [
@@ -3697,6 +4253,59 @@
       "url": "https://github.com/keenthemes/reui"
     },
     {
+      "repo": "huggingface/distil-whisper",
+      "description": "Distilled variant of Whisper for speech recognition. 6x faster, 50% smaller, within 1% word error rate.",
+      "language": "Python",
+      "stars": 4118,
+      "pushed": "2025-01-08",
+      "license": "MIT",
+      "topics": [
+        "audio",
+        "speech-recognition",
+        "whisper"
+      ],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/distil-whisper",
+      "name": "huggingface/distil-whisper",
+      "url": "https://github.com/huggingface/distil-whisper"
+    },
+    {
+      "repo": "huggingface/huggingface_hub",
+      "description": "The official CLI and Python client for the Hugging Face Hub.",
+      "language": "Python",
+      "stars": 4054,
+      "pushed": "2026-11-13",
+      "license": "Apache-2.0",
+      "topics": [
+        "deep-learning",
+        "hacktoberfest",
+        "machine-learning",
+        "model-hub",
+        "models",
+        "natural-language-processing",
+        "pretrained-models",
+        "pytorch"
+      ],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/huggingface_hub",
+      "name": "huggingface/huggingface_hub",
+      "url": "https://github.com/huggingface/huggingface_hub"
+    },
+    {
       "repo": "shadcnblocks/kibo",
       "description": "A custom registry of composable, accessible and extensible components designed for use with shadcn/ui. Free and open source, forever.",
       "language": "TypeScript",
@@ -3723,6 +4332,26 @@
       "key": "shadcnblocks/kibo",
       "name": "shadcnblocks/kibo",
       "url": "https://github.com/shadcnblocks/kibo"
+    },
+    {
+      "repo": "huggingface/smollm",
+      "description": "Everything about the SmolLM and SmolVLM family of models ",
+      "language": "Python",
+      "stars": 3954,
+      "pushed": "2026-10-06",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/smollm",
+      "name": "huggingface/smollm",
+      "url": "https://github.com/huggingface/smollm"
     },
     {
       "repo": "primer/react",
@@ -3843,7 +4472,7 @@
         {
           "kind": "crate",
           "name": "seed",
-          "downloads": 428586
+          "downloads": 428656
         }
       ],
       "categories": [
@@ -3863,7 +4492,7 @@
       "description": "A flexible UI layout library ",
       "language": "Rust",
       "stars": 3783,
-      "pushed": "2026-11-13",
+      "pushed": "2026-11-15",
       "license": "MIT",
       "topics": [
         "css-grid",
@@ -3878,12 +4507,12 @@
         {
           "kind": "crate",
           "name": "taffy",
-          "downloads": 20159038
+          "downloads": 20183668
         },
         {
           "kind": "crate",
           "name": "ps-taffy",
-          "downloads": 4010
+          "downloads": 4012
         }
       ],
       "categories": [
@@ -3905,7 +4534,7 @@
       "description": "High performance & cross-platform Flexbox implementation",
       "language": "Rust",
       "stars": 3783,
-      "pushed": "2026-11-13",
+      "pushed": "2026-11-15",
       "license": "MIT",
       "topics": [
         "css-grid",
@@ -3920,7 +4549,7 @@
         {
           "kind": "crate",
           "name": "stretch2",
-          "downloads": 11220
+          "downloads": 11222
         }
       ],
       "categories": [
@@ -3966,7 +4595,7 @@
       "repo": "heroui-inc/heroui-native",
       "description": "📱Beautiful, fast and modern React Native UI library",
       "language": "TypeScript",
-      "stars": 3715,
+      "stars": 3714,
       "pushed": "2026-11-11",
       "license": "Apache-2.0",
       "topics": [
@@ -4123,6 +4752,39 @@
       "url": "https://github.com/rashadphz/farfalle"
     },
     {
+      "repo": "huggingface/optimum",
+      "description": "🚀 Accelerate inference and training of 🤗 Transformers, Diffusers, TIMM and Sentence Transformers with easy to use hardware optimization tools",
+      "language": "Python",
+      "stars": 3522,
+      "pushed": "2026-11-09",
+      "license": "Apache-2.0",
+      "topics": [
+        "graphcore",
+        "habana",
+        "inference",
+        "intel",
+        "onnx",
+        "onnxruntime",
+        "optimization",
+        "pytorch",
+        "quantization",
+        "tflite",
+        "training",
+        "transformers"
+      ],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/optimum",
+      "name": "huggingface/optimum",
+      "url": "https://github.com/huggingface/optimum"
+    },
+    {
       "repo": "vantezzen/autoform",
       "description": "🌟 Automatically render forms for your existing data schema",
       "language": "TypeScript",
@@ -4169,7 +4831,7 @@
         {
           "kind": "crate",
           "name": "stdweb",
-          "downloads": 18848203
+          "downloads": 18851725
         }
       ],
       "categories": [
@@ -4205,27 +4867,27 @@
         {
           "kind": "npm",
           "name": "@smui/ripple",
-          "downloads": 137092
+          "downloads": 150293
         },
         {
           "kind": "npm",
           "name": "@smui/common",
-          "downloads": 183500
+          "downloads": 195933
         },
         {
           "kind": "npm",
           "name": "@smui/floating-label",
-          "downloads": 78105
+          "downloads": 82168
         },
         {
           "kind": "npm",
           "name": "@smui/icon-button",
-          "downloads": 65995
+          "downloads": 70226
         },
         {
           "kind": "npm",
           "name": "@smui/button",
-          "downloads": 81244
+          "downloads": 87187
         },
         {
           "kind": "npm",
@@ -4234,13 +4896,13 @@
         },
         {
           "kind": "npm",
-          "name": "@smui/menu-surface",
-          "downloads": 74476
+          "name": "@smui/textfield",
+          "downloads": 76342
         },
         {
           "kind": "npm",
-          "name": "@smui/textfield",
-          "downloads": 71026
+          "name": "@smui/menu-surface",
+          "downloads": 74476
         },
         {
           "kind": "npm",
@@ -4250,22 +4912,22 @@
         {
           "kind": "npm",
           "name": "@smui/notched-outline",
-          "downloads": 78188
-        },
-        {
-          "kind": "npm",
-          "name": "@smui/menu",
-          "downloads": 69456
+          "downloads": 82241
         },
         {
           "kind": "npm",
           "name": "@smui/list",
-          "downloads": 77385
+          "downloads": 81399
+        },
+        {
+          "kind": "npm",
+          "name": "@smui/menu",
+          "downloads": 72836
         },
         {
           "kind": "npm",
           "name": "@smui/checkbox",
-          "downloads": 61739
+          "downloads": 64922
         },
         {
           "kind": "npm",
@@ -4275,17 +4937,12 @@
         {
           "kind": "npm",
           "name": "@smui/dialog",
-          "downloads": 59397
+          "downloads": 62155
         },
         {
           "kind": "npm",
-          "name": "@smui/data-table",
-          "downloads": 49865
-        },
-        {
-          "kind": "npm",
-          "name": "@smui/segmented-button",
-          "downloads": 35502
+          "name": "@smui/chips",
+          "downloads": 52282
         },
         {
           "kind": "npm",
@@ -4294,18 +4951,18 @@
         },
         {
           "kind": "npm",
+          "name": "@smui/segmented-button",
+          "downloads": 35502
+        },
+        {
+          "kind": "npm",
+          "name": "@smui/data-table",
+          "downloads": 49865
+        },
+        {
+          "kind": "npm",
           "name": "@smui/tab",
           "downloads": 46363
-        },
-        {
-          "kind": "npm",
-          "name": "@smui/chips",
-          "downloads": 48480
-        },
-        {
-          "kind": "npm",
-          "name": "@smui/top-app-bar",
-          "downloads": 39009
         },
         {
           "kind": "npm",
@@ -4314,8 +4971,8 @@
         },
         {
           "kind": "npm",
-          "name": "@smui/circular-progress",
-          "downloads": 40323
+          "name": "@smui/top-app-bar",
+          "downloads": 39009
         },
         {
           "kind": "npm",
@@ -4326,6 +4983,11 @@
           "kind": "npm",
           "name": "@smui/paper",
           "downloads": 46428
+        },
+        {
+          "kind": "npm",
+          "name": "@smui/circular-progress",
+          "downloads": 40323
         }
       ],
       "categories": [
@@ -4380,10 +5042,30 @@
       "url": "https://github.com/fantastic-admin/basic"
     },
     {
+      "repo": "huggingface/datatrove",
+      "description": "Freeing data processing from scripting madness by providing a set of platform-agnostic customizable pipeline processing blocks.",
+      "language": "Python",
+      "stars": 3421,
+      "pushed": "2026-11-10",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/datatrove",
+      "name": "huggingface/datatrove",
+      "url": "https://github.com/huggingface/datatrove"
+    },
+    {
       "repo": "marc2332/freya",
       "description": "Cross-platform native GUI library for 🦀 Rust",
       "language": "Rust",
-      "stars": 3399,
+      "stars": 3401,
       "pushed": "2026-11-14",
       "license": "MIT",
       "topics": [
@@ -4430,7 +5112,7 @@
         {
           "kind": "npm",
           "name": "@shadcn/lint",
-          "downloads": 10870839
+          "downloads": 11756516
         }
       ],
       "categories": [
@@ -4490,7 +5172,7 @@
         {
           "kind": "npm",
           "name": "@pmndrs/uikit-default",
-          "downloads": 30095
+          "downloads": 31098
         }
       ],
       "categories": [
@@ -4507,7 +5189,7 @@
       "repo": "guillermolg00/morphicons",
       "description": "Universal morphing for SVG icons, stroked or filled, with spring physics and zero runtime dependencies",
       "language": "TypeScript",
-      "stars": 3185,
+      "stars": 3189,
       "pushed": "2026-11-14",
       "license": "MIT",
       "topics": [
@@ -4523,7 +5205,7 @@
         {
           "kind": "npm",
           "name": "morphicons",
-          "downloads": 745991
+          "downloads": 796040
         }
       ],
       "categories": [
@@ -4689,6 +5371,26 @@
       "url": "https://github.com/spliit-app/spliit"
     },
     {
+      "repo": "huggingface/tau",
+      "description": "A Python port of Pi’s minimalist coding agent.",
+      "language": "Python",
+      "stars": 3052,
+      "pushed": "2026-11-13",
+      "license": "MIT",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/tau",
+      "name": "huggingface/tau",
+      "url": "https://github.com/huggingface/tau"
+    },
+    {
       "repo": "ignacemaes/winforms-materialskin",
       "description": "Theming WinForms (C# or VB.Net) to Google's Material Design Principles.",
       "language": "C#",
@@ -4820,6 +5522,26 @@
       "url": "https://github.com/carbon-design-system/carbon-components-svelte"
     },
     {
+      "repo": "huggingface/nanotron",
+      "description": "Minimalistic large language model 3D-parallelism training",
+      "language": "Python",
+      "stars": 2863,
+      "pushed": "2026-10-08",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/nanotron",
+      "name": "huggingface/nanotron",
+      "url": "https://github.com/huggingface/nanotron"
+    },
+    {
       "repo": "samprof/matblazor",
       "description": "Material Design components for Blazor and Razor Components",
       "language": "HTML",
@@ -4857,7 +5579,7 @@
       "repo": "longbridge/nsh",
       "description": "Native Shell is a native UI framework for iOS, Android, macOS, Windows, Linux and the web, built in Rust.",
       "language": "Rust",
-      "stars": 2830,
+      "stars": 2839,
       "pushed": "2026-11-15",
       "license": "NOASSERTION",
       "topics": [
@@ -4877,6 +5599,38 @@
       "key": "longbridge/nsh",
       "name": "longbridge/nsh",
       "url": "https://github.com/longbridge/nsh"
+    },
+    {
+      "repo": "huggingface/knockknock",
+      "description": "🚪✊Knock Knock: Get notified when your training ends with only two additional lines of code",
+      "language": "Python",
+      "stars": 2826,
+      "pushed": "2023-06-23",
+      "license": "MIT",
+      "topics": [
+        "computer-vision",
+        "cv",
+        "deep-learning",
+        "machine-learning",
+        "natural-language-processing",
+        "neural-networks",
+        "nlp",
+        "nlproc",
+        "python",
+        "python36",
+        "train"
+      ],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/knockknock",
+      "name": "huggingface/knockknock",
+      "url": "https://github.com/huggingface/knockknock"
     },
     {
       "repo": "minimal-ui-kit/material-kit-react",
@@ -5039,6 +5793,32 @@
       "url": "https://github.com/beercss/beercss"
     },
     {
+      "repo": "huggingface/huggingface.js",
+      "description": "Use Hugging Face with JavaScript",
+      "language": "TypeScript",
+      "stars": 2610,
+      "pushed": "2026-11-14",
+      "license": "MIT",
+      "topics": [
+        "api-client",
+        "hub",
+        "huggingface",
+        "inference",
+        "machine-learning"
+      ],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:TypeScript"
+      ],
+      "key": "huggingface/huggingface.js",
+      "name": "huggingface/huggingface.js",
+      "url": "https://github.com/huggingface/huggingface.js"
+    },
+    {
       "repo": "franken-ui/ui",
       "description": "Franken UI is an HTML-first UI component library built on UIkit 3 and extended with LitElement, inspired by shadcn/ui.",
       "language": "TypeScript",
@@ -5068,6 +5848,31 @@
       "key": "franken-ui/ui",
       "name": "franken-ui/ui",
       "url": "https://github.com/franken-ui/ui"
+    },
+    {
+      "repo": "huggingface/lighteval",
+      "description": "Lighteval is your all-in-one toolkit for evaluating LLMs across multiple backends",
+      "language": "Python",
+      "stars": 2586,
+      "pushed": "2026-11-11",
+      "license": "MIT",
+      "topics": [
+        "evaluation",
+        "evaluation-framework",
+        "evaluation-metrics",
+        "huggingface"
+      ],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/lighteval",
+      "name": "huggingface/lighteval",
+      "url": "https://github.com/huggingface/lighteval"
     },
     {
       "repo": "louiscad/splitties",
@@ -5147,6 +5952,29 @@
       "key": "themeselection/flyonui",
       "name": "themeselection/flyonui",
       "url": "https://github.com/themeselection/flyonui"
+    },
+    {
+      "repo": "huggingface/evaluate",
+      "description": "🤗 Evaluate: A library for easily evaluating machine learning models and datasets.",
+      "language": "Python",
+      "stars": 2495,
+      "pushed": "2026-11-09",
+      "license": "Apache-2.0",
+      "topics": [
+        "evaluation",
+        "machine-learning"
+      ],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/evaluate",
+      "name": "huggingface/evaluate",
+      "url": "https://github.com/huggingface/evaluate"
     },
     {
       "repo": "siriwatknp/mui-treasury",
@@ -5243,6 +6071,26 @@
       "url": "https://github.com/vizia/vizia"
     },
     {
+      "repo": "huggingface/picotron",
+      "description": "Minimalistic 4D-parallelism distributed training framework for education purpose",
+      "language": "Python",
+      "stars": 2340,
+      "pushed": "2025-08-26",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/picotron",
+      "name": "huggingface/picotron",
+      "url": "https://github.com/huggingface/picotron"
+    },
+    {
       "repo": "mlaursen/react-md",
       "description": "React material design - An accessible React component library built from the Material Design guidelines in Sass",
       "language": "TypeScript",
@@ -5293,7 +6141,7 @@
         {
           "kind": "npm",
           "name": "@material/material-color-utilities",
-          "downloads": 2338658
+          "downloads": 2520808
         },
         {
           "kind": "npm",
@@ -5363,7 +6211,7 @@
       "repo": "lobehub/lobe-ui",
       "description": "🍭  Lobe UI - an open-source UI component library for building AIGC web apps",
       "language": "TypeScript",
-      "stars": 2270,
+      "stars": 2272,
       "pushed": "2026-11-15",
       "license": "MIT",
       "topics": [
@@ -5439,7 +6287,7 @@
       "description": "Reshaped provides accessible React and Figma components for building beautiful products or starting your own design system",
       "language": "TypeScript",
       "stars": 2254,
-      "pushed": "2026-11-14",
+      "pushed": "2026-11-15",
       "license": "MIT",
       "topics": [
         "design-system",
@@ -5473,7 +6321,7 @@
         {
           "kind": "crate",
           "name": "tao",
-          "downloads": 47391962
+          "downloads": 47443845
         }
       ],
       "categories": [
@@ -5505,12 +6353,12 @@
         {
           "kind": "crate",
           "name": "perseus",
-          "downloads": 117541
+          "downloads": 117544
         },
         {
           "kind": "crate",
           "name": "perseus-macro",
-          "downloads": 111773
+          "downloads": 111776
         },
         {
           "kind": "crate",
@@ -5555,7 +6403,7 @@
       "repo": "prajwalch/torrentsearch",
       "description": "An Android app for searching torrents across multiple providers with fast search speed, detailed results, and packed with complete torrent actions.",
       "language": "Kotlin",
-      "stars": 2228,
+      "stars": 2230,
       "pushed": "2026-11-06",
       "license": "MIT",
       "topics": [
@@ -5643,7 +6491,7 @@
       "repo": "deeplethe/solid-glass",
       "description": "A design system for AI applications. Material, physical, tactile, technical.",
       "language": "TypeScript",
-      "stars": 2071,
+      "stars": 2072,
       "pushed": "2026-10-31",
       "license": "MIT",
       "topics": [
@@ -5791,7 +6639,7 @@
         {
           "kind": "npm",
           "name": "@c15t/ui",
-          "downloads": 1345549
+          "downloads": 1438650
         }
       ],
       "categories": [
@@ -5823,7 +6671,7 @@
         {
           "kind": "crate",
           "name": "stretch",
-          "downloads": 912577
+          "downloads": 912739
         }
       ],
       "categories": [
@@ -5841,7 +6689,7 @@
       "repo": "untitleduico/react",
       "description": "Untitled UI React is the world’s largest collection of open-source React components built with Tailwind CSS and React Aria. Just copy, paste, and build.",
       "language": "TypeScript",
-      "stars": 2008,
+      "stars": 2010,
       "pushed": "2026-11-13",
       "license": "MIT",
       "topics": [
@@ -5951,7 +6799,7 @@
       "repo": "jasonzhu1207/zenconverter",
       "description": "Local Android file converter built with Kotlin and Jetpack Compose. Convert files on device, with no ads, accounts, or upload-based fallback.",
       "language": "Kotlin",
-      "stars": 1918,
+      "stars": 1919,
       "pushed": "2026-11-08",
       "license": "AGPL-3.0",
       "topics": [
@@ -5991,7 +6839,7 @@
       "repo": "kobaltedev/kobalte",
       "description": "A UI toolkit for building accessible web apps and design systems with SolidJS.",
       "language": "TypeScript",
-      "stars": 1888,
+      "stars": 1889,
       "pushed": "2026-10-29",
       "license": "MIT",
       "topics": [
@@ -6101,7 +6949,7 @@
       "repo": "caho1/open-claude-ui",
       "description": "基于 REA 深度拆解并高保真还原 Claude 官方桌面端 UI。还原 30 个独立 React 组件与 8 项硬核交互物理算法，附带 3000+ 行逆向分析手册。",
       "language": "TypeScript",
-      "stars": 1759,
+      "stars": 1762,
       "pushed": "2026-11-06",
       "license": "MIT",
       "topics": [
@@ -6157,6 +7005,26 @@
       "key": "ribirx/ribir",
       "name": "ribirx/ribir",
       "url": "https://github.com/ribirx/ribir"
+    },
+    {
+      "repo": "huggingface/gsplat.js",
+      "description": "JavaScript Gaussian Splatting library.",
+      "language": "TypeScript",
+      "stars": 1678,
+      "pushed": "2026-09-24",
+      "license": "MIT",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:TypeScript"
+      ],
+      "key": "huggingface/gsplat.js",
+      "name": "huggingface/gsplat.js",
+      "url": "https://github.com/huggingface/gsplat.js"
     },
     {
       "repo": "tailgrids/tailgrids",
@@ -6233,10 +7101,37 @@
       "url": "https://github.com/saas-js/saas-ui"
     },
     {
+      "repo": "huggingface/aisheets",
+      "description": "Build, enrich, and transform datasets using AI models with no code",
+      "language": "TypeScript",
+      "stars": 1655,
+      "pushed": "2026-09-23",
+      "license": "Apache-2.0",
+      "topics": [
+        "ai",
+        "llm-evaluation",
+        "llms",
+        "nocode",
+        "oss",
+        "synthetic-data"
+      ],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:TypeScript"
+      ],
+      "key": "huggingface/aisheets",
+      "name": "huggingface/aisheets",
+      "url": "https://github.com/huggingface/aisheets"
+    },
+    {
       "repo": "alain00/blobatar",
       "description": "Deterministic geometric blobatars from any string. No dependencies.",
       "language": "TypeScript",
-      "stars": 1642,
+      "stars": 1643,
       "pushed": "2026-10-18",
       "license": "MIT",
       "topics": [],
@@ -6245,12 +7140,12 @@
         {
           "kind": "npm",
           "name": "blobatar",
-          "downloads": 1497330
+          "downloads": 1616775
         },
         {
           "kind": "npm",
           "name": "@blobatar/react",
-          "downloads": 270722
+          "downloads": 286093
         }
       ],
       "categories": [
@@ -6332,17 +7227,17 @@
         {
           "kind": "crate",
           "name": "accesskit",
-          "downloads": 35394901
+          "downloads": 35437105
         },
         {
           "kind": "crate",
           "name": "accesskit_consumer",
-          "downloads": 28581867
+          "downloads": 28616296
         },
         {
           "kind": "crate",
           "name": "accesskit_winit",
-          "downloads": 25023753
+          "downloads": 25046472
         }
       ],
       "categories": [
@@ -6498,7 +7393,7 @@
         {
           "kind": "npm",
           "name": "emoji-picker-react",
-          "downloads": 8897200
+          "downloads": 9334499
         }
       ],
       "categories": [
@@ -6527,42 +7422,42 @@
         {
           "kind": "crate",
           "name": "wayland-protocols",
-          "downloads": 95645426
+          "downloads": 95731016
         },
         {
           "kind": "crate",
           "name": "wayland-scanner",
-          "downloads": 89738200
+          "downloads": 89823011
         },
         {
           "kind": "crate",
           "name": "wayland-client",
-          "downloads": 89616075
+          "downloads": 89701308
         },
         {
           "kind": "crate",
           "name": "wayland-protocols-wlr",
-          "downloads": 70925959
+          "downloads": 71003009
         },
         {
           "kind": "crate",
           "name": "wayland-backend",
-          "downloads": 68348532
+          "downloads": 68430595
         },
         {
           "kind": "crate",
           "name": "wayland-cursor",
-          "downloads": 58333592
+          "downloads": 58378282
         },
         {
           "kind": "crate",
           "name": "wayland-protocols-plasma",
-          "downloads": 41427228
+          "downloads": 41468279
         },
         {
           "kind": "crate",
           "name": "wayland-commons",
-          "downloads": 19933296
+          "downloads": 19936249
         }
       ],
       "categories": [
@@ -6795,6 +7690,35 @@
       "url": "https://github.com/sergi0g/cup"
     },
     {
+      "repo": "huggingface/finetrainers",
+      "description": "Scalable and memory-optimized training of diffusion models",
+      "language": "Python",
+      "stars": 1365,
+      "pushed": "2026-09-23",
+      "license": "Apache-2.0",
+      "topics": [
+        "ai",
+        "art",
+        "artificial-intelligence",
+        "diffusers",
+        "diffusion",
+        "diffusion-models",
+        "pytorch",
+        "transformers"
+      ],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/finetrainers",
+      "name": "huggingface/finetrainers",
+      "url": "https://github.com/huggingface/finetrainers"
+    },
+    {
       "repo": "masastack/masa.blazor",
       "description": "Blazor UI component library based on Material Design. Support Blazor Server, Blazor WebAssembly and MAUI Blazor. ",
       "language": "C#",
@@ -6826,6 +7750,26 @@
       "key": "masastack/masa.blazor",
       "name": "masastack/masa.blazor",
       "url": "https://github.com/masastack/masa.blazor"
+    },
+    {
+      "repo": "huggingface/llm-vscode",
+      "description": "LLM powered development for VSCode",
+      "language": "TypeScript",
+      "stars": 1316,
+      "pushed": "2026-09-23",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:TypeScript"
+      ],
+      "key": "huggingface/llm-vscode",
+      "name": "huggingface/llm-vscode",
+      "url": "https://github.com/huggingface/llm-vscode"
     },
     {
       "repo": "surveyjs/survey-creator",
@@ -6861,12 +7805,12 @@
         {
           "kind": "npm",
           "name": "survey-creator-core",
-          "downloads": 733225
+          "downloads": 765163
         },
         {
           "kind": "npm",
           "name": "survey-creator-react",
-          "downloads": 581232
+          "downloads": 606602
         },
         {
           "kind": "npm",
@@ -6898,7 +7842,7 @@
       "repo": "codewithmuhilan/lightswind-ui-library",
       "description": "The AI-native CLI-first React component library. 160+ animated, accessible, production-ready components with MCP Server support for Cursor, Claude & GitHub Copilot. Copy-paste architecture — you own the code.",
       "language": "TypeScript",
-      "stars": 1281,
+      "stars": 1283,
       "pushed": "2026-10-30",
       "license": "MIT",
       "topics": [
@@ -7049,7 +7993,7 @@
         {
           "kind": "npm",
           "name": "emblor",
-          "downloads": 255535
+          "downloads": 270752
         }
       ],
       "categories": [
@@ -7117,6 +8061,26 @@
       "url": "https://github.com/ramosbugs/oauth2-rs"
     },
     {
+      "repo": "huggingface/math-verify",
+      "description": null,
+      "language": "Python",
+      "stars": 1205,
+      "pushed": "2026-01-10",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/math-verify",
+      "name": "huggingface/math-verify",
+      "url": "https://github.com/huggingface/math-verify"
+    },
+    {
       "repo": "rydmike/flex_color_scheme",
       "description": "A Flutter package to make and use beautiful color scheme based themes.",
       "language": "Dart",
@@ -7154,6 +8118,31 @@
       "key": "rydmike/flex_color_scheme",
       "name": "rydmike/flex_color_scheme",
       "url": "https://github.com/rydmike/flex_color_scheme"
+    },
+    {
+      "repo": "huggingface/hmtl",
+      "description": "🌊HMTL: Hierarchical Multi-Task Learning - A State-of-the-Art neural network model for several NLP tasks based on PyTorch and AllenNLP",
+      "language": "Python",
+      "stars": 1197,
+      "pushed": "2023-08-01",
+      "license": "MIT",
+      "topics": [
+        "multi-task-learning",
+        "natural-language-processing",
+        "nlp",
+        "pytorch"
+      ],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/hmtl",
+      "name": "huggingface/hmtl",
+      "url": "https://github.com/huggingface/hmtl"
     },
     {
       "repo": "avaloniacommunity/material.avalonia",
@@ -7311,7 +8300,7 @@
         {
           "kind": "crate",
           "name": "tuono_lib_macros",
-          "downloads": 87236
+          "downloads": 87237
         },
         {
           "kind": "crate",
@@ -7321,12 +8310,12 @@
         {
           "kind": "crate",
           "name": "tuono_lib",
-          "downloads": 84380
+          "downloads": 84381
         },
         {
           "kind": "crate",
           "name": "tuono_internal",
-          "downloads": 15400
+          "downloads": 15401
         }
       ],
       "categories": [
@@ -7378,6 +8367,26 @@
       "key": "widle-ai/grocery-app",
       "name": "widle-ai/grocery-app",
       "url": "https://github.com/widle-ai/grocery-app"
+    },
+    {
+      "repo": "huggingface/search-and-learn",
+      "description": "Recipes to scale inference-time compute of open models",
+      "language": "Python",
+      "stars": 1133,
+      "pushed": "2026-09-23",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/search-and-learn",
+      "name": "huggingface/search-and-learn",
+      "url": "https://github.com/huggingface/search-and-learn"
     },
     {
       "repo": "yechaoa/materialdesign",
@@ -7448,6 +8457,30 @@
       "url": "https://github.com/luisbocanegra/kde-material-you-colors"
     },
     {
+      "repo": "huggingface/optimum-quanto",
+      "description": "A pytorch quantization backend for optimum",
+      "language": "Python",
+      "stars": 1056,
+      "pushed": "2026-11-13",
+      "license": "Apache-2.0",
+      "topics": [
+        "optimum",
+        "pytorch",
+        "quantization"
+      ],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/optimum-quanto",
+      "name": "huggingface/optimum-quanto",
+      "url": "https://github.com/huggingface/optimum-quanto"
+    },
+    {
       "repo": "creativeit/material-angular-dashboard",
       "description": "Material Angular Admin Template",
       "language": "TypeScript",
@@ -7499,7 +8532,7 @@
         {
           "kind": "crate",
           "name": "window-vibrancy",
-          "downloads": 30115083
+          "downloads": 30151235
         }
       ],
       "categories": [
@@ -7511,6 +8544,26 @@
       "key": "tauri-apps/tauri-plugin-vibrancy",
       "name": "tauri-apps/tauri-plugin-vibrancy",
       "url": "https://github.com/tauri-apps/tauri-plugin-vibrancy"
+    },
+    {
+      "repo": "huggingface/optimum-nvidia",
+      "description": null,
+      "language": "Python",
+      "stars": 1038,
+      "pushed": "2026-09-24",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/optimum-nvidia",
+      "name": "huggingface/optimum-nvidia",
+      "url": "https://github.com/huggingface/optimum-nvidia"
     },
     {
       "repo": "veeso/tui-realm",
@@ -7567,7 +8620,7 @@
         {
           "kind": "crate",
           "name": "bevy_lunex",
-          "downloads": 43365
+          "downloads": 43369
         },
         {
           "kind": "crate",
@@ -7604,7 +8657,7 @@
       "repo": "wasi-master/wmkeyboard",
       "description": "A modern, privacy-first Android keyboard: offline intelligence, 600+ languages, themes, tools and an addon ecosystem.",
       "language": "Kotlin",
-      "stars": 968,
+      "stars": 969,
       "pushed": "2026-11-15",
       "license": "MIT",
       "topics": [
@@ -7655,6 +8708,26 @@
       "key": "lvgl/lv_binding_rust",
       "name": "lvgl/lv_binding_rust",
       "url": "https://github.com/lvgl/lv_binding_rust"
+    },
+    {
+      "repo": "huggingface/meshgen",
+      "description": "Use AI Agents directly in Blender.",
+      "language": "Python",
+      "stars": 947,
+      "pushed": "2026-10-22",
+      "license": "MIT",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/meshgen",
+      "name": "huggingface/meshgen",
+      "url": "https://github.com/huggingface/meshgen"
     },
     {
       "repo": "maxkeppeler/sheets-compose-dialogs",
@@ -7710,22 +8783,22 @@
         {
           "kind": "crate",
           "name": "pbkdf2",
-          "downloads": 295581796
+          "downloads": 295738392
         },
         {
           "kind": "crate",
           "name": "scrypt",
-          "downloads": 88909041
+          "downloads": 88970224
         },
         {
           "kind": "crate",
           "name": "argon2",
-          "downloads": 76445812
+          "downloads": 76531594
         },
         {
           "kind": "crate",
           "name": "bcrypt-pbkdf",
-          "downloads": 20565328
+          "downloads": 20581619
         }
       ],
       "categories": [
@@ -7766,6 +8839,33 @@
       "url": "https://github.com/mi-g-alex/telegram-monet"
     },
     {
+      "repo": "huggingface/dataset-viewer",
+      "description": "Backend that powers the dataset viewer on Hugging Face dataset pages through a public API.",
+      "language": "Python",
+      "stars": 909,
+      "pushed": "2026-11-13",
+      "license": "Apache-2.0",
+      "topics": [
+        "api-rest",
+        "data",
+        "datasets",
+        "huggingface",
+        "machine-learning",
+        "nlp"
+      ],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/dataset-viewer",
+      "name": "huggingface/dataset-viewer",
+      "url": "https://github.com/huggingface/dataset-viewer"
+    },
+    {
       "repo": "lirios/fluid",
       "description": "Material Design for QtQuick and Qml",
       "language": "QML",
@@ -7802,36 +8902,35 @@
       "url": "https://github.com/lirios/fluid"
     },
     {
-      "repo": "praveenjuge/kutty",
-      "description": "Kutty is a tailwind plugin for building web applications. It has a set of accessible and reusable components that are commonly used in web applications.",
-      "language": "JavaScript",
-      "stars": 868,
-      "pushed": "2023-09-13",
-      "license": "MIT",
+      "repo": "huggingface/llm-ls",
+      "description": "LSP server leveraging LLMs for code completion (and more?)",
+      "language": "Rust",
+      "stars": 887,
+      "pushed": "2026-09-23",
+      "license": "Apache-2.0",
       "topics": [
-        "alpinejs",
-        "tailwind",
-        "tailwind-plugin",
-        "tailwindcss",
-        "tailwindcss-plugin"
+        "ai",
+        "code-generation",
+        "huggingface",
+        "ide",
+        "llamacpp",
+        "llm",
+        "lsp",
+        "lsp-server",
+        "openai",
+        "self-hosted"
       ],
       "archived": false,
-      "packages": [
-        {
-          "kind": "npm",
-          "name": "kutty",
-          "downloads": 1583
-        }
-      ],
+      "packages": [],
       "categories": [
-        "ui-js-ts"
+        "huggingface"
       ],
       "sources": [
-        "npm keywords:tailwindcss-plugin"
+        "github org:huggingface language:Rust"
       ],
-      "key": "praveenjuge/kutty",
-      "name": "praveenjuge/kutty",
-      "url": "https://github.com/praveenjuge/kutty"
+      "key": "huggingface/llm-ls",
+      "name": "huggingface/llm-ls",
+      "url": "https://github.com/huggingface/llm-ls"
     },
     {
       "repo": "patzly/doodle-android",
@@ -7863,6 +8962,26 @@
       "key": "patzly/doodle-android",
       "name": "patzly/doodle-android",
       "url": "https://github.com/patzly/doodle-android"
+    },
+    {
+      "repo": "huggingface/hf-mount",
+      "description": "Mount Hugging Face Buckets and repos as local filesystems. No download, no copy, no waiting.",
+      "language": "Rust",
+      "stars": 826,
+      "pushed": "2026-11-14",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Rust"
+      ],
+      "key": "huggingface/hf-mount",
+      "name": "huggingface/hf-mount",
+      "url": "https://github.com/huggingface/hf-mount"
     },
     {
       "repo": "sciter-sdk/rust-sciter",
@@ -7908,7 +9027,7 @@
         {
           "kind": "npm",
           "name": "tw-animate-css",
-          "downloads": 175460871
+          "downloads": 183409873
         }
       ],
       "categories": [
@@ -7948,27 +9067,27 @@
         {
           "kind": "crate",
           "name": "ui-cli",
-          "downloads": 13140
+          "downloads": 13141
         },
         {
           "kind": "crate",
           "name": "tw_merge",
-          "downloads": 77404
+          "downloads": 77483
         },
         {
           "kind": "crate",
           "name": "icons",
-          "downloads": 67241
+          "downloads": 67254
         },
         {
           "kind": "crate",
           "name": "leptos_ui",
-          "downloads": 66775
+          "downloads": 66787
         },
         {
           "kind": "crate",
           "name": "tw_merge_variants",
-          "downloads": 52546
+          "downloads": 52567
         }
       ],
       "categories": [
@@ -8015,6 +9134,26 @@
       "url": "https://github.com/spiegelp/materialdesignextensions"
     },
     {
+      "repo": "huggingface/kernels",
+      "description": "Build compute kernels and load them from the Hub.",
+      "language": "Python",
+      "stars": 789,
+      "pushed": "2026-11-14",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/kernels",
+      "name": "huggingface/kernels",
+      "url": "https://github.com/huggingface/kernels"
+    },
+    {
       "repo": "linebender/parley",
       "description": "Parley provides an API for implementing rich text layout.",
       "language": "Rust",
@@ -8027,17 +9166,17 @@
         {
           "kind": "crate",
           "name": "parley",
-          "downloads": 5959355
+          "downloads": 5972604
         },
         {
           "kind": "crate",
           "name": "parley_data",
-          "downloads": 4574524
+          "downloads": 4587672
         },
         {
           "kind": "crate",
           "name": "parley_engine",
-          "downloads": 287750
+          "downloads": 291351
         }
       ],
       "categories": [
@@ -8069,12 +9208,12 @@
         {
           "kind": "crate",
           "name": "oxide-auth",
-          "downloads": 3318044
+          "downloads": 3318330
         },
         {
           "kind": "crate",
           "name": "oxide-auth-async",
-          "downloads": 2189471
+          "downloads": 2189709
         }
       ],
       "categories": [
@@ -8086,6 +9225,75 @@
       "key": "heroickatora/oxide-auth",
       "name": "heroickatora/oxide-auth",
       "url": "https://github.com/heroickatora/oxide-auth"
+    },
+    {
+      "repo": "huggingface/repo2rlenv",
+      "description": "Turn any repository into verifiable RL environments for coding agents - Harbor tasks you can train on, evaluate and share on the Hugging Face Hub",
+      "language": "Python",
+      "stars": 787,
+      "pushed": "2026-11-11",
+      "license": "Apache-2.0",
+      "topics": [
+        "coding-agents",
+        "datasets",
+        "harbor",
+        "huggingface",
+        "llm",
+        "reinforcement-learning",
+        "rl-environments",
+        "swe-bench"
+      ],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/repo2rlenv",
+      "name": "huggingface/repo2rlenv",
+      "url": "https://github.com/huggingface/repo2rlenv"
+    },
+    {
+      "repo": "huggingface/nfsserve",
+      "description": "A Rust NFS Server implementation",
+      "language": "Rust",
+      "stars": 773,
+      "pushed": "2026-10-20",
+      "license": "BSD-3-Clause",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Rust"
+      ],
+      "key": "huggingface/nfsserve",
+      "name": "huggingface/nfsserve",
+      "url": "https://github.com/huggingface/nfsserve"
+    },
+    {
+      "repo": "huggingface/ratchet",
+      "description": "A cross-platform browser ML framework.",
+      "language": "Rust",
+      "stars": 771,
+      "pushed": "2026-09-24",
+      "license": "MIT",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Rust"
+      ],
+      "key": "huggingface/ratchet",
+      "name": "huggingface/ratchet",
+      "url": "https://github.com/huggingface/ratchet"
     },
     {
       "repo": "prem-k-r/materialyounewtab",
@@ -8129,6 +9337,26 @@
       "url": "https://github.com/prem-k-r/materialyounewtab"
     },
     {
+      "repo": "huggingface/upskill",
+      "description": "Generate and evaluate agent skills for code agents like Claude Code, Open Code, OpenAI Codex",
+      "language": "Python",
+      "stars": 767,
+      "pushed": "2026-10-27",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/upskill",
+      "name": "huggingface/upskill",
+      "url": "https://github.com/huggingface/upskill"
+    },
+    {
       "repo": "starwind-ui/starwind-ui",
       "description": "Framework-neutral accessible DOM behavior for Starwind UI components across Astro, React, and plain HTML.",
       "language": "TypeScript",
@@ -8155,7 +9383,7 @@
         {
           "kind": "npm",
           "name": "@starwind-ui/runtime",
-          "downloads": 32235
+          "downloads": 36214
         }
       ],
       "categories": [
@@ -8181,7 +9409,7 @@
         {
           "kind": "crate",
           "name": "password-hash",
-          "downloads": 156516625
+          "downloads": 156622395
         }
       ],
       "categories": [
@@ -8389,7 +9617,7 @@
         {
           "kind": "npm",
           "name": "@vuetify/v0",
-          "downloads": 711319
+          "downloads": 743689
         }
       ],
       "categories": [
@@ -8452,17 +9680,17 @@
         {
           "kind": "crate",
           "name": "webauthn-rs-proto",
-          "downloads": 10893849
+          "downloads": 10904029
         },
         {
           "kind": "crate",
           "name": "webauthn-rs-core",
-          "downloads": 10793472
+          "downloads": 10802922
         },
         {
           "kind": "crate",
           "name": "webauthn-rs",
-          "downloads": 9305466
+          "downloads": 9314638
         }
       ],
       "categories": [
@@ -8506,7 +9734,7 @@
         {
           "kind": "crate",
           "name": "smg-auth",
-          "downloads": 1920980
+          "downloads": 1922254
         }
       ],
       "categories": [
@@ -8540,7 +9768,7 @@
         {
           "kind": "crate",
           "name": "winsafe",
-          "downloads": 57196443
+          "downloads": 57232983
         }
       ],
       "categories": [
@@ -8572,7 +9800,7 @@
         {
           "kind": "npm",
           "name": "terracotta",
-          "downloads": 1182718
+          "downloads": 1291788
         }
       ],
       "categories": [
@@ -8585,6 +9813,36 @@
       "key": "lxsmnsyc/terracotta",
       "name": "lxsmnsyc/terracotta",
       "url": "https://github.com/lxsmnsyc/terracotta"
+    },
+    {
+      "repo": "huggingface/exporters",
+      "description": "Export Hugging Face models to Core ML and TensorFlow Lite",
+      "language": "Python",
+      "stars": 696,
+      "pushed": "2024-07-23",
+      "license": "Apache-2.0",
+      "topics": [
+        "coreml",
+        "coremltools",
+        "deep-learning",
+        "machine-learning",
+        "model-converter",
+        "pytorch",
+        "tensorflow",
+        "tflite",
+        "transformer"
+      ],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/exporters",
+      "name": "huggingface/exporters",
+      "url": "https://github.com/huggingface/exporters"
     },
     {
       "repo": "blazorblueprintui/ui",
@@ -8644,12 +9902,12 @@
         {
           "kind": "crate",
           "name": "egui_flex",
-          "downloads": 36499
+          "downloads": 36508
         },
         {
           "kind": "crate",
           "name": "egui_material_icons",
-          "downloads": 126455
+          "downloads": 126502
         }
       ],
       "categories": [
@@ -8718,7 +9976,7 @@
         {
           "kind": "crate",
           "name": "egui_dock",
-          "downloads": 4942576
+          "downloads": 4943066
         }
       ],
       "categories": [
@@ -8789,6 +10047,31 @@
       "key": "avencera/rustywind",
       "name": "avencera/rustywind",
       "url": "https://github.com/avencera/rustywind"
+    },
+    {
+      "repo": "huggingface/xet-core",
+      "description": "xet client tech, used in huggingface_hub",
+      "language": "Rust",
+      "stars": 631,
+      "pushed": "2026-11-13",
+      "license": "Apache-2.0",
+      "topics": [
+        "huggingface-hub",
+        "rust",
+        "storage",
+        "xet"
+      ],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Rust"
+      ],
+      "key": "huggingface/xet-core",
+      "name": "huggingface/xet-core",
+      "url": "https://github.com/huggingface/xet-core"
     },
     {
       "repo": "baseflow/xf-material-library",
@@ -8872,7 +10155,7 @@
         {
           "kind": "crate",
           "name": "fast-socks5",
-          "downloads": 2596481
+          "downloads": 2597452
         }
       ],
       "categories": [
@@ -8940,7 +10223,7 @@
         {
           "kind": "crate",
           "name": "egui_tiles",
-          "downloads": 2725953
+          "downloads": 2726701
         }
       ],
       "categories": [
@@ -8952,6 +10235,37 @@
       "key": "rerun-io/egui_crates",
       "name": "rerun-io/egui_crates",
       "url": "https://github.com/rerun-io/egui_crates"
+    },
+    {
+      "repo": "huggingface/funes",
+      "description": "Durable, searchable memory of your past agent sessions.",
+      "language": "Rust",
+      "stars": 594,
+      "pushed": "2026-11-13",
+      "license": "Apache-2.0",
+      "topics": [
+        "agent-memory",
+        "ai-agents",
+        "claude-code",
+        "codex",
+        "hermes",
+        "lance",
+        "llm-agents",
+        "mcp",
+        "pi",
+        "rust"
+      ],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Rust"
+      ],
+      "key": "huggingface/funes",
+      "name": "huggingface/funes",
+      "url": "https://github.com/huggingface/funes"
     },
     {
       "repo": "ramotion/circular-carousel",
@@ -8980,6 +10294,26 @@
       "url": "https://github.com/ramotion/circular-carousel"
     },
     {
+      "repo": "huggingface/hf_transfer",
+      "description": null,
+      "language": "Rust",
+      "stars": 584,
+      "pushed": "2026-09-29",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Rust"
+      ],
+      "key": "huggingface/hf_transfer",
+      "name": "huggingface/hf_transfer",
+      "url": "https://github.com/huggingface/hf_transfer"
+    },
+    {
       "repo": "iqlusioninc/crates",
       "description": "Multi-provider elliptic curve digital signature library with ECDSA and Ed25519 support",
       "language": "Rust",
@@ -8992,7 +10326,7 @@
         {
           "kind": "crate",
           "name": "signatory",
-          "downloads": 53412277
+          "downloads": 53423416
         }
       ],
       "categories": [
@@ -9006,10 +10340,30 @@
       "url": "https://github.com/iqlusioninc/crates"
     },
     {
+      "repo": "huggingface/cosmopedia",
+      "description": null,
+      "language": "Python",
+      "stars": 577,
+      "pushed": "2024-11-20",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Python"
+      ],
+      "key": "huggingface/cosmopedia",
+      "name": "huggingface/cosmopedia",
+      "url": "https://github.com/huggingface/cosmopedia"
+    },
+    {
       "repo": "project-blinc/blinc",
       "description": "A declarative, reactive UI system with first-class state machines, spring physics animations, and GPU-accelerated rendering",
       "language": "Rust",
-      "stars": 573,
+      "stars": 574,
       "pushed": "2026-11-11",
       "license": "Apache-2.0",
       "topics": [
@@ -9057,7 +10411,7 @@
         {
           "kind": "npm",
           "name": "@shadscan/cli",
-          "downloads": 57879
+          "downloads": 60892
         }
       ],
       "categories": [
@@ -9145,27 +10499,27 @@
         {
           "kind": "crate",
           "name": "waterui-layout",
-          "downloads": 5596
+          "downloads": 5631
         },
         {
           "kind": "crate",
           "name": "waterui-text",
-          "downloads": 5413
+          "downloads": 5448
         },
         {
           "kind": "crate",
           "name": "waterui-controls",
-          "downloads": 4569
+          "downloads": 4604
         },
         {
           "kind": "crate",
           "name": "waterui-form",
-          "downloads": 4093
+          "downloads": 4128
         },
         {
           "kind": "crate",
           "name": "waterui-navigation",
-          "downloads": 4083
+          "downloads": 4118
         },
         {
           "kind": "crate",
@@ -9246,7 +10600,7 @@
         {
           "kind": "crate",
           "name": "softbuffer",
-          "downloads": 34311487
+          "downloads": 34350415
         }
       ],
       "categories": [
@@ -9280,27 +10634,27 @@
         {
           "kind": "crate",
           "name": "gtk",
-          "downloads": 42981813
+          "downloads": 43027483
         },
         {
           "kind": "crate",
           "name": "gdk",
-          "downloads": 42891872
+          "downloads": 42937509
         },
         {
           "kind": "crate",
           "name": "atk",
-          "downloads": 42341902
+          "downloads": 42387514
         },
         {
           "kind": "crate",
           "name": "gtk3-macros",
-          "downloads": 41578774
+          "downloads": 41624172
         },
         {
           "kind": "crate",
           "name": "gdkx11",
-          "downloads": 30541252
+          "downloads": 30579992
         }
       ],
       "categories": [
@@ -9407,7 +10761,7 @@
         {
           "kind": "crate",
           "name": "r3bl_tui",
-          "downloads": 425368
+          "downloads": 425433
         }
       ],
       "categories": [
@@ -9627,7 +10981,7 @@
         {
           "kind": "npm",
           "name": "material-design-icons-iconfont",
-          "downloads": 893701
+          "downloads": 947540
         }
       ],
       "categories": [
@@ -9681,7 +11035,7 @@
         {
           "kind": "crate",
           "name": "smithay-client-toolkit",
-          "downloads": 78360790
+          "downloads": 78417846
         }
       ],
       "categories": [
@@ -9742,7 +11096,7 @@
         {
           "kind": "crate",
           "name": "muda",
-          "downloads": 51445935
+          "downloads": 51511060
         }
       ],
       "categories": [
@@ -9840,7 +11194,7 @@
         {
           "kind": "crate",
           "name": "tray-icon",
-          "downloads": 44100520
+          "downloads": 44153515
         }
       ],
       "categories": [
@@ -9852,6 +11206,26 @@
       "key": "tauri-apps/tray-icon",
       "name": "tauri-apps/tray-icon",
       "url": "https://github.com/tauri-apps/tray-icon"
+    },
+    {
+      "repo": "huggingface/gpu-fryer",
+      "description": "Where GPUs get cooked 👩‍🍳🔥",
+      "language": "Rust",
+      "stars": 414,
+      "pushed": "2026-09-24",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Rust"
+      ],
+      "key": "huggingface/gpu-fryer",
+      "name": "huggingface/gpu-fryer",
+      "url": "https://github.com/huggingface/gpu-fryer"
     },
     {
       "repo": "woylie/doggo",
@@ -10087,7 +11461,7 @@
         {
           "kind": "crate",
           "name": "ashpd",
-          "downloads": 21001747
+          "downloads": 21021641
         }
       ],
       "categories": [
@@ -10151,17 +11525,17 @@
         {
           "kind": "crate",
           "name": "stylist-core",
-          "downloads": 1512076
+          "downloads": 1512128
         },
         {
           "kind": "crate",
           "name": "stylist",
-          "downloads": 1511936
+          "downloads": 1511986
         },
         {
           "kind": "crate",
           "name": "stylist-macros",
-          "downloads": 1505930
+          "downloads": 1505981
         }
       ],
       "categories": [
@@ -10197,7 +11571,7 @@
         {
           "kind": "npm",
           "name": "material-icons",
-          "downloads": 1811527
+          "downloads": 1902031
         }
       ],
       "categories": [
@@ -10364,7 +11738,7 @@
         {
           "kind": "npm",
           "name": "@ilamy/calendar",
-          "downloads": 59877
+          "downloads": 77518
         }
       ],
       "categories": [
@@ -10427,6 +11801,26 @@
       "url": "https://github.com/rschiang/material"
     },
     {
+      "repo": "huggingface/ai-deadlines",
+      "description": "⏰ AI conference deadline countdowns",
+      "language": "TypeScript",
+      "stars": 351,
+      "pushed": "2026-09-23",
+      "license": "MIT",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:TypeScript"
+      ],
+      "key": "huggingface/ai-deadlines",
+      "name": "huggingface/ai-deadlines",
+      "url": "https://github.com/huggingface/ai-deadlines"
+    },
+    {
       "repo": "rustcrypto/formats",
       "description": "Pure Rust implementation of the Password Hashing Competition (PHC) string format which is used for\nstoring password hashes\n",
       "language": "Rust",
@@ -10439,7 +11833,7 @@
         {
           "kind": "crate",
           "name": "phc",
-          "downloads": 11187459
+          "downloads": 11221577
         }
       ],
       "categories": [
@@ -10451,6 +11845,26 @@
       "key": "rustcrypto/formats",
       "name": "rustcrypto/formats",
       "url": "https://github.com/rustcrypto/formats"
+    },
+    {
+      "repo": "huggingface/hf-hub",
+      "description": "Rust client for the huggingface hub aiming for minimal subset of features over `huggingface-hub` python package",
+      "language": "Rust",
+      "stars": 344,
+      "pushed": "2026-11-03",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Rust"
+      ],
+      "key": "huggingface/hf-hub",
+      "name": "huggingface/hf-hub",
+      "url": "https://github.com/huggingface/hf-hub"
     },
     {
       "repo": "agranom/ngx-material-timepicker",
@@ -10511,6 +11925,26 @@
       "key": "matraic/m3e",
       "name": "matraic/m3e",
       "url": "https://github.com/matraic/m3e"
+    },
+    {
+      "repo": "huggingface/hf-mcp-server",
+      "description": "Hugging Face MCP Server",
+      "language": "TypeScript",
+      "stars": 317,
+      "pushed": "2026-11-10",
+      "license": "MIT",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:TypeScript"
+      ],
+      "key": "huggingface/hf-mcp-server",
+      "name": "huggingface/hf-mcp-server",
+      "url": "https://github.com/huggingface/hf-mcp-server"
     },
     {
       "repo": "jonaswanke/timetable",
@@ -10580,27 +12014,27 @@
         {
           "kind": "crate",
           "name": "passkey-types",
-          "downloads": 6099054
+          "downloads": 6100865
         },
         {
           "kind": "crate",
           "name": "passkey-authenticator",
-          "downloads": 4949688
+          "downloads": 4951163
         },
         {
           "kind": "crate",
           "name": "passkey-client",
-          "downloads": 4941812
+          "downloads": 4943202
         },
         {
           "kind": "crate",
           "name": "passkey",
-          "downloads": 3378815
+          "downloads": 3379201
         },
         {
           "kind": "crate",
           "name": "passkey-transports",
-          "downloads": 3375360
+          "downloads": 3375745
         }
       ],
       "categories": [
@@ -10664,17 +12098,17 @@
         {
           "kind": "npm",
           "name": "material-symbols",
-          "downloads": 2515995
+          "downloads": 2628915
         },
         {
           "kind": "npm",
           "name": "@material-symbols/svg-400",
-          "downloads": 997645
+          "downloads": 1043437
         },
         {
           "kind": "npm",
           "name": "@material-symbols/font-400",
-          "downloads": 188392
+          "downloads": 202619
         },
         {
           "kind": "npm",
@@ -10684,17 +12118,17 @@
         {
           "kind": "npm",
           "name": "@material-symbols/svg-700",
-          "downloads": 82354
+          "downloads": 86566
         },
         {
           "kind": "npm",
           "name": "@material-symbols/svg-600",
-          "downloads": 81736
+          "downloads": 87245
         },
         {
           "kind": "npm",
           "name": "@material-symbols/svg-500",
-          "downloads": 82604
+          "downloads": 86417
         },
         {
           "kind": "npm",
@@ -10704,7 +12138,7 @@
         {
           "kind": "npm",
           "name": "@material-symbols/font-300",
-          "downloads": 43152
+          "downloads": 47909
         }
       ],
       "categories": [
@@ -10756,7 +12190,7 @@
       "repo": "constantoine/totp-rs",
       "description": "RFC-compliant TOTP implementation with ease of use as a goal and additional QoL features.",
       "language": "Rust",
-      "stars": 282,
+      "stars": 283,
       "pushed": "2026-10-30",
       "license": "MIT",
       "topics": [
@@ -10770,7 +12204,7 @@
         {
           "kind": "crate",
           "name": "totp-rs",
-          "downloads": 12852610
+          "downloads": 12860783
         }
       ],
       "categories": [
@@ -10923,7 +12357,7 @@
       "repo": "tessera-ui/tessera",
       "description": "A fast, GPU-first Rust UI framework that is declarative and reactive.",
       "language": "Rust",
-      "stars": 267,
+      "stars": 268,
       "pushed": "2026-11-15",
       "license": "Apache-2.0",
       "topics": [
@@ -10964,7 +12398,7 @@
         {
           "kind": "crate",
           "name": "ldap3",
-          "downloads": 5606111
+          "downloads": 5609334
         }
       ],
       "categories": [
@@ -10996,7 +12430,7 @@
         {
           "kind": "npm",
           "name": "tailwindcss-safe-area",
-          "downloads": 1969310
+          "downloads": 2090242
         }
       ],
       "categories": [
@@ -11034,7 +12468,7 @@
         {
           "kind": "crate",
           "name": "ssr_rs",
-          "downloads": 50168
+          "downloads": 50172
         }
       ],
       "categories": [
@@ -11118,12 +12552,12 @@
         {
           "kind": "crate",
           "name": "ssh-encoding",
-          "downloads": 19677211
+          "downloads": 19698000
         },
         {
           "kind": "crate",
           "name": "ssh-key",
-          "downloads": 17854162
+          "downloads": 17874331
         }
       ],
       "categories": [
@@ -11160,6 +12594,26 @@
       "url": "https://github.com/yamankatby/react-native-material"
     },
     {
+      "repo": "huggingface/responses.js",
+      "description": "A lightweight express.js server implementing OpenAI’s Responses API, built on top of Chat Completions, powered by Hugging Face Inference Providers.",
+      "language": "TypeScript",
+      "stars": 240,
+      "pushed": "2026-11-11",
+      "license": "MIT",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:TypeScript"
+      ],
+      "key": "huggingface/responses.js",
+      "name": "huggingface/responses.js",
+      "url": "https://github.com/huggingface/responses.js"
+    },
+    {
       "repo": "marella/material-design-icons",
       "description": "Latest optimized SVGs for material design icons.",
       "language": "JavaScript",
@@ -11180,12 +12634,12 @@
         {
           "kind": "npm",
           "name": "@material-design-icons/svg",
-          "downloads": 444168
+          "downloads": 471231
         },
         {
           "kind": "npm",
           "name": "@material-design-icons/font",
-          "downloads": 140212
+          "downloads": 145925
         }
       ],
       "categories": [
@@ -11219,7 +12673,7 @@
         {
           "kind": "crate",
           "name": "material-yew",
-          "downloads": 20117
+          "downloads": 20118
         }
       ],
       "categories": [
@@ -11436,7 +12890,7 @@
         {
           "kind": "crate",
           "name": "egui_taffy",
-          "downloads": 76357
+          "downloads": 76394
         }
       ],
       "categories": [
@@ -11489,7 +12943,7 @@
       "repo": "szhsin/react-accordion",
       "description": "The complete accordion solution for React",
       "language": "TypeScript",
-      "stars": 210,
+      "stars": 211,
       "pushed": "2026-11-13",
       "license": "MIT",
       "topics": [
@@ -11558,6 +13012,26 @@
       "url": "https://github.com/mahapps/iconpacks.avalonia"
     },
     {
+      "repo": "huggingface/lelab",
+      "description": "🤗 LeLab: A web UI interface on top of LeRobot",
+      "language": "TypeScript",
+      "stars": 208,
+      "pushed": "2026-11-12",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:TypeScript"
+      ],
+      "key": "huggingface/lelab",
+      "name": "huggingface/lelab",
+      "url": "https://github.com/huggingface/lelab"
+    },
+    {
       "repo": "crabtalk/bezel",
       "description": "Design tokens for gpui — an environment-driven theme with designed light and dark palettes",
       "language": "Rust",
@@ -11576,27 +13050,27 @@
         {
           "kind": "crate",
           "name": "bezel-theme",
-          "downloads": 5343
+          "downloads": 5349
         },
         {
           "kind": "crate",
           "name": "bezel-motion",
-          "downloads": 4354
+          "downloads": 4360
         },
         {
           "kind": "crate",
           "name": "bezel-ui",
-          "downloads": 3860
+          "downloads": 3866
         },
         {
           "kind": "crate",
           "name": "bezel-icons",
-          "downloads": 3823
+          "downloads": 3829
         },
         {
           "kind": "crate",
           "name": "bezel-mermaid",
-          "downloads": 3290
+          "downloads": 3292
         },
         {
           "kind": "crate",
@@ -11611,12 +13085,12 @@
         {
           "kind": "crate",
           "name": "bezel-markdown",
-          "downloads": 2570
+          "downloads": 2576
         },
         {
           "kind": "crate",
           "name": "bezel-editor",
-          "downloads": 2476
+          "downloads": 2477
         },
         {
           "kind": "crate",
@@ -11785,7 +13259,7 @@
         {
           "kind": "crate",
           "name": "biscuit",
-          "downloads": 6703049
+          "downloads": 6703349
         }
       ],
       "categories": [
@@ -12036,7 +13510,7 @@
         {
           "kind": "crate",
           "name": "reqsign",
-          "downloads": 18067722
+          "downloads": 18070556
         }
       ],
       "categories": [
@@ -12048,6 +13522,26 @@
       "key": "apache/opendal-reqsign",
       "name": "apache/opendal-reqsign",
       "url": "https://github.com/apache/opendal-reqsign"
+    },
+    {
+      "repo": "huggingface/inference-benchmarker",
+      "description": "Inference server benchmarking tool",
+      "language": "Rust",
+      "stars": 176,
+      "pushed": "2026-09-23",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Rust"
+      ],
+      "key": "huggingface/inference-benchmarker",
+      "name": "huggingface/inference-benchmarker",
+      "url": "https://github.com/huggingface/inference-benchmarker"
     },
     {
       "repo": "kristoferlund/ratcn",
@@ -12217,7 +13711,7 @@
         {
           "kind": "npm",
           "name": "tailwindcss-bg-patterns",
-          "downloads": 80155
+          "downloads": 81232
         }
       ],
       "categories": [
@@ -12245,12 +13739,12 @@
         {
           "kind": "crate",
           "name": "webkit2gtk-sys",
-          "downloads": 34382769
+          "downloads": 34423888
         },
         {
           "kind": "crate",
           "name": "webkit2gtk",
-          "downloads": 34367639
+          "downloads": 34408762
         }
       ],
       "categories": [
@@ -12395,6 +13889,26 @@
       "url": "https://github.com/wess/guise"
     },
     {
+      "repo": "huggingface/lerobot-dataset-visualizer",
+      "description": "Web application for visualizing robotics datasets in LeRobot format",
+      "language": "TypeScript",
+      "stars": 138,
+      "pushed": "2026-11-10",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:TypeScript"
+      ],
+      "key": "huggingface/lerobot-dataset-visualizer",
+      "name": "huggingface/lerobot-dataset-visualizer",
+      "url": "https://github.com/huggingface/lerobot-dataset-visualizer"
+    },
+    {
       "repo": "brycx/pasetors",
       "description": "PASETO: Platform-Agnostic Security Tokens (in Rust)",
       "language": "Rust",
@@ -12417,7 +13931,7 @@
         {
           "kind": "crate",
           "name": "pasetors",
-          "downloads": 10570040
+          "downloads": 10572946
         }
       ],
       "categories": [
@@ -12492,7 +14006,7 @@
       "description": "Implementations of the Javascript/JSON Object Signing and Encryption (JOSE) standards",
       "language": "Rust",
       "stars": 130,
-      "pushed": "2026-11-14",
+      "pushed": "2026-11-15",
       "license": "Apache-2.0",
       "topics": [],
       "archived": false,
@@ -12500,7 +14014,7 @@
         {
           "kind": "crate",
           "name": "aliri",
-          "downloads": 2711695
+          "downloads": 2712036
         }
       ],
       "categories": [
@@ -12579,7 +14093,7 @@
       "description": "My personal website built with Next.js, Tailwind CSS, Tanstack Query/Table",
       "language": "TypeScript",
       "stars": 124,
-      "pushed": "2026-11-14",
+      "pushed": "2026-11-15",
       "license": "GPL-3.0",
       "topics": [
         "blog",
@@ -12652,12 +14166,12 @@
         {
           "kind": "crate",
           "name": "tailwind_fuse",
-          "downloads": 102621
+          "downloads": 102794
         },
         {
           "kind": "crate",
           "name": "tailwind_fuse_macro",
-          "downloads": 85573
+          "downloads": 85733
         }
       ],
       "categories": [
@@ -12891,6 +14405,26 @@
       "url": "https://github.com/seed-rs/seed-quickstart-webpack"
     },
     {
+      "repo": "huggingface/grout",
+      "description": "Testbed for LLM inference with cutile-rs.",
+      "language": "Rust",
+      "stars": 111,
+      "pushed": "2026-10-07",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Rust"
+      ],
+      "key": "huggingface/grout",
+      "name": "huggingface/grout",
+      "url": "https://github.com/huggingface/grout"
+    },
+    {
       "repo": "olivierldff/qaterialgallery",
       "description": "🖼️  Qaterial Library Showcase.",
       "language": "QML",
@@ -13007,7 +14541,7 @@
         {
           "kind": "npm",
           "name": "oxlint-tailwindcss",
-          "downloads": 1498617
+          "downloads": 1572649
         }
       ],
       "categories": [
@@ -13082,7 +14616,7 @@
         {
           "kind": "crate",
           "name": "hyper-proxy",
-          "downloads": 8948110
+          "downloads": 8949025
         }
       ],
       "categories": [
@@ -13178,7 +14712,7 @@
         {
           "kind": "crate",
           "name": "coins-ledger",
-          "downloads": 3892692
+          "downloads": 3893591
         }
       ],
       "categories": [
@@ -13190,6 +14724,26 @@
       "key": "summa-tx/coins",
       "name": "summa-tx/coins",
       "url": "https://github.com/summa-tx/coins"
+    },
+    {
+      "repo": "huggingface/huggingface-vscode-chat",
+      "description": "A VSCode extension to use Hugging Face Inference Providers in Copilot Chat",
+      "language": "TypeScript",
+      "stars": 99,
+      "pushed": "2026-09-23",
+      "license": "MIT",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:TypeScript"
+      ],
+      "key": "huggingface/huggingface-vscode-chat",
+      "name": "huggingface/huggingface-vscode-chat",
+      "url": "https://github.com/huggingface/huggingface-vscode-chat"
     },
     {
       "repo": "ferrismind/shadcn-rs",
@@ -13212,12 +14766,12 @@
         {
           "kind": "crate",
           "name": "egui-shadcn",
-          "downloads": 2007
+          "downloads": 2016
         },
         {
           "kind": "crate",
           "name": "iced-shadcn",
-          "downloads": 509
+          "downloads": 510
         }
       ],
       "categories": [
@@ -13243,7 +14797,7 @@
         {
           "kind": "crate",
           "name": "josekit",
-          "downloads": 4367101
+          "downloads": 4367661
         }
       ],
       "categories": [
@@ -13349,7 +14903,7 @@
         {
           "kind": "crate",
           "name": "openid",
-          "downloads": 4763027
+          "downloads": 4763293
         }
       ],
       "categories": [
@@ -13389,7 +14943,7 @@
         {
           "kind": "npm",
           "name": "mdi-vue",
-          "downloads": 53469
+          "downloads": 59677
         }
       ],
       "categories": [
@@ -13540,7 +15094,7 @@
         {
           "kind": "crate",
           "name": "async-socks5",
-          "downloads": 3635810
+          "downloads": 3636914
         }
       ],
       "categories": [
@@ -13659,7 +15213,7 @@
         {
           "kind": "crate",
           "name": "gcp_auth",
-          "downloads": 18939946
+          "downloads": 18946379
         }
       ],
       "categories": [
@@ -13694,7 +15248,7 @@
         {
           "kind": "crate",
           "name": "tonic-middleware",
-          "downloads": 4254622
+          "downloads": 4255042
         }
       ],
       "categories": [
@@ -13757,7 +15311,7 @@
         {
           "kind": "crate",
           "name": "leptos-shadcn-ui",
-          "downloads": 6686
+          "downloads": 6720
         },
         {
           "kind": "crate",
@@ -13983,7 +15537,7 @@
         {
           "kind": "crate",
           "name": "pwhash",
-          "downloads": 5461686
+          "downloads": 5462584
         }
       ],
       "categories": [
@@ -14047,7 +15601,7 @@
         {
           "kind": "crate",
           "name": "ymc",
-          "downloads": 2689
+          "downloads": 2690
         }
       ],
       "categories": [
@@ -14059,6 +15613,26 @@
       "key": "angular-rust/yew-components",
       "name": "angular-rust/yew-components",
       "url": "https://github.com/angular-rust/yew-components"
+    },
+    {
+      "repo": "huggingface/tokenizers.js",
+      "description": "🤗 Tokenizers.js: A pure JS/TS implementation of today's most used tokenizers",
+      "language": "TypeScript",
+      "stars": 62,
+      "pushed": "2026-10-14",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:TypeScript"
+      ],
+      "key": "huggingface/tokenizers.js",
+      "name": "huggingface/tokenizers.js",
+      "url": "https://github.com/huggingface/tokenizers.js"
     },
     {
       "repo": "hypen-lang/hypen",
@@ -14148,7 +15722,7 @@
       "description": "Component library for @visulima/tui — installable as a package, or copy-pasteable via the shadcn CLI registry",
       "language": "TypeScript",
       "stars": 58,
-      "pushed": "2026-11-14",
+      "pushed": "2026-11-15",
       "license": "MIT",
       "topics": [
         "anolilab",
@@ -14224,7 +15798,7 @@
         {
           "kind": "crate",
           "name": "kasuari",
-          "downloads": 33601631
+          "downloads": 33645285
         }
       ],
       "categories": [
@@ -14304,7 +15878,7 @@
         {
           "kind": "npm",
           "name": "material-dynamic-colors",
-          "downloads": 155084
+          "downloads": 167725
         }
       ],
       "categories": [
@@ -14430,7 +16004,7 @@
         {
           "kind": "crate",
           "name": "mid",
-          "downloads": 2055668
+          "downloads": 2056703
         }
       ],
       "categories": [
@@ -14503,7 +16077,7 @@
         {
           "kind": "crate",
           "name": "spiffe",
-          "downloads": 6241424
+          "downloads": 6251077
         }
       ],
       "categories": [
@@ -14534,7 +16108,7 @@
         {
           "kind": "crate",
           "name": "nkeys",
-          "downloads": 53760682
+          "downloads": 53771838
         }
       ],
       "categories": [
@@ -14761,7 +16335,7 @@
         {
           "kind": "crate",
           "name": "ssh-agent-lib",
-          "downloads": 3341651
+          "downloads": 3341735
         }
       ],
       "categories": [
@@ -14792,7 +16366,7 @@
         {
           "kind": "npm",
           "name": "tailwindcss-opentype",
-          "downloads": 105501
+          "downloads": 106709
         }
       ],
       "categories": [
@@ -14853,12 +16427,12 @@
         {
           "kind": "crate",
           "name": "leptos-tiptap",
-          "downloads": 27135
+          "downloads": 27143
         },
         {
           "kind": "crate",
           "name": "leptos-tiptap-build",
-          "downloads": 19695
+          "downloads": 19703
         }
       ],
       "categories": [
@@ -14884,7 +16458,7 @@
         {
           "kind": "crate",
           "name": "dioxus-material-icons",
-          "downloads": 23409
+          "downloads": 23411
         }
       ],
       "categories": [
@@ -14945,7 +16519,7 @@
         {
           "kind": "npm",
           "name": "tailwindcss-animation-delay",
-          "downloads": 145896
+          "downloads": 147578
         }
       ],
       "categories": [
@@ -14957,6 +16531,26 @@
       "key": "burnworks/tailwindcss-animation-delay",
       "name": "burnworks/tailwindcss-animation-delay",
       "url": "https://github.com/burnworks/tailwindcss-animation-delay"
+    },
+    {
+      "repo": "huggingface/agentcap",
+      "description": "A framework to capture, analyse and export agentic sessions",
+      "language": "Rust",
+      "stars": 38,
+      "pushed": "2026-10-14",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Rust"
+      ],
+      "key": "huggingface/agentcap",
+      "name": "huggingface/agentcap",
+      "url": "https://github.com/huggingface/agentcap"
     },
     {
       "repo": "fission-ui/fission",
@@ -14992,7 +16586,7 @@
         {
           "kind": "crate",
           "name": "fission-layout",
-          "downloads": 4315
+          "downloads": 4318
         }
       ],
       "categories": [
@@ -15018,7 +16612,7 @@
         {
           "kind": "crate",
           "name": "tailwind-rs-core",
-          "downloads": 11405
+          "downloads": 11407
         },
         {
           "kind": "crate",
@@ -15028,7 +16622,7 @@
         {
           "kind": "crate",
           "name": "tailwind-rs-wasm",
-          "downloads": 6913
+          "downloads": 6914
         },
         {
           "kind": "crate",
@@ -15127,7 +16721,7 @@
         {
           "kind": "npm",
           "name": "prompt-area",
-          "downloads": 187500
+          "downloads": 208013
         }
       ],
       "categories": [
@@ -15162,7 +16756,7 @@
         {
           "kind": "crate",
           "name": "material",
-          "downloads": 3981
+          "downloads": 3983
         }
       ],
       "categories": [
@@ -15300,7 +16894,7 @@
         {
           "kind": "crate",
           "name": "totp-lite",
-          "downloads": 2171920
+          "downloads": 2173762
         }
       ],
       "categories": [
@@ -15452,7 +17046,7 @@
       "description": "Reactive Real-DOM library with SSR for Rust",
       "language": "Rust",
       "stars": 28,
-      "pushed": "2026-11-14",
+      "pushed": "2026-11-15",
       "license": "Apache-2.0",
       "topics": [
         "rust",
@@ -15595,6 +17189,26 @@
       "url": "https://github.com/jordi-star/leptos-material"
     },
     {
+      "repo": "huggingface/wikirace-llms",
+      "description": null,
+      "language": "TypeScript",
+      "stars": 27,
+      "pushed": "2026-10-22",
+      "license": null,
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:TypeScript"
+      ],
+      "key": "huggingface/wikirace-llms",
+      "name": "huggingface/wikirace-llms",
+      "url": "https://github.com/huggingface/wikirace-llms"
+    },
+    {
       "repo": "maxdeviant/auk",
       "description": "A utility CSS library for Auk.",
       "language": "Rust",
@@ -15640,7 +17254,7 @@
         {
           "kind": "crate",
           "name": "oak-tailwind",
-          "downloads": 1521
+          "downloads": 1527
         }
       ],
       "categories": [
@@ -15753,7 +17367,7 @@
       "description": "Material Design Icons (MDI) integration for the Hikari design system",
       "language": "TypeScript",
       "stars": 25,
-      "pushed": "2026-11-14",
+      "pushed": "2026-11-15",
       "license": "NOASSERTION",
       "topics": [
         "engine",
@@ -15766,7 +17380,7 @@
         {
           "kind": "crate",
           "name": "hikari-icons",
-          "downloads": 2443
+          "downloads": 2446
         }
       ],
       "categories": [
@@ -15825,6 +17439,26 @@
       "key": "zss-labs/plumeria",
       "name": "zss-labs/plumeria",
       "url": "https://github.com/zss-labs/plumeria"
+    },
+    {
+      "repo": "huggingface/pyo3-special-method-derive",
+      "description": "Automatically derive Python dunder methods for your Rust code",
+      "language": "Rust",
+      "stars": 25,
+      "pushed": "2026-09-24",
+      "license": "MIT",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Rust"
+      ],
+      "key": "huggingface/pyo3-special-method-derive",
+      "name": "huggingface/pyo3-special-method-derive",
+      "url": "https://github.com/huggingface/pyo3-special-method-derive"
     },
     {
       "repo": "mwnciau/tailwindcss-unimportant",
@@ -15886,6 +17520,26 @@
       "key": "simonepit/coolbottomsheet",
       "name": "simonepit/coolbottomsheet",
       "url": "https://github.com/simonepit/coolbottomsheet"
+    },
+    {
+      "repo": "huggingface/huggingface_hub_rust",
+      "description": "Comprehensive Hugging Face Hub Library for rust",
+      "language": "Rust",
+      "stars": 24,
+      "pushed": "2026-09-23",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Rust"
+      ],
+      "key": "huggingface/huggingface_hub_rust",
+      "name": "huggingface/huggingface_hub_rust",
+      "url": "https://github.com/huggingface/huggingface_hub_rust"
     },
     {
       "repo": "ferntech-eu/teksilo",
@@ -15955,6 +17609,26 @@
       "key": "lipish/fluix",
       "name": "lipish/fluix",
       "url": "https://github.com/lipish/fluix"
+    },
+    {
+      "repo": "huggingface/spm_precompiled",
+      "description": "Highly specialized crate to parse and use `google/sentencepiece` 's precompiled_charsmap in `tokenizers`",
+      "language": "Rust",
+      "stars": 23,
+      "pushed": "2026-09-23",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Rust"
+      ],
+      "key": "huggingface/spm_precompiled",
+      "name": "huggingface/spm_precompiled",
+      "url": "https://github.com/huggingface/spm_precompiled"
     },
     {
       "repo": "jarx-concepts/react-native-platform-components",
@@ -16038,6 +17712,32 @@
       "url": "https://github.com/danestves/tailwindcss-aria-attributes"
     },
     {
+      "repo": "andersnielsen85/tailwindcss-bg-svg",
+      "description": "CSS svg injected background images plugin for tailwindcss framework",
+      "language": "JavaScript",
+      "stars": 22,
+      "pushed": "2022-04-01",
+      "license": null,
+      "topics": [],
+      "archived": false,
+      "packages": [
+        {
+          "kind": "npm",
+          "name": "tailwindcss-bg-svg",
+          "downloads": 1694
+        }
+      ],
+      "categories": [
+        "ui-js-ts"
+      ],
+      "sources": [
+        "npm keywords:tailwindcss-plugin"
+      ],
+      "key": "andersnielsen85/tailwindcss-bg-svg",
+      "name": "andersnielsen85/tailwindcss-bg-svg",
+      "url": "https://github.com/andersnielsen85/tailwindcss-bg-svg"
+    },
+    {
       "repo": "opensass/cli",
       "description": "🧩 A CLI to interact with the OpenSASS ecosystem.\n",
       "language": "Rust",
@@ -16107,7 +17807,7 @@
         {
           "kind": "crate",
           "name": "rullst",
-          "downloads": 1817
+          "downloads": 1829
         }
       ],
       "categories": [
@@ -16169,17 +17869,17 @@
         {
           "kind": "crate",
           "name": "gpui_ce_components_assets",
-          "downloads": 1729
+          "downloads": 1739
         },
         {
           "kind": "crate",
           "name": "gpui_ce_components",
-          "downloads": 1401
+          "downloads": 1411
         },
         {
           "kind": "crate",
           "name": "gpui_ce_kit",
-          "downloads": 238
+          "downloads": 239
         }
       ],
       "categories": [
@@ -16282,7 +17982,7 @@
         {
           "kind": "npm",
           "name": "@21st-dev/cli",
-          "downloads": 36614
+          "downloads": 35286
         }
       ],
       "categories": [
@@ -16336,6 +18036,47 @@
       "key": "jrfrigat/flare",
       "name": "jrfrigat/flare",
       "url": "https://github.com/jrfrigat/flare"
+    },
+    {
+      "repo": "ujeenet/rustango",
+      "description": "Proc-macros for rustango: #[derive(Model)] and friends.",
+      "language": "Rust",
+      "stars": 20,
+      "pushed": "2026-11-14",
+      "license": "Apache-2.0",
+      "topics": [
+        "admin",
+        "axum",
+        "cms",
+        "migrations",
+        "multi-tenant",
+        "orm",
+        "rest-api",
+        "rust",
+        "web-framework"
+      ],
+      "archived": false,
+      "packages": [
+        {
+          "kind": "crate",
+          "name": "rustango-macros",
+          "downloads": 2476
+        },
+        {
+          "kind": "crate",
+          "name": "rustango",
+          "downloads": 2017
+        }
+      ],
+      "categories": [
+        "rust-web-frontend"
+      ],
+      "sources": [
+        "crates.io sort=downloads&per_page=50&keyword=web-framework"
+      ],
+      "key": "ujeenet/rustango",
+      "name": "ujeenet/rustango",
+      "url": "https://github.com/ujeenet/rustango"
     },
     {
       "repo": "rubixdev/material-dioxus",
@@ -16434,47 +18175,6 @@
       "key": "bromix/bromix.mudblazor.materialdesignicons",
       "name": "bromix/bromix.mudblazor.materialdesignicons",
       "url": "https://github.com/bromix/bromix.mudblazor.materialdesignicons"
-    },
-    {
-      "repo": "ujeenet/rustango",
-      "description": "Proc-macros for rustango: #[derive(Model)] and friends.",
-      "language": "Rust",
-      "stars": 19,
-      "pushed": "2026-11-14",
-      "license": "Apache-2.0",
-      "topics": [
-        "admin",
-        "axum",
-        "cms",
-        "migrations",
-        "multi-tenant",
-        "orm",
-        "rest-api",
-        "rust",
-        "web-framework"
-      ],
-      "archived": false,
-      "packages": [
-        {
-          "kind": "crate",
-          "name": "rustango-macros",
-          "downloads": 2476
-        },
-        {
-          "kind": "crate",
-          "name": "rustango",
-          "downloads": 2017
-        }
-      ],
-      "categories": [
-        "rust-web-frontend"
-      ],
-      "sources": [
-        "crates.io sort=downloads&per_page=50&keyword=web-framework"
-      ],
-      "key": "ujeenet/rustango",
-      "name": "ujeenet/rustango",
-      "url": "https://github.com/ujeenet/rustango"
     },
     {
       "repo": "euv-dev/euv",
@@ -16578,7 +18278,7 @@
         {
           "kind": "crate",
           "name": "cursor-icon",
-          "downloads": 47545620
+          "downloads": 47599441
         }
       ],
       "categories": [
@@ -16855,6 +18555,46 @@
       "url": "https://github.com/aine-dickson/rux"
     },
     {
+      "repo": "huggingface/inference-providers-starter-app",
+      "description": null,
+      "language": "TypeScript",
+      "stars": 17,
+      "pushed": "2025-10-21",
+      "license": null,
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:TypeScript"
+      ],
+      "key": "huggingface/inference-providers-starter-app",
+      "name": "huggingface/inference-providers-starter-app",
+      "url": "https://github.com/huggingface/inference-providers-starter-app"
+    },
+    {
+      "repo": "huggingface/prettier-plugin-vertical-align",
+      "description": "Align object properties and interface members vertically for JS/TS code",
+      "language": "TypeScript",
+      "stars": 17,
+      "pushed": "2026-09-24",
+      "license": null,
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:TypeScript"
+      ],
+      "key": "huggingface/prettier-plugin-vertical-align",
+      "name": "huggingface/prettier-plugin-vertical-align",
+      "url": "https://github.com/huggingface/prettier-plugin-vertical-align"
+    },
+    {
       "repo": "mfreeborn/ag-grid-rs",
       "description": "Wasm bindings for AG Grid",
       "language": "Rust",
@@ -16929,7 +18669,7 @@
         {
           "kind": "crate",
           "name": "compact_jwt",
-          "downloads": 4505461
+          "downloads": 4505893
         }
       ],
       "categories": [
@@ -16998,6 +18738,26 @@
       "key": "sebagnz/tailwindcss-border-image",
       "name": "sebagnz/tailwindcss-border-image",
       "url": "https://github.com/sebagnz/tailwindcss-border-image"
+    },
+    {
+      "repo": "huggingface/tokbench",
+      "description": null,
+      "language": "Rust",
+      "stars": 15,
+      "pushed": "2026-10-27",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Rust"
+      ],
+      "key": "huggingface/tokbench",
+      "name": "huggingface/tokbench",
+      "url": "https://github.com/huggingface/tokbench"
     },
     {
       "repo": "fusor-rs/fusor",
@@ -17073,7 +18833,7 @@
         {
           "kind": "crate",
           "name": "hyper-http-proxy",
-          "downloads": 39854165
+          "downloads": 39867908
         }
       ],
       "categories": [
@@ -17085,6 +18845,46 @@
       "key": "metalbear-co/hyper-http-proxy",
       "name": "metalbear-co/hyper-http-proxy",
       "url": "https://github.com/metalbear-co/hyper-http-proxy"
+    },
+    {
+      "repo": "huggingface/sandbox-server",
+      "description": "Static in-sandbox server for 'hf sandbox' — command exec, file transfer and port forwarding on Hugging Face Jobs",
+      "language": "Rust",
+      "stars": 14,
+      "pushed": "2026-11-05",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Rust"
+      ],
+      "key": "huggingface/sandbox-server",
+      "name": "huggingface/sandbox-server",
+      "url": "https://github.com/huggingface/sandbox-server"
+    },
+    {
+      "repo": "huggingface/lor-e",
+      "description": "Issue bot for transformers ",
+      "language": "Rust",
+      "stars": 14,
+      "pushed": "2026-09-29",
+      "license": null,
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Rust"
+      ],
+      "key": "huggingface/lor-e",
+      "name": "huggingface/lor-e",
+      "url": "https://github.com/huggingface/lor-e"
     },
     {
       "repo": "raprogramm/yew-nav-link",
@@ -17134,7 +18934,7 @@
         {
           "kind": "crate",
           "name": "docker_credential",
-          "downloads": 51586550
+          "downloads": 51609562
         }
       ],
       "categories": [
@@ -17167,7 +18967,7 @@
         {
           "kind": "crate",
           "name": "auth-git2",
-          "downloads": 2197957
+          "downloads": 2198504
         }
       ],
       "categories": [
@@ -17268,6 +19068,46 @@
       "url": "https://github.com/designbycode/tailwindcss-mask-image"
     },
     {
+      "repo": "huggingface/mlclaw",
+      "description": "ML Claw: deploy OpenClaw agents on Hugging Face",
+      "language": "TypeScript",
+      "stars": 13,
+      "pushed": "2026-11-03",
+      "license": "MIT",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:TypeScript"
+      ],
+      "key": "huggingface/mlclaw",
+      "name": "huggingface/mlclaw",
+      "url": "https://github.com/huggingface/mlclaw"
+    },
+    {
+      "repo": "huggingface/hfendpoints",
+      "description": "SDK for creating Hugging Face Inference Endpoints deployments",
+      "language": "Rust",
+      "stars": 13,
+      "pushed": "2026-10-27",
+      "license": null,
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Rust"
+      ],
+      "key": "huggingface/hfendpoints",
+      "name": "huggingface/hfendpoints",
+      "url": "https://github.com/huggingface/hfendpoints"
+    },
+    {
       "repo": "ossido-labs/ossido",
       "description": "Superfast React fullstack framework",
       "language": "Rust",
@@ -17280,17 +19120,17 @@
         {
           "kind": "crate",
           "name": "ossido_internal",
-          "downloads": 628
+          "downloads": 629
         },
         {
           "kind": "crate",
           "name": "ossido_macros",
-          "downloads": 481
+          "downloads": 482
         },
         {
           "kind": "crate",
           "name": "ossido",
-          "downloads": 373
+          "downloads": 374
         },
         {
           "kind": "crate",
@@ -17352,7 +19192,7 @@
         {
           "kind": "crate",
           "name": "http-auth",
-          "downloads": 21229616
+          "downloads": 21240661
         }
       ],
       "categories": [
@@ -17384,7 +19224,7 @@
         {
           "kind": "crate",
           "name": "http-auth-basic",
-          "downloads": 7652622
+          "downloads": 7656776
         }
       ],
       "categories": [
@@ -17660,7 +19500,7 @@
         {
           "kind": "crate",
           "name": "xcursor",
-          "downloads": 50911331
+          "downloads": 50955272
         }
       ],
       "categories": [
@@ -17696,52 +19536,52 @@
         {
           "kind": "crate",
           "name": "autumn-macros",
-          "downloads": 164523
+          "downloads": 164603
         },
         {
           "kind": "crate",
           "name": "autumn-web",
-          "downloads": 164401
+          "downloads": 164481
         },
         {
           "kind": "crate",
           "name": "autumn-macros-support",
-          "downloads": 80381
+          "downloads": 80460
         },
         {
           "kind": "crate",
           "name": "autumn-macros-repository",
-          "downloads": 74669
+          "downloads": 74737
         },
         {
           "kind": "crate",
           "name": "autumn-macros-model",
-          "downloads": 74666
+          "downloads": 74734
         },
         {
           "kind": "crate",
           "name": "autumn-admin-plugin",
-          "downloads": 15467
+          "downloads": 15506
         },
         {
           "kind": "crate",
           "name": "autumn-cache-redis",
-          "downloads": 12709
+          "downloads": 12748
         },
         {
           "kind": "crate",
           "name": "autumn-storage-s3",
-          "downloads": 8570
+          "downloads": 8576
         },
         {
           "kind": "crate",
           "name": "autumn-cli",
-          "downloads": 2699
+          "downloads": 2701
         },
         {
           "kind": "crate",
           "name": "autumn-schema-core",
-          "downloads": 1759
+          "downloads": 1761
         }
       ],
       "categories": [
@@ -17767,7 +19607,7 @@
         {
           "kind": "crate",
           "name": "dioxus-icons",
-          "downloads": 44463
+          "downloads": 44563
         }
       ],
       "categories": [
@@ -17938,6 +19778,66 @@
       "url": "https://github.com/vreniose95/ccr"
     },
     {
+      "repo": "huggingface/chat-template-playground",
+      "description": "Chat Template Playground for testing & debugging",
+      "language": "TypeScript",
+      "stars": 11,
+      "pushed": "2026-09-23",
+      "license": null,
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:TypeScript"
+      ],
+      "key": "huggingface/chat-template-playground",
+      "name": "huggingface/chat-template-playground",
+      "url": "https://github.com/huggingface/chat-template-playground"
+    },
+    {
+      "repo": "huggingface/harbor-hf",
+      "description": "Run reproducible Harbor benchmarks on Hugging Face infrastructure.",
+      "language": "TypeScript",
+      "stars": 11,
+      "pushed": "2026-11-02",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:TypeScript"
+      ],
+      "key": "huggingface/harbor-hf",
+      "name": "huggingface/harbor-hf",
+      "url": "https://github.com/huggingface/harbor-hf"
+    },
+    {
+      "repo": "huggingface/moon-ide",
+      "description": "IDE for moon team",
+      "language": "Rust",
+      "stars": 11,
+      "pushed": "2026-11-14",
+      "license": "MIT",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Rust"
+      ],
+      "key": "huggingface/moon-ide",
+      "name": "huggingface/moon-ide",
+      "url": "https://github.com/huggingface/moon-ide"
+    },
+    {
       "repo": "yewstack/yew-autoprops",
       "description": "proc-macro to automatically derive Properties structs from args for Yew components",
       "language": "Rust",
@@ -17950,7 +19850,7 @@
         {
           "kind": "crate",
           "name": "yew-autoprops",
-          "downloads": 57475
+          "downloads": 57519
         }
       ],
       "categories": [
@@ -18006,7 +19906,7 @@
         {
           "kind": "crate",
           "name": "dioxus-bulma",
-          "downloads": 11984
+          "downloads": 11985
         }
       ],
       "categories": [
@@ -18203,6 +20103,26 @@
       "url": "https://github.com/davidcks/rusty-css"
     },
     {
+      "repo": "huggingface/hugex",
+      "description": "Coding agent user interface",
+      "language": "TypeScript",
+      "stars": 9,
+      "pushed": "2025-06-05",
+      "license": null,
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:TypeScript"
+      ],
+      "key": "huggingface/hugex",
+      "name": "huggingface/hugex",
+      "url": "https://github.com/huggingface/hugex"
+    },
+    {
       "repo": "redstone-d/starberry",
       "description": "Small, sweet, easy framework for full-stack web application",
       "language": "Rust",
@@ -18389,7 +20309,7 @@
         {
           "kind": "crate",
           "name": "maud-ui",
-          "downloads": 5669
+          "downloads": 5671
         }
       ],
       "categories": [
@@ -18421,7 +20341,7 @@
         {
           "kind": "crate",
           "name": "shadcn-egui-core",
-          "downloads": 1251
+          "downloads": 1279
         },
         {
           "kind": "crate",
@@ -18441,17 +20361,17 @@
         {
           "kind": "crate",
           "name": "shadcn-egui-font-geist",
-          "downloads": 246
+          "downloads": 273
         },
         {
           "kind": "crate",
           "name": "shadcn-egui-font-space-grotesk",
-          "downloads": 239
+          "downloads": 266
         },
         {
           "kind": "crate",
           "name": "shadcn-egui-font-geist-mono",
-          "downloads": 239
+          "downloads": 266
         },
         {
           "kind": "crate",
@@ -18587,7 +20507,7 @@
         {
           "kind": "crate",
           "name": "material-icons",
-          "downloads": 80511
+          "downloads": 80515
         }
       ],
       "categories": [
@@ -18675,7 +20595,7 @@
         {
           "kind": "crate",
           "name": "wayland-csd-frame",
-          "downloads": 37973039
+          "downloads": 38009430
         }
       ],
       "categories": [
@@ -18732,7 +20652,7 @@
         {
           "kind": "crate",
           "name": "typer",
-          "downloads": 4972
+          "downloads": 4973
         }
       ],
       "categories": [
@@ -18806,7 +20726,7 @@
         {
           "kind": "npm",
           "name": "@futurejj/react-native-checkbox",
-          "downloads": 66778
+          "downloads": 70522
         }
       ],
       "categories": [
@@ -19451,6 +21371,26 @@
       "url": "https://github.com/glennawatson/nustreamdocs"
     },
     {
+      "repo": "huggingface/hf-image",
+      "description": "Fast build, push, pull and run of container images on the Hugging Face registry (cr.hf.co), as an hf CLI extension",
+      "language": "Rust",
+      "stars": 5,
+      "pushed": "2026-11-13",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Rust"
+      ],
+      "key": "huggingface/hf-image",
+      "name": "huggingface/hf-image",
+      "url": "https://github.com/huggingface/hf-image"
+    },
+    {
       "repo": "schvv31n/yew-html-ext",
       "description": "Handy syntactic extensions for Yew's HTML macros",
       "language": "Rust",
@@ -19555,7 +21495,7 @@
         {
           "kind": "crate",
           "name": "leptoskit_yoga",
-          "downloads": 729
+          "downloads": 730
         }
       ],
       "categories": [
@@ -19593,7 +21533,7 @@
         {
           "kind": "crate",
           "name": "nowaki",
-          "downloads": 420
+          "downloads": 438
         }
       ],
       "categories": [
@@ -19619,7 +21559,7 @@
         {
           "kind": "crate",
           "name": "cephal",
-          "downloads": 1335
+          "downloads": 1339
         }
       ],
       "categories": [
@@ -19820,12 +21760,12 @@
         {
           "kind": "crate",
           "name": "forma-ir",
-          "downloads": 8104
+          "downloads": 8283
         },
         {
           "kind": "crate",
           "name": "forma-server",
-          "downloads": 7901
+          "downloads": 8080
         }
       ],
       "categories": [
@@ -19851,7 +21791,7 @@
         {
           "kind": "crate",
           "name": "dioxus-aws",
-          "downloads": 19179
+          "downloads": 19183
         }
       ],
       "categories": [
@@ -19955,7 +21895,7 @@
         {
           "kind": "crate",
           "name": "ui_layout",
-          "downloads": 1460
+          "downloads": 1475
         }
       ],
       "categories": [
@@ -20031,7 +21971,7 @@
         {
           "kind": "crate",
           "name": "genet-taffy",
-          "downloads": 451
+          "downloads": 454
         }
       ],
       "categories": [
@@ -20118,7 +22058,7 @@
         {
           "kind": "npm",
           "name": "@expo/material-symbols",
-          "downloads": 484233
+          "downloads": 494326
         }
       ],
       "categories": [
@@ -20162,7 +22102,7 @@
       "description": "![Vue MDC Logo](https://raw.githubusercontent.com/sandlada/vue-mdc/refs/heads/main/docs/vue-mdc-cover.png)",
       "language": "TypeScript",
       "stars": 3,
-      "pushed": "2026-10-22",
+      "pushed": "2026-11-15",
       "license": "MIT",
       "topics": [
         "component-library",
@@ -20208,7 +22148,7 @@
       "description": "@sandlada/mdc is an open source component library that follows the Material Design 3 design specifications.",
       "language": "TypeScript",
       "stars": 3,
-      "pushed": "2026-10-22",
+      "pushed": "2026-11-15",
       "license": "MIT",
       "topics": [
         "component-library",
@@ -20466,6 +22406,46 @@
       "url": "https://github.com/masch0212/masch"
     },
     {
+      "repo": "huggingface/candle_wax",
+      "description": "A testing ground for candle storage generics.",
+      "language": "Rust",
+      "stars": 3,
+      "pushed": "2025-09-30",
+      "license": null,
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Rust"
+      ],
+      "key": "huggingface/candle_wax",
+      "name": "huggingface/candle_wax",
+      "url": "https://github.com/huggingface/candle_wax"
+    },
+    {
+      "repo": "huggingface/fuser",
+      "description": null,
+      "language": "Rust",
+      "stars": 3,
+      "pushed": "2026-09-24",
+      "license": "MIT",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Rust"
+      ],
+      "key": "huggingface/fuser",
+      "name": "huggingface/fuser",
+      "url": "https://github.com/huggingface/fuser"
+    },
+    {
       "repo": "boydjohnson/yew-transition-group",
       "description": "Simple, lightweight components to control the transitions of your components, based on react-transition-group",
       "language": "Rust",
@@ -20640,7 +22620,7 @@
         {
           "kind": "crate",
           "name": "yew-tincture",
-          "downloads": 43237
+          "downloads": 43249
         }
       ],
       "categories": [
@@ -20844,7 +22824,7 @@
         {
           "kind": "crate",
           "name": "raikiri-layout-style",
-          "downloads": 896
+          "downloads": 904
         }
       ],
       "categories": [
@@ -21151,7 +23131,7 @@
       "description": "Material Design 3 (Expressive) component library for React — token-first, spec-driven, MUI-idiomatic API",
       "language": "TypeScript",
       "stars": 2,
-      "pushed": "2026-11-10",
+      "pushed": "2026-11-15",
       "license": "MIT",
       "topics": [],
       "archived": false,
@@ -21159,7 +23139,7 @@
         {
           "kind": "npm",
           "name": "m3-expressive-react",
-          "downloads": 1827
+          "downloads": 2002
         }
       ],
       "categories": [
@@ -21319,6 +23299,26 @@
       "url": "https://github.com/josh2112/materialdesign.dialogplus"
     },
     {
+      "repo": "huggingface/publish-to-the-kernel-hub-action",
+      "description": null,
+      "language": "TypeScript",
+      "stars": 2,
+      "pushed": "2026-01-07",
+      "license": null,
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:TypeScript"
+      ],
+      "key": "huggingface/publish-to-the-kernel-hub-action",
+      "name": "huggingface/publish-to-the-kernel-hub-action",
+      "url": "https://github.com/huggingface/publish-to-the-kernel-hub-action"
+    },
+    {
       "repo": "fandhe-ai/fandhe-frontend",
       "description": "fandhe-frontend-wasm-client: REQ-6 最小ハイドレーション方式のクライアントランタイム。サーバー出力済み DOM を再構築せず、イベントリスナーを後付けする hydrate() と、SSR/SSG と同一関数を呼ぶ CSR 用 mount_csr() を提供する。",
       "language": "Rust",
@@ -21341,12 +23341,12 @@
         {
           "kind": "crate",
           "name": "fandhe-frontend-core",
-          "downloads": 30034
+          "downloads": 30063
         },
         {
           "kind": "crate",
           "name": "fandhe-frontend-app",
-          "downloads": 29902
+          "downloads": 29931
         },
         {
           "kind": "crate",
@@ -21459,7 +23459,7 @@
         {
           "kind": "crate",
           "name": "leptonic-theme",
-          "downloads": 15605
+          "downloads": 15606
         }
       ],
       "categories": [
@@ -21511,7 +23511,7 @@
         {
           "kind": "crate",
           "name": "dioxus-bootstrap-css",
-          "downloads": 4899
+          "downloads": 4901
         }
       ],
       "categories": [
@@ -21544,17 +23544,17 @@
         {
           "kind": "crate",
           "name": "mhr-gpui-kit-assets",
-          "downloads": 549
+          "downloads": 552
         },
         {
           "kind": "crate",
           "name": "mhr-gpui-kit-component",
-          "downloads": 522
+          "downloads": 525
         },
         {
           "kind": "crate",
           "name": "mhr-gpui-kit",
-          "downloads": 383
+          "downloads": 386
         }
       ],
       "categories": [
@@ -21580,7 +23580,7 @@
         {
           "kind": "crate",
           "name": "rok-ui",
-          "downloads": 330
+          "downloads": 331
         }
       ],
       "categories": [
@@ -21606,7 +23606,7 @@
         {
           "kind": "crate",
           "name": "ps-stylo-taffy",
-          "downloads": 3704
+          "downloads": 3705
         }
       ],
       "categories": [
@@ -21709,7 +23709,7 @@
         {
           "kind": "crate",
           "name": "internal-russh-forked-ssh-key",
-          "downloads": 2920523
+          "downloads": 2921216
         }
       ],
       "categories": [
@@ -21818,7 +23818,7 @@
         {
           "kind": "crate",
           "name": "egui_icons",
-          "downloads": 1848
+          "downloads": 1860
         }
       ],
       "categories": [
@@ -22329,7 +24329,7 @@
     },
     {
       "repo": "ink01101011/datakable",
-      "description": "React bindings for DataKable — useDataTable hook and DataTable component.",
+      "description": "Headless, framework-agnostic core of DataKable — table state, sorting, filtering and types.",
       "language": "TypeScript",
       "stars": 1,
       "pushed": "2026-11-09",
@@ -22359,13 +24359,13 @@
       "packages": [
         {
           "kind": "npm",
-          "name": "@datakable/react",
-          "downloads": 1116
+          "name": "@datakable/core",
+          "downloads": 1208
         },
         {
           "kind": "npm",
-          "name": "@datakable/core",
-          "downloads": 1208
+          "name": "@datakable/react",
+          "downloads": 1116
         },
         {
           "kind": "npm",
@@ -22408,6 +24408,40 @@
       "key": "sukuna-gg/sukunagg-ui",
       "name": "sukuna-gg/sukunagg-ui",
       "url": "https://github.com/sukuna-gg/sukunagg-ui"
+    },
+    {
+      "repo": "atom63/atom63-design-system",
+      "description": "Platform-neutral TypeScript contracts and environment types for Atom63 UI renderers",
+      "language": "TypeScript",
+      "stars": 1,
+      "pushed": "2026-11-12",
+      "license": "NOASSERTION",
+      "topics": [
+        "design-system",
+        "design-tokens",
+        "figma-plugin",
+        "react",
+        "swiftui",
+        "tailwindcss",
+        "ui-components"
+      ],
+      "archived": false,
+      "packages": [
+        {
+          "kind": "npm",
+          "name": "@atom63/ui-foundation",
+          "downloads": 823
+        }
+      ],
+      "categories": [
+        "ui-js-ts"
+      ],
+      "sources": [
+        "npm keywords:headless-ui"
+      ],
+      "key": "atom63/atom63-design-system",
+      "name": "atom63/atom63-design-system",
+      "url": "https://github.com/atom63/atom63-design-system"
     },
     {
       "repo": "bpmn-io/shadcn-theme",
@@ -22975,7 +25009,7 @@
         {
           "kind": "crate",
           "name": "ferrohealth-ui",
-          "downloads": 43880
+          "downloads": 43981
         }
       ],
       "categories": [
@@ -23053,7 +25087,7 @@
         {
           "kind": "crate",
           "name": "takia",
-          "downloads": 1102
+          "downloads": 1109
         }
       ],
       "categories": [
@@ -23311,17 +25345,17 @@
         {
           "kind": "crate",
           "name": "basecoat-css",
-          "downloads": 2282
+          "downloads": 2294
         },
         {
           "kind": "crate",
           "name": "basecoat-core",
-          "downloads": 1901
+          "downloads": 1913
         },
         {
           "kind": "crate",
           "name": "basecoat-components",
-          "downloads": 1690
+          "downloads": 1702
         }
       ],
       "categories": [
@@ -23689,7 +25723,7 @@
         {
           "kind": "crate",
           "name": "hydrolysis-m3",
-          "downloads": 1084
+          "downloads": 1086
         }
       ],
       "categories": [
@@ -24359,40 +26393,6 @@
       "url": "https://github.com/libraz/formulon-cell"
     },
     {
-      "repo": "atom63/atom63-design-system",
-      "description": "Platform-neutral TypeScript contracts and environment types for Atom63 UI renderers",
-      "language": "TypeScript",
-      "stars": 0,
-      "pushed": "2026-11-12",
-      "license": "NOASSERTION",
-      "topics": [
-        "design-system",
-        "design-tokens",
-        "figma-plugin",
-        "react",
-        "swiftui",
-        "tailwindcss",
-        "ui-components"
-      ],
-      "archived": false,
-      "packages": [
-        {
-          "kind": "npm",
-          "name": "@atom63/ui-foundation",
-          "downloads": 823
-        }
-      ],
-      "categories": [
-        "ui-js-ts"
-      ],
-      "sources": [
-        "npm keywords:headless-ui"
-      ],
-      "key": "atom63/atom63-design-system",
-      "name": "atom63/atom63-design-system",
-      "url": "https://github.com/atom63/atom63-design-system"
-    },
-    {
       "repo": "alexandroit/react-multiselect-dropdown",
       "description": "Maintained React 19 multiselect dropdown with accessibility-focused and keyboard/ARIA tested support, controlled state, slots, headless/state hooks, Stackline skins, body overlays, live docs, search, grouping, lazy loading, and custom renderers.",
       "language": "TypeScript",
@@ -24583,6 +26583,46 @@
       "url": "https://github.com/vicosanz/infowaresoft.blazor.materialdesign"
     },
     {
+      "repo": "huggingface/cuda-bindings-prebuilt",
+      "description": "NVIDIA cuda-rust cuda-bindings with the bindgen output checked in",
+      "language": "Rust",
+      "stars": 0,
+      "pushed": "2026-10-21",
+      "license": "Apache-2.0",
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Rust"
+      ],
+      "key": "huggingface/cuda-bindings-prebuilt",
+      "name": "huggingface/cuda-bindings-prebuilt",
+      "url": "https://github.com/huggingface/cuda-bindings-prebuilt"
+    },
+    {
+      "repo": "huggingface/kernels-community-rs",
+      "description": null,
+      "language": "Rust",
+      "stars": 0,
+      "pushed": "2026-11-09",
+      "license": null,
+      "topics": [],
+      "archived": false,
+      "packages": [],
+      "categories": [
+        "huggingface"
+      ],
+      "sources": [
+        "github org:huggingface language:Rust"
+      ],
+      "key": "huggingface/kernels-community-rs",
+      "name": "huggingface/kernels-community-rs",
+      "url": "https://github.com/huggingface/kernels-community-rs"
+    },
+    {
       "repo": null,
       "description": "Generate font-awesome icons for Seed",
       "language": null,
@@ -24647,7 +26687,7 @@
         {
           "kind": "crate",
           "name": "mogwai-html-macro",
-          "downloads": 15047
+          "downloads": 15048
         }
       ],
       "categories": [
@@ -25272,7 +27312,7 @@
         {
           "kind": "crate",
           "name": "digest_auth",
-          "downloads": 3064464
+          "downloads": 3065927
         }
       ],
       "categories": [
@@ -25298,7 +27338,7 @@
         {
           "kind": "crate",
           "name": "rsasl",
-          "downloads": 2289845
+          "downloads": 2291871
         }
       ],
       "categories": [
@@ -25324,7 +27364,7 @@
         {
           "kind": "crate",
           "name": "sequoia-openpgp",
-          "downloads": 2107487
+          "downloads": 2108099
         }
       ],
       "categories": [
@@ -25350,7 +27390,7 @@
         {
           "kind": "crate",
           "name": "encre-css",
-          "downloads": 86379
+          "downloads": 86527
         }
       ],
       "categories": [
@@ -25485,7 +27525,7 @@
         {
           "kind": "crate",
           "name": "dioxus_ui",
-          "downloads": 1773
+          "downloads": 1774
         }
       ],
       "categories": [
@@ -25979,7 +28019,7 @@
         {
           "kind": "npm",
           "name": "kit-ui-js",
-          "downloads": 22
+          "downloads": 24
         }
       ],
       "categories": [
@@ -26161,7 +28201,7 @@
         {
           "kind": "npm",
           "name": "@daveyplate/better-auth-ui",
-          "downloads": 1099117
+          "downloads": 1144022
         }
       ],
       "categories": [
@@ -26187,7 +28227,7 @@
         {
           "kind": "npm",
           "name": "tailwind-animate",
-          "downloads": 90461
+          "downloads": 91709
         }
       ],
       "categories": [
@@ -26199,32 +28239,6 @@
       "key": "npm:tailwind-animate",
       "name": "tailwind-animate",
       "url": null
-    },
-    {
-      "repo": "agiflow/po",
-      "description": "Shared web components and theme tokens for the Po cockpit and its web plugins: shadcn-style primitives on Radix, tuned to the Po palette, with runtime theme configs.",
-      "language": null,
-      "stars": null,
-      "pushed": null,
-      "license": null,
-      "topics": [],
-      "archived": false,
-      "packages": [
-        {
-          "kind": "npm",
-          "name": "@agimon-ai/po-web-components",
-          "downloads": 73268
-        }
-      ],
-      "categories": [
-        "ui-js-ts"
-      ],
-      "sources": [
-        "npm keywords:shadcn"
-      ],
-      "key": "agiflow/po",
-      "name": "agiflow/po",
-      "url": "https://github.com/agiflow/po"
     },
     {
       "repo": "gravitee-io/gravitee-ui-graphene",
@@ -26258,6 +28272,32 @@
       "url": "https://github.com/gravitee-io/gravitee-ui-graphene"
     },
     {
+      "repo": "agiflow/po",
+      "description": "Shared web components and theme tokens for the Po cockpit and its web plugins: shadcn-style primitives on Radix, tuned to the Po palette, with runtime theme configs.",
+      "language": null,
+      "stars": null,
+      "pushed": null,
+      "license": null,
+      "topics": [],
+      "archived": false,
+      "packages": [
+        {
+          "kind": "npm",
+          "name": "@agimon-ai/po-web-components",
+          "downloads": 75643
+        }
+      ],
+      "categories": [
+        "ui-js-ts"
+      ],
+      "sources": [
+        "npm keywords:shadcn"
+      ],
+      "key": "agiflow/po",
+      "name": "agiflow/po",
+      "url": "https://github.com/agiflow/po"
+    },
+    {
       "repo": "keboola/ui",
       "description": "Keboola UI platform design system — shadcn-aligned React primitives, Keboola-branded blocks, and the form bindings built on TanStack Form.",
       "language": null,
@@ -26270,7 +28310,7 @@
         {
           "kind": "npm",
           "name": "@keboola/design",
-          "downloads": 62055
+          "downloads": 65583
         }
       ],
       "categories": [
@@ -26311,32 +28351,6 @@
     },
     {
       "repo": null,
-      "description": "Add Aceternity UI components to your apps.",
-      "language": null,
-      "stars": null,
-      "pushed": null,
-      "license": null,
-      "topics": [],
-      "archived": false,
-      "packages": [
-        {
-          "kind": "npm",
-          "name": "aceternity-ui",
-          "downloads": 27611
-        }
-      ],
-      "categories": [
-        "ui-js-ts"
-      ],
-      "sources": [
-        "npm keywords:shadcn"
-      ],
-      "key": "npm:aceternity-ui",
-      "name": "aceternity-ui",
-      "url": null
-    },
-    {
-      "repo": null,
       "description": "Create tailwind css react components like styled components with classes name on multiple lines",
       "language": null,
       "stars": null,
@@ -26348,7 +28362,7 @@
         {
           "kind": "npm",
           "name": "tailwind-styled-components",
-          "downloads": 93754
+          "downloads": 99570
         }
       ],
       "categories": [
@@ -26374,7 +28388,7 @@
         {
           "kind": "npm",
           "name": "tailwindcss-safe-area-capacitor",
-          "downloads": 61954
+          "downloads": 69833
         }
       ],
       "categories": [
