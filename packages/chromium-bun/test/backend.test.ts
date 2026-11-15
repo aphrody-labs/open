@@ -8,7 +8,7 @@ import { getEngine } from "../src/engines/registry.ts";
 const dir = () => mkdtempSync(join(tmpdir(), "backend-"));
 
 test("every backend engine and use case resolves", () => {
-  for (const b of BACKENDS) if (b.engine) expect(getEngine(b.engine).js).toBe("v8");
+  for (const b of BACKENDS) expect(getEngine(b.engine).js).toBe(b.id === "bun" ? "javascriptcore" : "v8");
   for (const u of Object.values(USE_CASES)) expect(getBackend(u.backend).id).toBe(u.backend);
 });
 

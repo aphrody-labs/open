@@ -21,19 +21,19 @@ export type BackendId =
 
 export interface Backend {
   readonly id: BackendId;
-  readonly js: "javascriptcore" | "v8";
-  readonly gpu: "none" | "dawn";
-  /** Registry engine that provides the executable (null: the bun runtime itself). */
-  readonly engine: string | null;
+  /** Registry engine behind it: JS engine, WebGPU backend and executable come from the registry. */
+  readonly engine: string;
 }
 
 export const BACKENDS: readonly Backend[] = [
-  { id: "bun", js: "javascriptcore", gpu: "none", engine: null },
+  { id: "bun", engine: "javascriptcore" },
   ...(["stable", "beta", "dev", "canary"] as const).map(
-    (c): Backend => ({ id: `chromium@${c}`, js: "v8", gpu: "dawn", engine: `chrome@${c}` }),
+    (c): Backend => ({ id: `chromium@${c}`, engine: `chrome@${c}` }),
   ),
-  { id: "chromium@local", js: "v8", gpu: "dawn", engine: "chromium" },
+  { id: "chromium@local", engine: "chromium" },
 ];
+
+const isBun = (b: Backend) => b.id === "bun";
 
 /** Use case -> backend, with the reason kept for `backend list`. */
 export const USE_CASES: Readonly<Record<string, { backend: BackendId; why: string }>> = {
@@ -95,14 +95,14 @@ export function pickBackend(
 
 /** Executable of the backend on this machine, or null when not installed. */
 export function backendExecutable(b: Backend): string | null {
-  if (!b.engine) return Bun.env.BUN_PATH || process.execPath;
+  if (isBun(b)) return Bun.env.BUN_PATH || process.execPath;
   return resolveExecutable(getEngine(b.engine));
 }
 
 /** Install if needed, optionally record it in `.engine-version`; returns the executable. */
 export async function useBackend(b: Backend, write: boolean, dir = process.cwd()): Promise<string> {
   let exe = backendExecutable(b);
-  if (!exe && b.engine) {
+  if (!exe && !isBun(b)) {
     const [r] = await installEngines([b.engine]);
     if (!r?.ok) throw new Error(`install ${b.engine}: ${r?.detail ?? "failed"}`);
     exe = r.path ?? backendExecutable(b);
@@ -141,7 +141,8 @@ export async function runBackendCommand(args: string[]): Promise<number> {
       const exe = sub === "use"
         ? await useBackend(p.backend, rest.includes("--write"), flag(rest, "--dir"))
         : backendExecutable(p.backend);
-      const out = { backend: p.backend.id, js: p.backend.js, gpu: p.backend.gpu, from: p.from, use_case: p.useCase, path: exe };
+      const e = getEngine(p.backend.engine);
+      const out = { backend: p.backend.id, js: e.js, gpu: e.gpu, from: p.from, use_case: p.useCase, path: exe };
       console.log(json ? JSON.stringify(out) : `${out.backend}\t${out.from}${p.useCase ? `:${p.useCase}` : ""}\t${exe ?? "not installed"}`);
       return exe ? 0 : 1;
     }
