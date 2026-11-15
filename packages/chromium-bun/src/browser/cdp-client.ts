@@ -521,3 +521,47 @@ export class ChromiumBunCdpClient implements AsyncDisposable {
     await this.close();
   }
 }
+
+/** Per-phase timings of one response, in the fields of the Rust `src/net` Trace (so Chrome and `net probe` compare). */
+export interface ChromeNetTiming {
+  url: string;
+  protocol?: string;
+  remoteIP?: string;
+  tls?: string;
+  cipher?: string;
+  dns_ms?: number;
+  connect_ms?: number;
+  tls_ms?: number;
+  ttfb_ms?: number;
+}
+
+/** Maps the params of a CDP `Network.responseReceived` to {@link ChromeNetTiming}. */
+export function networkTimingFromResponse(
+  params: Record<string, unknown>,
+): ChromeNetTiming {
+  const r = params.response as {
+    url: string;
+    protocol?: string;
+    remoteIPAddress?: string;
+    timing?: Record<string, number>;
+    securityDetails?: { protocol?: string; cipher?: string };
+  };
+  const tm = r.timing;
+  const s = r.securityDetails;
+  const span = (a: number, b: number) => (a >= 0 && b >= 0 ? b - a : undefined);
+  return {
+    url: r.url,
+    protocol: r.protocol,
+    remoteIP: r.remoteIPAddress,
+    tls: s?.protocol,
+    cipher: s?.cipher,
+    dns_ms: tm && span(tm.dnsStart!, tm.dnsEnd!),
+    connect_ms:
+      tm &&
+      span(tm.connectStart!, tm.sslStart! >= 0 ? tm.sslStart! : tm.connectEnd!),
+    tls_ms: tm && span(tm.sslStart!, tm.sslEnd!),
+    ttfb_ms:
+      tm &&
+      span(tm.sendEnd!, tm.receiveHeadersStart ?? tm.receiveHeadersEnd!),
+  };
+}

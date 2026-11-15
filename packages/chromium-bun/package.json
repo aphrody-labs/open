@@ -9,7 +9,8 @@
     ".": "./src/index.ts",
     "./search": "./src/search/index.ts",
     "./cdp": "./src/browser/cdp-client.ts",
-    "./engines": "./src/engines/index.ts"
+    "./engines": "./src/engines/index.ts",
+    "./net": "./src/net/probe.ts"
   },
   "scripts": {
     "start": "bun run src/cli.ts",
@@ -17,7 +18,9 @@
     "inspect": "bun run src/audit/chromium-inspector.ts",
     "test": "bun test",
     "check": "bun check",
-    "fmt": "bun fmt"
+    "fmt": "bun fmt",
+    "test:e2e-auth": "bun test test/gemini.e2e-auth.test.ts",
+    "probe": "bun src/net/probe.ts"
   },
   "license": "MIT OR Apache-2.0",
   "repository": {
