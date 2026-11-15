@@ -31,7 +31,7 @@ async function runAll(filter: (skill: string) => boolean, timeoutMs: number, res
   // resume: examples that already have a result are not run again
   const finished = resume ? done() : new Set<string>();
   const queue = Object.entries(S).filter(([k]) => filter(k)).flatMap(([skill, xs]) => xs.filter((s) => s.run && !finished.has(`${skill}#${s.id}`)).map((s) => ({ skill, s })));
-  const j = (job = { total: queue.length, done: 0, started: new Date().toISOString(), counts: { pass: 0, fail: 0, timeout: 0, serving: 0, skipped: 0 } });
+  const j: NonNullable<typeof job> = (job = { total: queue.length, done: 0, started: new Date().toISOString(), counts: { pass: 0, fail: 0, timeout: 0, serving: 0, skipped: 0 } });
   // examples of one page run in order (shared sandbox directory); pages run in parallel
   const byPage = Map.groupBy(queue, (q) => q.skill);
   const pagesQ = [...byPage.values()];
