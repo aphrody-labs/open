@@ -11,6 +11,7 @@ Ce dossier rassemble ce que la session de construction d'`open` a appris : faits
 | [design-system.md](design-system.md) | Material 3 : sources officielles Google, état, tokens, options Rust |
 | [browser-and-crawl.md](browser-and-crawl.md) | Moteurs, pilotes, crawlers : dépendances réelles et pipeline de mirror |
 | [native-ui.md](native-ui.md) | Fusion de frameworks UI natifs (gpui, rune, nsh, webui, iced, egui, ...) |
+| [compilers.md](compilers.md) | scriptc et Bun AOT, chaîne TypeScript croisée (oxc, bun check, TS 7) |
 | [lessons.md](lessons.md) | Ce qui a échoué dans la session et les règles qui en découlent |
 
 Statut des faits : chaque chiffre vient d'une commande, d'un manifeste ou d'une page lue pendant la session. Les prix, versions et états de dépôts bougent ; ils se revérifient avant toute décision.
