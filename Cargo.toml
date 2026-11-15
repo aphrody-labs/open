@@ -5,6 +5,7 @@
 resolver = "3"
 members = [
   "crates/adblock-capi",
+  "crates/ai-router",
   "crates/clip",
   "crates/hokum",
   "crates/strobe",
