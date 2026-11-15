@@ -521,6 +521,19 @@
     "license": "MIT"
   },
   {
+    "name": "openclaw",
+    "url": "https://github.com/openclaw/openclaw",
+    "path": "packages/openclaw",
+    "language": "TypeScript",
+    "archived": false,
+    "fork": false,
+    "rev": "92016ce978f0f638369ecd0d10fcaa9212e591ce",
+    "submodules": [],
+    "dropped_files": [],
+    "license": "MIT",
+    "role": "core"
+  },
+  {
     "name": "opencode",
     "url": "https://github.com/anomalyco/opencode",
     "path": "packages/opencode",
@@ -530,7 +543,8 @@
     "rev": "38bd73789a43bf043599d6196af96583228035d7",
     "submodules": [],
     "dropped_files": [],
-    "license": "MIT"
+    "license": "MIT",
+    "role": "core"
   },
   {
     "name": "opencode-bench",

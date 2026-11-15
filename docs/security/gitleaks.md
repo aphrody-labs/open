@@ -50,3 +50,32 @@ All findings are inside verbatim upstream public code (tests, fixtures, examples
 | extra/opencode-sdk-go | 1 | generic-api-key:1 |
 | packages/demo-notes-app | 1 | generic-api-key:1 |
 | packages/models.dev | 1 | generic-api-key:1 |
+
+## openclaw (packages/openclaw @ 92016ce978f0)
+
+Scanner: gitleaks dir on packages/openclaw (64161 files), redacted; counts only, no values. Total 240124 findings, 240000 of them generic-api-key (test fixtures, snapshots, lockfile integrity hashes).
+
+| rule | count |
+|---|---|
+| generic-api-key | 239993 |
+| discord-client-id | 26 |
+| private-key | 13 |
+| curl-auth-header | 12 |
+| gitlab-pat | 11 |
+| aws-access-token | 9 |
+| stripe-access-token | 6 |
+| gitlab-cicd-job-token | 5 |
+| gitlab-deploy-token | 5 |
+| gitlab-feature-flag-client-token | 5 |
+| gitlab-feed-token | 5 |
+| gitlab-oauth-app-secret | 5 |
+| gitlab-rrt | 5 |
+| gitlab-runner-authentication-token | 5 |
+| gitlab-scim-token | 5 |
+| sourcegraph-access-token | 4 |
+| databricks-api-token | 3 |
+| discord-client-secret | 3 |
+| mattermost-access-token | 1 |
+| slack-app-token | 1 |
+| slack-webhook-url | 1 |
+| twitch-api-token | 1 |
