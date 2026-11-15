@@ -6,7 +6,7 @@ Work done in `aphrody-labs/aphrody` in the areas `open` now owns: UI and Materia
 
 - State: `packages/design` and `apps/aphrody/web` moved from Material Web (`@material/web`, in maintenance mode, not archived) to Angular Material. Tokens still come from Material Color Utilities; `build.ts` emits `tokens/angular-theme.scss` (`mat.theme`) and `tokens/angular-material.css` mapping `--mat-sys-*` onto `--md-sys-*`.
 - Build: `apps/aphrody/web` is an Angular standalone zoneless app built with `bunx --bun ng build`. Bun.build cannot run the Angular AOT linker on Angular Material's partial-Ivy code, which is why the Angular builder is used. Output goes to `public/m3`.
-- Proof: `bun test packages/design` 31/31; rendered in Chrome (4 cards, 7 buttons, empty console, wasm host boots, theme toggle).
+- Proof: `bun test packages/design` 31/31 (re-run by src-8a4291). The Chrome render (4 cards, 7 buttons, empty console, wasm host boots, theme toggle) was reported by the migration agent and not re-run. The root catalog now pins `@angular/core` and `@angular/material` at `22.3.0-rc.0`.
 - `packages/deploy` Worker pages lost their `md-*` buttons (native `.btn` on the same tokens).
 - Commits: `64e76a49e0`, `7b86d5fc57`, `6a9d4f4153`.
 - Left for open: align with the owner decision "Angular on an auto-following fork with Bun patches, AOT/LTO, shared C ABI" (the src build uses stock `@angular/*` from npm); `md-*` strings remain in `src/ui/m3.c`, `src/ui/site_wasi.c`, `apps/auto` and `packages/design/src/adapters.ts`.
@@ -27,7 +27,7 @@ Work done in `aphrody-labs/aphrody` in the areas `open` now owns: UI and Materia
 
 - Router: `packages/ai-os/src/router` (catalog, engine, policy, stats, wire, http, tools, config). Endpoints `/v1/chat/completions`, `/v1/models`, `/v1/messages`; modes `auto:*` and `arena` with Elo (`ELO_K = 32`).
 - Catalog joins live sources: models.dev `api.json`, the LiteLLM price map, OpenRouter `/api/v1/models`, the Hugging Face router `/v1/models`, LMArena datasets. URLs, TTLs and failover timings are in `router/config.ts` (env-overridable).
-- `auto:code` ranks by the Arena coding category (`Offer.arenaCode`) with fallback to the overall rating; the coding fetch goes through the datasets-server `/filter` endpoint, which timed out from the workstation: untested live. Commit `3c92797abb`.
+- `auto:code` ranks by the Arena coding category (`Offer.arenaCode`) with fallback to the overall rating; both Arena fetches (overall and coding) go through the datasets-server `/filter` endpoint. Measured on 2026-11-15: `/filter` and `/rows` for `lmarena-ai/leaderboard-dataset` answer HTTP 501 "Job has been terminated due to a temporary spike in resource usage", so the Arena columns of the catalog are empty until the datasets-server recovers or the router reads the dataset's Parquet files directly. Commit `3c92797abb`.
 - `wire.ts` translates OpenAI and Anthropic messages by hand (188 lines): no AI SDK or LiteLLM adapter is installed in src.
 - Relay e2e: `bun test packages/ai-os/test/relay/e2e.test.ts`, 66/66 on 2026-11-15.
 
