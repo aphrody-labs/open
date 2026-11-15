@@ -1,0 +1,55 @@
+# ai-router on every desktop platform: the crate's tests, a release build of the library and CLI, and the Bun
+# binding's tests against that build. RUSTUP_TOOLCHAIN overrides rust-toolchain.toml, whose channel is a toolchain
+# linked on the project's own build hosts.
+name: ai-router
+on:
+  push:
+    paths: ["crates/ai-router/**", "packages/ai-router/**", "Cargo.toml", "Cargo.lock", ".github/workflows/ai-router.yml"]
+  pull_request:
+    paths: ["crates/ai-router/**", "packages/ai-router/**"]
+  workflow_dispatch:
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      RUSTUP_TOOLCHAIN: nightly
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: |
+            crates
+            packages/ai-router
+            packages/browser-control/crates
+            packages/sst/sdk/rust
+            .cargo
+          sparse-checkout-cone-mode: true
+      - if: runner.os == 'Linux'
+        run: sudo apt-get install -y lld
+      - run: rustup toolchain install nightly --profile minimal
+      - run: cargo test -p ai-router
+      - run: cargo build --release -p ai-router
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: canary
+      - name: Bun binding against the release build
+        working-directory: packages/ai-router
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in
+            Windows) lib=ai_router.dll ;;
+            macOS) lib=libai_router.dylib ;;
+            *) lib=libai_router.so ;;
+          esac
+          AI_ROUTER_LIB="$GITHUB_WORKSPACE/target/release/$lib" bun test
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ai-router-${{ runner.os }}
+          path: |
+            target/release/ai-router*
+            target/release/*ai_router.*
+            crates/ai-router/include/ai_router.h

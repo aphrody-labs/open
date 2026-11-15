@@ -1,0 +1,12 @@
+{
+  "name": "@aphrody/ai-router",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Bun binding of the ai-router C ABI: multi-provider routing, local first, zero-cost offers first, failover",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "test": "bun test", "check": "bun check" },
+  "license": "MIT OR Apache-2.0",
+  "repository": { "type": "git", "url": "git+https://github.com/aphrody-labs/open.git", "directory": "packages/ai-router" }
+}
