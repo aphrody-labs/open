@@ -100,7 +100,9 @@ function instrument(code: string, cov = "./.cov"): string {
   const head = [`import { __cov as __bunM3Cov } from "${cov}/cov.js";`];
   if (!declares("Bun")) head.push(`const Bun = __bunM3Cov(globalThis.Bun, "Bun");`);
   for (const g of globalsOfBun) if (new RegExp(`\\b${g}\\b`).test(code) && !declares(g)) head.push(`const ${g} = __bunM3Cov(globalThis.${g}, "global:${g}");`);
-  return `${head.join(" ")}\n${rewritten}`;
+  // a shebang must stay on the first line
+  const shebang = rewritten.match(/^#![^\n]*\n/)?.[0] ?? "";
+  return `${shebang}${head.join(" ")}\n${rewritten.slice(shebang.length)}`;
 }
 
 // Examples whose effect reaches outside the sandbox directory are not run: global installs, upgrades,
@@ -112,8 +114,10 @@ function env(dir: string, cov: string): Record<string, string> {
   const keep = ["PATH", "SystemRoot", "windir", "COMSPEC", "PATHEXT", "TEMP", "TMP", "TMPDIR", "LANG"];
   const e: Record<string, string> = {};
   for (const k of keep) if (process.env[k]) e[k] = process.env[k]!;
-  // no user-wide package binaries: `bun x` must resolve inside the sandbox, not reach a global install
-  if (e.PATH) e.PATH = e.PATH.split(delimiter).filter((p) => !/[\\/](?:\.bun|npm|pnpm|yarn|node_modules|\.cargo)[\\/]?/i.test(p)).join(delimiter);
+  // no user-wide package binaries (`bun x` resolves inside the sandbox) and no Node.js: a `#!/usr/bin/env node`
+  // tool runs on Bun through run.bun in the sandbox bunfig.toml, which puts a `node` alias of bun on PATH
+  const node = process.platform === "win32" ? "node.exe" : "node";
+  if (e.PATH) e.PATH = e.PATH.split(delimiter).filter((p) => p && !/[\\/](?:\.bun|npm|pnpm|yarn|node_modules|\.cargo)[\\/]?/i.test(p) && !existsSync(join(p, node))).join(delimiter);
   e.PATH = [binDir, e.PATH ?? ""].join(delimiter);
   return { ...e, HOME: join(dir, ".home"), USERPROFILE: join(dir, ".home"), BUN_INSTALL: join(dir, ".bun"), BUN_INSTALL_CACHE_DIR: join(dataDir, "cache"), BUN_BE_BUN: "1", BUN_M3_COV: cov, NO_COLOR: "1" };
 }
@@ -149,6 +153,7 @@ export async function run(skill: string, s: Snip, timeoutMs = 10_000, page: Snip
   mkdirSync(join(dir, ".home"), { recursive: true });
   // each page sandbox is its own package root, so package-manager examples stop here
   if (!existsSync(join(dir, "package.json"))) await Bun.write(join(dir, "package.json"), `${JSON.stringify({ name: `sandbox-${skill}`, private: true })}\n`);
+  if (!existsSync(join(dir, "bunfig.toml"))) await Bun.write(join(dir, "bunfig.toml"), "[run]\nbun = true\n");
   await Bun.write(join(dir, ".cov", "cov.js"), recorder);
   for (const [m, src] of Object.entries(shims)) if (src) await Bun.write(join(dir, ".cov", shimFile(m)), src);
   await materialize(dir, page);
