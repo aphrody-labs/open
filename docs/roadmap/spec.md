@@ -37,6 +37,11 @@
 - R12. Toutes les pages des deux sites, rendues dans un navigateur réel : capture, DOM, réseau, archive WACZ.
 - R13. Respect de robots.txt ; usage interne.
 
+### Outillage et portes
+- R14. Outillage : just, Turborepo, Bun, Cargo, LLVM ; Bazel là où l'amont l'impose.
+- R15. Portes de validation exécutées comme plugin Bun et Cargo avant toute compilation : pratiques web modernes, W3C (HTML, CSS), WCAG, Material Design, design system sans valeur en dur, docs et roadmap, hygiène. Détail : [toolchain-and-gates.md](toolchain-and-gates.md).
+- R16. Core Web Vitals (Lighthouse, web-vitals) mesurés sur le rendu, bloquants avant publication.
+
 ## Définition de « fini » (pour chaque livrable)
 
 Construit sans erreur, lancé, testé (tests automatiques verts), prouvé par une capture ou une sortie réelle, scan de secrets propre, revue Gemini Carbon High archivée.
