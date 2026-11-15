@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // chromium-bun engines list | matrix | channels | path <id> | install [id...] | launch <id> [--port N]
 // Exécutable seul (bun packages/chromium-bun/src/engines/cli.ts ...) sans charger le reste du paquet ; `ay rt` l'appelle ainsi.
+import { runBackendCommand } from "./backend.ts";
 import { DEFAULT_INSTALL, installEngines } from "./install.ts";
 import { launchEngine } from "./launch.ts";
 import { engineMatrix } from "./matrix.ts";
@@ -103,6 +104,8 @@ export async function runEnginesCommand(args: string[]): Promise<number> {
       await running.close();
       return 0;
     }
+    case "backend":
+      return runBackendCommand(rest);
     default:
       return usage();
   }
@@ -117,6 +120,7 @@ function usage(): number {
       "chromium-bun engines path <id>              exécutable du moteur (code 1 si absent)",
       "chromium-bun engines install [id...]        installation idempotente (ay up, CfT, Playwright, uv tool)",
       "chromium-bun engines launch <id> [--port N] [--probe]   expose CDP ou WebDriver sur 127.0.0.1",
+      "chromium-bun engines backend list|pick|use [id] [--use <case>] [--write]   backend C++ bun (JSC) ou chromium@stable|beta|dev|canary|local (V8)",
     ].join("\n"),
   );
   return 2;
