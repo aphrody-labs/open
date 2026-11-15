@@ -5,7 +5,8 @@ Multi-provider AI router: a library with a C ABI, a CLI and an HTTP service comp
 - **Offers discovered at run time**: the [models.dev](https://models.dev) catalog (providers, base URLs, prices, limits, modalities, the variables that hold credentials) and the OpenAI-compatible servers running on this machine (Ollama, llama.cpp server, LM Studio, or `AI_ROUTER_LOCAL`). No model list is written in the code.
 - **Order**: local servers first, then offers at zero cost for the caller, then the cheapest. An offer whose credential variable is not set is never tried. Policies: `auto`, `auto:local`, `auto:free`, `auto:cheap`, or an offer id `<provider>/<model>` followed by the `auto` order.
 - **Failover**: on any failure (rate limit, quota, server error, timeout, refused model) the next offer is tried; the answer carries `router.offer` and `router.attempts`.
-- **Protocols spoken upstream**: OpenAI-compatible, Anthropic messages, Google generateContent.
+- **Protocols spoken upstream**: OpenAI-compatible, Anthropic messages, Google generateContent; each streamed in its own protocol (server-sent events of chat completions, Anthropic message events, Google `streamGenerateContent`) and delivered as chat-completion chunks.
+- **Kinds of inference**: chat; embeddings, image generation, speech and transcription go to offers whose catalog modalities (or, for local servers, model names) fit the kind, passed through to their OpenAI-compatible endpoint with failover.
 - **Free and unlimited**: zero-cost offers and local models come first; local models have no quota, remote free offers do.
 
 ## Surfaces
@@ -13,7 +14,7 @@ Multi-provider AI router: a library with a C ABI, a CLI and an HTTP service comp
 | Surface | How |
 |---|---|
 | CLI | `ai-router models [policy] [--json]`, `ai-router chat [--model <policy or id>] <prompt>` |
-| Service | `ai-router serve [--addr host:port]`: `POST /v1/chat/completions`, `POST /v1/messages`, `GET /v1/models`, `GET /health` |
+| Service | `ai-router serve [--addr host:port]`: `POST /v1/chat/completions`, `POST /v1/messages`, `POST /v1/embeddings`, `POST /v1/images/generations`, `POST /v1/audio/speech`, `POST /v1/audio/transcriptions`, `GET /v1/models`, `GET /health` |
 | C ABI | `include/ai_router.h`: `aphrody_router_open`, `_chat`, `_models`, `_close`, `_last_error`; strings freed with `aphrody_free` (crate `c-abi`) |
 | Bun | `packages/ai-router` (bun:ffi), with streaming |
 | Terminal | `crates/ai-router-tui`: full-screen chat, streamed answers, policy switch |
@@ -23,9 +24,9 @@ Multi-provider AI router: a library with a C ABI, a CLI and an HTTP service comp
 
 ## Verified
 
-- Tests (`cargo test -p ai-router`): failover after a rate limit, offers without credentials never tried, Anthropic and Google answers translated to chat completions, local server first through the C ABI, the service answering OpenAI and Anthropic clients. CI builds and tests on Linux, Windows and macOS (`.github/workflows/ai-router.yml`), including the Bun binding against each build.
+- Tests (`cargo test -p ai-router`): failover after a rate limit, offers without credentials never tried, Anthropic and Google answers translated to chat completions, local server first through the C ABI, the service answering OpenAI and Anthropic clients, native Anthropic and Google streaming (text and tool calls), embeddings and transcriptions routed to models of that kind (library and service), multipart model rewrite. CI builds and tests on Linux, Windows and macOS (`.github/workflows/ai-router.yml`), including the Bun binding against each build.
 - Live: on Windows, the CI build found three local servers (Ollama, llama.cpp server, LM Studio) and over 8,000 catalog offers, answered through a local model as CLI and as a service (OpenAI and Anthropic endpoints).
 
 ## Not yet
 
-Inference types other than text chat (images, audio, embeddings), native mobile apps (the web app is installable on mobile; a native build over the C ABI with a platform HTTPS transport is not done), and streaming from Anthropic or Google upstreams (their answers arrive as one chunk).
+Native mobile apps (the web app is installable on mobile; a native build over the C ABI with a platform HTTPS transport is not done); non-chat kinds through the C ABI and the Bun binding (the service has them); embeddings, images and audio from Anthropic or Google upstreams (only OpenAI-compatible offers serve non-chat kinds).

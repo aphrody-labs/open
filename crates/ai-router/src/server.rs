@@ -1,7 +1,9 @@
-//! HTTP service over a router, compatible with OpenAI (`POST /v1/chat/completions`, `GET /v1/models`) and Anthropic
-//! (`POST /v1/messages`) clients, plus `GET /health`. One thread per request.
+//! HTTP service over a router, compatible with OpenAI (`POST /v1/chat/completions`, `GET /v1/models`, and the
+//! pass-through `POST /v1/embeddings`, `/v1/images/generations`, `/v1/audio/speech`, `/v1/audio/transcriptions`)
+//! and Anthropic (`POST /v1/messages`) clients, plus `GET /health`. One thread per request.
 
-use crate::Router;
+use crate::policy::Kind;
+use crate::{Body, Router};
 use serde_json::{json, Value};
 use std::sync::Arc;
 use tiny_http::{Header, Method, Response, Server};
@@ -69,11 +71,55 @@ pub fn serve(router: Router, addr: &str, on_ready: impl FnOnce(String)) -> Resul
                         }
                     }
                 }
+                (Method::Post, p @ ("/v1/embeddings" | "/v1/images/generations" | "/v1/audio/speech" | "/v1/audio/transcriptions")) => {
+                    let kind = match p {
+                        "/v1/embeddings" => Kind::Embeddings,
+                        "/v1/images/generations" => Kind::Images,
+                        "/v1/audio/speech" => Kind::Speech,
+                        _ => Kind::Transcription,
+                    };
+                    let content_type = req.headers().iter().find(|h| h.field.equiv("Content-Type")).map(|h| h.value.as_str().to_owned()).unwrap_or_default();
+                    let mut bytes = Vec::new();
+                    let _ = req.as_reader().read_to_end(&mut bytes);
+                    let (body, model) = if let Some(b) = content_type.split("boundary=").nth(1) {
+                        let boundary = b.split(';').next().unwrap_or(b).trim_matches('"').to_owned();
+                        let model = multipart_field(&bytes, &boundary, "model").unwrap_or_else(|| "auto".to_owned());
+                        (Body::Multipart { boundary, bytes }, model)
+                    } else {
+                        match serde_json::from_slice::<Value>(&bytes) {
+                            Ok(v) => {
+                                let model = v["model"].as_str().unwrap_or("auto").to_owned();
+                                (Body::Json(v), model)
+                            }
+                            Err(e) => return reply(req, 400, &json!({ "error": { "message": format!("invalid JSON: {e}"), "type": "invalid_request_error" } })),
+                        }
+                    };
+                    let f = router.forward(kind, &model, p.trim_start_matches("/v1/"), &body);
+                    let mut headers = vec![Header::from_bytes(&b"Content-Type"[..], f.content_type.as_bytes()).unwrap_or_else(|_| Header::from_bytes(&b"Content-Type"[..], &b"application/octet-stream"[..]).expect("static header"))];
+                    let mut out = f.body;
+                    if f.content_type.starts_with("application/json") && (200..300).contains(&f.status) {
+                        if let Ok(mut v) = serde_json::from_slice::<Value>(&out) {
+                            v["router"] = f.router.clone();
+                            out = v.to_string().into_bytes();
+                        }
+                    } else if let Ok(h) = Header::from_bytes(&b"X-Router"[..], f.router.to_string().as_bytes()) {
+                        // binary answers (audio, images as bytes) carry the summary in a header
+                        headers.push(h);
+                    }
+                    let _ = req.respond(Response::new(f.status.into(), headers, std::io::Cursor::new(out), None, None));
+                }
                 _ => reply(req, 404, &json!({ "error": { "message": "not found", "type": "not_found" } })),
             }
         });
     }
     Ok(())
+}
+
+/// Value of a text field of multipart form data.
+fn multipart_field(bytes: &[u8], boundary: &str, name: &str) -> Option<String> {
+    let text = String::from_utf8_lossy(bytes);
+    let key = format!("name=\"{name}\"");
+    text.split(&format!("--{boundary}")).find(|part| part.split("\r\n\r\n").next().is_some_and(|h| h.contains(&key))).and_then(|part| part.split_once("\r\n\r\n")).map(|(_, v)| v.trim_end_matches("\r\n").to_owned())
 }
 
 fn blocks_text(content: &Value) -> String {

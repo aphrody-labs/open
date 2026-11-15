@@ -6,8 +6,24 @@
 
 use crate::catalog::Offer;
 
+/// What a request asks of an offer.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Kind {
+    /// chat completions: text out, not an embedding model
+    #[default]
+    Chat,
+    Embeddings,
+    /// image generation: image out
+    Images,
+    /// speech synthesis: audio out
+    Speech,
+    /// transcription: audio in, text out
+    Transcription,
+}
+
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Needs {
+    pub kind: Kind,
     pub tools: bool,
     pub images: bool,
     /// Rough prompt size in tokens; offers with a known smaller context are skipped.
@@ -24,8 +40,19 @@ fn tier(o: &Offer) -> u8 {
     }
 }
 
+fn kind_fits(o: &Offer, k: Kind) -> bool {
+    let out = |m: &str| o.outputs.iter().any(|x| x == m);
+    match k {
+        Kind::Chat => out("text") && !o.embedding,
+        Kind::Embeddings => o.embedding,
+        Kind::Images => out("image"),
+        Kind::Speech => out("audio"),
+        Kind::Transcription => (o.audio_input && out("text")) || o.model.to_lowercase().contains("whisper") || o.model.to_lowercase().contains("transcri"),
+    }
+}
+
 fn fits(o: &Offer, n: &Needs) -> bool {
-    (!n.tools || o.tool_call) && (!n.images || o.image_input || o.local) && (o.context == 0 || o.context >= n.tokens)
+    kind_fits(o, n.kind) && (!n.tools || o.tool_call) && (!n.images || o.image_input || o.local) && (o.context == 0 || o.context >= n.tokens)
 }
 
 /// Candidates in the order they are tried.

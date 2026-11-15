@@ -31,6 +31,11 @@ pub struct Offer {
     pub context: u64,
     pub tool_call: bool,
     pub image_input: bool,
+    pub audio_input: bool,
+    /// Output modalities from the catalog (text, image, audio, video); text for local servers.
+    pub outputs: Vec<String>,
+    /// An embedding model (by catalog family or model name).
+    pub embedding: bool,
     pub release_date: String,
 }
 
@@ -82,10 +87,8 @@ pub fn from_models_dev(doc: &Value) -> Vec<Offer> {
         let env = p["env"].as_array().and_then(|e| e.first()).and_then(Value::as_str).map(str::to_owned);
         let Some(models) = p["models"].as_object() else { continue };
         for (mid, m) in models {
-            let text_out = m["modalities"]["output"].as_array().is_none_or(|o| o.iter().any(|x| x == "text"));
-            if !text_out {
-                continue;
-            }
+            let outputs: Vec<String> = m["modalities"]["output"].as_array().map(|o| o.iter().filter_map(|x| x.as_str().map(str::to_owned)).collect()).unwrap_or_else(|| vec!["text".to_owned()]);
+            let family = m["family"].as_str().unwrap_or("");
             out.push(Offer {
                 provider: pid.clone(),
                 model: mid.clone(),
@@ -99,6 +102,9 @@ pub fn from_models_dev(doc: &Value) -> Vec<Offer> {
                 context: m["limit"]["context"].as_u64().unwrap_or(0),
                 tool_call: m["tool_call"].as_bool().unwrap_or(false),
                 image_input: m["modalities"]["input"].as_array().is_some_and(|i| i.iter().any(|x| x == "image")),
+                audio_input: m["modalities"]["input"].as_array().is_some_and(|i| i.iter().any(|x| x == "audio")),
+                embedding: family.contains("embed") || mid.to_lowercase().contains("embed"),
+                outputs,
                 release_date: m["release_date"].as_str().unwrap_or("").to_owned(),
             });
         }
@@ -134,6 +140,8 @@ pub fn discover_local(bases: &[String], timeout: Duration) -> Vec<Offer> {
         };
         let host = base.split("//").nth(1).unwrap_or(base).split('/').next().unwrap_or(base).to_owned();
         for id in ids {
+            // a local server does not describe its models: an embedding model is told by its name
+            let embedding = id.to_lowercase().contains("embed");
             out.push(Offer {
                 provider: format!("local:{host}"),
                 model: id.clone(),
@@ -147,6 +155,9 @@ pub fn discover_local(bases: &[String], timeout: Duration) -> Vec<Offer> {
                 context: 0,
                 tool_call: true,
                 image_input: false,
+                audio_input: false,
+                embedding,
+                outputs: vec!["text".to_owned()],
                 release_date: String::new(),
             });
         }

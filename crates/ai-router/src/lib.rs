@@ -120,10 +120,59 @@ impl Router {
     }
 }
 
+/// Body of a non-chat inference request: JSON (embeddings, image generation, speech) or multipart form data
+/// (transcription, the audio file being one part).
+pub enum Body {
+    Json(Value),
+    Multipart { boundary: String, bytes: Vec<u8> },
+}
+
+/// Answer of a non-chat inference, passed through as the offer sent it, with the router summary.
+pub struct Forwarded {
+    pub status: u16,
+    pub content_type: String,
+    pub body: Vec<u8>,
+    pub router: Value,
+}
+
+impl Router {
+    /// Embeddings, image generation, speech and transcription. The request goes unchanged, except its `model`, to
+    /// `<base>/<path>` of each OpenAI-compatible offer able to do `kind`, in the policy order, until one answers 2xx.
+    pub fn forward(&self, kind: policy::Kind, model: &str, path: &str, body: &Body) -> Forwarded {
+        let needs = policy::Needs { kind, ..Default::default() };
+        let mut attempts = Vec::new();
+        let offers = policy::rank(&self.offers, model, &needs).into_iter().filter(|o| o.protocol == catalog::Protocol::OpenAi);
+        for offer in offers.take(self.max_attempts) {
+            let t0 = Instant::now();
+            let (content_type, bytes) = match body {
+                Body::Json(v) => {
+                    let mut v = v.clone();
+                    v["model"] = json!(offer.model);
+                    ("application/json".to_owned(), v.to_string().into_bytes())
+                }
+                Body::Multipart { boundary, bytes } => (format!("multipart/form-data; boundary={boundary}"), transport::multipart_set(bytes, boundary, "model", &offer.model)),
+            };
+            let r = transport::post_bytes(offer, path, &content_type, bytes, self.timeout);
+            let ms = t0.elapsed().as_millis();
+            if (200..300).contains(&r.status) {
+                attempts.push(Attempt { offer: offer.id(), status: r.status, ms, error: None });
+                let router = json!({ "offer": offer.id(), "local": offer.local, "zero_cost": offer.zero_cost(), "attempts": attempts });
+                return Forwarded { status: r.status, content_type: r.content_type, body: r.body, router };
+            }
+            let error = String::from_utf8_lossy(&r.body).chars().take(500).collect::<String>();
+            attempts.push(Attempt { offer: offer.id(), status: r.status, ms, error: Some(if error.is_empty() { r.error } else { error }) });
+        }
+        let message = if attempts.is_empty() { "no usable offer for this kind of request" } else { "every offer tried failed" };
+        let router = json!({ "attempts": attempts });
+        let body = json!({ "error": { "message": message, "type": "router_exhausted" }, "router": router }).to_string().into_bytes();
+        Forwarded { status: 502, content_type: "application/json".to_owned(), body, router }
+    }
+}
+
 fn needs_of(request: &Value) -> policy::Needs {
     let messages = request["messages"].as_array().cloned().unwrap_or_default();
     let images = messages.iter().any(|m| m["content"].as_array().is_some_and(|p| p.iter().any(|x| x["type"] == "image_url")));
     // about four characters per token
     let tokens = (serde_json::to_string(&messages).map(|s| s.len()).unwrap_or(0) / 4) as u64;
-    policy::Needs { tools: request["tools"].as_array().is_some_and(|t| !t.is_empty()), images, tokens }
+    policy::Needs { kind: policy::Kind::Chat, tools: request["tools"].as_array().is_some_and(|t| !t.is_empty()), images, tokens }
 }

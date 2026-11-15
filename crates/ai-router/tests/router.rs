@@ -177,3 +177,112 @@ fn streams_chunks_through_the_library_and_the_service() {
     assert!(body.contains(": router "));
     assert!(body.trim_end().ends_with("data: [DONE]"));
 }
+
+#[test]
+fn embeddings_and_transcriptions_go_to_offers_of_that_kind() {
+    // one local server with a chat model and an embedding model; it echoes the path and the model it received
+    let server = tiny_http::Server::http("127.0.0.1:0").unwrap();
+    let base = format!("http://{}/v1", server.server_addr());
+    std::thread::spawn(move || {
+        for mut req in server.incoming_requests() {
+            let url = req.url().to_owned();
+            let mut body = Vec::new();
+            let _ = req.as_reader().read_to_end(&mut body);
+            let answer = if url.ends_with("/models") {
+                json!({ "data": [{ "id": "chat-small" }, { "id": "text-embed-small" }, { "id": "whisper-tiny" }] })
+            } else {
+                let text = String::from_utf8_lossy(&body).to_string();
+                let model = serde_json::from_str::<Value>(&text).ok().and_then(|v| v["model"].as_str().map(str::to_owned)).unwrap_or_else(|| text.split("name=\"model\"\r\n\r\n").nth(1).and_then(|r| r.split("\r\n").next()).unwrap_or("").to_owned());
+                json!({ "object": "list", "path": url, "model": model, "data": [{ "embedding": [0.1, 0.2] }] })
+            };
+            let _ = req.respond(tiny_http::Response::from_string(answer.to_string()).with_header(tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap()));
+        }
+    });
+    let config = Config { catalog: Some(json!({})), local: Some(vec![base]), ..Config::default() };
+    let r = Router::open(&config).unwrap();
+    let f = r.forward(ai_router::policy::Kind::Embeddings, "auto", "embeddings", &ai_router::Body::Json(json!({ "model": "auto", "input": "hi" })));
+    let v: Value = serde_json::from_slice(&f.body).unwrap();
+    assert_eq!((f.status, v["path"].as_str(), v["model"].as_str()), (200, Some("/v1/embeddings"), Some("text-embed-small")));
+
+    let boundary = "XyZ";
+    let form = format!("--{boundary}\r\nContent-Disposition: form-data; name=\"model\"\r\n\r\nauto\r\n--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"a.wav\"\r\nContent-Type: audio/wav\r\n\r\nRIFF\r\n--{boundary}--\r\n");
+    let f = r.forward(ai_router::policy::Kind::Transcription, "auto", "audio/transcriptions", &ai_router::Body::Multipart { boundary: boundary.to_owned(), bytes: form.into_bytes() });
+    let v: Value = serde_json::from_slice(&f.body).unwrap();
+    assert_eq!((v["path"].as_str(), v["model"].as_str()), (Some("/v1/audio/transcriptions"), Some("whisper-tiny")));
+
+    // through the service, with the router summary added to the JSON answer
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || ai_router::server::serve(r, "127.0.0.1:0", |a| tx.send(a).unwrap()).unwrap());
+    let addr = rx.recv().unwrap();
+    let mut res = ureq::post(&format!("http://{addr}/v1/embeddings")).send_json(json!({ "input": "hi" })).unwrap();
+    let v: Value = serde_json::from_str(&res.body_mut().read_to_string().unwrap()).unwrap();
+    assert_eq!(v["router"]["offer"].as_str().map(|s| s.ends_with("/text-embed-small")), Some(true));
+}
+
+#[test]
+fn multipart_model_field_is_replaced_or_added() {
+    let b = "B";
+    let with = format!("--{b}\r\nContent-Disposition: form-data; name=\"model\"\r\n\r\nold\r\n--{b}--\r\n");
+    let out = String::from_utf8(ai_router::transport::multipart_set(with.as_bytes(), b, "model", "new")).unwrap();
+    assert!(out.contains("\r\n\r\nnew\r\n") && !out.contains("old"));
+    let without = format!("--{b}\r\nContent-Disposition: form-data; name=\"file\"\r\n\r\nx\r\n--{b}--\r\n");
+    let out = String::from_utf8(ai_router::transport::multipart_set(without.as_bytes(), b, "model", "m")).unwrap();
+    assert!(out.starts_with(&format!("--{b}\r\nContent-Disposition: form-data; name=\"model\"\r\n\r\nm\r\n")) && out.contains("name=\"file\""));
+}
+
+/// A stand-in answering every request with the given server-sent events; returns its base URL and the paths it saw.
+fn sse_stand_in(events: Vec<Value>) -> (String, Arc<std::sync::Mutex<Vec<String>>>) {
+    let server = tiny_http::Server::http("127.0.0.1:0").unwrap();
+    let base = format!("http://{}", server.server_addr());
+    let seen = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let s = seen.clone();
+    std::thread::spawn(move || {
+        for req in server.incoming_requests() {
+            s.lock().unwrap().push(req.url().to_owned());
+            let body: String = events.iter().map(|e| format!("event: x\ndata: {e}\n\n")).collect();
+            let _ = req.respond(tiny_http::Response::from_string(body));
+        }
+    });
+    (base, seen)
+}
+
+#[test]
+fn anthropic_and_google_stream_natively() {
+    let (a, a_seen) = sse_stand_in(vec![
+        json!({ "type": "message_start", "message": { "id": "m" } }),
+        json!({ "type": "content_block_start", "index": 0, "content_block": { "type": "text", "text": "" } }),
+        json!({ "type": "content_block_delta", "index": 0, "delta": { "type": "text_delta", "text": "Hel" } }),
+        json!({ "type": "content_block_delta", "index": 0, "delta": { "type": "text_delta", "text": "lo" } }),
+        json!({ "type": "content_block_start", "index": 1, "content_block": { "type": "tool_use", "id": "t1", "name": "find" } }),
+        json!({ "type": "content_block_delta", "index": 1, "delta": { "type": "input_json_delta", "partial_json": "{\"q\":" } }),
+        json!({ "type": "content_block_delta", "index": 1, "delta": { "type": "input_json_delta", "partial_json": "\"x\"}" } }),
+        json!({ "type": "message_delta", "delta": { "stop_reason": "tool_use" } }),
+        json!({ "type": "message_stop" }),
+    ]);
+    let (g, g_seen) = sse_stand_in(vec![
+        json!({ "candidates": [{ "content": { "parts": [{ "text": "Bon" }] } }] }),
+        json!({ "candidates": [{ "content": { "parts": [{ "text": "jour" }] }, "finishReason": "STOP" }] }),
+    ]);
+    set("AIR_T9_A");
+    set("AIR_T9_G");
+    for (pid, npm, base, env, want_text) in [("anth", "@ai-sdk/anthropic", &a, "AIR_T9_A", "Hello"), ("goog", "@ai-sdk/google", &g, "AIR_T9_G", "Bonjour")] {
+        let config = Config { catalog: Some(catalog(&[(pid, npm, base, env, 0.0)])), local: Some(vec![]), ..Config::default() };
+        let router = Router::open(&config).unwrap();
+        let mut chunks = Vec::new();
+        let summary = router.chat_stream(&json!({ "messages": [{ "role": "user", "content": "hi" }] }), &mut |c| chunks.push(c.clone()));
+        assert_eq!(summary["router"]["offer"], format!("{pid}/m"));
+        let text: String = chunks.iter().filter_map(|c| c["choices"][0]["delta"]["content"].as_str()).collect();
+        assert_eq!(text, want_text);
+        assert!(chunks.len() >= 2, "{pid} streamed in pieces");
+        if pid == "anth" {
+            let args: String = chunks.iter().filter_map(|c| c["choices"][0]["delta"]["tool_calls"][0]["function"]["arguments"].as_str()).collect();
+            assert_eq!(args, "{\"q\":\"x\"}");
+            assert_eq!(chunks.iter().find_map(|c| c["choices"][0]["delta"]["tool_calls"][0]["function"]["name"].as_str()), Some("find"));
+            assert_eq!(chunks.last().unwrap()["choices"][0]["finish_reason"], "tool_calls");
+        } else {
+            assert_eq!(chunks.last().unwrap()["choices"][0]["finish_reason"], "stop");
+        }
+    }
+    assert_eq!(a_seen.lock().unwrap()[0], "/messages");
+    assert_eq!(g_seen.lock().unwrap()[0], "/models/m:streamGenerateContent?alt=sse");
+}

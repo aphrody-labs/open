@@ -1,5 +1,6 @@
 //! One call to one offer. The request and the answer are OpenAI chat-completions documents; Anthropic messages and
-//! Google generateContent are translated both ways. Non-streaming.
+//! Google generateContent are translated both ways, streamed or not. Non-chat requests (embeddings, images, speech,
+//! transcription) pass through to OpenAI-compatible offers as bytes.
 
 use crate::catalog::{Offer, Protocol};
 use serde_json::{json, Map, Value};
@@ -204,27 +205,147 @@ pub fn from_google(offer: &Offer, b: &Value) -> Value {
     })
 }
 
-/// Streams an OpenAI-compatible chat: `on_chunk` receives each `chat.completion.chunk` document. Offers spoken in
-/// another protocol answer in one piece, delivered as a single chunk. Returns the status and, on failure before the
-/// first chunk, the error; `Ok(true)` once at least one chunk was delivered.
-pub fn stream(offer: &Offer, request: &Value, timeout: Duration, on_chunk: &mut dyn FnMut(&Value)) -> (u16, Result<bool, String>) {
-    if offer.protocol != Protocol::OpenAi {
-        let r = call(offer, request, timeout);
-        return match r.body {
-            Err(e) => (r.status, Err(e)),
-            Ok(b) => {
-                let msg = &b["choices"][0]["message"];
-                on_chunk(&json!({ "object": "chat.completion.chunk", "model": offer.model, "choices": [{ "index": 0, "delta": { "role": "assistant", "content": msg["content"], "tool_calls": msg["tool_calls"] }, "finish_reason": b["choices"][0]["finish_reason"] }] }));
-                (r.status, Ok(true))
-            }
-        };
-    }
-    let mut body = request.clone();
-    body["model"] = json!(offer.model);
-    body["stream"] = json!(true);
-    let mut req = agent(timeout).post(format!("{}/chat/completions", offer.base_url)).header("accept", "text/event-stream");
+/// Raw answer of a pass-through call: status (0 when nothing answered), content type, bytes, transport error.
+pub struct Raw {
+    pub status: u16,
+    pub content_type: String,
+    pub body: Vec<u8>,
+    pub error: String,
+}
+
+/// POSTs bytes to `<base>/<path>` of an OpenAI-compatible offer and returns the answer as received.
+pub fn post_bytes(offer: &Offer, path: &str, content_type: &str, body: Vec<u8>, timeout: Duration) -> Raw {
+    let mut req = agent(timeout).post(format!("{}/{}", offer.base_url, path.trim_start_matches('/'))).header("content-type", content_type);
     if let Some(k) = offer.credential() {
         req = req.header("authorization", format!("Bearer {k}"));
+    }
+    match req.send(&body[..]) {
+        Err(e) => Raw { status: 0, content_type: String::new(), body: Vec::new(), error: e.to_string() },
+        Ok(mut res) => {
+            let status = res.status().as_u16();
+            let content_type = res.headers().get("content-type").and_then(|v| v.to_str().ok()).unwrap_or("application/octet-stream").to_owned();
+            let body = res.body_mut().with_config().limit(512 * 1024 * 1024).read_to_vec().unwrap_or_default();
+            Raw { status, content_type, body, error: String::new() }
+        }
+    }
+}
+
+/// Multipart form data with the value of field `name` replaced (the field is added when absent).
+pub fn multipart_set(bytes: &[u8], boundary: &str, name: &str, value: &str) -> Vec<u8> {
+    let delim = format!("--{boundary}");
+    let header = format!("Content-Disposition: form-data; name=\"{name}\"");
+    let fresh = format!("{delim}\r\n{header}\r\n\r\n{value}\r\n");
+    let find = |hay: &[u8], needle: &[u8], from: usize| hay[from.min(hay.len())..].windows(needle.len()).position(|w| w == needle).map(|i| i + from);
+    let lower: Vec<u8> = bytes.iter().map(u8::to_ascii_lowercase).collect();
+    let key = format!("name=\"{}\"", name.to_ascii_lowercase());
+    let mut at = 0;
+    while let Some(start) = find(bytes, delim.as_bytes(), at) {
+        let Some(next) = find(bytes, delim.as_bytes(), start + delim.len()) else { break };
+        let head_end = find(bytes, b"\r\n\r\n", start).unwrap_or(next);
+        if head_end < next && find(&lower[..head_end], key.as_bytes(), start).is_some() {
+            let mut out = bytes[..start].to_vec();
+            out.extend_from_slice(fresh.as_bytes());
+            out.extend_from_slice(&bytes[next..]);
+            return out;
+        }
+        at = next;
+    }
+    let mut out = fresh.into_bytes();
+    out.extend_from_slice(bytes);
+    out
+}
+
+fn chunk(offer: &Offer, delta: Value, finish: Value) -> Value {
+    json!({ "object": "chat.completion.chunk", "model": offer.model, "choices": [{ "index": 0, "delta": delta, "finish_reason": finish }] })
+}
+
+/// Anthropic stream events as chat.completion.chunk documents: text deltas, tool_use blocks (start, then partial
+/// JSON arguments), and the stop reason.
+fn anthropic_event(offer: &Offer, e: &Value, tools: &mut Vec<u64>) -> Option<Value> {
+    match e["type"].as_str()? {
+        "content_block_start" if e["content_block"]["type"] == "tool_use" => {
+            let i = tools.len();
+            tools.push(e["index"].as_u64().unwrap_or(0));
+            let b = &e["content_block"];
+            Some(chunk(offer, json!({ "tool_calls": [{ "index": i, "id": b["id"], "type": "function", "function": { "name": b["name"], "arguments": "" } }] }), Value::Null))
+        }
+        "content_block_delta" => {
+            let d = &e["delta"];
+            match d["type"].as_str()? {
+                "text_delta" => Some(chunk(offer, json!({ "content": d["text"] }), Value::Null)),
+                "input_json_delta" => {
+                    let i = tools.iter().position(|b| Some(*b) == e["index"].as_u64())?;
+                    Some(chunk(offer, json!({ "tool_calls": [{ "index": i, "function": { "arguments": d["partial_json"] } }] }), Value::Null))
+                }
+                _ => None,
+            }
+        }
+        "message_delta" => {
+            let finish = match e["delta"]["stop_reason"].as_str()? {
+                "max_tokens" => "length",
+                "tool_use" => "tool_calls",
+                _ => "stop",
+            };
+            Some(chunk(offer, json!({}), json!(finish)))
+        }
+        _ => None,
+    }
+}
+
+/// A Google streamGenerateContent event as a chat.completion.chunk document.
+fn google_event(offer: &Offer, e: &Value, calls: &mut usize) -> Option<Value> {
+    let c = &e["candidates"][0];
+    let parts = c["content"]["parts"].as_array().cloned().unwrap_or_default();
+    let text: String = parts.iter().filter_map(|p| p["text"].as_str()).collect();
+    let tool_calls: Vec<Value> = parts
+        .iter()
+        .filter(|p| p.get("functionCall").is_some())
+        .map(|p| {
+            *calls += 1;
+            json!({ "index": *calls - 1, "id": format!("call_{}", *calls - 1), "type": "function", "function": { "name": p["functionCall"]["name"], "arguments": p["functionCall"]["args"].to_string() } })
+        })
+        .collect();
+    let finish = match c["finishReason"].as_str() {
+        None => Value::Null,
+        Some("MAX_TOKENS") => json!("length"),
+        Some(_) if *calls > 0 => json!("tool_calls"),
+        Some(_) => json!("stop"),
+    };
+    if text.is_empty() && tool_calls.is_empty() && finish.is_null() {
+        return None;
+    }
+    let mut delta = json!({});
+    if !text.is_empty() {
+        delta["content"] = json!(text);
+    }
+    if !tool_calls.is_empty() {
+        delta["tool_calls"] = json!(tool_calls);
+    }
+    Some(chunk(offer, delta, finish))
+}
+
+/// Streams a chat in the offer's own protocol: OpenAI-compatible server-sent events as they are, Anthropic
+/// messages events and Google streamGenerateContent events translated; `on_chunk` receives chat.completion.chunk
+/// documents. Returns the status and, on failure before the first chunk, the error; `Ok(true)` once a chunk flowed.
+pub fn stream(offer: &Offer, request: &Value, timeout: Duration, on_chunk: &mut dyn FnMut(&Value)) -> (u16, Result<bool, String>) {
+    let key = offer.credential();
+    let (url, body, headers): (String, Value, Vec<(&str, String)>) = match offer.protocol {
+        Protocol::OpenAi => {
+            let mut body = request.clone();
+            body["model"] = json!(offer.model);
+            body["stream"] = json!(true);
+            (format!("{}/chat/completions", offer.base_url), body, key.map(|k| vec![("authorization", format!("Bearer {k}"))]).unwrap_or_default())
+        }
+        Protocol::Anthropic => {
+            let mut body = to_anthropic(offer, request);
+            body["stream"] = json!(true);
+            (format!("{}/messages", offer.base_url), body, vec![("x-api-key", key.unwrap_or_default()), ("anthropic-version", "2023-06-01".to_owned())])
+        }
+        Protocol::Google => (format!("{}/models/{}:streamGenerateContent?alt=sse", offer.base_url, offer.model), to_google(request), vec![("x-goog-api-key", key.unwrap_or_default())]),
+    };
+    let mut req = agent(timeout).post(&url).header("accept", "text/event-stream");
+    for (k, v) in &headers {
+        req = req.header(*k, v);
     }
     let mut res = match req.send_json(&body) {
         Err(e) => return (0, Err(e.to_string())),
@@ -237,14 +358,27 @@ pub fn stream(offer: &Offer, request: &Value, timeout: Duration, on_chunk: &mut 
     }
     use std::io::BufRead;
     let mut delivered = false;
+    let (mut tools, mut calls) = (Vec::new(), 0usize);
     for line in std::io::BufReader::new(res.body_mut().as_reader()).lines() {
         let Ok(line) = line else { break };
         let Some(data) = line.strip_prefix("data:").map(str::trim) else { continue };
         if data == "[DONE]" {
             break;
         }
-        if let Ok(chunk) = serde_json::from_str::<Value>(data) {
-            on_chunk(&chunk);
+        let Ok(event) = serde_json::from_str::<Value>(data) else { continue };
+        if offer.protocol == Protocol::Anthropic && event["type"] == "error" {
+            if delivered {
+                break;
+            }
+            return (status, Err(event["error"].to_string()));
+        }
+        let out = match offer.protocol {
+            Protocol::OpenAi => Some(event),
+            Protocol::Anthropic => anthropic_event(offer, &event, &mut tools),
+            Protocol::Google => google_event(offer, &event, &mut calls),
+        };
+        if let Some(c) = out {
+            on_chunk(&c);
             delivered = true;
         }
     }
