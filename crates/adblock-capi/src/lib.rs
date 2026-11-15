@@ -17,11 +17,10 @@
 
 pub use aphrody_core_capi::{aphrody_abi_version, aphrody_free};
 use aphrody_core_capi::cabi::{
-    ABI_STATUS_ERR, ABI_STATUS_OK, free_c_string, free_framed, pack_framed, utf8_slice,
+    ABI_STATUS_ERR, ABI_STATUS_OK, free_framed, pack_framed, utf8_slice,
 };
 pub mod engine;
 pub use engine::{AdblockCheckResult, AdblockEngine, CosmeticResult};
-use std::ffi::c_char;
 
 /// Opaque compiled rule set.
 pub struct AphrodyAdblockEngine(AdblockEngine);
