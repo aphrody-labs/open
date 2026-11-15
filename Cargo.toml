@@ -4,6 +4,7 @@
 [workspace]
 resolver = "3"
 members = [
+  "crates/adblock-capi",
   "crates/clip",
   "crates/hokum",
   "crates/strobe",
@@ -43,3 +44,17 @@ exclude = [
   "packages/v2/examples",
   "packages/v2/packages/create-sst/bin/presets",
 ]
+
+# Inherited by first-party crates moved from the Aphrody monorepo (crates/adblock-capi).
+[workspace.package]
+version = "0.4.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/aphrody-labs/open"
+
+[workspace.dependencies]
+adblock = "0.13.5"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+# the shared C ABI (framed buffers, aphrody_free, ABI version) stays in the Aphrody monorepo
+aphrody-core-capi = { git = "https://github.com/aphrody-labs/aphrody", package = "aphrody-core-capi", default-features = false }

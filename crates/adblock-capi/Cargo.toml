@@ -23,14 +23,9 @@ unused_must_use = "deny"
 future_incompatible = { level = "warn", priority = -1 }
 nonstandard_style = { level = "warn", priority = -1 }
 rust_2018_idioms = { level = "warn", priority = -1 }
-# lore-server's telemetry reads cfg(tokio_unstable). Declared here because a crate cannot
-# have its own lints table alongside `workspace = true`.
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tokio_unstable)'] }
 
 [lints.clippy]
 all = { level = "warn", priority = -1 }
-# cargo = { level = "warn", priority = -1 } # TODO(raghav.narula) Enable after duplicate dependencies fixed
-# undocumented_unsafe_blocks = "warn" # TODO(raghav.narula) enable in follow up
 checked_conversions = "warn"
 dbg_macro = "deny"
 debug_assert_with_mut_call = "warn"
