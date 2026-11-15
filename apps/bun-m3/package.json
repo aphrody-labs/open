@@ -7,7 +7,8 @@
     "gen": "bun gen/sources.ts && bun gen/skills.ts && bun gen/pages.ts && bun gen/reference.ts && bun gen/api.ts && bun gen/theme.ts && bun gen/mat-sys.ts",
     "dev": "bun server.ts",
     "build": "bun build.ts",
-    "site-complete": "bun gen/site-complete.ts --write"
+    "site-complete": "bun gen/site-complete.ts --write",
+    "remote": "bun remote.ts"
   },
   "dependencies": {
     "@angular/cdk": "^22.3.0-rc.0",

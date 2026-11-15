@@ -23,7 +23,7 @@ const argv = Bun.argv.slice(2);
 const port = Number(argv.includes("--port") ? argv[argv.indexOf("--port") + 1] : (Bun.env.PORT ?? 0));
 
 // Run-all queue: every runnable example of the selected pages, a worker per core.
-let job: { total: number; done: number; started: string; counts: Record<Status, number> } | null = null;
+let job: { total: number; done: number; started: string; counts: Record<Status, number>; stopped?: string } | null = null;
 const listeners = new Set<(e: object) => void>();
 const emit = (e: object) => listeners.forEach((l) => l(e));
 async function runAll(filter: (skill: string) => boolean, timeoutMs: number, resume = false) {
@@ -42,6 +42,7 @@ async function runAll(filter: (skill: string) => boolean, timeoutMs: number, res
         ensureSpace();
       } catch (e) {
         stopped = String(e);
+        j.stopped = stopped;
         emit({ type: "stopped", reason: stopped, done: j.done, total: j.total });
         break;
       }

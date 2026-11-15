@@ -7,14 +7,17 @@
 import { Database } from "bun:sqlite";
 import { dlopen, FFIType } from "bun:ffi";
 import { copyFileSync, existsSync, linkSync, mkdirSync, rmSync, statSync, statfsSync } from "node:fs";
-import { homedir, tmpdir } from "node:os";
+import { homedir } from "node:os";
 import { delimiter, dirname, isAbsolute, join, relative } from "node:path";
 
 export type Snip = { id: number; lang: string; file: string | null; code: string; run: "script" | "test" | "shell" | null };
 export type Status = "pass" | "fail" | "timeout" | "serving" | "skipped";
 export type Run = { skill: string; id: number; status: Status; exit: number | null; ms: number; stdout: string; stderr: string; apis: string[]; reason?: string; at: string };
 
-export const dataDir = Bun.env.BUN_M3_DATA ?? join(tmpdir(), "bun-m3");
+// The per-user state directory of the platform (disk-backed, unlike a tmpfs /tmp): LOCALAPPDATA on Windows,
+// XDG_STATE_HOME or ~/.local/state elsewhere. BUN_M3_DATA overrides it.
+const stateHome = process.platform === "win32" ? (Bun.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local")) : (Bun.env.XDG_STATE_HOME ?? join(homedir(), ".local", "state"));
+export const dataDir = Bun.env.BUN_M3_DATA ?? join(stateHome, "bun-m3");
 const runsDir = join(dataDir, "runs");
 const cacheDir = join(dataDir, "cache");
 mkdirSync(runsDir, { recursive: true });
