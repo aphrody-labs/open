@@ -1,8 +1,13 @@
 // Reproducible import of upstream repos into this monorepo.
-// Usage: bun scripts/sync.ts [--update] [--only name,name] [--root DIR] [--scratch DIR]
+// Usage: bun scripts/sync.ts [--update] [--only name,name] [--forks] [--root DIR] [--scratch DIR]
+//   --forks: only the entries that name an upstream (the scheduled upstream workflow runs --update --forks).
 //   default: re-export every entry of open.lock.json at its pinned `rev`.
 //   --update: ignore pinned rev, take the upstream default branch HEAD, rewrite the lock.
 //   entries without `rev` (seed) are resolved like --update.
+// An entry may name `subpaths`: only those directories are imported, through a partial and sparse clone, so one
+// library of a very large repository (androidx, flutter) costs its own size. An entry that is a fork names its
+// `upstream`: on --update, a fork without commits of its own is imported from the upstream directly, so the copy
+// follows upstream without the fork being synced first; `source` records where the pinned rev was taken.
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync, lstatSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, relative, resolve } from "node:path";
@@ -23,7 +28,19 @@ type Entry = {
   name: string; url: string; rev?: string; path: string; language: string;
   archived: boolean; fork: boolean; license?: string; dropped_files?: { path: string; bytes: number; reason?: "size" | "windows-name" }[];
   submodules?: { path: string; url: string }[];
+  subpaths?: string[]; upstream?: string; source?: string;
 };
+
+const slug = (url: string) => new URL(url).pathname.replace(/^\/|\.git$/g, "");
+
+/** The repository to import from: the upstream when the fork has no commits of its own, else the fork. */
+async function sourceOf(e: Entry, update: boolean): Promise<string> {
+  if (!update || !e.upstream) return e.source ?? e.url;
+  const fork = slug(e.url);
+  const branch = await run(["gh", "api", `repos/${fork}`, "--jq", ".default_branch"]);
+  const ahead = await run(["gh", "api", `repos/${slug(e.upstream)}/compare/${branch}...${fork.split("/")[0]}:${branch}`, "--jq", ".ahead_by"]).catch(() => "1");
+  return ahead === "0" ? e.upstream : e.url;
+}
 
 async function run(cmd: string[], opts: { cwd?: string; shell?: boolean } = {}) {
   const p = Bun.spawn(opts.shell ? ["bash", "-c", cmd.join(" ")] : cmd, { cwd: opts.cwd, stdout: "pipe", stderr: "pipe" });
@@ -75,18 +92,28 @@ async function importOne(e: Entry, update: boolean) {
   const scratch = join(SCRATCH, e.path.replaceAll("/", "__"));
   rmSync(scratch, { recursive: true, force: true });
   mkdirSync(scratch, { recursive: true });
+  const src = await sourceOf(e, update || !e.rev);
+  const sparse = e.subpaths?.length ? ["--filter=blob:none"] : [];
+  await run(["git", "init", "-q", scratch]);
+  // the subpaths, plus the license files at the root of the repository
+  if (e.subpaths?.length) await run(["git", "-C", scratch, "sparse-checkout", "set", "--no-cone", ...e.subpaths.map((p) => `/${p}/`), "/LICENSE*", "/COPYING*", "/NOTICE*"]);
   if (e.rev && !update) {
-    await run(["git", "init", "-q", scratch]);
-    await run(["git", "-C", scratch, "fetch", "-q", "--depth", "1", e.url, e.rev]);
-    await run(["git", "-C", scratch, "checkout", "-q", "FETCH_HEAD"]);
+    await run(["git", "-C", scratch, "fetch", "-q", "--depth", "1", ...sparse, src, e.rev]);
   } else {
-    await run(["git", "clone", "-q", "--depth", "1", e.url, scratch]);
+    await run(["git", "-C", scratch, "fetch", "-q", "--depth", "1", ...sparse, src, "HEAD"]);
   }
+  // no hooks and no LFS filters in the scratch clone: a repository's post-checkout hooks walk its whole index
+  await run(["git", "-c", "core.hooksPath=.no-hooks", "-c", "filter.lfs.smudge=", "-c", "filter.lfs.process=", "-c", "filter.lfs.required=false", "-C", scratch, "checkout", "-q", "FETCH_HEAD"]);
   e.rev = await run(["git", "-C", scratch, "rev-parse", "HEAD"]);
+  e.source = src === e.url ? undefined : src;
   const dest = join(ROOT, e.path);
   rmSync(dest, { recursive: true, force: true });
   mkdirSync(dest, { recursive: true });
-  await run([`git -C '${scratch}' archive HEAD | tar -x -C '${dest}'`], { shell: true });
+  const roots = e.subpaths?.length ? (await run(["git", "-C", scratch, "ls-tree", "--name-only", "HEAD"])).split("\n").filter((n) => /^(licen[sc]e|copying|notice)(\.|$)/i.test(n)) : [];
+  const paths = e.subpaths?.length ? [...e.subpaths, ...roots].map((p) => `'${p}'`).join(" ") : "";
+  // subpaths are copied from the sparse working tree: `git archive` on a partial clone fetches far more than them
+  if (e.subpaths?.length) await run([`tar -C '${scratch}' -cf - ${paths} | tar -x -C '${dest}'`], { shell: true });
+  else await run([`git -C '${scratch}' archive HEAD | tar -x -C '${dest}'`], { shell: true });
   e.submodules = [];
   if (existsSync(join(scratch, ".gitmodules"))) {
     const raw = await run(["git", "config", "-f", join(scratch, ".gitmodules"), "--get-regexp", "^submodule\\..*\\.(path|url)$"]).catch(() => "");
@@ -118,7 +145,7 @@ async function importOne(e: Entry, update: boolean) {
 
 const lock: Entry[] = JSON.parse(readFileSync(LOCK, "utf8"));
 const update = flag("--update");
-const todo = lock.filter((e) => !ONLY.length || ONLY.includes(e.name));
+const todo = lock.filter((e) => (!ONLY.length || ONLY.includes(e.name)) && (!flag("--forks") || e.upstream));
 const failed: string[] = [];
 let i = 0;
 async function worker() {

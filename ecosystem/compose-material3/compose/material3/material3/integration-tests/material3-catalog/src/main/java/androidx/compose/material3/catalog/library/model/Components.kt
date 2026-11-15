@@ -1,0 +1,662 @@
+/*
+ * Copyright 2021 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package androidx.compose.material3.catalog.library.model
+
+import androidx.annotation.DrawableRes
+import androidx.compose.material3.catalog.library.R
+import androidx.compose.material3.catalog.library.util.AdaptiveGuidelinesUrl
+import androidx.compose.material3.catalog.library.util.AdaptiveNavigationSuiteMaterial3SourceUrl
+import androidx.compose.material3.catalog.library.util.AdaptiveSourceUrl
+import androidx.compose.material3.catalog.library.util.ComponentGuidelinesUrl
+import androidx.compose.material3.catalog.library.util.DocsUrl
+import androidx.compose.material3.catalog.library.util.Material3SourceUrl
+import androidx.compose.material3.catalog.library.util.PackageSummaryUrl
+import androidx.compose.material3.catalog.library.util.StyleGuidelinesUrl
+import androidx.compose.runtime.Composable
+
+data class Component(
+    val id: Int,
+    val name: String,
+    val description: String,
+    @DrawableRes val icon: Int = R.drawable.ic_component,
+    val tintIcon: Boolean = true,
+    val guidelinesUrl: String,
+    val docsUrl: String,
+    val sourceUrl: String,
+    val examples: List<Example>,
+    val preview: (@Composable () -> Unit)? = null,
+) {
+    /** True if the component has expressive examples, false otherwise. */
+    val hasExpressiveExamples: Boolean
+        get() {
+            return examples.any { it.isExpressive }
+        }
+}
+
+private var nextId: Int = 1
+
+private fun nextId(): Int = nextId.also { nextId += 1 }
+
+// Components are ordered alphabetically by name.
+
+private val Adaptive =
+    Component(
+        id = nextId(),
+        name = "Adaptive",
+        description =
+            "Adaptive scaffolds provides automatic layout adjustment on different window size " +
+                "classes and postures.\n\n" +
+                "Note: this sample is better experienced in a resizable emulator or foldable device.",
+        preview = { AdaptivePreview() },
+        guidelinesUrl = "$AdaptiveGuidelinesUrl/understanding-layout/overview",
+        docsUrl = "$DocsUrl/adaptive",
+        sourceUrl = "$AdaptiveSourceUrl/ThreePaneScaffold.kt",
+        examples = AdaptiveExamples,
+    )
+
+private val Badge =
+    Component(
+        id = nextId(),
+        name = "Badge",
+        description =
+            "A badge can contain dynamic information, such as the presence of a new " +
+                "notification or a number of pending requests. Badges can be icon only or contain " +
+                "a short text.",
+        preview = { BadgePreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/badge",
+        docsUrl = "$DocsUrl#badge",
+        sourceUrl = "$Material3SourceUrl/Badge.kt",
+        examples = BadgeExamples,
+    )
+
+private val BottomAppBars =
+    Component(
+        id = nextId(),
+        name = "Bottom App Bar",
+        description =
+            "A bottom app bar displays navigation and key actions at the bottom of mobile " +
+                "screens.",
+        preview = { BottomAppBarPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/bottom-app-bars",
+        docsUrl = "$DocsUrl#bottomappbar",
+        sourceUrl = "$Material3SourceUrl/AppBar.kt",
+        examples = BottomAppBarsExamples,
+    )
+
+private val BottomSheets =
+    Component(
+        id = nextId(),
+        name = "Bottom Sheet",
+        description =
+            "Bottom sheets are surfaces containing supplementary content, anchored to the " +
+                "bottom of the screen.",
+        preview = { BottomSheetPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/bottom-sheets",
+        docsUrl = "$DocsUrl#bottomsheet",
+        sourceUrl = "$Material3SourceUrl/ModalBottomSheet.android.kt",
+        examples = BottomSheetExamples,
+    )
+
+private val Buttons =
+    Component(
+        id = nextId(),
+        name = "Buttons",
+        description =
+            "Buttons help people initiate actions, from sending an email, to sharing a " +
+                "document, to liking a post.",
+        preview = { ButtonsPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/buttons",
+        docsUrl = "$PackageSummaryUrl#button",
+        sourceUrl = "$Material3SourceUrl/Button.kt",
+        examples = ButtonsExamples,
+    )
+
+private val ButtonGroups =
+    Component(
+        id = nextId(),
+        name = "Button Groups",
+        description =
+            "button groups is a container for material components that adds an animation on press",
+        preview = { ButtonGroupsPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/button-groups",
+        docsUrl = "$PackageSummaryUrl#buttongroups",
+        sourceUrl = "$Material3SourceUrl/ButtonGroup.kt",
+        examples = ButtonGroupsExamples,
+    )
+
+private val Card =
+    Component(
+        id = nextId(),
+        name = "Card",
+        description = "Cards contain content and actions that relate information about a subject.",
+        preview = { CardPreview() },
+        guidelinesUrl = "$StyleGuidelinesUrl/cards",
+        docsUrl = "$PackageSummaryUrl#card",
+        sourceUrl = "$Material3SourceUrl/Card.kt",
+        examples = CardExamples,
+    )
+
+private val Carousel =
+    Component(
+        id = nextId(),
+        name = "Carousel",
+        description =
+            "Carousels are stylized versions of lists that provide a unique viewing and " +
+                "behavior that suit large imagery and other visually rich content.",
+        preview = { CarouselPreview() },
+        guidelinesUrl = "$StyleGuidelinesUrl/carousel",
+        docsUrl = "$PackageSummaryUrl#carousel",
+        sourceUrl = "$Material3SourceUrl/Carousel.kt",
+        examples = CarouselExamples,
+    )
+
+private val Checkboxes =
+    Component(
+        id = nextId(),
+        name = "Checkboxes",
+        description =
+            "Checkboxes allow the user to select one or more items from a set or turn an " +
+                "option on or off.",
+        preview = { CheckboxesPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/checkboxes",
+        docsUrl = "$DocsUrl#checkbox",
+        sourceUrl = "$Material3SourceUrl/Checkbox.kt",
+        examples = CheckboxesExamples,
+    )
+
+private val Chips =
+    Component(
+        id = nextId(),
+        name = "Chips",
+        description =
+            "Chips allow users to enter information, make selections, filter content, or" +
+                " trigger actions.",
+        preview = { ChipsPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/chips",
+        docsUrl = "$DocsUrl#chips",
+        sourceUrl = "$Material3SourceUrl/Chip.kt",
+        examples = ChipsExamples,
+    )
+
+private val DatePickers =
+    Component(
+        id = nextId(),
+        name = "Date pickers",
+        description = "Date pickers let users select a date or range of dates.",
+        preview = { DatePickersPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/datepicker",
+        docsUrl = "$PackageSummaryUrl#datepicker",
+        sourceUrl = "$Material3SourceUrl/DatePicker.kt",
+        examples = DatePickerExamples,
+    )
+
+private val Dialogs =
+    Component(
+        id = nextId(),
+        name = "Dialogs",
+        description =
+            "Dialogs provide important prompts in a user flow. They can require an action, " +
+                "communicate information, or help users accomplish a task.",
+        preview = { DialogsPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/dialogs",
+        docsUrl = "$PackageSummaryUrl#alertdialog",
+        sourceUrl = "$Material3SourceUrl/AlertDialog.kt",
+        examples = DialogExamples,
+    )
+
+private val ExtendedFloatingActionButton =
+    Component(
+        id = nextId(),
+        name = "Extended FAB",
+        description =
+            "Extended FABs help people take primary actions. They're wider than FABs to " +
+                "accommodate a text label and larger target area.",
+        preview = { ExtendedFabPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/extended-fab",
+        docsUrl = "$PackageSummaryUrl#extendedfloatingactionbutton",
+        sourceUrl = "$Material3SourceUrl/FloatingActionButton.kt",
+        examples = ExtendedFABExamples,
+    )
+
+private val FloatingActionButtons =
+    Component(
+        id = nextId(),
+        name = "Floating action buttons",
+        description =
+            "The FAB represents the most important action on a screen. It puts key actions " +
+                "within reach.",
+        preview = { FloatingActionButtonsPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/floating-action-button",
+        docsUrl = "$PackageSummaryUrl#floatingactionbutton",
+        sourceUrl = "$Material3SourceUrl/FloatingActionButton.kt",
+        examples = FloatingActionButtonsExamples,
+    )
+
+private val FloatingActionButtonMenu =
+    Component(
+        id = nextId(),
+        name = "FAB Menu",
+        description = "The FAB Menu displays additional key actions on click of a FAB.",
+        preview = { FabMenuPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/fab-menu",
+        docsUrl = "$PackageSummaryUrl#floatingactionbuttonmenu",
+        sourceUrl = "$Material3SourceUrl/FloatingActionButtonMenu.kt",
+        examples = FloatingActionButtonMenuExamples,
+    )
+
+private val FloatingToolbars =
+    Component(
+        id = nextId(),
+        name = "Floating Toolbar",
+        description = "A floating toolbar displays key actions above the content.",
+        preview = { FloatingToolbarsPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/floating-toolbars",
+        docsUrl = "$DocsUrl#floatingtoolbar",
+        sourceUrl = "$Material3SourceUrl/FloatingToolbar.kt",
+        examples = FloatingToolbarsExamples,
+    )
+
+private val IconButtons =
+    Component(
+        id = nextId(),
+        name = "Icon buttons",
+        description =
+            "Icon buttons allow users to take actions and make choices with a single tap.",
+        preview = { IconButtonsPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/icon-button",
+        docsUrl = "$PackageSummaryUrl#iconbutton",
+        sourceUrl = "$Material3SourceUrl/IconButton.kt",
+        examples = IconButtonExamples,
+    )
+
+private val Lists =
+    Component(
+        id = nextId(),
+        name = "Lists",
+        description = "Lists are continuous, vertical indexes of text or images.",
+        preview = { ListsPreview() },
+        tintIcon = true,
+        guidelinesUrl = "$ComponentGuidelinesUrl/list-item",
+        docsUrl = "$PackageSummaryUrl#listitem",
+        sourceUrl = "$Material3SourceUrl/ListItem.kt",
+        examples = ListsExamples,
+    )
+
+private val LoadingIndicators =
+    Component(
+        id = nextId(),
+        name = "Loading indicators",
+        description =
+            "Loading indicators express an unspecified wait time or display the length of " +
+                "a loading process.",
+        preview = { LoadingIndicatorsPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/loading-indicators",
+        tintIcon = true,
+        docsUrl = "$PackageSummaryUrl#loadingindicator",
+        sourceUrl = "$Material3SourceUrl/LoadingIndicator.kt",
+        examples = LoadingIndicatorsExamples,
+    )
+
+private val Menus =
+    Component(
+        id = nextId(),
+        name = "Menus",
+        description = "Menus display a list of choices on temporary surfaces.",
+        preview = { MenusPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/menus",
+        docsUrl = "$PackageSummaryUrl#dropdownmenu",
+        sourceUrl = "$Material3SourceUrl/Menu.kt",
+        examples = MenusExamples,
+    )
+
+private val NavigationBar =
+    Component(
+        id = nextId(),
+        name = "Navigation bar",
+        description =
+            "Navigation bars offer a persistent and convenient way to switch between " +
+                "primary destinations in an app.",
+        preview = { NavigationBarPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/navigation-bar",
+        docsUrl = "$PackageSummaryUrl#navigationbar",
+        sourceUrl = "$Material3SourceUrl/NavigationBar.kt",
+        examples = NavigationBarExamples,
+    )
+
+private val NavigationDrawer =
+    Component(
+        id = nextId(),
+        name = "Navigation drawer",
+        description = "Navigation drawers provide ergonomic access to destinations in an app.",
+        preview = { NavigationDrawerPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/navigation-drawer",
+        docsUrl = "$PackageSummaryUrl#navigationdrawer",
+        sourceUrl = "$Material3SourceUrl/NavigationDrawer.kt",
+        examples = NavigationDrawerExamples,
+    )
+
+private val NavigationRail =
+    Component(
+        id = nextId(),
+        name = "Navigation rail",
+        description =
+            "Navigation rails provide access to primary destinations in apps when using " +
+                "tablet and desktop screens.",
+        preview = { NavigationRailPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/navigation-rail",
+        docsUrl = "$PackageSummaryUrl#navigationrail",
+        sourceUrl = "$Material3SourceUrl/NavigationRail.kt",
+        examples = NavigationRailExamples,
+    )
+
+private val NavigationSuiteScaffold =
+    Component(
+        id = nextId(),
+        name = "Navigation Suite Scaffold",
+        description =
+            "The Navigation Suite Scaffold wraps the provided content and places the " +
+                "adequate provided navigation component on the screen according to the current " +
+                "NavigationSuiteType. \n\n" +
+                "Note: this sample is better experienced in a resizable emulator or foldable device.",
+        preview = { NavigationSuiteScaffoldPreview() },
+        guidelinesUrl = "", // TODO: Add guidelines url when available
+        docsUrl = "", // TODO: Add docs url when available
+        sourceUrl = "$AdaptiveNavigationSuiteMaterial3SourceUrl/NavigationSuiteScaffold.kt",
+        examples = NavigationSuiteScaffoldExamples,
+    )
+
+private val ProgressIndicators =
+    Component(
+        id = nextId(),
+        name = "Progress indicators",
+        description =
+            "Progress indicators express an unspecified wait time or display the length of " +
+                "a process.",
+        preview = { ProgressIndicatorsPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/progress-indicators",
+        docsUrl = "$DocsUrl#circularprogressindicator",
+        sourceUrl = "$Material3SourceUrl/ProgressIndicator.kt",
+        examples = ProgressIndicatorsExamples,
+    )
+
+private val PullToRefreshIndicators =
+    Component(
+        id = nextId(),
+        name = "Pull-to-Refresh Indicator",
+        description =
+            "Pull to refresh is a swipe gesture available at the beginning of lists, grid " +
+                "lists, and card collections where the most recent content appears ",
+        preview = { PullToRefreshPreview() },
+        // TODO: Request component guidelines documentation from design.
+        guidelinesUrl = "",
+        docsUrl = "$DocsUrl#pulltorefreshcontainer",
+        sourceUrl = "$Material3SourceUrl/PullToRefresh.kt",
+        examples = PullToRefreshExamples,
+    )
+
+private val RadioButtons =
+    Component(
+        id = nextId(),
+        name = "Radio buttons",
+        description = "Radio buttons allow the user to select one option from a set.",
+        preview = { RadioButtonsPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/radio-buttons",
+        docsUrl = "$DocsUrl#radiobutton",
+        sourceUrl = "$Material3SourceUrl/RadioButton.kt",
+        examples = RadioButtonsExamples,
+    )
+
+private val ScrollField =
+    Component(
+        id = nextId(),
+        name = "Scroll field",
+        description = "Scroll field allows the user to select a value, e.g. time.",
+        preview = { ScrollFieldPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/scroll-field",
+        docsUrl = "", // TODO(b/441573791):  Add docs when available.
+        sourceUrl = "$Material3SourceUrl/ScrollField.kt",
+        examples = ScrollFieldExamples,
+    )
+
+private val SearchBars =
+    Component(
+        id = nextId(),
+        name = "Search bars",
+        description =
+            "Search bars allow users to enter a keyword or phrase and get relevant " +
+                "information.",
+        preview = { SearchBarsPreview() },
+        guidelinesUrl = "", // No guidelines yet
+        docsUrl = "", // No docs yet
+        sourceUrl = "$Material3SourceUrl/SearchBar.kt",
+        examples = SearchBarExamples,
+    )
+
+private val SegmentedButtons =
+    Component(
+        id = nextId(),
+        name = "Segmented Button",
+        description =
+            "Segmented buttons help people select options, switch views, or sort elements.",
+        preview = { SegmentedButtonsPreview() },
+        guidelinesUrl = "", // No guidelines yet
+        docsUrl = "", // No docs yet
+        sourceUrl = "$Material3SourceUrl/SegmentedButton.kt",
+        examples = SegmentedButtonExamples,
+    )
+
+private val ToggleButtons =
+    Component(
+        id = nextId(),
+        name = "ToggleButtons",
+        description = "Toggle buttons provide a selectable button that animates on press.",
+        preview = { ToggleButtonsPreview() },
+        guidelinesUrl = "", // No guidelines yet
+        docsUrl = "", // No docs yet
+        sourceUrl = "$Material3SourceUrl/ToggleButton.kt",
+        examples = ToggleButtonsExamples,
+    )
+
+private val Sliders =
+    Component(
+        id = nextId(),
+        name = "Sliders",
+        description = "Sliders allow users to make selections from a range of values.",
+        preview = { SlidersPreview() },
+        guidelinesUrl = "", // No guidelines yet
+        docsUrl = "", // No docs yet
+        sourceUrl = "$Material3SourceUrl/Slider.kt",
+        examples = SlidersExamples,
+    )
+
+private val Snackbars =
+    Component(
+        id = nextId(),
+        name = "Snackbars",
+        description =
+            "Snackbars provide brief messages about app processes at the bottom of the " +
+                "screen.",
+        preview = { SnackbarsPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/snackbars",
+        docsUrl = "$DocsUrl#snackbar",
+        sourceUrl = "$Material3SourceUrl/Snackbar.kt",
+        examples = SnackbarsExamples,
+    )
+
+private val SplitButtons =
+    Component(
+        id = nextId(),
+        name = "Split Button",
+        description = "Split buttons let user perform additional actions besides the main action",
+        preview = { SplitButtonsPreview() },
+        guidelinesUrl = "", // No guidelines yet
+        docsUrl = "", // No docs yet
+        sourceUrl = "$Material3SourceUrl/SplitButton.kt",
+        examples = SplitButtonExamples,
+    )
+
+private val Switches =
+    Component(
+        id = nextId(),
+        name = "Switches",
+        description = "Switches toggle the state of a single setting on or off.",
+        preview = { SwitchesPreview() },
+        // No guidelines yet
+        guidelinesUrl = "",
+        docsUrl = "",
+        sourceUrl = "$Material3SourceUrl/Switch.kt",
+        examples = SwitchExamples,
+    )
+
+private val Tabs =
+    Component(
+        id = nextId(),
+        name = "Tabs",
+        description =
+            "Tabs organize content across different screens, data sets, and other " +
+                "interactions.",
+        preview = { TabsPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/tabs",
+        docsUrl = "$DocsUrl#tab",
+        sourceUrl = "$Material3SourceUrl/Tab.kt",
+        examples = TabsExamples,
+    )
+
+private val TextFields =
+    Component(
+        id = nextId(),
+        name = "Text fields",
+        description = "Text fields let users enter and edit text.",
+        preview = { TextFieldsPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/text-fields",
+        docsUrl = "$DocsUrl#textfield",
+        sourceUrl = "$Material3SourceUrl/TextField.kt",
+        examples = TextFieldsExamples,
+    )
+
+private val Tooltips =
+    Component(
+        id = nextId(),
+        name = "Tooltips",
+        description = "Tooltips call user attention to an anchor component.",
+        preview = { TooltipsPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/tooltips",
+        docsUrl = "$PackageSummaryUrl#tooltip",
+        sourceUrl = "$Material3SourceUrl/Tooltip.kt",
+        examples = TooltipsExamples,
+    )
+
+private val TimePickers =
+    Component(
+        id = nextId(),
+        name = "Time Picker",
+        description = "Time picker allows the user to choose time of day.",
+        preview = { TimePickersPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/time-picker",
+        docsUrl = "$DocsUrl#time-pickers",
+        sourceUrl = "$Material3SourceUrl/TimePicker.kt",
+        examples = TimePickerExamples,
+    )
+
+private val TopAppBar =
+    Component(
+        id = nextId(),
+        name = "Top app bar",
+        description = "Top app bars display information and actions at the top of a screen.",
+        preview = { TopAppBarPreview() },
+        guidelinesUrl = "$ComponentGuidelinesUrl/top-app-bar",
+        docsUrl = "$PackageSummaryUrl#smalltopappbar",
+        sourceUrl = "$Material3SourceUrl/AppBar.kt",
+        examples = TopAppBarExamples,
+    )
+
+private val Transitions =
+    Component(
+        id = nextId(),
+        name = "Transitions",
+        description =
+            "Transitions guide users between screens and navigation states, maintaining " +
+                "spatial context through expressive motion, including gesture-driven " +
+                "predictive back.",
+        preview = { TransitionsPreview() },
+        guidelinesUrl = "$StyleGuidelinesUrl/motion",
+        docsUrl = "", // No docs yet
+        sourceUrl = "$Material3SourceUrl/NavigationTransitions.kt",
+        examples = TransitionExamples,
+    )
+
+private val Typography =
+    Component(
+        id = nextId(),
+        name = "Typography",
+        description =
+            "The Material Design type scale includes a range of contrasting styles that " +
+                "support the needs of your product and its content.",
+        preview = { TypographyPreview() },
+        guidelinesUrl = "$StyleGuidelinesUrl/typography",
+        docsUrl = "$PackageSummaryUrl#typography",
+        sourceUrl = "$Material3SourceUrl/Typography.kt",
+        examples = TypographyExamples,
+    )
+
+/** Components for the catalog, ordered alphabetically by name. */
+val Components =
+    listOf(
+        Adaptive,
+        Badge,
+        BottomAppBars,
+        BottomSheets,
+        Buttons,
+        ButtonGroups,
+        Card,
+        Carousel,
+        Checkboxes,
+        Chips,
+        DatePickers,
+        Dialogs,
+        ExtendedFloatingActionButton,
+        FloatingActionButtons,
+        FloatingActionButtonMenu,
+        FloatingToolbars,
+        IconButtons,
+        Lists,
+        LoadingIndicators,
+        Menus,
+        NavigationBar,
+        NavigationDrawer,
+        NavigationRail,
+        NavigationSuiteScaffold,
+        ProgressIndicators,
+        PullToRefreshIndicators,
+        RadioButtons,
+        ScrollField,
+        SearchBars,
+        SegmentedButtons,
+        Sliders,
+        Snackbars,
+        SplitButtons,
+        Switches,
+        Tabs,
+        TextFields,
+        TimePickers,
+        ToggleButtons,
+        Tooltips,
+        TopAppBar,
+        // TODO(b/449779924): Re-add Transitions after the 2.6.0 catalog release is signed.
+        //  It's hidden because MaterialTransitions is only in material3 1.6.0-alpha.
+        Typography,
+    )

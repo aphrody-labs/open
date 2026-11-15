@@ -1,0 +1,503 @@
+import {Platform, _supportsShadowDom} from '../../platform';
+import {CdkPortalOutlet, PortalModule, TemplatePortal} from '../../portal';
+import {
+  Component,
+  TemplateRef,
+  ViewChild,
+  ViewContainerRef,
+  ViewEncapsulation,
+  inject,
+  ChangeDetectionStrategy,
+} from '@angular/core';
+import {ComponentFixture, TestBed} from '@angular/core/testing';
+import {By} from '@angular/platform-browser';
+import {A11yModule, CdkTrapFocus, FocusTrap} from '../index';
+
+describe('FocusTrap', () => {
+  describe('with default element', () => {
+    it('wrap focus from end to start', () => {
+      const fixture = TestBed.createComponent(SimpleFocusTrap);
+      fixture.detectChanges();
+
+      // Because we can't mimic a real tab press focus change in a unit test, just call the
+      // focus event handler directly.
+      const result =
+        fixture.componentInstance.focusTrapDirective.focusTrap.focusFirstTabbableElement();
+
+      expect(getActiveElement().nodeName.toLowerCase())
+        .withContext('Expected input element to be focused')
+        .toBe('input');
+      expect(result)
+        .withContext('Expected return value to be true if focus was shifted.')
+        .toBe(true);
+    });
+
+    it('should wrap focus from start to end', () => {
+      const fixture = TestBed.createComponent(SimpleFocusTrap);
+      fixture.detectChanges();
+
+      // Because we can't mimic a real tab press focus change in a unit test, just call the
+      // focus event handler directly.
+      const result =
+        fixture.componentInstance.focusTrapDirective.focusTrap.focusLastTabbableElement();
+
+      const platform = TestBed.inject(Platform);
+      // In iOS button elements are never tabbable, so the last element will be the input.
+      const lastElement = platform.IOS ? 'input' : 'button';
+
+      expect(getActiveElement().nodeName.toLowerCase())
+        .withContext(`Expected ${lastElement} element to be focused`)
+        .toBe(lastElement);
+
+      expect(result)
+        .withContext('Expected return value to be true if focus was shifted.')
+        .toBe(true);
+    });
+
+    it('should skip elements inside an inert subtree when focusing the last element', () => {
+      const fixture = TestBed.createComponent(FocusTrapWithInertLastChild);
+      fixture.detectChanges();
+
+      const result =
+        fixture.componentInstance.focusTrapDirective.focusTrap.focusLastTabbableElement();
+
+      expect(getActiveElement().id)
+        .withContext('Expected the last non-inert element to be focused')
+        .toBe('last-visible');
+      expect(result)
+        .withContext('Expected return value to be true if focus was shifted.')
+        .toBe(true);
+    });
+
+    it('should return false if it did not manage to find a focusable element', () => {
+      const fixture = TestBed.createComponent(FocusTrapWithoutFocusableElements);
+      fixture.detectChanges();
+
+      const focusTrap = fixture.componentInstance.focusTrapDirective.focusTrap;
+      const result = focusTrap.focusFirstTabbableElement();
+
+      expect(result).toBe(false);
+    });
+
+    it('should be enabled by default', () => {
+      const fixture = TestBed.createComponent(SimpleFocusTrap);
+      fixture.detectChanges();
+      expect(fixture.componentInstance.focusTrapDirective.focusTrap.enabled).toBe(true);
+    });
+
+    it('should focus the root node if there are no focusable elements, but the root is focusable', () => {
+      const fixture = TestBed.createComponent(FocusTrapWithoutFocusableElements);
+      fixture.detectChanges();
+      const root = fixture.nativeElement.querySelector('.trap') as HTMLElement;
+      root.setAttribute('tabindex', '-1');
+
+      fixture.nativeElement.querySelector('.cdk-focus-trap-anchor').focus();
+      fixture.detectChanges();
+
+      expect(getActiveElement()).withContext('Expected focus trap root to be focused').toBe(root);
+    });
+  });
+
+  describe('with bindings', () => {
+    let fixture: ComponentFixture<FocusTrapWithBindings>;
+
+    beforeEach(() => {
+      fixture = TestBed.createComponent(FocusTrapWithBindings);
+      fixture.detectChanges();
+    });
+
+    it('should clean up its anchor sibling elements on destroy', () => {
+      const rootElement = fixture.debugElement.nativeElement as HTMLElement;
+
+      expect(rootElement.querySelectorAll('div.cdk-visually-hidden').length).toBe(2);
+
+      fixture.componentInstance.renderFocusTrap = false;
+      fixture.changeDetectorRef.markForCheck();
+      fixture.detectChanges();
+
+      expect(rootElement.querySelectorAll('div.cdk-visually-hidden').length).toBe(0);
+    });
+
+    it('should set the appropriate tabindex on the anchors, based on the disabled state', () => {
+      const anchors = Array.from(
+        fixture.debugElement.nativeElement.querySelectorAll('div.cdk-visually-hidden'),
+      ) as HTMLElement[];
+
+      expect(anchors.every(current => current.getAttribute('tabindex') === '0')).toBe(true);
+      expect(anchors.every(current => current.getAttribute('aria-hidden') === 'true')).toBe(true);
+
+      fixture.componentInstance._isFocusTrapEnabled = false;
+      fixture.changeDetectorRef.markForCheck();
+      fixture.detectChanges();
+
+      expect(anchors.every(current => !current.hasAttribute('tabindex'))).toBe(true);
+    });
+  });
+
+  describe('with focus targets', () => {
+    let fixture: ComponentFixture<FocusTrapTargets>;
+    let focusTrapInstance: FocusTrap;
+
+    beforeEach(() => {
+      fixture = TestBed.createComponent(FocusTrapTargets);
+      fixture.detectChanges();
+      focusTrapInstance = fixture.componentInstance.focusTrapDirective.focusTrap;
+    });
+
+    it('should be able to set initial focus target', () => {
+      // Because we can't mimic a real tab press focus change in a unit test, just call the
+      // focus event handler directly.
+      focusTrapInstance.focusInitialElement();
+      expect(getActiveElement().id).toBe('middle');
+    });
+
+    it('should be able to pass in focus options to initial focusable element', () => {
+      const options = {preventScroll: true};
+      const spy = spyOn(fixture.nativeElement.querySelector('#middle'), 'focus').and.callThrough();
+
+      focusTrapInstance.focusInitialElement(options);
+      expect(spy).toHaveBeenCalledWith(options);
+    });
+
+    it('should be able to prioritize the first focus target', () => {
+      // Because we can't mimic a real tab press focus change in a unit test, just call the
+      // focus event handler directly.
+      focusTrapInstance.focusFirstTabbableElement();
+      expect(getActiveElement().id).toBe('first');
+    });
+
+    it('should be able to pass in focus options to first focusable element', () => {
+      const options = {preventScroll: true};
+      const spy = spyOn(fixture.nativeElement.querySelector('#first'), 'focus').and.callThrough();
+
+      focusTrapInstance.focusFirstTabbableElement(options);
+      expect(spy).toHaveBeenCalledWith(options);
+    });
+
+    it('should be able to prioritize the last focus target', () => {
+      // Because we can't mimic a real tab press focus change in a unit test, just call the
+      // focus event handler directly.
+      focusTrapInstance.focusLastTabbableElement();
+      expect(getActiveElement().id).toBe('last');
+    });
+
+    it('should be able to pass in focus options to last focusable element', () => {
+      const options = {preventScroll: true};
+      const spy = spyOn(fixture.nativeElement.querySelector('#last'), 'focus').and.callThrough();
+
+      focusTrapInstance.focusLastTabbableElement(options);
+      expect(spy).toHaveBeenCalledWith(options);
+    });
+
+    it('should warn if the initial focus target is not focusable', () => {
+      const alternateFixture = TestBed.createComponent(FocusTrapUnfocusableTarget);
+      alternateFixture.detectChanges();
+      focusTrapInstance = fixture.componentInstance.focusTrapDirective.focusTrap;
+
+      spyOn(console, 'warn');
+      focusTrapInstance.focusInitialElement();
+
+      expect(console.warn).toHaveBeenCalled();
+    });
+  });
+
+  describe('special cases', () => {
+    it('should not throw when it has a SVG child', () => {
+      let fixture = TestBed.createComponent(FocusTrapWithSvg);
+
+      fixture.detectChanges();
+
+      let focusTrapInstance = fixture.componentInstance.focusTrapDirective.focusTrap;
+
+      expect(() => focusTrapInstance.focusFirstTabbableElement()).not.toThrow();
+      expect(() => focusTrapInstance.focusLastTabbableElement()).not.toThrow();
+    });
+  });
+
+  describe('with autoCapture', () => {
+    it('should automatically capture and return focus on init / destroy', () => {
+      const fixture = TestBed.createComponent(FocusTrapWithAutoCapture);
+      fixture.detectChanges();
+
+      const buttonOutsideTrappedRegion = fixture.nativeElement.querySelector('button');
+      buttonOutsideTrappedRegion.focus();
+      expect(getActiveElement()).toBe(buttonOutsideTrappedRegion);
+
+      fixture.componentInstance.showTrappedRegion = true;
+      fixture.changeDetectorRef.markForCheck();
+      fixture.detectChanges();
+      expect(getActiveElement().id).toBe('auto-capture-target');
+
+      fixture.componentInstance.showTrappedRegion = false;
+      fixture.changeDetectorRef.markForCheck();
+      fixture.detectChanges();
+
+      expect(getActiveElement()).toBe(buttonOutsideTrappedRegion);
+    });
+
+    it('should capture focus if auto capture is enabled later on', () => {
+      const fixture = TestBed.createComponent(FocusTrapWithAutoCapture);
+      fixture.componentInstance.autoCaptureEnabled = false;
+      fixture.componentInstance.showTrappedRegion = true;
+      fixture.changeDetectorRef.markForCheck();
+      fixture.detectChanges();
+
+      const buttonOutsideTrappedRegion = fixture.nativeElement.querySelector('button');
+      buttonOutsideTrappedRegion.focus();
+      expect(getActiveElement()).toBe(buttonOutsideTrappedRegion);
+
+      fixture.componentInstance.autoCaptureEnabled = true;
+      fixture.changeDetectorRef.markForCheck();
+      fixture.detectChanges();
+      expect(getActiveElement().id).toBe('auto-capture-target');
+
+      fixture.componentInstance.showTrappedRegion = false;
+      fixture.changeDetectorRef.markForCheck();
+      fixture.detectChanges();
+
+      expect(getActiveElement()).toBe(buttonOutsideTrappedRegion);
+    });
+
+    it('should automatically capture and return focus on init / destroy inside the shadow DOM', () => {
+      if (!_supportsShadowDom()) {
+        return;
+      }
+
+      const fixture = TestBed.createComponent(FocusTrapWithAutoCaptureInShadowDom);
+      fixture.detectChanges();
+
+      const buttonOutsideTrappedRegion = fixture.debugElement.query(By.css('button')).nativeElement;
+      buttonOutsideTrappedRegion.focus();
+      expect(getActiveElement()).toBe(buttonOutsideTrappedRegion);
+
+      fixture.componentInstance.showTrappedRegion = true;
+      fixture.changeDetectorRef.markForCheck();
+      fixture.detectChanges();
+      expect(getActiveElement().id).toBe('auto-capture-target');
+
+      fixture.componentInstance.showTrappedRegion = false;
+      fixture.changeDetectorRef.markForCheck();
+      fixture.detectChanges();
+
+      expect(getActiveElement()).toBe(buttonOutsideTrappedRegion);
+    });
+
+    it('should capture focus if auto capture is enabled later on inside the shadow DOM', () => {
+      if (!_supportsShadowDom()) {
+        return;
+      }
+
+      const fixture = TestBed.createComponent(FocusTrapWithAutoCaptureInShadowDom);
+      fixture.componentInstance.autoCaptureEnabled = false;
+      fixture.componentInstance.showTrappedRegion = true;
+      fixture.changeDetectorRef.markForCheck();
+      fixture.detectChanges();
+
+      const buttonOutsideTrappedRegion = fixture.debugElement.query(By.css('button')).nativeElement;
+      buttonOutsideTrappedRegion.focus();
+      expect(getActiveElement()).toBe(buttonOutsideTrappedRegion);
+
+      fixture.componentInstance.autoCaptureEnabled = true;
+      fixture.changeDetectorRef.markForCheck();
+      fixture.detectChanges();
+      expect(getActiveElement().id).toBe('auto-capture-target');
+
+      fixture.componentInstance.showTrappedRegion = false;
+      fixture.changeDetectorRef.markForCheck();
+      fixture.detectChanges();
+
+      expect(getActiveElement()).toBe(buttonOutsideTrappedRegion);
+    });
+  });
+
+  it('should put anchors inside the outlet when set at the root of a template portal', () => {
+    const fixture = TestBed.createComponent(FocusTrapInsidePortal);
+    const instance = fixture.componentInstance;
+    fixture.detectChanges();
+    const outlet: HTMLElement = fixture.nativeElement.querySelector('.portal-outlet');
+
+    expect(outlet.querySelectorAll('button').length)
+      .withContext('Expected no buttons inside the outlet on init.')
+      .toBe(0);
+    expect(outlet.querySelectorAll('.cdk-focus-trap-anchor').length)
+      .withContext('Expected no focus trap anchors inside the outlet on init.')
+      .toBe(0);
+
+    const portal = new TemplatePortal(instance.template, instance.viewContainerRef);
+    instance.portalOutlet.attachTemplatePortal(portal);
+    fixture.detectChanges();
+
+    expect(outlet.querySelectorAll('button').length)
+      .withContext('Expected one button inside the outlet after attaching.')
+      .toBe(1);
+    expect(outlet.querySelectorAll('.cdk-focus-trap-anchor').length)
+      .withContext('Expected two focus trap anchors in the outlet after attaching.')
+      .toBe(2);
+  });
+});
+
+/** Gets the currently-focused element while accounting for the shadow DOM. */
+function getActiveElement() {
+  const activeElement = document.activeElement as HTMLElement | null;
+  return (activeElement?.shadowRoot?.activeElement as HTMLElement) || activeElement;
+}
+
+@Component({
+  template: `
+    <div cdkTrapFocus>
+      <input>
+      <button>SAVE</button>
+    </div>
+  `,
+  imports: [A11yModule, PortalModule],
+  changeDetection: ChangeDetectionStrategy.Eager,
+})
+class SimpleFocusTrap {
+  @ViewChild(CdkTrapFocus) focusTrapDirective!: CdkTrapFocus;
+}
+
+@Component({
+  template: `
+    <div cdkTrapFocus>
+      <button>SAVE</button>
+      <input id="last-visible">
+      <div inert>
+        <input>
+      </div>
+    </div>
+  `,
+  imports: [A11yModule, PortalModule],
+  changeDetection: ChangeDetectionStrategy.Eager,
+})
+class FocusTrapWithInertLastChild {
+  @ViewChild(CdkTrapFocus) focusTrapDirective!: CdkTrapFocus;
+}
+
+const AUTO_FOCUS_TEMPLATE = `
+  <button type="button">Toggle</button>
+  @if (showTrappedRegion) {
+    <div cdkTrapFocus [cdkTrapFocusAutoCapture]="autoCaptureEnabled">
+      <input id="auto-capture-target">
+      <button>SAVE</button>
+    </div>
+  }
+`;
+
+@Component({
+  template: AUTO_FOCUS_TEMPLATE,
+  imports: [A11yModule, PortalModule],
+  changeDetection: ChangeDetectionStrategy.Eager,
+})
+class FocusTrapWithAutoCapture {
+  @ViewChild(CdkTrapFocus) focusTrapDirective!: CdkTrapFocus;
+  showTrappedRegion = false;
+  autoCaptureEnabled = true;
+}
+
+@Component({
+  template: AUTO_FOCUS_TEMPLATE,
+  encapsulation: ViewEncapsulation.ShadowDom,
+  imports: [A11yModule, PortalModule],
+  changeDetection: ChangeDetectionStrategy.Eager,
+})
+class FocusTrapWithAutoCaptureInShadowDom extends FocusTrapWithAutoCapture {}
+
+@Component({
+  template: `
+    @if (renderFocusTrap) {
+      <div [cdkTrapFocus]="_isFocusTrapEnabled">
+        <input>
+        <button>SAVE</button>
+      </div>
+    }
+  `,
+  imports: [A11yModule, PortalModule],
+  changeDetection: ChangeDetectionStrategy.Eager,
+})
+class FocusTrapWithBindings {
+  @ViewChild(CdkTrapFocus) focusTrapDirective!: CdkTrapFocus;
+  renderFocusTrap = true;
+  _isFocusTrapEnabled = true;
+}
+
+@Component({
+  template: `
+    <div cdkTrapFocus>
+      <input>
+      <button>before</button>
+      <button id="first" cdkFocusRegionStart></button>
+      <button id="middle" cdkFocusInitial></button>
+      <button id="last" cdkFocusRegionEnd></button>
+      <button>after</button>
+      <input>
+    </div>
+  `,
+  imports: [A11yModule, PortalModule],
+  changeDetection: ChangeDetectionStrategy.Eager,
+})
+class FocusTrapTargets {
+  @ViewChild(CdkTrapFocus) focusTrapDirective!: CdkTrapFocus;
+}
+
+@Component({
+  template: `
+    <div cdkTrapFocus>
+      <div cdkFocusInitial></div>
+    </div>
+  `,
+  imports: [A11yModule, PortalModule],
+  changeDetection: ChangeDetectionStrategy.Eager,
+})
+class FocusTrapUnfocusableTarget {
+  @ViewChild(CdkTrapFocus) focusTrapDirective!: CdkTrapFocus;
+}
+
+@Component({
+  template: `
+    <div cdkTrapFocus>
+      <svg xmlns="http://www.w3.org/2000/svg">
+        <circle cx="100" cy="100" r="100"/>
+      </svg>
+    </div>
+  `,
+  imports: [A11yModule, PortalModule],
+  changeDetection: ChangeDetectionStrategy.Eager,
+})
+class FocusTrapWithSvg {
+  @ViewChild(CdkTrapFocus) focusTrapDirective!: CdkTrapFocus;
+}
+
+@Component({
+  template: `
+    <div class="trap" cdkTrapFocus>
+      <p>Hello</p>
+    </div>
+  `,
+  imports: [A11yModule, PortalModule],
+  changeDetection: ChangeDetectionStrategy.Eager,
+})
+class FocusTrapWithoutFocusableElements {
+  @ViewChild(CdkTrapFocus) focusTrapDirective!: CdkTrapFocus;
+}
+
+@Component({
+  template: `
+    <div class="portal-outlet">
+      <ng-template cdkPortalOutlet></ng-template>
+    </div>
+
+    <ng-template #template>
+      <div cdkTrapFocus>
+        <button>Click me</button>
+      </div>
+    </ng-template>
+  `,
+  imports: [A11yModule, PortalModule],
+  changeDetection: ChangeDetectionStrategy.Eager,
+})
+class FocusTrapInsidePortal {
+  viewContainerRef = inject(ViewContainerRef);
+
+  @ViewChild('template') template!: TemplateRef<any>;
+  @ViewChild(CdkPortalOutlet) portalOutlet!: CdkPortalOutlet;
+}

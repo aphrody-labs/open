@@ -1,0 +1,196 @@
+/**
+ * @license
+ * Copyright Google LLC All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://angular.dev/license
+ */
+
+import {ViewContainerRef, Injector, StaticProvider, Type, Binding} from '@angular/core';
+import {Direction} from '../bidi';
+import {OverlayDisposeOnNavigation, PositionStrategy, ScrollStrategy} from '../overlay';
+import {Observable} from 'rxjs';
+import {BasePortalOutlet} from '../portal';
+import {FocusOrigin} from '../a11y';
+
+/** Options for where to set focus to automatically on dialog open */
+export type AutoFocusTarget = 'dialog' | 'first-tabbable' | 'first-heading';
+
+/**
+ * Value that determines the focus restoration behavior for a dialog.
+ * The values represent the following behaviors:
+ * - `boolean` - when true, will return focus to the element that was focused before the dialog
+ *    was opened, otherwise won't restore focus at all.
+ * - `string` - focus will be restored to the first element that matches the CSS selector.
+ * - `HTMLElement` - focus will be restored to the specific element.
+ */
+export type RestoreFocusValue = boolean | string | HTMLElement;
+
+/** Valid ARIA roles for a dialog. */
+export type DialogRole = 'dialog' | 'alertdialog';
+
+/** Component that can be used as the container for the dialog. */
+export type DialogContainer = BasePortalOutlet & {
+  _focusTrapped?: Observable<void>;
+  _closeInteractionType?: FocusOrigin;
+  _recaptureFocus?: () => void;
+};
+
+/** Configuration for opening a modal dialog. */
+export class DialogConfig<D = unknown, R = unknown, C extends DialogContainer = BasePortalOutlet> {
+  /**
+   * Where the attached component should live in Angular's *logical* component tree.
+   * This affects what is available for injection and the change detection order for the
+   * component instantiated inside of the dialog. This does not affect where the dialog
+   * content will be rendered.
+   */
+  viewContainerRef?: ViewContainerRef;
+
+  /**
+   * Injector used for the instantiation of the component to be attached. If provided,
+   * takes precedence over the injector indirectly provided by `ViewContainerRef`.
+   */
+  injector?: Injector;
+
+  /** ID for the dialog. If omitted, a unique one will be generated. */
+  id?: string;
+
+  /** The ARIA role of the dialog element. */
+  role?: DialogRole = 'dialog';
+
+  /** Optional CSS class or classes applied to the overlay panel. */
+  panelClass?: string | string[] = '';
+
+  /** Whether the dialog has a backdrop. */
+  hasBackdrop?: boolean = true;
+
+  /** Optional CSS class or classes applied to the overlay backdrop. */
+  backdropClass?: string | string[] = '';
+
+  /** Whether the dialog closes with the escape key or pointer events outside the panel element. */
+  disableClose?: boolean = false;
+
+  /** Function used to determine whether the dialog is allowed to close. */
+  closePredicate?: <
+    Result = unknown,
+    Component = unknown,
+    Config extends DialogConfig = DialogConfig,
+  >(
+    result: Result | undefined,
+    config: Config,
+    componentInstance: Component | null,
+  ) => boolean;
+
+  /** Width of the dialog. */
+  width?: string = '';
+
+  /** Height of the dialog. */
+  height?: string = '';
+
+  /** Min-width of the dialog. If a number is provided, assumes pixel units. */
+  minWidth?: number | string;
+
+  /** Min-height of the dialog. If a number is provided, assumes pixel units. */
+  minHeight?: number | string;
+
+  /** Max-width of the dialog. If a number is provided, assumes pixel units. */
+  maxWidth?: number | string;
+
+  /** Max-height of the dialog. If a number is provided, assumes pixel units. */
+  maxHeight?: number | string;
+
+  /** Strategy to use when positioning the dialog. Defaults to centering it on the page. */
+  positionStrategy?: PositionStrategy;
+
+  /** Data being injected into the child component. */
+  data?: D | null = null;
+
+  /** Layout direction for the dialog's content. */
+  direction?: Direction;
+
+  /** ID of the element that describes the dialog. */
+  ariaDescribedBy?: string | null = null;
+
+  /** ID of the element that labels the dialog. */
+  ariaLabelledBy?: string | null = null;
+
+  /** Dialog label applied via `aria-label` */
+  ariaLabel?: string | null = null;
+
+  /**
+   * Whether this is a modal dialog. Used to set the `aria-modal` attribute. Off by default,
+   * because it can interfere with other overlay-based components (e.g. `mat-select`) and because
+   * it is redundant since the dialog marks all outside content as `aria-hidden` anyway.
+   */
+  ariaModal?: boolean = false;
+
+  /**
+   * Where the dialog should focus on open.
+   * @breaking-change 14.0.0 Remove boolean option from autoFocus. Use string or
+   * AutoFocusTarget instead.
+   */
+  autoFocus?: AutoFocusTarget | string | boolean = 'first-tabbable';
+
+  /** Configures the focus restoration behavior. See `RestoreFocusValue` for more information. */
+  restoreFocus?: RestoreFocusValue = true;
+
+  /**
+   * Scroll strategy to be used for the dialog. This determines how
+   * the dialog responds to scrolling underneath the panel element.
+   */
+  scrollStrategy?: ScrollStrategy;
+
+  /** Whether the dialog should be disposed of when the user navigates. */
+  closeOnNavigation?: OverlayDisposeOnNavigation = true;
+
+  /**
+   * Whether the dialog should close when the dialog service is destroyed. This is useful if
+   * another service is wrapping the dialog and is managing the destruction instead.
+   */
+  closeOnDestroy?: boolean = true;
+
+  /**
+   * Whether the dialog should close when the underlying overlay is detached. This is useful if
+   * another service is wrapping the dialog and is managing the destruction instead. E.g. an
+   * external detachment can happen as a result of a scroll strategy triggering it or when the
+   * browser location changes.
+   */
+  closeOnOverlayDetachments?: boolean = true;
+
+  /**
+   * Whether the built-in overlay animations should be disabled.
+   */
+  disableAnimations?: boolean = false;
+
+  /**
+   * Providers that will be exposed to the contents of the dialog. Can also
+   * be provided as a function in order to generate the providers lazily.
+   */
+  providers?:
+    | StaticProvider[]
+    | ((dialogRef: R, config: DialogConfig<D, R, C>, container: C) => StaticProvider[]);
+
+  /**
+   * Component into which the dialog content will be rendered. Defaults to `CdkDialogContainer`.
+   * A configuration object can be passed in to customize the providers that will be exposed
+   * to the dialog container.
+   */
+  container?:
+    | Type<C>
+    | {
+        type: Type<C>;
+        providers: (config: DialogConfig<D, R, C>) => StaticProvider[];
+      };
+
+  /**
+   * Context that will be passed to template-based dialogs.
+   * A function can be passed in to resolve the context lazily.
+   */
+  templateContext?: Record<string, any> | (() => Record<string, any>);
+
+  /**
+   * Bindings to apply to the component rendered inside the dialog.
+   * Does nothing for template-based dialogs.
+   */
+  bindings?: Binding[];
+}

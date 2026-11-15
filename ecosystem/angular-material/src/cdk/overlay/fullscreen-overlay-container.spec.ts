@@ -1,0 +1,124 @@
+import {TestBed} from '@angular/core/testing';
+import {
+  Component,
+  ViewChild,
+  ViewContainerRef,
+  inject,
+  DOCUMENT,
+  Injector,
+  ChangeDetectionStrategy,
+} from '@angular/core';
+import {CdkPortal} from '../portal';
+import {OverlayContainer, FullscreenOverlayContainer, createOverlayRef} from './index';
+
+describe('FullscreenOverlayContainer', () => {
+  let injector: Injector;
+  let fullscreenListeners: Set<Function>;
+  let fakeDocument: any;
+
+  beforeEach(() => {
+    fullscreenListeners = new Set();
+
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: OverlayContainer,
+          useClass: FullscreenOverlayContainer,
+        },
+        {
+          provide: DOCUMENT,
+          useFactory: () => {
+            // Provide a (very limited) stub for the document. This is the most practical solution for
+            // now since we only hit a handful of Document APIs. If we end up having to add more
+            // stubs here, we should reconsider whether to use a Proxy instead. Avoiding a proxy for
+            // now since it isn't supported on IE. See:
+            // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy
+            return {
+              body: document.body,
+              head: document.head,
+              fullscreenElement: document.createElement('div'),
+              fullscreenEnabled: true,
+              addEventListener: (eventName: string, listener: EventListener) => {
+                if (eventName === 'fullscreenchange') {
+                  fullscreenListeners.add(listener);
+                } else {
+                  document.addEventListener(eventName, listener);
+                }
+              },
+              removeEventListener: (eventName: string, listener: EventListener) => {
+                if (eventName === 'fullscreenchange') {
+                  fullscreenListeners.delete(listener);
+                } else {
+                  document.addEventListener(eventName, listener);
+                }
+              },
+              querySelectorAll: (...args: [string]) => document.querySelectorAll(...args),
+              createElement: (...args: [string, (ElementCreationOptions | undefined)?]) =>
+                document.createElement(...args),
+              getElementsByClassName: (...args: [string]) =>
+                document.getElementsByClassName(...args),
+              querySelector: (...args: [string]) => document.querySelector(...args),
+              createTextNode: (...args: [string]) => document.createTextNode(...args),
+              createComment: (...args: [string]) => document.createComment(...args),
+            };
+          },
+        },
+      ],
+    });
+
+    injector = TestBed.inject(Injector);
+    fakeDocument = TestBed.inject(DOCUMENT);
+  });
+
+  it('should open an overlay inside a fullscreen element and move it to the body', () => {
+    const fixture = TestBed.createComponent(TestComponentWithTemplatePortals);
+    fixture.detectChanges();
+    const overlayRef = createOverlayRef(injector);
+    const fullscreenElement = fakeDocument.fullscreenElement;
+
+    overlayRef.attach(fixture.componentInstance.templatePortal);
+    fixture.detectChanges();
+
+    expect(fullscreenElement.contains(overlayRef.overlayElement)).toBe(true);
+
+    fakeDocument.fullscreenElement = null;
+    fullscreenListeners.forEach(listener => listener());
+    fixture.detectChanges();
+
+    expect(fullscreenElement.contains(overlayRef.overlayElement)).toBe(false);
+    expect(document.body.contains(overlayRef.overlayElement)).toBe(true);
+  });
+
+  it('should open an overlay inside the body and move it to a fullscreen element', () => {
+    const fullscreenElement = fakeDocument.fullscreenElement;
+    fakeDocument.fullscreenElement = null;
+
+    const fixture = TestBed.createComponent(TestComponentWithTemplatePortals);
+    fixture.detectChanges();
+    const overlayRef = createOverlayRef(injector);
+
+    overlayRef.attach(fixture.componentInstance.templatePortal);
+    fixture.detectChanges();
+
+    expect(fullscreenElement.contains(overlayRef.overlayElement)).toBe(false);
+    expect(document.body.contains(overlayRef.overlayElement)).toBe(true);
+
+    fakeDocument.fullscreenElement = fullscreenElement;
+    fullscreenListeners.forEach(listener => listener());
+    fixture.detectChanges();
+
+    expect(fullscreenElement.contains(overlayRef.overlayElement)).toBe(true);
+  });
+});
+
+/** Test-bed component that contains a TempatePortal and an ElementRef. */
+@Component({
+  template: `<ng-template cdkPortal>Cake</ng-template>`,
+  imports: [CdkPortal],
+  changeDetection: ChangeDetectionStrategy.Eager,
+})
+class TestComponentWithTemplatePortals {
+  viewContainerRef = inject(ViewContainerRef);
+
+  @ViewChild(CdkPortal) templatePortal!: CdkPortal;
+}

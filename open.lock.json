@@ -7600,5 +7600,102 @@
     "submodules": [],
     "dropped_files": [],
     "license": "Apache-2.0"
+  },
+  {
+    "name": "angular-material",
+    "url": "https://github.com/aphrody-labs/components",
+    "upstream": "https://github.com/angular/components",
+    "path": "ecosystem/angular-material",
+    "language": "TypeScript",
+    "archived": false,
+    "fork": true,
+    "subpaths": [
+      "src/material",
+      "src/cdk"
+    ],
+    "rev": "918723378855a77df79ae4a4dcb1d948c16d5313",
+    "source": "https://github.com/angular/components",
+    "submodules": [],
+    "dropped_files": [],
+    "license": "MIT"
+  },
+  {
+    "name": "material-web",
+    "url": "https://github.com/aphrody-labs/material-web",
+    "upstream": "https://github.com/material-components/material-web",
+    "path": "ecosystem/material-web",
+    "language": "TypeScript",
+    "archived": false,
+    "fork": true,
+    "rev": "37aa14b843dcaeb3a46f898679fa6fcd109b1905",
+    "source": "https://github.com/material-components/material-web",
+    "submodules": [],
+    "dropped_files": [],
+    "license": "Apache-2.0"
+  },
+  {
+    "name": "material-color-utilities",
+    "url": "https://github.com/aphrody-labs/material-color-utilities",
+    "upstream": "https://github.com/material-foundation/material-color-utilities",
+    "path": "ecosystem/material-color-utilities",
+    "language": "TypeScript",
+    "archived": false,
+    "fork": true,
+    "rev": "194144d75ed7d34f06264a625e086db81a7ab9aa",
+    "source": "https://github.com/material-foundation/material-color-utilities",
+    "submodules": [],
+    "dropped_files": [],
+    "license": "Apache-2.0"
+  },
+  {
+    "name": "material-symbols",
+    "url": "https://github.com/aphrody-labs/material-design-icons",
+    "upstream": "https://github.com/google/material-design-icons",
+    "path": "ecosystem/material-symbols",
+    "language": "Font",
+    "archived": false,
+    "fork": true,
+    "subpaths": [
+      "variablefont"
+    ],
+    "rev": "10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7",
+    "source": "https://github.com/google/material-design-icons",
+    "submodules": [],
+    "dropped_files": [],
+    "license": "Apache-2.0"
+  },
+  {
+    "name": "flutter-material",
+    "url": "https://github.com/aphrody-labs/flutter",
+    "upstream": "https://github.com/flutter/flutter",
+    "path": "ecosystem/flutter-material",
+    "language": "Dart",
+    "archived": false,
+    "fork": true,
+    "subpaths": [
+      "packages/flutter/lib/src/material"
+    ],
+    "rev": "e8ac49ab53c7a5db0c64f8d3664977de6c19f94b",
+    "source": "https://github.com/flutter/flutter",
+    "submodules": [],
+    "dropped_files": [],
+    "license": "BSD-3-Clause"
+  },
+  {
+    "name": "compose-material3",
+    "url": "https://github.com/aphrody-labs/androidx",
+    "upstream": "https://github.com/androidx/androidx",
+    "path": "ecosystem/compose-material3",
+    "language": "Kotlin",
+    "archived": false,
+    "fork": true,
+    "subpaths": [
+      "compose/material3/material3"
+    ],
+    "rev": "e70f5406a4fa24bd3c2dfb27832ab5fa87c9c5c6",
+    "source": "https://github.com/androidx/androidx",
+    "submodules": [],
+    "dropped_files": [],
+    "license": "Apache-2.0"
   }
 ]
