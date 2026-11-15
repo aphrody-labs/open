@@ -42,12 +42,16 @@ fn tier(o: &Offer) -> u8 {
 
 fn kind_fits(o: &Offer, k: Kind) -> bool {
     let out = |m: &str| o.outputs.iter().any(|x| x == m);
+    let name = o.model.to_lowercase();
     match k {
         Kind::Chat => out("text") && !o.embedding,
         Kind::Embeddings => o.embedding,
-        Kind::Images => out("image"),
-        Kind::Speech => out("audio"),
-        Kind::Transcription => (o.audio_input && out("text")) || o.model.to_lowercase().contains("whisper") || o.model.to_lowercase().contains("transcri"),
+        // generators only: a chat model that can also answer with an image or audio is not served by the
+        // images or speech endpoints
+        Kind::Images => out("image") && !out("text"),
+        Kind::Speech => out("audio") && !out("text"),
+        // the catalog has no transcription modality: speech-to-text models are told by their names
+        Kind::Transcription => ["whisper", "transcri", "speech-to-text", "stt", "asr"].iter().any(|w| name.contains(w)),
     }
 }
 

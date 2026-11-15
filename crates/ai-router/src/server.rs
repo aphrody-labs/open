@@ -5,6 +5,7 @@
 use crate::policy::Kind;
 use crate::{Body, Router};
 use serde_json::{json, Value};
+use std::io::Read;
 use std::sync::Arc;
 use tiny_http::{Header, Method, Response, Server};
 
@@ -22,6 +23,18 @@ pub fn serve(router: Router, addr: &str, on_ready: impl FnOnce(String)) -> Resul
         let router = router.clone();
         std::thread::spawn(move || {
             let path = req.url().split('?').next().unwrap_or("").to_owned();
+            // request bodies are read once, up to a limit, before any parsing
+            let bytes = if *req.method() == Method::Post {
+                let limit = max_body();
+                let mut b = Vec::new();
+                let _ = req.as_reader().take(limit + 1).read_to_end(&mut b);
+                if b.len() as u64 > limit {
+                    return reply(req, 413, &json!({ "error": { "message": format!("request body over {limit} bytes (AI_ROUTER_MAX_BODY)"), "type": "invalid_request_error" } }));
+                }
+                b
+            } else {
+                Vec::new()
+            };
             match (req.method(), path.as_str()) {
                 (Method::Get, "/health") => reply(req, 200, &json!({ "ok": true, "offers": router.models("auto").len() })),
                 (Method::Get, "/v1/models") => {
@@ -29,9 +42,7 @@ pub fn serve(router: Router, addr: &str, on_ready: impl FnOnce(String)) -> Resul
                     reply(req, 200, &json!({ "object": "list", "data": data }));
                 }
                 (Method::Post, "/v1/chat/completions") => {
-                    let mut text = String::new();
-                    let _ = req.as_reader().read_to_string(&mut text);
-                    match serde_json::from_str::<Value>(&text) {
+                    match serde_json::from_slice::<Value>(&bytes) {
                         Err(e) => reply(req, 400, &json!({ "error": { "message": format!("invalid JSON: {e}"), "type": "invalid_request_error" } })),
                         Ok(body) if body["stream"] == true => {
                             // server-sent events: one `data:` line per chunk, the router summary as an SSE comment
@@ -57,9 +68,7 @@ pub fn serve(router: Router, addr: &str, on_ready: impl FnOnce(String)) -> Resul
                     }
                 }
                 (Method::Post, "/v1/messages") => {
-                    let mut text = String::new();
-                    let _ = req.as_reader().read_to_string(&mut text);
-                    match serde_json::from_str::<Value>(&text) {
+                    match serde_json::from_slice::<Value>(&bytes) {
                         Err(e) => reply(req, 400, &json!({ "type": "error", "error": { "type": "invalid_request_error", "message": format!("invalid JSON: {e}") } })),
                         Ok(body) => {
                             let answer = router.chat(&anthropic_to_openai(&body));
@@ -79,11 +88,9 @@ pub fn serve(router: Router, addr: &str, on_ready: impl FnOnce(String)) -> Resul
                         _ => Kind::Transcription,
                     };
                     let content_type = req.headers().iter().find(|h| h.field.equiv("Content-Type")).map(|h| h.value.as_str().to_owned()).unwrap_or_default();
-                    let mut bytes = Vec::new();
-                    let _ = req.as_reader().read_to_end(&mut bytes);
                     let (body, model) = if let Some(b) = content_type.split("boundary=").nth(1) {
                         let boundary = b.split(';').next().unwrap_or(b).trim_matches('"').to_owned();
-                        let model = multipart_field(&bytes, &boundary, "model").unwrap_or_else(|| "auto".to_owned());
+                        let model = crate::transport::multipart_field(&bytes, &boundary, "model").unwrap_or_else(|| "auto".to_owned());
                         (Body::Multipart { boundary, bytes }, model)
                     } else {
                         match serde_json::from_slice::<Value>(&bytes) {
@@ -102,9 +109,13 @@ pub fn serve(router: Router, addr: &str, on_ready: impl FnOnce(String)) -> Resul
                             v["router"] = f.router.clone();
                             out = v.to_string().into_bytes();
                         }
-                    } else if let Ok(h) = Header::from_bytes(&b"X-Router"[..], f.router.to_string().as_bytes()) {
-                        // binary answers (audio, images as bytes) carry the summary in a header
-                        headers.push(h);
+                    } else {
+                        // binary answers (audio, images as bytes) carry a short summary in a header: the offer and
+                        // the number of attempts (error texts of failed attempts can be long)
+                        let short = json!({ "offer": f.router["offer"], "attempts": f.router["attempts"].as_array().map_or(0, Vec::len) });
+                        if let Ok(h) = Header::from_bytes(&b"X-Router"[..], short.to_string().as_bytes()) {
+                            headers.push(h);
+                        }
                     }
                     let _ = req.respond(Response::new(f.status.into(), headers, std::io::Cursor::new(out), None, None));
                 }
@@ -115,11 +126,9 @@ pub fn serve(router: Router, addr: &str, on_ready: impl FnOnce(String)) -> Resul
     Ok(())
 }
 
-/// Value of a text field of multipart form data.
-fn multipart_field(bytes: &[u8], boundary: &str, name: &str) -> Option<String> {
-    let text = String::from_utf8_lossy(bytes);
-    let key = format!("name=\"{name}\"");
-    text.split(&format!("--{boundary}")).find(|part| part.split("\r\n\r\n").next().is_some_and(|h| h.contains(&key))).and_then(|part| part.split_once("\r\n\r\n")).map(|(_, v)| v.trim_end_matches("\r\n").to_owned())
+/// Largest request body accepted, in bytes: AI_ROUTER_MAX_BODY, else 256 MiB (audio uploads for transcription).
+fn max_body() -> u64 {
+    std::env::var("AI_ROUTER_MAX_BODY").ok().and_then(|v| v.parse().ok()).unwrap_or(256 * 1024 * 1024)
 }
 
 fn blocks_text(content: &Value) -> String {

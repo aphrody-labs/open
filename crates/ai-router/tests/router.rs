@@ -286,3 +286,33 @@ fn anthropic_and_google_stream_natively() {
     assert_eq!(a_seen.lock().unwrap()[0], "/messages");
     assert_eq!(g_seen.lock().unwrap()[0], "/models/m:streamGenerateContent?alt=sse");
 }
+
+#[test]
+fn anthropic_tool_without_arguments_streams_an_empty_object() {
+    let (a, _) = sse_stand_in(vec![
+        json!({ "type": "message_start", "message": { "id": "m" } }),
+        json!({ "type": "content_block_start", "index": 0, "content_block": { "type": "tool_use", "id": "t1", "name": "now", "input": {} } }),
+        json!({ "type": "content_block_stop", "index": 0 }),
+        json!({ "type": "message_delta", "delta": { "stop_reason": "tool_use" } }),
+    ]);
+    set("AIR_T10_A");
+    let config = Config { catalog: Some(catalog(&[("anth0", "@ai-sdk/anthropic", &a, "AIR_T10_A", 0.0)])), local: Some(vec![]), ..Config::default() };
+    let router = Router::open(&config).unwrap();
+    let mut chunks = Vec::new();
+    router.chat_stream(&json!({ "messages": [{ "role": "user", "content": "time?" }] }), &mut |c| chunks.push(c.clone()));
+    assert_eq!(chunks[0]["choices"][0]["delta"]["role"], "assistant");
+    let args: String = chunks.iter().filter_map(|c| c["choices"][0]["delta"]["tool_calls"][0]["function"]["arguments"].as_str()).collect();
+    assert_eq!(args, "{}");
+}
+
+#[test]
+fn multipart_fields_are_read_without_decoding_binary_parts() {
+    let b = "zz";
+    let mut form = format!("--{b}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"a.wav\"\r\n\r\n").into_bytes();
+    form.extend_from_slice(&[0xff, 0x00, 0x2d, 0x2d, 0x7a, 0x7a, 0xfe]); // binary, containing "--zz" without a CRLF before it
+    form.extend_from_slice(format!("\r\n--{b}\r\nContent-Disposition: form-data; name=\"model\"\r\n\r\nwhisper-x\r\n--{b}--\r\n").as_bytes());
+    assert_eq!(ai_router::transport::multipart_field(&form, b, "model").as_deref(), Some("whisper-x"));
+    let out = ai_router::transport::multipart_set(&form, b, "model", "m2");
+    assert_eq!(ai_router::transport::multipart_field(&out, b, "model").as_deref(), Some("m2"));
+    assert!(out.windows(7).any(|w| w == [0xff, 0x00, 0x2d, 0x2d, 0x7a, 0x7a, 0xfe]));
+}

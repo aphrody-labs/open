@@ -230,25 +230,51 @@ pub fn post_bytes(offer: &Offer, path: &str, content_type: &str, body: Vec<u8>, 
     }
 }
 
-/// Multipart form data with the value of field `name` replaced (the field is added when absent).
-pub fn multipart_set(bytes: &[u8], boundary: &str, name: &str, value: &str) -> Vec<u8> {
-    let delim = format!("--{boundary}");
-    let header = format!("Content-Disposition: form-data; name=\"{name}\"");
-    let fresh = format!("{delim}\r\n{header}\r\n\r\n{value}\r\n");
-    let find = |hay: &[u8], needle: &[u8], from: usize| hay[from.min(hay.len())..].windows(needle.len()).position(|w| w == needle).map(|i| i + from);
-    let lower: Vec<u8> = bytes.iter().map(u8::to_ascii_lowercase).collect();
-    let key = format!("name=\"{}\"", name.to_ascii_lowercase());
-    let mut at = 0;
-    while let Some(start) = find(bytes, delim.as_bytes(), at) {
-        let Some(next) = find(bytes, delim.as_bytes(), start + delim.len()) else { break };
-        let head_end = find(bytes, b"\r\n\r\n", start).unwrap_or(next);
-        if head_end < next && find(&lower[..head_end], key.as_bytes(), start).is_some() {
-            let mut out = bytes[..start].to_vec();
-            out.extend_from_slice(fresh.as_bytes());
-            out.extend_from_slice(&bytes[next..]);
-            return out;
+fn find(hay: &[u8], needle: &[u8], from: usize) -> Option<usize> {
+    hay.get(from..)?.windows(needle.len()).position(|w| w == needle).map(|i| i + from)
+}
+
+/// Parts of multipart form data as (start of the part's delimiter, end of its headers, start of the next
+/// delimiter). Delimiters are `--boundary` at the start and `\r\n--boundary` after a part, as RFC 2046 has them;
+/// bytes inside a part are never parsed as text.
+fn parts(bytes: &[u8], boundary: &str) -> Vec<(usize, usize, usize)> {
+    let first = format!("--{boundary}");
+    let delim = format!("\r\n--{boundary}");
+    let mut out = Vec::new();
+    let Some(mut start) = (if bytes.starts_with(first.as_bytes()) { Some(0) } else { find(bytes, delim.as_bytes(), 0).map(|i| i + 2) }) else { return out };
+    loop {
+        let after = start + first.len();
+        if bytes.get(after..after + 2) == Some(b"--") {
+            break; // closing delimiter
         }
-        at = next;
+        let Some(head_end) = find(bytes, b"\r\n\r\n", after) else { break };
+        let next = find(bytes, delim.as_bytes(), head_end).map_or(bytes.len(), |i| i + 2);
+        out.push((start, head_end + 4, next));
+        if next >= bytes.len() {
+            break;
+        }
+        start = next;
+    }
+    out
+}
+
+fn is_field(bytes: &[u8], start: usize, body: usize, name: &str) -> bool {
+    String::from_utf8_lossy(&bytes[start..body]).to_ascii_lowercase().contains(&format!("name=\"{}\"", name.to_ascii_lowercase()))
+}
+
+/// Value of a text field of multipart form data.
+pub fn multipart_field(bytes: &[u8], boundary: &str, name: &str) -> Option<String> {
+    parts(bytes, boundary).into_iter().find(|&(s, b, _)| is_field(bytes, s, b, name)).map(|(_, b, n)| String::from_utf8_lossy(&bytes[b..n.saturating_sub(2).max(b)]).into_owned())
+}
+
+/// Multipart form data with the value of field `name` replaced (the field is added first when absent).
+pub fn multipart_set(bytes: &[u8], boundary: &str, name: &str, value: &str) -> Vec<u8> {
+    let fresh = format!("--{boundary}\r\nContent-Disposition: form-data; name=\"{name}\"\r\n\r\n{value}\r\n");
+    if let Some((start, _, next)) = parts(bytes, boundary).into_iter().find(|&(s, b, _)| is_field(bytes, s, b, name)) {
+        let mut out = bytes[..start].to_vec();
+        out.extend_from_slice(fresh.as_bytes());
+        out.extend_from_slice(&bytes[next..]);
+        return out;
     }
     let mut out = fresh.into_bytes();
     out.extend_from_slice(bytes);
@@ -261,24 +287,40 @@ fn chunk(offer: &Offer, delta: Value, finish: Value) -> Value {
 
 /// Anthropic stream events as chat.completion.chunk documents: text deltas, tool_use blocks (start, then partial
 /// JSON arguments), and the stop reason.
-fn anthropic_event(offer: &Offer, e: &Value, tools: &mut Vec<u64>) -> Option<Value> {
+fn anthropic_event(offer: &Offer, e: &Value, tools: &mut Vec<(u64, bool)>) -> Option<Value> {
     match e["type"].as_str()? {
+        // OpenAI clients read the role from the first chunk
+        "message_start" => Some(chunk(offer, json!({ "role": "assistant", "content": "" }), Value::Null)),
         "content_block_start" if e["content_block"]["type"] == "tool_use" => {
             let i = tools.len();
-            tools.push(e["index"].as_u64().unwrap_or(0));
             let b = &e["content_block"];
-            Some(chunk(offer, json!({ "tool_calls": [{ "index": i, "id": b["id"], "type": "function", "function": { "name": b["name"], "arguments": "" } }] }), Value::Null))
+            // arguments given whole at the start (some compatible servers) are sent at once
+            let given = b["input"].as_object().is_some_and(|o| !o.is_empty());
+            tools.push((e["index"].as_u64().unwrap_or(0), given));
+            let args = if given { b["input"].to_string() } else { String::new() };
+            Some(chunk(offer, json!({ "tool_calls": [{ "index": i, "id": b["id"], "type": "function", "function": { "name": b["name"], "arguments": args } }] }), Value::Null))
         }
         "content_block_delta" => {
             let d = &e["delta"];
             match d["type"].as_str()? {
                 "text_delta" => Some(chunk(offer, json!({ "content": d["text"] }), Value::Null)),
                 "input_json_delta" => {
-                    let i = tools.iter().position(|b| Some(*b) == e["index"].as_u64())?;
-                    Some(chunk(offer, json!({ "tool_calls": [{ "index": i, "function": { "arguments": d["partial_json"] } }] }), Value::Null))
+                    let i = tools.iter().position(|(b, _)| Some(*b) == e["index"].as_u64())?;
+                    let partial = d["partial_json"].as_str().unwrap_or("");
+                    if partial.is_empty() {
+                        return None;
+                    }
+                    tools[i].1 = true;
+                    Some(chunk(offer, json!({ "tool_calls": [{ "index": i, "function": { "arguments": partial } }] }), Value::Null))
                 }
                 _ => None,
             }
+        }
+        // a tool called without arguments still needs a JSON object for its arguments
+        "content_block_stop" => {
+            let i = tools.iter().position(|(b, got)| Some(*b) == e["index"].as_u64() && !got)?;
+            tools[i].1 = true;
+            Some(chunk(offer, json!({ "tool_calls": [{ "index": i, "function": { "arguments": "{}" } }] }), Value::Null))
         }
         "message_delta" => {
             let finish = match e["delta"]["stop_reason"].as_str()? {
@@ -306,8 +348,9 @@ fn google_event(offer: &Offer, e: &Value, calls: &mut usize) -> Option<Value> {
         })
         .collect();
     let finish = match c["finishReason"].as_str() {
-        None => Value::Null,
+        None | Some("FINISH_REASON_UNSPECIFIED") => Value::Null,
         Some("MAX_TOKENS") => json!("length"),
+        Some("SAFETY" | "RECITATION" | "BLOCKLIST" | "PROHIBITED_CONTENT" | "SPII" | "IMAGE_SAFETY") => json!("content_filter"),
         Some(_) if *calls > 0 => json!("tool_calls"),
         Some(_) => json!("stop"),
     };
@@ -359,13 +402,30 @@ pub fn stream(offer: &Offer, request: &Value, timeout: Duration, on_chunk: &mut 
     use std::io::BufRead;
     let mut delivered = false;
     let (mut tools, mut calls) = (Vec::new(), 0usize);
-    for line in std::io::BufReader::new(res.body_mut().as_reader()).lines() {
-        let Ok(line) = line else { break };
-        let Some(data) = line.strip_prefix("data:").map(str::trim) else { continue };
-        if data == "[DONE]" {
+    // server-sent events: the `data:` lines of one event, joined by newlines, end at a blank line
+    let mut data = String::new();
+    let mut lines = std::io::BufReader::new(res.body_mut().as_reader()).lines();
+    loop {
+        let line = match lines.next() {
+            Some(Ok(l)) => l,
+            _ if !data.is_empty() => String::new(),
+            _ => break,
+        };
+        if let Some(d) = line.strip_prefix("data:") {
+            if !data.is_empty() {
+                data.push('\n');
+            }
+            data.push_str(d.strip_prefix(' ').unwrap_or(d));
+            continue;
+        }
+        if !line.is_empty() || data.is_empty() {
+            continue;
+        }
+        let payload = std::mem::take(&mut data);
+        if payload.trim() == "[DONE]" {
             break;
         }
-        let Ok(event) = serde_json::from_str::<Value>(data) else { continue };
+        let Ok(event) = serde_json::from_str::<Value>(&payload) else { continue };
         if offer.protocol == Protocol::Anthropic && event["type"] == "error" {
             if delivered {
                 break;
