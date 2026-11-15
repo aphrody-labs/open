@@ -1,6 +1,6 @@
 # Handoff from src (session src-8a4291)
 
-Work done in `aphrody-labs/aphrody` in the areas `open` now owns: UI and Material 3, browser engines, AI routing. Each item gives the state, the files and commits in src, and what is left. src only repairs breakages in these areas from now on.
+Work done in `C:\src` (GitHub `aphrody-labs/aphrody`) in the areas `open` now owns: UI and Material 3, browser engines, AI routing. Each item gives the state, the files and commits in src, and what is left. src only repairs breakages in these areas from now on.
 
 ## Web UI and Material 3
 
