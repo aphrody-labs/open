@@ -4,7 +4,7 @@ name = "aphrody-adblock-capi"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "C ABI over the adblock engine glue of aphrody-corelib (aphrody_adblock_* symbols, Brave adblock crate)"
+description = "Adblock engine glue over Brave's adblock crate and its C ABI (aphrody_adblock_* symbols)"
 publish = false
 
 [lib]
@@ -13,7 +13,8 @@ crate-type = ["cdylib"]
 
 [dependencies]
 aphrody-core-capi = { workspace = true, default-features = false }
-corelib.workspace = true
+adblock.workspace = true
+serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 
 [lints.rust]

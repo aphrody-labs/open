@@ -13,17 +13,18 @@
 //! ```
 //! Strings are (pointer, length) pairs of UTF-8, not NUL-terminated; a null pointer with length 0
 //! is the empty string. All filtering is done by Brave's `adblock` crate through
-//! `corelib::SovereignAdblockEngine`; this crate only marshals.
+//! `engine::AdblockEngine` (glue over Brave's `adblock` crate); the rest of this crate only marshals.
 
 pub use aphrody_core_capi::{aphrody_abi_version, aphrody_free};
 use aphrody_core_capi::cabi::{
     ABI_STATUS_ERR, ABI_STATUS_OK, free_c_string, free_framed, pack_framed, utf8_slice,
 };
-use corelib::SovereignAdblockEngine;
+pub mod engine;
+pub use engine::{AdblockCheckResult, AdblockEngine, CosmeticResult};
 use std::ffi::c_char;
 
 /// Opaque compiled rule set.
-pub struct AphrodyAdblockEngine(SovereignAdblockEngine);
+pub struct AphrodyAdblockEngine(AdblockEngine);
 
 /// Compile newline-delimited ABP/uBO rules and hosts-format lines. Returns null when `rules`
 /// is not UTF-8. Release with [`aphrody_adblock_free`].
@@ -37,7 +38,7 @@ pub unsafe extern "C" fn aphrody_adblock_new(
 ) -> *mut AphrodyAdblockEngine {
     match unsafe { utf8_slice(rules_ptr, rules_len) } {
         Some(rules) => Box::into_raw(Box::new(AphrodyAdblockEngine(
-            SovereignAdblockEngine::from_rules(rules),
+            AdblockEngine::from_rules(rules),
         ))),
         None => std::ptr::null_mut(),
     }
