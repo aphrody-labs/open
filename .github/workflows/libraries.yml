@@ -1,0 +1,57 @@
+name: libraries
+
+# The release other projects consume: after the ai-router workflow passes on main, the Bun packages are packed
+# (their internal dependencies pointing at this release), the native libraries and command-line programs of each
+# operating system are taken from that run, and everything is attached to the release `libraries-v<version>` with
+# the manifest (libraries.json) and its page (docs/libraries.md) as notes.
+on:
+  workflow_run:
+    workflows: [ai-router]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: libraries
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: canary
+      - name: manifest and packages
+        run: bun scripts/libraries.ts --pack dist
+      - name: native builds of the passing run
+        if: github.event_name == 'workflow_run'
+        run: |
+          mkdir -p natives
+          for os in Linux Windows macOS; do
+            gh run download "${{ github.event.workflow_run.id }}" -n "ai-router-$os" -D "natives/$os"
+            for f in $(find "natives/$os/target/release" -maxdepth 1 -type f \( -name 'ai-router' -o -name 'ai-router.exe' -o -name 'ai-router-tui' -o -name 'ai-router-tui.exe' -o -name '*ai_router.so' -o -name '*ai_router.dylib' -o -name 'ai_router.dll' -o -name 'ai_router.dll.lib' \)); do
+              b=$(basename "$f"); cp "$f" "dist/${os,,}-$b"
+            done
+          done
+          cp crates/ai-router/include/ai_router.h dist/
+      - name: release
+        run: |
+          version=$(jq -r .version libraries.json)
+          tag="libraries-v$version"
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" --title "Libraries $version" --notes-file docs/libraries.md --target "$(jq -r .rev libraries.json)"
+          else
+            gh release edit "$tag" --notes-file docs/libraries.md
+          fi
+          gh release upload "$tag" dist/* libraries.json --clobber
