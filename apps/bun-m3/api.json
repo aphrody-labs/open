@@ -1,0 +1,2510 @@
+{
+  "bun": "1.4.5",
+  "revision": "9098897a17372d46559d1a68a44061f493546631",
+  "count": 624,
+  "modules": {
+    "bun:sqlite": 5,
+    "bun:ffi": 14,
+    "bun:jsc": 37,
+    "bun:test": 21,
+    "bun:bundle": "not importable here: Cannot find package 'bun:bundle' imported from C:\\src\\apps\\open\\apps\\bun-m3\\gen\\api.ts"
+  },
+  "values": [
+    {
+      "name": "Bun.$",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.$.Shell",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.$.ShellError",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.$.ShellPromise",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.$.braces",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.$.escape",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.Archive",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.Archive.write",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.ArrayBufferSink",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.CSRF",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.CSRF.generate",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.CSRF.verify",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.Cookie",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.Cookie.from",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.Cookie.parse",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.CookieMap",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.CryptoHasher",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.CryptoHasher.algorithms",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.CryptoHasher.algorithms.0",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.CryptoHasher.algorithms.1",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.CryptoHasher.algorithms.10",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.CryptoHasher.algorithms.11",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.CryptoHasher.algorithms.12",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.CryptoHasher.algorithms.13",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.CryptoHasher.algorithms.14",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.CryptoHasher.algorithms.15",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.CryptoHasher.algorithms.16",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.CryptoHasher.algorithms.17",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.CryptoHasher.algorithms.18",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.CryptoHasher.algorithms.2",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.CryptoHasher.algorithms.3",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.CryptoHasher.algorithms.4",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.CryptoHasher.algorithms.5",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.CryptoHasher.algorithms.6",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.CryptoHasher.algorithms.7",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.CryptoHasher.algorithms.8",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.CryptoHasher.algorithms.9",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.CryptoHasher.hash",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.FFI",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.FFI.CString",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.FFI.callback",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.FFI.cfunction",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.FFI.closeCallback",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.FFI.dlopen",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.FFI.linkSymbols",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.FFI.ptr",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.FFI.read",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.FFI.read.f32",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.FFI.read.f64",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.FFI.read.i16",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.FFI.read.i32",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.FFI.read.i64",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.FFI.read.i8",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.FFI.read.intptr",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.FFI.read.ptr",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.FFI.read.u16",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.FFI.read.u32",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.FFI.read.u64",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.FFI.read.u8",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.FFI.toArrayBuffer",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.FFI.toBuffer",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.FFI.viewSource",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.FetchSession",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.FileSystemRouter",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.Glob",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.Image",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.Image.backend",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.Image.clipboardChangeCount",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.Image.fromClipboard",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.Image.hasClipboardImage",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.JSON5",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.JSON5.parse",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.JSON5.stringify",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.JSONC",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.JSONC.parse",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.JSONL",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.JSONL.parse",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.JSONL.parseChunk",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.MD4",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.MD4.byteLength",
+      "kind": "number"
+    },
+    {
+      "name": "Bun.MD4.hash",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.MD5",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.MD5.byteLength",
+      "kind": "number"
+    },
+    {
+      "name": "Bun.MD5.hash",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.ModuleGraph",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.ModuleGraph.current",
+      "kind": "undefined"
+    },
+    {
+      "name": "Bun.RedisClient",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.S3Client",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.S3Client.delete",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.S3Client.exists",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.S3Client.file",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.S3Client.list",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.S3Client.presign",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.S3Client.size",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.S3Client.stat",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.S3Client.unlink",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.S3Client.write",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.SHA1",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.SHA1.byteLength",
+      "kind": "number"
+    },
+    {
+      "name": "Bun.SHA1.hash",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.SHA224",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.SHA224.byteLength",
+      "kind": "number"
+    },
+    {
+      "name": "Bun.SHA224.hash",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.SHA256",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.SHA256.byteLength",
+      "kind": "number"
+    },
+    {
+      "name": "Bun.SHA256.hash",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.SHA384",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.SHA384.byteLength",
+      "kind": "number"
+    },
+    {
+      "name": "Bun.SHA384.hash",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.SHA512",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.SHA512.byteLength",
+      "kind": "number"
+    },
+    {
+      "name": "Bun.SHA512.hash",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.SHA512_256",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.SHA512_256.byteLength",
+      "kind": "number"
+    },
+    {
+      "name": "Bun.SHA512_256.hash",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.SQL",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.SQL.MySQLError",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.SQL.PostgresError",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.SQL.SQLError",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.SQL.SQLiteError",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.SQL.camel",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.SQL.camel.column",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.SQL.fromCamel",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.SQL.fromCamel.column",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.SQL.fromKebab",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.SQL.fromKebab.column",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.SQL.fromPascal",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.SQL.fromPascal.column",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.SQL.kebab",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.SQL.kebab.column",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.SQL.pascal",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.SQL.pascal.column",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.SQL.toCamel",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.SQL.toCamel.column",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.SQL.toKebab",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.SQL.toKebab.column",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.SQL.toPascal",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.SQL.toPascal.column",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.TOML",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.TOML.parse",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.TOML.stringify",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.Terminal",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.Transpiler",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.WebView",
+      "kind": "class"
+    },
+    {
+      "name": "Bun.WebView.closeAll",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.XML",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.XML.parse",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.XML.stringify",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.YAML",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.YAML.parse",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.YAML.stringify",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.allocUnsafe",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.argv",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.argv.0",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.argv.1",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.build",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.color",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.concatArrayBuffers",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.connect",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.cron",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.cron.parse",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.cron.remove",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.cwd",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.deepEquals",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.deepMatch",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.deflateSync",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.dns",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.dns.ADDRCONFIG",
+      "kind": "number"
+    },
+    {
+      "name": "Bun.dns.ALL",
+      "kind": "number"
+    },
+    {
+      "name": "Bun.dns.V4MAPPED",
+      "kind": "number"
+    },
+    {
+      "name": "Bun.dns.getCacheStats",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.dns.getServers",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.dns.lookup",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.dns.lookupService",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.dns.prefetch",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.dns.resolve",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.dns.resolveAny",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.dns.resolveCaa",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.dns.resolveCname",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.dns.resolveMx",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.dns.resolveNaptr",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.dns.resolveNs",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.dns.resolvePtr",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.dns.resolveSoa",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.dns.resolveSrv",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.dns.resolveTxt",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.dns.reverse",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.dns.setServers",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.embeddedFiles",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.enableANSIColors",
+      "kind": "boolean"
+    },
+    {
+      "name": "Bun.env",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.env.ACSetupSvcPort",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.ACSvcPort",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.ADB_BURST_MODE",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.ADB_MDNS_OPENSCREEN",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.AGY_USE_POWERSHELL_TOOL",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.AI_AGENT",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.ALLUSERSPROFILE",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.ANDROID_HOME",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.ANDROID_NDK_HOME",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.ANDROID_NDK_ROOT",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.ANDROID_SDK_ROOT",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.ANTHROPIC_API_KEY",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.ANTHROPIC_CUSTOM_HEADERS",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.ANTHROPIC_SERVICE_ACCOUNT_ID",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.ANTHROPIC_WORKSPACE_ID",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.ANTIGRAVITY_MIC",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.APHRODY_DEPLOY_TOKEN",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.APPDATA",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.ASTRO_TELEMETRY_DISABLED",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.ATUIN_CONFIG_DIR",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.AY_SHELL_CACHE",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.BASH_MAX_OUTPUT_LENGTH",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.BAT_CONFIG_PATH",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.BUN_FEATURE_FLAG_EXPERIMENTAL_BAKE",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.BUN_FEATURE_FLAG_EXPERIMENTAL_HTTP2_CLIENT",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.BUN_FEATURE_FLAG_EXPERIMENTAL_HTTP3_CLIENT",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.BUN_INSTALL",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.BUN_INSTALL_CACHE_DIR",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.BUN_INSTALL_GLOBAL_STORE",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CARGO_HOME",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CARGO_REGISTRY_TOKEN",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CHECKPOINT_DISABLE",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CLAUDECODE",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CLAUDE_CODE_CHILD_SESSION",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CLAUDE_CODE_ENTRYPOINT",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CLAUDE_CODE_EXECPATH",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CLAUDE_CODE_GIT_BASH_PATH",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CLAUDE_CODE_MESSAGING_SOCKET",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CLAUDE_CODE_MESSAGING_TOKEN",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CLAUDE_CODE_SESSION_ATTENDED",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CLAUDE_CODE_SESSION_ID",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CLAUDE_CODE_SUBAGENT_MODEL",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CLAUDE_CODE_USE_POWERSHELL_TOOL",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CLAUDE_EFFORT",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CLAUDE_PID",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CLOUDFLARE_ACCOUNT_ID",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CLOUDFLARE_API_TOKEN",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CLOUDSDK_CORE_PROJECT",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CLOUDSDK_PYTHON",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.COMMONPROGRAMFILES",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.COMPUTERNAME",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.COMSPEC",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.COREPACK_ENABLE_AUTO_PIN",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CTX7_API_KEY",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CUDA_PATH",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CUDA_PATH_V13_4",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CUDA_PATH_V13_5",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CommonProgramFiles(x86)",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.CommonProgramW6432",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.DENO_DIR",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.DENO_INSTALL",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.DENO_NO_UPDATE_CHECK",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.DEPOT_TOOLS_WIN_TOOLCHAIN",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.DOTNET_CLI_TELEMETRY_OPTOUT",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.DOTNET_NOLOGO",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.DO_NOT_TRACK",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.DriverData",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.EDITOR",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.EXA_API_KEY",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.EZA_CONFIG_DIR",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.EnableLog",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.FFMPEG_DIR",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.FIGMA_ACCESS_TOKEN",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.FIGMA_MATERIAL_ICONS_LOCAL_DIR",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.FIGMA_TOKEN",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.FZF_ALT_C_COMMAND",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.FZF_CTRL_T_COMMAND",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.FZF_DEFAULT_COMMAND",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.FZF_DEFAULT_OPTS",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.GCLOUD_PROJECT",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.GHIDRA_HOME",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.GHIDRA_INSTALL_DIR",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.GH_PAGER",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.GH_TOKEN",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.GITHUB_PERSONAL_ACCESS_TOKEN",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.GITHUB_TOKEN",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.GIT_EDITOR",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.GIT_PAGER",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.GIT_SSH",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.GIT_SSH_VARIANT",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.GOOGLE_APPLICATION_CREDENTIALS",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.GOOGLE_APPLICATION_CREDENTIALS_RGFR",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.GOOGLE_CLOUD_LOCATION",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.GOOGLE_CLOUD_PROJECT",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.GOOGLE_CLOUD_REGION",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.GOOGLE_GENAI_USE_VERTEXAI",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.GOPATH",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.GSTREAMER_1_0_ROOT_MSVC_X86_64",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.GameDK",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.GameDKCoreLatest",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.HOME",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.HOMEDRIVE",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.HOMEPATH",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.HOSTINGER_API_TOKEN",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.HYPERFRAMES_FFPROBE_PATH",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.IECODE_GAME_PATH",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.IEVR_GAME_DIR",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.INTEL_DEV_REDIST",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.JAVA_HOME",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.LANG",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.LOCALAPPDATA",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.LOGONSERVER",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.LUA_CPATH",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.LUA_PATH",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.MAX_MCP_OUTPUT_TOKENS",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.MIC_LD_LIBRARY_PATH",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.NEON_API_KEY",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.NEON_ORG_ID",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.NEXT_TELEMETRY_DISABLED",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.NIE_CONFIG_DIR",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.NIE_EXE",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.NIE_GAME_DIR",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.NIE_GAME_PATH",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.NIE_GAME_SOURCE",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.NIU_ROOT",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.NIU_ROOT_FALLBACK",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.NIU_SHELL",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.NPM_TOKEN",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.NUMBER_OF_PROCESSORS",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.NoDefaultCurrentDirectoryInExePath",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.OLDPWD",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.OPENSSL_DIR",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.OPENSSL_INCLUDE_DIR",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.OPENSSL_LIB_DIR",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.OS",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.OneDrive",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.PAGER",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.PATH",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.PATHEXT",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.PI_LU_BASE_URL",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.PKG_CONFIG",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.PKG_CONFIG_PATH",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.POWERSHELL_TELEMETRY_OPTOUT",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.POWERSHELL_UPDATECHECK",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.PROCESSOR_ARCHITECTURE",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.PROCESSOR_IDENTIFIER",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.PROCESSOR_LEVEL",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.PROCESSOR_REVISION",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.PROGRAMFILES",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.PROTOC",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.PSModulePath",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.PUBLIC",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.PWD",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.PYGHIDRA_PYTHON",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.PYTHONUTF8",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.ProgramData",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.ProgramFiles(x86)",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.ProgramW6432",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.QT_SCALE_FACTOR_ROUNDING_POLICY",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.RCLONE_CONFIG",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.RING3_BASE_URL",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.RUSTUP_HOME",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.RlsSvcPort",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.SCCACHE_BASEDIRS",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.SCCACHE_CACHE_SIZE",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.SCCACHE_CACHE_ZSTD_LEVEL",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.SCCACHE_CLIENT_SIDE",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.SCCACHE_IDLE_TIMEOUT",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.SCCACHE_SERVER_PORT",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.SESSIONNAME",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.SHELL",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.SHENRON_MCP_ADMIN_TOKEN",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.SHLVL",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.SRC_ROOT",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.STARSHIP_CONFIG",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.STARSHIP_SESSION_KEY",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.STARSHIP_SHELL",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.STEAMCMD_DIR",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.STEAM_LIBRARY",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.STEAM_USERNAME",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.SYSTEMDRIVE",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.SYSTEMROOT",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.TEMP",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.TMP",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.TURBO_TELEMETRY_DISABLED",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.TWINE_PASSWORD",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.TWINE_USERNAME",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.UNREAL_ENGINE_CHANNEL",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.UNREAL_SOURCE_REPO",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.USERDOMAIN",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.USERDOMAIN_ROAMINGPROFILE",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.USERNAME",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.USERPROFILE",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.UV_LINK_MODE",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.UV_PUBLISH_TOKEN",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.VCPKG_DEFAULT_BINARY_CACHE",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.VCPKG_DOWNLOADS",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.VERCEL_ORG_ID",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.VERCEL_TOKEN",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.VISUAL",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.VK_SDK_PATH",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.VULKAN_SDK",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.WINDIR",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.WINUXCMD_HOME",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.WINUXCMD_PATH",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.WRANGLER_SEND_METRICS",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.WSLENV",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.WT_PROFILE_ID",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.WT_SESSION",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env._",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env._NT_SYMBOL_PATH",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.npm_config_audit",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.npm_config_fund",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.env.npm_config_update_notifier",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.escapeHTML",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.fetch",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.fetch.preconnect",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.file",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.fileURLToPath",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.gc",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.generateHeapSnapshot",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.gunzipSync",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.gzipSync",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.hash",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.hash.adler32",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.hash.cityHash32",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.hash.cityHash64",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.hash.crc32",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.hash.murmur32v2",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.hash.murmur32v3",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.hash.murmur64v2",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.hash.rapidhash",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.hash.wyhash",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.hash.xxHash3",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.hash.xxHash32",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.hash.xxHash64",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.indexOfLine",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.inflateSync",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.inspect",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.inspect.custom",
+      "kind": "symbol"
+    },
+    {
+      "name": "Bun.inspect.table",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.isMainThread",
+      "kind": "boolean"
+    },
+    {
+      "name": "Bun.isStandaloneExecutable",
+      "kind": "boolean"
+    },
+    {
+      "name": "Bun.jest",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.listen",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.main",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.markdown",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.markdown.ansi",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.markdown.html",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.markdown.react",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.markdown.render",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.mmap",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.nanoseconds",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.openInEditor",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.origin",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.password",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.password.hash",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.password.hashSync",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.password.verify",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.password.verifySync",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.pathToFileURL",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.peek",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.peek.status",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.plugin",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.plugin.clearAll",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.postgres",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.postgres.array",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.postgres.begin",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.postgres.beginDistributed",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.postgres.close",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.postgres.commitDistributed",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.postgres.connect",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.postgres.distributed",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.postgres.end",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.postgres.file",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.postgres.flush",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.postgres.json",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.postgres.listen",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.postgres.notify",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.postgres.options",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.postgres.options.adapter",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.postgres.options.allowPublicKeyRetrieval",
+      "kind": "boolean"
+    },
+    {
+      "name": "Bun.postgres.options.bigint",
+      "kind": "undefined"
+    },
+    {
+      "name": "Bun.postgres.options.channelBinding",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.postgres.options.database",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.postgres.options.foundRows",
+      "kind": "boolean"
+    },
+    {
+      "name": "Bun.postgres.options.hostname",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.postgres.options.max",
+      "kind": "number"
+    },
+    {
+      "name": "Bun.postgres.options.password",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.postgres.options.port",
+      "kind": "number"
+    },
+    {
+      "name": "Bun.postgres.options.prepare",
+      "kind": "boolean"
+    },
+    {
+      "name": "Bun.postgres.options.query",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.postgres.options.sslMode",
+      "kind": "number"
+    },
+    {
+      "name": "Bun.postgres.options.tls",
+      "kind": "undefined"
+    },
+    {
+      "name": "Bun.postgres.options.username",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.postgres.reserve",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.postgres.rollbackDistributed",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.postgres.transaction",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.postgres.unsafe",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.randomUUIDv5",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.randomUUIDv7",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.readableStreamToArray",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.readableStreamToArrayBuffer",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.readableStreamToBlob",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.readableStreamToBytes",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.readableStreamToFormData",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.readableStreamToJSON",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.readableStreamToText",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.redis",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.registerMacro",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.resolve",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.resolveSync",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.revision",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.s3",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.secrets",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.secrets.delete",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.secrets.get",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.secrets.set",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.semver",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.semver.order",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.semver.satisfies",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.serve",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.sha",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.shrink",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.sleep",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.sleepSync",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.sliceAnsi",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.spawn",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.spawnSync",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.sql",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.stderr",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.stdin",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.stdout",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.stringWidth",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.stripANSI",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.udpSocket",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.unsafe",
+      "kind": "object"
+    },
+    {
+      "name": "Bun.unsafe.arrayBufferToString",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.unsafe.gcAggressionLevel",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.unsafe.memoryFootprint",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.unsafe.mimallocDump",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.unsafe.setJITPolicy",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.version",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.version_with_sha",
+      "kind": "string"
+    },
+    {
+      "name": "Bun.which",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.wrapAnsi",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.write",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.zstdCompress",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.zstdCompressSync",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.zstdDecompress",
+      "kind": "function"
+    },
+    {
+      "name": "Bun.zstdDecompressSync",
+      "kind": "function"
+    },
+    {
+      "name": "bun:sqlite:Database",
+      "kind": "function"
+    },
+    {
+      "name": "bun:sqlite:SQLiteError",
+      "kind": "function"
+    },
+    {
+      "name": "bun:sqlite:Statement",
+      "kind": "function"
+    },
+    {
+      "name": "bun:sqlite:__esModule",
+      "kind": "boolean"
+    },
+    {
+      "name": "bun:sqlite:constants",
+      "kind": "object"
+    },
+    {
+      "name": "bun:ffi:CFunction",
+      "kind": "function"
+    },
+    {
+      "name": "bun:ffi:CString",
+      "kind": "function"
+    },
+    {
+      "name": "bun:ffi:FFIType",
+      "kind": "object"
+    },
+    {
+      "name": "bun:ffi:JSCallback",
+      "kind": "function"
+    },
+    {
+      "name": "bun:ffi:cc",
+      "kind": "function"
+    },
+    {
+      "name": "bun:ffi:dlopen",
+      "kind": "function"
+    },
+    {
+      "name": "bun:ffi:linkSymbols",
+      "kind": "function"
+    },
+    {
+      "name": "bun:ffi:native",
+      "kind": "object"
+    },
+    {
+      "name": "bun:ffi:ptr",
+      "kind": "function"
+    },
+    {
+      "name": "bun:ffi:read",
+      "kind": "object"
+    },
+    {
+      "name": "bun:ffi:suffix",
+      "kind": "string"
+    },
+    {
+      "name": "bun:ffi:toArrayBuffer",
+      "kind": "function"
+    },
+    {
+      "name": "bun:ffi:toBuffer",
+      "kind": "function"
+    },
+    {
+      "name": "bun:ffi:viewSource",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:bytecodeOrderStats",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:callerSourceOrigin",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:codeCoverageForFile",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:describe",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:describeArray",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:deserialize",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:drainMicrotasks",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:edenGC",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:estimateShallowMemoryUsageOf",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:fullGC",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:gcAndSweep",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:generateHeapSnapshotForDebugging",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:getProtectedObjects",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:getRandomSeed",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:heapSize",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:heapStats",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:isRope",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:jscDescribe",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:jscDescribeArray",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:memoryUsage",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:noFTL",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:noInline",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:noOSRExitFuzzing",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:numberOfDFGCompiles",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:optimizeNextInvocation",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:percentAvailableMemoryInUse",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:profile",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:releaseWeakRefs",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:reoptimizationRetryCount",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:samplingProfilerStackTraces",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:serialize",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:setRandomSeed",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:setTimeZone",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:setTimezone",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:startRemoteDebugger",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:startSamplingProfiler",
+      "kind": "function"
+    },
+    {
+      "name": "bun:jsc:totalCompileTime",
+      "kind": "function"
+    },
+    {
+      "name": "bun:test:afterAll",
+      "kind": "function"
+    },
+    {
+      "name": "bun:test:afterEach",
+      "kind": "function"
+    },
+    {
+      "name": "bun:test:aroundAll",
+      "kind": "function"
+    },
+    {
+      "name": "bun:test:aroundEach",
+      "kind": "function"
+    },
+    {
+      "name": "bun:test:beforeAll",
+      "kind": "function"
+    },
+    {
+      "name": "bun:test:beforeEach",
+      "kind": "function"
+    },
+    {
+      "name": "bun:test:describe",
+      "kind": "function"
+    },
+    {
+      "name": "bun:test:expect",
+      "kind": "function"
+    },
+    {
+      "name": "bun:test:expectTypeOf",
+      "kind": "function"
+    },
+    {
+      "name": "bun:test:it",
+      "kind": "function"
+    },
+    {
+      "name": "bun:test:jest",
+      "kind": "object"
+    },
+    {
+      "name": "bun:test:mock",
+      "kind": "function"
+    },
+    {
+      "name": "bun:test:onTestFinished",
+      "kind": "function"
+    },
+    {
+      "name": "bun:test:setDefaultTimeout",
+      "kind": "function"
+    },
+    {
+      "name": "bun:test:setSystemTime",
+      "kind": "function"
+    },
+    {
+      "name": "bun:test:spyOn",
+      "kind": "function"
+    },
+    {
+      "name": "bun:test:test",
+      "kind": "function"
+    },
+    {
+      "name": "bun:test:vi",
+      "kind": "object"
+    },
+    {
+      "name": "bun:test:xdescribe",
+      "kind": "function"
+    },
+    {
+      "name": "bun:test:xit",
+      "kind": "function"
+    },
+    {
+      "name": "bun:test:xtest",
+      "kind": "function"
+    },
+    {
+      "name": "global:HTMLRewriter",
+      "kind": "function"
+    },
+    {
+      "name": "global:Bun",
+      "kind": "object"
+    },
+    {
+      "name": "global:BuildMessage",
+      "kind": "function"
+    },
+    {
+      "name": "global:ResolveMessage",
+      "kind": "function"
+    }
+  ]
+}

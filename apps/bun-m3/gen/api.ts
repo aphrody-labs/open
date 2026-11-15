@@ -1,47 +1,44 @@
-// Bun API surface, read from bun-types with the TypeScript checker: every export of the `bun` module and of the
-// `bun:*` modules (namespace members flattened as `Bun.x.y`). Output: api.json, the reference list the coverage
-// proof is measured against.
-// bun gen/api.ts [--types <bun-types dir>]
+// Bun API surface, read from the running Bun itself: every property of the `Bun` global (namespaces walked
+// recursively), the exports of each `bun:*` module, and Bun-specific globals. This is exactly what the
+// application can call on the Bun build that compiles it; api.json is the reference the coverage proof uses.
+// bun gen/api.ts
 import { join } from "node:path";
-import ts from "typescript";
 
 const app = join(import.meta.dir, "..");
-const argv = Bun.argv.slice(2);
-const types = argv.includes("--types") ? argv[argv.indexOf("--types") + 1]! : join(app, "../../.cache/bun-fork/packages/bun-types");
-const program = ts.createProgram([join(types, "index.d.ts")], { noEmit: true, skipLibCheck: true, types: [], lib: ["lib.esnext.d.ts", "lib.dom.d.ts"].map((l) => l) });
-const checker = program.getTypeChecker();
+const out: { name: string; kind: string }[] = [];
+const seen = new WeakSet<object>();
 
-const modules = ["bun", "bun:sqlite", "bun:ffi", "bun:jsc", "bun:test", "bun:bundle"];
-const out: { module: string; name: string; kind: string; file: string }[] = [];
-const kindOf = (s: ts.Symbol) => {
-  const f = s.flags;
-  return f & ts.SymbolFlags.Function ? "function" : f & ts.SymbolFlags.Class ? "class" : f & ts.SymbolFlags.Variable ? "variable"
-    : f & ts.SymbolFlags.Namespace ? "namespace" : f & ts.SymbolFlags.Interface ? "interface" : f & ts.SymbolFlags.TypeAlias ? "type"
-    : f & ts.SymbolFlags.Enum ? "enum" : "other";
-};
-const fileOf = (s: ts.Symbol) => (s.declarations?.[0]?.getSourceFile().fileName ?? "").replace(/\\/g, "/").split("/bun-types/")[1] ?? "";
-
-function walk(module: string, prefix: string, sym: ts.Symbol, depth: number) {
-  const target = sym.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(sym) : sym;
-  const kind = kindOf(target);
-  out.push({ module, name: prefix, kind, file: fileOf(target) });
-  if (depth > 2 || !(target.flags & ts.SymbolFlags.Namespace)) return;
-  for (const m of checker.getExportsOfModule(target)) walk(module, `${prefix}.${m.name}`, m, depth + 1);
-}
-
-for (const mod of modules) {
-  const decl = program.getSourceFiles().flatMap((sf) => sf.statements)
-    .find((s) => ts.isModuleDeclaration(s) && ts.isStringLiteral(s.name) && s.name.text === mod) as ts.ModuleDeclaration | undefined;
-  const sym = decl && checker.getSymbolAtLocation(decl.name);
-  if (!sym) { console.log(`missing module ${mod}`); continue; }
-  for (const e of checker.getExportsOfModule(sym)) {
-    if (e.name === "default") continue;
-    walk(mod, mod === "bun" ? `Bun.${e.name}` : `${mod}:${e.name}`, e, 0);
+function walk(name: string, value: unknown, depth: number) {
+  const kind = typeof value === "function" ? (/^class\s/.test(Function.prototype.toString.call(value)) || /^[A-Z]/.test(name.split(".").pop()!) ? "class" : "function") : typeof value;
+  out.push({ name, kind });
+  if (depth >= 3 || value === null || (typeof value !== "object" && typeof value !== "function")) return;
+  if (seen.has(value as object)) return;
+  seen.add(value as object);
+  // namespaces only: plain objects and Bun namespace functions with static members (Bun.semver, Bun.password, ...)
+  const keys = Object.getOwnPropertyNames(value).filter((k) => !["length", "name", "prototype", "caller", "arguments"].includes(k));
+  if (typeof value === "function" && keys.length === 0) return;
+  for (const k of keys.sort()) {
+    let v: unknown;
+    try { v = (value as any)[k]; } catch { continue; }
+    walk(`${name}.${k}`, v, depth + 1);
   }
 }
 
-// value-level APIs only: what a program can call or construct (types and interfaces are not "used")
-const values = out.filter((o) => ["function", "class", "variable", "namespace", "enum"].includes(o.kind));
-const byModule = Object.fromEntries(modules.map((m) => [m, values.filter((v) => v.module === m).length]));
-await Bun.write(join(app, "api.json"), `${JSON.stringify({ source: "bun-types (aphrody-labs/bun)", byModule, values, all: out.length }, null, 2)}\n`);
-console.log(`${values.length} value APIs (${out.length} exports incl. types)`, JSON.stringify(byModule));
+walk("Bun", Bun, 0);
+const modules = ["bun:sqlite", "bun:ffi", "bun:jsc", "bun:test", "bun:bundle"];
+const moduleCounts: Record<string, number | string> = {};
+for (const m of modules) {
+  try {
+    const mod = await import(m);
+    const keys = Object.keys(mod).filter((k) => k !== "default");
+    for (const k of keys.sort()) out.push({ name: `${m}:${k}`, kind: typeof mod[k] });
+    moduleCounts[m] = keys.length;
+  } catch (e) {
+    moduleCounts[m] = `not importable here: ${String((e as Error).message).split("\n")[0]}`;
+  }
+}
+for (const g of ["HTMLRewriter", "Bun", "BuildMessage", "ResolveMessage"]) if (g in globalThis) out.push({ name: `global:${g}`, kind: typeof (globalThis as any)[g] });
+
+const values = out.filter((o) => o.name !== "Bun");
+await Bun.write(join(app, "api.json"), `${JSON.stringify({ bun: Bun.version, revision: Bun.revision, count: values.length, modules: moduleCounts, values }, null, 2)}\n`);
+console.log(`Bun ${Bun.version}: ${values.length} API entries`, JSON.stringify(moduleCounts));
