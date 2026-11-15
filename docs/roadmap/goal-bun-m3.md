@@ -16,7 +16,7 @@ A Bun 1.4.5 fullstack application, compiled to one executable (`bun build --comp
 
 | Source | Measure |
 |---|---|
-| Bun fork docs (`docs/**/*.mdx`) | 1,405 MDX files: lint 1,051, guides 195, runtime 67, pm 28, snippets 16, test 13, bundler 11, compiler 11, project 6, others 7 |
+| Bun fork docs (`docs/**/*.mdx`) | 1,751 pages after completion with bun.com (346 added, blog included); first measure, 1,405 MDX files: lint 1,051, guides 195, runtime 67, pm 28, snippets 16, test 13, bundler 11, compiler 11, project 6, others 7 |
 | Code examples | 9,592 fenced blocks parsed by remark-mdx (1 page falls back to Markdown); 6,896 runnable (TS/JS, `bun test` files, `bun` commands) |
 | Reference examples | bun-types JSDoc (the source of bun.com/reference): 17 declaration files with examples, 667 examples, 645 runnable |
 | API surface | 407 entries read from the running Bun: 117 top-level `Bun.*` plus walked namespaces, `bun:sqlite` 5, `bun:ffi` 14, `bun:jsc` 37, `bun:test` 21; `bun:bundle` is build-time only; environment variables and arguments are data, not API, and are not listed |
@@ -48,20 +48,21 @@ Decision D19: the M3 components of the app are Angular Material.
 
 ## Results (reference run)
 
-Linux, bubblewrap (/usr/bin/bwrap), Bun 1.4.5 (64352244f), the executable built by `build.ts`; full report in [apps/bun-m3/coverage.json](../../apps/bun-m3/coverage.json) (`/api/coverage`).
+Linux, bubblewrap (/usr/bin/bwrap), Bun 1.4.5 (64352244f), the executable built by `build.ts`, docs of the fork after it was completed with every page bun.com publishes; full report in [apps/bun-m3/coverage.json](../../apps/bun-m3/coverage.json) (`/api/coverage`).
 
 | Measure | Value |
 |---|---|
-| Examples run | 7541 of 7541 |
-| Pass | 3082 |
-| Serving until the timeout | 31 |
-| Fail | 4315 |
-| Timeout | 48 |
-| Skipped (act outside the directory) | 65 |
-| Bun API entries used | 184 of 407 |
+| Pages and skills | 1,751 docs and blog pages, 17 bun-types reference pages |
+| Examples run | 11629 of 11629 |
+| Pass | 4538 |
+| Serving until the timeout | 57 |
+| Fail | 6508 |
+| Timeout | 135 |
+| Skipped (act outside the directory) | 391 |
+| Bun API entries used | 187 of 407 |
 | M3 components implemented by Angular Material | 30 of 37, all rendered in a session |
 
-API entries no example reaches, by namespace: Bun.postgres 34, Bun.FFI 24, bun.jsc 23, Bun.CryptoHasher 21, Bun.SQL 20, Bun.dns 18, bun.ffi 9, Bun.secrets 4, Bun.unsafe 4, Bun.$ 3, Bun.Image 3, Bun.MD4 3, Bun.MD5 3, Bun.SHA1 3, Bun.SHA224 3, Bun.SHA256 3, Bun.SHA384 3, Bun.SHA512 3, Bun.SHA512_256 3, Bun.inspect 3, bun.sqlite 3, Bun.S3Client 2, bun.test 2, Bun.FetchSession 1, Bun.FileSystemRouter 1, Bun.ModuleGraph 1, Bun.allocUnsafe 1, Bun.concatArrayBuffers 1, Bun.cwd 1, Bun.deepMatch 1, Bun.embeddedFiles 1, Bun.enableANSIColors 1, Bun.fetch 1, Bun.indexOfLine 1, Bun.jest 1, Bun.mmap 1, Bun.openInEditor 1, Bun.origin 1, Bun.plugin 1, Bun.readableStreamToBlob 1, Bun.readableStreamToJSON 1, Bun.readableStreamToText 1, Bun.registerMacro 1, Bun.resolve 1, Bun.sha 1, Bun.shrink 1, Bun.version_with_sha 1, global.BuildMessage 1, global.ResolveMessage 1. The docs and bun-types have no runnable example that calls them; reaching them needs another source of real usage, such as the fork's own test suite.
+API entries no example reaches, by namespace: Bun.postgres 34, Bun.FFI 24, bun.jsc 23, Bun.CryptoHasher 21, Bun.SQL 20, Bun.dns 18, bun.ffi 8, Bun.secrets 4, Bun.unsafe 4, Bun.$ 3, Bun.Image 3, Bun.MD4 3, Bun.MD5 3, Bun.SHA1 3, Bun.SHA224 3, Bun.SHA256 3, Bun.SHA384 3, Bun.SHA512 3, Bun.SHA512_256 3, Bun.inspect 3, bun.sqlite 3, Bun.S3Client 2, bun.test 2, Bun.FetchSession 1, Bun.ModuleGraph 1, Bun.allocUnsafe 1, Bun.concatArrayBuffers 1, Bun.cwd 1, Bun.deepMatch 1, Bun.embeddedFiles 1, Bun.enableANSIColors 1, Bun.fetch 1, Bun.indexOfLine 1, Bun.jest 1, Bun.mmap 1, Bun.openInEditor 1, Bun.origin 1, Bun.plugin 1, Bun.readableStreamToBlob 1, Bun.readableStreamToJSON 1, Bun.registerMacro 1, Bun.resolve 1, Bun.sha 1, Bun.shrink 1, Bun.version_with_sha 1, global.BuildMessage 1, global.ResolveMessage 1. The docs, the blog and bun-types have no runnable example that calls them; reaching them needs another source of real usage, such as the fork's own test suite.
 
 ## Known limits
 
