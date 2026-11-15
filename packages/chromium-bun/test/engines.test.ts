@@ -49,6 +49,16 @@ describe("engines registry", () => {
       }
   });
 
+  test("lightpanda: release binary pinned per platform, fork build on fr1", () => {
+    const e = getEngine("lightpanda");
+    expect(e.install).toMatchObject({ via: "ay", tool: "lightpanda" });
+    expect(e.serve?.(9333, "p")).toEqual(["serve", "--host", "127.0.0.1", "--port", "9333"]);
+    const block = tools.slice(tools.indexOf('name = "lightpanda"'), tools.indexOf('name = "servo"'));
+    for (const k of ["linux-x86_64", "linux-aarch64", "macos-x86_64", "macos-aarch64"])
+      expect(block).toMatch(new RegExp(`sha256\\.${k} = "[0-9a-f]{64}"`));
+    expect(getEngine("lightpanda-fork").install).toMatchObject({ via: "build", host: "fr1" });
+  });
+
   test("freePort returns a usable TCP port", () => {
     const p = freePort();
     expect(p).toBeGreaterThan(0);

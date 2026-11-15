@@ -55,6 +55,7 @@ export const DEFAULT_INSTALL: readonly string[] = [
   "playwright-chromium",
   "playwright-webkit",
   "obscura",
+  "lightpanda",
   "servo",
   "agent-browser",
   "chrome-devtools-mcp",
