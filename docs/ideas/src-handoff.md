@@ -7,7 +7,7 @@ What `aphrody-labs/aphrody` holds inside `open`'s scope (UI, TUI, GUI, desktop a
 | Item | State in src | Commit | Pick up in open |
 |---|---|---|---|
 | Material Web (`@material/web`) | removed: in maintenance (README looks for maintainers, not archived); its only consumers were two dead components of `apps/auto` | 406ccf22, 64e76a49 | do not reintroduce (D3) |
-| Angular + Angular Material | root catalog at `22.3.0-rc.0` (npm `next` tag read live); `apps/aphrody/web` builds on fr2 | 1c4cd2d8, 7b86d5fc | base of the D3 Angular fork |
+| Angular + Angular Material | root catalog at `22.3.0-rc.0` (npm `next` tag read live); `apps/aphrody/web` builds on the test host | 1c4cd2d8, 7b86d5fc | base of the D3 Angular fork |
 | Angular M3 theme | `packages/design`: Sass `mat.theme` + `--mat-sys-*` generated from MCU tokens (`assets/brand/brand.toml`); Google's official tokens read live | 64e76a49, 63c1430b | D14 source |
 | M3 colour in C | `ui/hct.c` (CAM16, HctSolver, dynamic schemes), `m3.c` | b79d6f6b | candidate for the D3 shared C ABI |
 | modern-web-guidance review | gnu.aphrody.com: http(s)-only links, ARIA tabs, deferred search (INP); M3 telemetry via `textContent` | a4840899, 8aae9606 | apply the same rules to open's surfaces |
@@ -40,7 +40,7 @@ What `aphrody-labs/aphrody` holds inside `open`'s scope (UI, TUI, GUI, desktop a
 | Item | State | Commit | Pick up |
 |---|---|---|---|
 | Router, `ay-chat`, `ay-chat-gui` | removed from src by session apps-4d | 2c058770 | ai-router.md |
-| Gemini web MCP gateway | `mcp.aphrody.com` Worker with OAuth, fr2 relay; the full OAuth flow waits for the owner's Google consent | session src-2d | attach to routing (D2, D10) |
+| Gemini web MCP gateway | `mcp.aphrody.com` Worker with OAuth, relay origin on the test host; the full OAuth flow waits for a Google consent | session src-2d | attach to routing (D2, D10) |
 
 ## Rules learned (src-2d)
 

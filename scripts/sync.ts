@@ -4,13 +4,15 @@
 //   --update: ignore pinned rev, take the upstream default branch HEAD, rewrite the lock.
 //   entries without `rev` (seed) are resolved like --update.
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync, lstatSync } from "node:fs";
+import { homedir } from "node:os";
 import { join, relative, resolve } from "node:path";
 
 const argv = process.argv.slice(2);
 const flag = (n: string) => argv.includes(n);
 const opt = (n: string, d: string) => (argv.includes(n) ? argv[argv.indexOf(n) + 1]! : d);
 const ROOT = resolve(opt("--root", join(import.meta.dir, "..")));
-const SCRATCH = resolve(opt("--scratch", "/srv/open-src"));
+// scratch clones live in the user state directory unless --scratch names another place
+const SCRATCH = resolve(opt("--scratch", join(process.platform === "win32" ? (Bun.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local")) : (Bun.env.XDG_STATE_HOME ?? join(homedir(), ".local", "state")), "open-src")));
 const ONLY = opt("--only", "").split(",").filter(Boolean);
 const MAX = 50 * 1024 * 1024;
 // Characters and names Windows refuses in a path component: such files would make the repository uncloneable there.

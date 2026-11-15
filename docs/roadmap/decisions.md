@@ -1,6 +1,6 @@
 # Decisions
 
-## Generalist rule (D21, owner)
+## Generalist rule (D21)
 
 Aphrody is generalist: no framework, programming language, OS, architecture or human language is hand-picked. Every selection is a rule applied to the generated registries, re-evaluated when they change:
 
@@ -13,7 +13,7 @@ Aphrody is generalist: no framework, programming language, OS, architecture or h
 
 The names in the decisions below are the first instances of these rules (where work starts), not limits.
 
-## Taken by the owner
+## Taken
 
 | Id | Question | Decision |
 |---|---|---|
@@ -30,6 +30,37 @@ The names in the decisions below are the first instances of these rules (where w
 | D20 | Language | **English at the source**, multilingual through i18n and a translation stack, for every project |
 | D21 | Selections | **Generalist**: rules over generated registries, see the top of this file |
 | D22 | `open` and `auto` | **One codebase, two editions**: `open` is the open-source core, `auto` the paid hosted edition that consumes it ([vision.md](vision.md)) |
+| D23 | Naming | Rules and arguments below |
+| D24 | Site values | Rules and arguments below |
+| D25 | Imports into `open` | Rules and arguments below |
+
+## D23: naming
+
+1. **A name says what the thing does, never who owns it or where it runs.** `open` is a library for any user and any deployment: an owner, brand or host name means nothing to a user, breaks on another deployment and leaks private infrastructure. This covers directories, packages, crates, modules, types, functions, environment variables, flags and comments. Marketing words ("Sovereign", "ultimate") are not names.
+2. **Registry coordinates are not code.** An npm scope or a crates.io name exists to avoid collisions in a shared registry; it appears only in the manifest `name` field. npm packages keep the scope the project already publishes under (`@aphrody/`), because changing a published scope is a registry migration with no effect on the code. Rust crates take a functional name and add a prefix only when crates.io already has that name, checked at publication.
+3. **One symbol prefix per C ABI.** C has a single global symbol namespace per process, so every exported symbol needs a prefix that no other library uses. The prefix belongs to the ABI, not to the crate that implements it: crates implementing the shared ABI of `aphrody-core-capi` export `aphrody_*`, as that ABI defines.
+4. **Environment variables belong to their component**: `<COMPONENT>_<SETTING>`, the component being the package or crate name in upper snake case. No project-wide prefix: a variable is read by one component and documented with it.
+5. **Spelling**: kebab-case for directories, files, packages and crates; one concern per module; tests in `test/` next to `src/`; English source.
+
+## D24: site values
+
+1. **Hosts, addresses, users, accounts and folders are resolved when the code runs, never stored**, in the repository or in a file it points to. The caller's own configuration is the input: an ssh destination is resolved by `ssh -G` from the caller's `~/.ssh/config`; a runtime comes from the target's runtime manager; a tool is started by package name (`bun x --bun <package>`), not by install path.
+2. **Defaults are the platform's**: data in the user state directory (`LOCALAPPDATA`, `XDG_STATE_HOME` or `~/.local/state`), temporary files in the platform temp directory; never a path that exists only on one machine.
+3. **The gate** `scripts/check/private.ts` reads this machine's private terms at run time (user, home, the folders the checkout lives in, host name, git e-mail, ssh aliases and host names, the networks of a fleet file given as input) and fails on any tracked first-party file that contains one. Generators that quote another repository's text redact the same terms (`scripts/check/private-terms.ts`).
+4. **Documents state requirements and decisions, not who said them**, and quote no person.
+
+## D25: imports into `open`
+
+An import lands only after six checks, recorded in `docs/reviews/<unit>.md`:
+
+1. **Provenance**: history replayed with a `Moved from <repository> <commit>` trailer per commit, or a lock entry for upstream code.
+2. **Verification**: its tests run green in `open`.
+3. **Purification**: site values follow D24; the private-data gate is clean.
+4. **Purge**: code that belongs to another product, to one deployment or to nobody (dead code, demonstrations, fake outputs) stays in its repository or is deleted.
+5. **Reorganisation**: split by concern into units named by D23.
+6. **Review**: each point checked against the code, outcome written.
+
+The rule applies to the units already moved (`packages/chromium-bun`, `crates/adblock-capi`).
 
 ## Still open
 

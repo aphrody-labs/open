@@ -1,12 +1,12 @@
 {
-  "source": "aphrody-labs/aphrody @ 7de1138b",
+  "source": "aphrody-labs/aphrody @ 576d8795",
   "counts": {
-    "thirdParty": 521,
-    "crates": 216,
-    "packages": 51,
+    "thirdParty": 559,
+    "crates": 214,
+    "packages": 50,
     "apps": 6,
-    "docs": 1453,
-    "trackedFiles": 13946
+    "docs": 1556,
+    "trackedFiles": 16258
   },
   "thirdParty": [
     {
@@ -671,6 +671,254 @@
       "upstream": "https://github.com/microsoft/coreutils.git",
       "commit": "9233b38b2f52ef579732f3b732aa46ce6710e516",
       "branch": "main",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-app-library",
+      "url": "https://github.com/aphrody-labs/cosmic-app-library.git",
+      "upstream": "https://github.com/pop-os/cosmic-app-library.git",
+      "commit": "90c399d882e7ea7f03e344e88caac5034e4ea94c",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-applets",
+      "url": "https://github.com/aphrody-labs/cosmic-applets.git",
+      "upstream": "https://github.com/pop-os/cosmic-applets.git",
+      "commit": "ecb6b61986f90130a8f7bef8b3d414de0fb91916",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-bg",
+      "url": "https://github.com/aphrody-labs/cosmic-bg.git",
+      "upstream": "https://github.com/pop-os/cosmic-bg.git",
+      "commit": "243990320904ac1f80f8888babd34e864f974bd0",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-comp",
+      "url": "https://github.com/aphrody-labs/cosmic-comp.git",
+      "upstream": "https://github.com/pop-os/cosmic-comp.git",
+      "commit": "f2beba6eccb7ae4d66c962dfb933fcaa2450166b",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-edit",
+      "url": "https://github.com/aphrody-labs/cosmic-edit.git",
+      "upstream": "https://github.com/pop-os/cosmic-edit.git",
+      "commit": "e14ce78d5add0cc33681ce4e55f5d947def2e6b2",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-epoch",
+      "url": "https://github.com/aphrody-labs/cosmic-epoch.git",
+      "upstream": "https://github.com/pop-os/cosmic-epoch.git",
+      "commit": "e98f8289a22f9e612feee7d4c6ba197782db154b",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-files",
+      "url": "https://github.com/aphrody-labs/cosmic-files.git",
+      "upstream": "https://github.com/pop-os/cosmic-files.git",
+      "commit": "2c20e74a0bd01c5d24ffe730290b152a46d983be",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-greeter",
+      "url": "https://github.com/aphrody-labs/cosmic-greeter.git",
+      "upstream": "https://github.com/pop-os/cosmic-greeter.git",
+      "commit": "20af0633580052f9a6877b9934670c9d77149496",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-icons",
+      "url": "https://github.com/aphrody-labs/cosmic-icons.git",
+      "upstream": "https://github.com/pop-os/cosmic-icons.git",
+      "commit": "f1a282a0822aed1f0083dd2ab2e6c65bd5b401eb",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-idle",
+      "url": "https://github.com/aphrody-labs/cosmic-idle.git",
+      "upstream": "https://github.com/pop-os/cosmic-idle.git",
+      "commit": "6d6f07af60bb307882cdcbd0bda0a6fc76bd0df3",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-initial-setup",
+      "url": "https://github.com/aphrody-labs/cosmic-initial-setup.git",
+      "upstream": "https://github.com/pop-os/cosmic-initial-setup.git",
+      "commit": "58d0e4c837ddca0d525db0ca8c298776e3648e49",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-launcher",
+      "url": "https://github.com/aphrody-labs/cosmic-launcher.git",
+      "upstream": "https://github.com/pop-os/cosmic-launcher.git",
+      "commit": "29c1bac5e8f9f83b9e2cef03bb0259a04ffd7f2a",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-monitor",
+      "url": "https://github.com/aphrody-labs/cosmic-monitor.git",
+      "upstream": "https://github.com/pop-os/cosmic-monitor.git",
+      "commit": "2f5aa4d6a8c8333659f3c95388a1a6db450af327",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-notifications",
+      "url": "https://github.com/aphrody-labs/cosmic-notifications.git",
+      "upstream": "https://github.com/pop-os/cosmic-notifications.git",
+      "commit": "6131f80143b9da28083ffe8946bfe3a6b29a4c97",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-osd",
+      "url": "https://github.com/aphrody-labs/cosmic-osd.git",
+      "upstream": "https://github.com/pop-os/cosmic-osd.git",
+      "commit": "552753febb27baa2f54c6098033d4bd60a7473ed",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-osk",
+      "url": "https://github.com/aphrody-labs/cosmic-osk.git",
+      "upstream": "https://github.com/pop-os/cosmic-osk.git",
+      "commit": "6b146a2b0a23d88ae84223ad06c6813bda5a9386",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-panel",
+      "url": "https://github.com/aphrody-labs/cosmic-panel.git",
+      "upstream": "https://github.com/pop-os/cosmic-panel.git",
+      "commit": "160a951c8c050a327bb04a7ca22d62e573338c90",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-player",
+      "url": "https://github.com/aphrody-labs/cosmic-player.git",
+      "upstream": "https://github.com/pop-os/cosmic-player.git",
+      "commit": "34a41f247a37eb681dd5c27c832e2d1f3c1dc1e4",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-protocols",
+      "url": "https://github.com/aphrody-labs/cosmic-protocols.git",
+      "upstream": "https://github.com/pop-os/cosmic-protocols.git",
+      "commit": "815b2c5df84a4a82eb8fb505343f8ebde6aefc38",
+      "branch": "main",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-randr",
+      "url": "https://github.com/aphrody-labs/cosmic-randr.git",
+      "upstream": "https://github.com/pop-os/cosmic-randr.git",
+      "commit": "f1a97655c97e8799bf4a37a8f5103a8ab5e5068d",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-screenshot",
+      "url": "https://github.com/aphrody-labs/cosmic-screenshot.git",
+      "upstream": "https://github.com/pop-os/cosmic-screenshot.git",
+      "commit": "45549f7e940d495ecee9268f58824668814e970c",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-session",
+      "url": "https://github.com/aphrody-labs/cosmic-session.git",
+      "upstream": "https://github.com/pop-os/cosmic-session.git",
+      "commit": "3fe5d42eda0c3121e67a62b1f67d06f67ecbb09d",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-settings",
+      "url": "https://github.com/aphrody-labs/cosmic-settings.git",
+      "upstream": "https://github.com/pop-os/cosmic-settings.git",
+      "commit": "6aaf30d69ec3ed64eeb1d441ef5fe0a2017b3fe6",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-settings-daemon",
+      "url": "https://github.com/aphrody-labs/cosmic-settings-daemon.git",
+      "upstream": "https://github.com/pop-os/cosmic-settings-daemon.git",
+      "commit": "a8d9d84cd1c13af510a20dc0f4ab1156c5726515",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-sound-theme",
+      "url": "https://github.com/aphrody-labs/cosmic-sound-theme.git",
+      "upstream": "https://github.com/pop-os/cosmic-sound-theme.git",
+      "commit": "bf5335fe1af0cb3bee83e1ad2371410ee434658d",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-store",
+      "url": "https://github.com/aphrody-labs/cosmic-store.git",
+      "upstream": "https://github.com/pop-os/cosmic-store.git",
+      "commit": "377ed6b88a91fd86761cd15dccfa70073a1a01be",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-term",
+      "url": "https://github.com/aphrody-labs/cosmic-term.git",
+      "upstream": "https://github.com/pop-os/cosmic-term.git",
+      "commit": "b209f70c3f0a53dc578df4aac01594c3ccc90449",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-text",
+      "url": "https://github.com/aphrody-labs/cosmic-text.git",
+      "upstream": "https://github.com/pop-os/cosmic-text.git",
+      "commit": "b07cb90a872cb9fec7fea1c72d734f81907fe3ad",
+      "branch": "main",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-viewer",
+      "url": "https://github.com/aphrody-labs/cosmic-viewer.git",
+      "upstream": "https://github.com/pop-os/cosmic-viewer.git",
+      "commit": "300210f1c7d86ba14a43602e40dd5fe1deb16703",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-wallpapers",
+      "url": "https://github.com/aphrody-labs/cosmic-wallpapers.git",
+      "upstream": "https://github.com/pop-os/cosmic-wallpapers.git",
+      "commit": "da595bba495cb8fc57f26505621fc25000218349",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/cosmic-workspaces-epoch",
+      "url": "https://github.com/aphrody-labs/cosmic-workspaces-epoch.git",
+      "upstream": "https://github.com/pop-os/cosmic-workspaces-epoch.git",
+      "commit": "cb953ea0e6fb45ac8f62f9c52f1347c971388e03",
+      "branch": "master",
       "pillar": "git"
     },
     {
@@ -1474,6 +1722,14 @@
       "pillar": "git"
     },
     {
+      "path": "third_party/libcosmic",
+      "url": "https://github.com/aphrody-labs/libcosmic.git",
+      "upstream": "https://github.com/pop-os/libcosmic.git",
+      "commit": "dfc68d1e1a1ff39ae4fd61bec570e79700a111dd",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
       "path": "third_party/LiberNT",
       "url": "https://github.com/aphrody-labs/LiberNT.git",
       "upstream": "https://github.com/LiberNT/LiberNT",
@@ -1555,9 +1811,9 @@
     },
     {
       "path": "third_party/locally-uncensored",
-      "url": "https://github.com/PurpleDoubleD/locally-uncensored.git",
-      "upstream": null,
-      "commit": "3dff4291f8ad5a86078679e23c7a0a2cd2adf9b3",
+      "url": "https://github.com/aphrody-labs/locally-uncensored.git",
+      "upstream": "https://github.com/PurpleDoubleD/locally-uncensored.git",
+      "commit": "dfe45f01912729224ffe6553b9adc31518976ed2",
       "branch": "master",
       "pillar": "git"
     },
@@ -2098,6 +2354,14 @@
       "pillar": "git"
     },
     {
+      "path": "third_party/pop-launcher",
+      "url": "https://github.com/aphrody-labs/pop-launcher.git",
+      "upstream": "https://github.com/pop-os/launcher.git",
+      "commit": "4111617b7345134abe67332a7baa5ef12538f412",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
       "path": "third_party/PowerShell",
       "url": "https://github.com/aphrody-labs/PowerShell.git",
       "upstream": "https://github.com/PowerShell/PowerShell.git",
@@ -2370,6 +2634,14 @@
       "pillar": "git"
     },
     {
+      "path": "third_party/simple-wrapper",
+      "url": "https://github.com/aphrody-labs/simple-wrapper.git",
+      "upstream": "https://github.com/pop-os/simple-wrapper.git",
+      "commit": "95db0daff42acb879013763b55f31d85ce805642",
+      "branch": "master_jammy",
+      "pillar": "git"
+    },
+    {
       "path": "third_party/skill-recorder",
       "url": "https://github.com/aphrody-labs/skill-recorder.git",
       "upstream": "https://github.com/microsoft/skill-recorder.git",
@@ -2391,6 +2663,22 @@
       "upstream": "https://github.com/mikelodder7/sntrup761.git",
       "commit": "54e3a99495e974586085df0c86583eb7c606854e",
       "branch": "aphrody/pure-rust",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/spacedrive",
+      "url": "https://github.com/aphrody-labs/spacedrive.git",
+      "upstream": "https://github.com/spacedriveapp/spacedrive.git",
+      "commit": "4a1fa9ed50c49f413c02c6c9300df6acda727910",
+      "branch": "main",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/specta",
+      "url": "https://github.com/aphrody-labs/specta.git",
+      "upstream": "https://github.com/jamiepine/specta.git",
+      "commit": "9bfc2a4e3ec1a70ddaaffc86cb75281325a18e25",
+      "branch": "main",
       "pillar": "git"
     },
     {
@@ -4154,6 +4442,14 @@
       "pillar": "git"
     },
     {
+      "path": "third_party/xdg-desktop-portal-cosmic",
+      "url": "https://github.com/aphrody-labs/xdg-desktop-portal-cosmic.git",
+      "upstream": "https://github.com/pop-os/xdg-desktop-portal-cosmic.git",
+      "commit": "2d701019e9c629c6198117c5998456c24ea21d11",
+      "branch": "master",
+      "pillar": "git"
+    },
+    {
       "path": "third_party/yash-rs",
       "url": "https://github.com/aphrody-labs/yash-rs.git",
       "upstream": "https://github.com/magicant/yash-rs.git",
@@ -4167,6 +4463,14 @@
       "upstream": "https://github.com/zed-industries/zed.git",
       "commit": "2de90a45a393db5f5e7dc64eceaaaa2fbdd5dfb4",
       "branch": "main",
+      "pillar": "git"
+    },
+    {
+      "path": "third_party/zed-spacedrive",
+      "url": "https://github.com/aphrody-labs/zed-spacedrive.git",
+      "upstream": "https://github.com/spacedriveapp/zed.git",
+      "commit": "e0931d5a9dbf4f781b336fdf448739e74a2ac0b5",
+      "branch": "spacedrive",
       "pillar": "git"
     },
     {
@@ -4362,12 +4666,7 @@
     {
       "path": "src/corelib",
       "name": "aphrody-corelib",
-      "description": "Product support library for Shenron and RoseGriffon: GPU (wgpu), RE formats, emulation clock, Epic assets, Boq wire format and adblock glue"
-    },
-    {
-      "path": "src/corelib/adblock-capi",
-      "name": "aphrody-adblock-capi",
-      "description": "C ABI over the adblock engine glue of aphrody-corelib (aphrody_adblock_* symbols, Brave adblock crate)"
+      "description": "Product support library for Shenron and RoseGriffon: GPU (wgpu), RE formats, emulation clock, Epic assets and Boq wire format"
     },
     {
       "path": "src/craft",
@@ -4477,7 +4776,7 @@
     {
       "path": "src/env",
       "name": "aphrody-env",
-      "description": "Zero-dependency Rust 2024 loader and SecretString redaction guard for C:/src/.env"
+      "description": "Zero-dependency Rust 2024 loader and SecretString redaction guard for /.env"
     },
     {
       "path": "src/errno",
@@ -5120,11 +5419,6 @@
       "description": "Localisation Fluent du domaine média tv : 16 langues, pluriels CLDR, sens d'écriture."
     },
     {
-      "path": "src/ui/brand-gpu",
-      "name": "aphrody-brand-gpu",
-      "description": "Geometry of the Aphrody brand tile (rounded slab, UV-mapped face) and its animation matrices: the glTF mesh of `ay brand build` and, as wasm32 cdylib, the minimal WebGPU renderer of assets/brand/web/gpu.ts. No dependencies."
-    },
-    {
       "path": "src/ui/kit",
       "name": "aphrody-ui",
       "description": "Rust core of the Aphrody design system: Material 3 color (HCT, schemes, contrast), tokens, component contracts, layout, theme presets, React/Next front ends and the brand renderer."
@@ -5448,12 +5742,6 @@
       "workspace": true
     },
     {
-      "path": "packages/bun-types",
-      "name": "bun-types",
-      "description": "Type definitions and documentation for Bun, an incredibly fast JavaScript runtime",
-      "workspace": true
-    },
-    {
       "path": "packages/bunify",
       "name": "@aphrody/bunify",
       "description": "legacy Node/TS/JS -> Bun -> Rust migrator",
@@ -5486,7 +5774,7 @@
     {
       "path": "packages/env-kit",
       "name": "@aphrody/env-kit",
-      "description": "Zero-dependency cross-language environment sharing, secret redaction, 3-principal Google Cloud IAM, and editor/agent sync toolkit for C:/src",
+      "description": "Zero-dependency cross-language environment sharing, secret redaction, and editor/agent sync toolkit (Google Cloud IAM and billing live in @aphrody/gcp) for ",
       "workspace": true
     },
     {
@@ -5499,6 +5787,12 @@
       "path": "packages/gaming",
       "name": "@aphrody/gaming",
       "description": "Gaming stack of the monorepo: Steam (web API, SteamID, local paths over `ay steam`), Proton, Vulkan layers, DirectX, steamcmd and Proton wrappers; `ay gaming`",
+      "workspace": true
+    },
+    {
+      "path": "packages/gcp",
+      "name": "@aphrody/gcp",
+      "description": "Google Cloud for src: 3-principal gcloud configurations, IAM bindings plan, agent-managed billing (split from env-kit)",
       "workspace": true
     },
     {
@@ -5516,7 +5810,7 @@
     {
       "path": "packages/i18n",
       "name": "@aphrody/i18n",
-      "description": "Shared i18n layer for src: JSON catalogs with an ICU MessageFormat subset, t() with fallback to en, Accept-Language negotiation, check/extract CLI",
+      "description": "Shared i18n layer: catalogs discovered from locales/, Unicode MessageFormat 2 (messageformat) behind a format-adapter interface, Intl-based locale negotiation, check/extract/translate CLI",
       "workspace": true
     },
     {
@@ -5528,13 +5822,7 @@
     {
       "path": "packages/native",
       "name": "@aphrody/native",
-      "description": "Global Zig native desktop SDK core (vercel-labs/native) and bun:ffi bindings",
-      "workspace": true
-    },
-    {
-      "path": "packages/net",
-      "name": "@aphrody/net",
-      "description": null,
+      "description": "bun:ffi bindings for the Zig native desktop SDK (third_party/native, vercel-labs/native)",
       "workspace": true
     },
     {
@@ -5546,7 +5834,7 @@
     {
       "path": "packages/release",
       "name": "@aphrody/release",
-      "description": "ay release: tags, GitHub releases, crates.io, npm, PyPI and vcpkg/CMake from fr1, dry-run first",
+      "description": "ay release: tags, GitHub releases, crates.io, npm, PyPI and vcpkg/CMake from <host>, dry-run first",
       "workspace": true
     },
     {
@@ -5577,36 +5865,40 @@
     "shenron"
   ],
   "docsByArea": {
-    ".agents": 709,
+    ".agents": 792,
     ".claude": 15,
     "AGENTS.md": 1,
     "CLAUDE.md": 1,
     "GEMINI.md": 1,
     "README.md": 1,
-    "apps": 89,
+    "apps": 86,
+    "bench": 1,
     "docs/ALPHABET.md": 1,
     "docs/ARCHITECTURE.md": 1,
     "docs/PLAN.mdx": 1,
     "docs/README.md": 1,
     "docs/agents": 2,
     "docs/ai": 3,
+    "docs/audit": 2,
+    "docs/axum": 5,
     "docs/ay": 2,
     "docs/base-ui": 8,
     "docs/better-auth": 8,
     "docs/bun": 11,
     "docs/compiler": 11,
     "docs/core": 1,
+    "docs/craft": 1,
     "docs/design": 19,
     "docs/epic": 3,
     "docs/games": 11,
     "docs/gaming": 1,
     "docs/gpui": 1,
     "docs/i18n": 13,
-    "docs/infra": 30,
+    "docs/infra": 32,
     "docs/legal": 1,
     "docs/lore": 209,
     "docs/machine": 2,
-    "docs/native": 99,
+    "docs/native": 100,
     "docs/net": 1,
     "docs/nextjs": 9,
     "docs/packaging": 7,
@@ -5615,7 +5907,7 @@
     "docs/publish": 2,
     "docs/reference": 4,
     "docs/replica": 7,
-    "docs/research": 9,
+    "docs/research": 12,
     "docs/reviews": 7,
     "docs/shadcn": 8,
     "docs/tailwindcss": 8,
@@ -5623,13 +5915,14 @@
     "docs/tools": 1,
     "docs/tv": 5,
     "docs/ui": 3,
-    "docs/upstream": 1,
+    "docs/upstream": 2,
     "docs/web": 3,
     "infra": 9,
     "licenses": 7,
-    "packages": 45,
+    "packages": 32,
     "plugins": 1,
-    "src": 35,
+    "src": 54,
+    "test": 1,
     "tools": 16
   },
   "docs": [
@@ -7389,6 +7682,86 @@
       "bytes": 1667
     },
     {
+      "path": ".agents/skills/axum/AGENTS.md",
+      "title": "Axum rules (compiled)",
+      "bytes": 10400
+    },
+    {
+      "path": ".agents/skills/axum/SKILL.md",
+      "title": "Axum",
+      "bytes": 3563
+    },
+    {
+      "path": ".agents/skills/axum/rules/_sections.md",
+      "title": "Sections",
+      "bytes": 732
+    },
+    {
+      "path": ".agents/skills/axum/rules/build-features-minimal.md",
+      "title": null,
+      "bytes": 831
+    },
+    {
+      "path": ".agents/skills/axum/rules/error-into-response.md",
+      "title": null,
+      "bytes": 986
+    },
+    {
+      "path": ".agents/skills/axum/rules/extract-body-last.md",
+      "title": null,
+      "bytes": 765
+    },
+    {
+      "path": ".agents/skills/axum/rules/extract-body-limit.md",
+      "title": null,
+      "bytes": 918
+    },
+    {
+      "path": ".agents/skills/axum/rules/extract-state-fromref.md",
+      "title": null,
+      "bytes": 914
+    },
+    {
+      "path": ".agents/skills/axum/rules/http-cors-allowlist.md",
+      "title": null,
+      "bytes": 818
+    },
+    {
+      "path": ".agents/skills/axum/rules/http-trace-matched-path.md",
+      "title": null,
+      "bytes": 782
+    },
+    {
+      "path": ".agents/skills/axum/rules/middleware-from-fn.md",
+      "title": null,
+      "bytes": 960
+    },
+    {
+      "path": ".agents/skills/axum/rules/middleware-order.md",
+      "title": null,
+      "bytes": 873
+    },
+    {
+      "path": ".agents/skills/axum/rules/middleware-route-layer.md",
+      "title": null,
+      "bytes": 838
+    },
+    {
+      "path": ".agents/skills/axum/rules/routing-path-syntax.md",
+      "title": null,
+      "bytes": 745
+    },
+    {
+      "path": ".agents/skills/axum/rules/serve-graceful-limits.md",
+      "title": null,
+      "bytes": 880
+    },
+    {
+      "path": ".agents/skills/axum/rules/test-oneshot-golden.md",
+      "title": null,
+      "bytes": 834
+    },
+    {
       "path": ".agents/skills/ay-index/SKILL.md",
       "title": "ay index",
       "bytes": 1880
@@ -7446,12 +7819,347 @@
     {
       "path": ".agents/skills/chromium/SKILL.md",
       "title": "Chromium / ChromiumOS",
-      "bytes": 9922
+      "bytes": 9924
     },
     {
       "path": ".agents/skills/chromium/references/repos.md",
       "title": "Chromium / ChromiumOS repos (verified 2026-11-12)",
       "bytes": 4508
+    },
+    {
+      "path": ".agents/skills/cli-agent-browser/SKILL.md",
+      "title": "agent-browser 0.43.0",
+      "bytes": 3524
+    },
+    {
+      "path": ".agents/skills/cli-ast-grep/SKILL.md",
+      "title": "ast-grep 0.51.2",
+      "bytes": 2043
+    },
+    {
+      "path": ".agents/skills/cli-atuin/SKILL.md",
+      "title": "atuin 18.24.8",
+      "bytes": 2620
+    },
+    {
+      "path": ".agents/skills/cli-ay/SKILL.md",
+      "title": "ay 0.2.0",
+      "bytes": 5359
+    },
+    {
+      "path": ".agents/skills/cli-b3sum/SKILL.md",
+      "title": "b3sum 1.8.7",
+      "bytes": 1834
+    },
+    {
+      "path": ".agents/skills/cli-bat/SKILL.md",
+      "title": "bat 0.26.1",
+      "bytes": 3201
+    },
+    {
+      "path": ".agents/skills/cli-bazelisk/SKILL.md",
+      "title": "bazelisk 1.30.0",
+      "bytes": 672
+    },
+    {
+      "path": ".agents/skills/cli-bottom/SKILL.md",
+      "title": "bottom 0.15.0",
+      "bytes": 3431
+    },
+    {
+      "path": ".agents/skills/cli-bun/SKILL.md",
+      "title": "bun 1.4.5",
+      "bytes": 5322
+    },
+    {
+      "path": ".agents/skills/cli-caddy/SKILL.md",
+      "title": "caddy 2.11.9",
+      "bytes": 2972
+    },
+    {
+      "path": ".agents/skills/cli-cargo-audit/SKILL.md",
+      "title": "cargo-audit 0.23.0",
+      "bytes": 2200
+    },
+    {
+      "path": ".agents/skills/cli-cargo-binstall/SKILL.md",
+      "title": "cargo-binstall 1.26.2",
+      "bytes": 3105
+    },
+    {
+      "path": ".agents/skills/cli-cargo-deny/SKILL.md",
+      "title": "cargo-deny 0.20.2",
+      "bytes": 2676
+    },
+    {
+      "path": ".agents/skills/cli-cargo-hack/SKILL.md",
+      "title": "cargo-hack 0.6.46",
+      "bytes": 2784
+    },
+    {
+      "path": ".agents/skills/cli-cargo-llvm-cov/SKILL.md",
+      "title": "cargo-llvm-cov 0.9.1",
+      "bytes": 3052
+    },
+    {
+      "path": ".agents/skills/cli-cargo-machete/SKILL.md",
+      "title": "cargo-machete 0.10.0",
+      "bytes": 443
+    },
+    {
+      "path": ".agents/skills/cli-cargo-nextest/SKILL.md",
+      "title": "cargo-nextest 0.9.151",
+      "bytes": 2911
+    },
+    {
+      "path": ".agents/skills/cli-cargo-shear/SKILL.md",
+      "title": "cargo-shear 1.14.1",
+      "bytes": 1704
+    },
+    {
+      "path": ".agents/skills/cli-cargo-zigbuild/SKILL.md",
+      "title": "cargo-zigbuild 0.24.1",
+      "bytes": 3587
+    },
+    {
+      "path": ".agents/skills/cli-cloudflared/SKILL.md",
+      "title": "cloudflared 2026.10.7",
+      "bytes": 3457
+    },
+    {
+      "path": ".agents/skills/cli-coreutils/SKILL.md",
+      "title": "coreutils 0.12.0",
+      "bytes": 1276
+    },
+    {
+      "path": ".agents/skills/cli-delta/SKILL.md",
+      "title": "delta 0.20.1",
+      "bytes": 2966
+    },
+    {
+      "path": ".agents/skills/cli-difftastic/SKILL.md",
+      "title": "difftastic 0.72.0",
+      "bytes": 2795
+    },
+    {
+      "path": ".agents/skills/cli-dist/SKILL.md",
+      "title": "dist 0.34.0",
+      "bytes": 2999
+    },
+    {
+      "path": ".agents/skills/cli-dua/SKILL.md",
+      "title": "dua 3.0.3",
+      "bytes": 2778
+    },
+    {
+      "path": ".agents/skills/cli-dust/SKILL.md",
+      "title": "dust 1.2.7",
+      "bytes": 2162
+    },
+    {
+      "path": ".agents/skills/cli-eza/SKILL.md",
+      "title": "eza 0.23.5",
+      "bytes": 4597
+    },
+    {
+      "path": ".agents/skills/cli-fastfetch/SKILL.md",
+      "title": "fastfetch 2.71.0",
+      "bytes": 4876
+    },
+    {
+      "path": ".agents/skills/cli-fd/SKILL.md",
+      "title": "fd 10.5.2",
+      "bytes": 3672
+    },
+    {
+      "path": ".agents/skills/cli-fzf/SKILL.md",
+      "title": "fzf 0.75.0",
+      "bytes": 4162
+    },
+    {
+      "path": ".agents/skills/cli-gcloud/SKILL.md",
+      "title": "gcloud 593.0.0",
+      "bytes": 3997
+    },
+    {
+      "path": ".agents/skills/cli-gh/SKILL.md",
+      "title": "gh 2.103.3",
+      "bytes": 2952
+    },
+    {
+      "path": ".agents/skills/cli-gitoxide/SKILL.md",
+      "title": "gitoxide 0.61.0",
+      "bytes": 3997
+    },
+    {
+      "path": ".agents/skills/cli-glow/SKILL.md",
+      "title": "glow 3.0.0",
+      "bytes": 1340
+    },
+    {
+      "path": ".agents/skills/cli-hostinger-api-mcp/SKILL.md",
+      "title": "hostinger-api-mcp 3.38.3",
+      "bytes": 1374
+    },
+    {
+      "path": ".agents/skills/cli-hyperfine/SKILL.md",
+      "title": "hyperfine 2.0.0",
+      "bytes": 3331
+    },
+    {
+      "path": ".agents/skills/cli-jaq/SKILL.md",
+      "title": "jaq 3.1.2",
+      "bytes": 2406
+    },
+    {
+      "path": ".agents/skills/cli-jj/SKILL.md",
+      "title": "jj 0.46.0",
+      "bytes": 4239
+    },
+    {
+      "path": ".agents/skills/cli-just/SKILL.md",
+      "title": "just 1.59.0",
+      "bytes": 3668
+    },
+    {
+      "path": ".agents/skills/cli-lazygit/SKILL.md",
+      "title": "lazygit 0.66.3",
+      "bytes": 1937
+    },
+    {
+      "path": ".agents/skills/cli-llama-cpp/SKILL.md",
+      "title": "llama.cpp 12317",
+      "bytes": 5896
+    },
+    {
+      "path": ".agents/skills/cli-ms-coreutils/SKILL.md",
+      "title": "ms-coreutils 2026.9.3",
+      "bytes": 1288
+    },
+    {
+      "path": ".agents/skills/cli-niubash/SKILL.md",
+      "title": "niubash 1.5.0",
+      "bytes": 3348
+    },
+    {
+      "path": ".agents/skills/cli-obscura/SKILL.md",
+      "title": "obscura 0.2.7",
+      "bytes": 1455
+    },
+    {
+      "path": ".agents/skills/cli-oha/SKILL.md",
+      "title": "oha 1.17.0",
+      "bytes": 3467
+    },
+    {
+      "path": ".agents/skills/cli-ollama/SKILL.md",
+      "title": "ollama 0.40.16",
+      "bytes": 1391
+    },
+    {
+      "path": ".agents/skills/cli-ouch/SKILL.md",
+      "title": "ouch 0.8.3",
+      "bytes": 1753
+    },
+    {
+      "path": ".agents/skills/cli-ovhcloud/SKILL.md",
+      "title": "ovhcloud 0.16.0",
+      "bytes": 6218
+    },
+    {
+      "path": ".agents/skills/cli-rclone/SKILL.md",
+      "title": "rclone 1.76.0",
+      "bytes": 4458
+    },
+    {
+      "path": ".agents/skills/cli-ripgrep/SKILL.md",
+      "title": "ripgrep 15.2.0",
+      "bytes": 2873
+    },
+    {
+      "path": ".agents/skills/cli-ruff/SKILL.md",
+      "title": "ruff 0.17.5",
+      "bytes": 2424
+    },
+    {
+      "path": ".agents/skills/cli-rustup/SKILL.md",
+      "title": "rustup 1.29.3",
+      "bytes": 2556
+    },
+    {
+      "path": ".agents/skills/cli-sccache/SKILL.md",
+      "title": "sccache 0.19.0",
+      "bytes": 1593
+    },
+    {
+      "path": ".agents/skills/cli-sd/SKILL.md",
+      "title": "sd 1.0.0",
+      "bytes": 1770
+    },
+    {
+      "path": ".agents/skills/cli-starship/SKILL.md",
+      "title": "starship 1.27.0",
+      "bytes": 1505
+    },
+    {
+      "path": ".agents/skills/cli-tealdeer/SKILL.md",
+      "title": "tealdeer 1.9.1",
+      "bytes": 2438
+    },
+    {
+      "path": ".agents/skills/cli-tokei/SKILL.md",
+      "title": "tokei 12.1.2",
+      "bytes": 3065
+    },
+    {
+      "path": ".agents/skills/cli-ty/SKILL.md",
+      "title": "ty 0.0.104",
+      "bytes": 757
+    },
+    {
+      "path": ".agents/skills/cli-typos/SKILL.md",
+      "title": "typos 1.52.2",
+      "bytes": 3016
+    },
+    {
+      "path": ".agents/skills/cli-uv/SKILL.md",
+      "title": "uv 0.13.7",
+      "bytes": 3633
+    },
+    {
+      "path": ".agents/skills/cli-watchexec/SKILL.md",
+      "title": "watchexec 2.7.0",
+      "bytes": 2937
+    },
+    {
+      "path": ".agents/skills/cli-whisper-cpp/SKILL.md",
+      "title": "whisper.cpp 5454",
+      "bytes": 5710
+    },
+    {
+      "path": ".agents/skills/cli-wrangler/SKILL.md",
+      "title": "wrangler 4.162.0",
+      "bytes": 4414
+    },
+    {
+      "path": ".agents/skills/cli-xh/SKILL.md",
+      "title": "xh 0.26.3",
+      "bytes": 3287
+    },
+    {
+      "path": ".agents/skills/cli-yq/SKILL.md",
+      "title": "yq 4.54.3",
+      "bytes": 5288
+    },
+    {
+      "path": ".agents/skills/cli-zig/SKILL.md",
+      "title": "zig 0.17.1",
+      "bytes": 2115
+    },
+    {
+      "path": ".agents/skills/cli-zoxide/SKILL.md",
+      "title": "zoxide 0.10.0",
+      "bytes": 1318
     },
     {
       "path": ".agents/skills/cloudflare-platform/SKILL.md",
@@ -7571,7 +8279,7 @@
     {
       "path": ".agents/skills/electron-migrate/SKILL.md",
       "title": "Electron migration (`ay electron`)",
-      "bytes": 4284
+      "bytes": 4116
     },
     {
       "path": ".agents/skills/env-auth/SKILL.md",
@@ -7596,7 +8304,7 @@
     {
       "path": ".agents/skills/fleet/SKILL.md",
       "title": null,
-      "bytes": 1004
+      "bytes": 1020
     },
     {
       "path": ".agents/skills/gaming-stack/SKILL.md",
@@ -7746,7 +8454,7 @@
     {
       "path": ".agents/skills/hostinger/SKILL.md",
       "title": "Hostinger API",
-      "bytes": 4570
+      "bytes": 4577
     },
     {
       "path": ".agents/skills/humanizer/SKILL.md",
@@ -7761,7 +8469,7 @@
     {
       "path": ".agents/skills/hygiene/SKILL.md",
       "title": "hygiene",
-      "bytes": 3100
+      "bytes": 3391
     },
     {
       "path": ".agents/skills/inspect-in-devtools/SKILL.md",
@@ -7836,7 +8544,7 @@
     {
       "path": ".agents/skills/microsoft/SKILL.md",
       "title": "Microsoft: truth protocol",
-      "bytes": 2426
+      "bytes": 2418
     },
     {
       "path": ".agents/skills/os-minimal-computer-use/SKILL.md",
@@ -8776,7 +9484,7 @@
     {
       "path": ".agents/skills/ui-system/SKILL.md",
       "title": "ui-system",
-      "bytes": 9242
+      "bytes": 9240
     },
     {
       "path": ".agents/skills/ui-ux-pro-max/SKILL.md",
@@ -9196,12 +9904,12 @@
     {
       "path": ".claude/agents/c-core.md",
       "title": null,
-      "bytes": 2006
+      "bytes": 2008
     },
     {
       "path": ".claude/agents/chromium-integrator.md",
       "title": null,
-      "bytes": 1771
+      "bytes": 1773
     },
     {
       "path": ".claude/agents/coherence-fixer.md",
@@ -9216,7 +9924,7 @@
     {
       "path": ".claude/agents/fleet-operator.md",
       "title": null,
-      "bytes": 1391
+      "bytes": 1393
     },
     {
       "path": ".claude/agents/re-analyst.md",
@@ -9236,7 +9944,7 @@
     {
       "path": ".claude/agents/rust-crates.md",
       "title": null,
-      "bytes": 2072
+      "bytes": 2076
     },
     {
       "path": ".claude/agents/ts-packages.md",
@@ -9266,12 +9974,12 @@
     {
       "path": "GEMINI.md",
       "title": "Aphrody — Google Antigravity Contract (`GEMINI.md`)",
-      "bytes": 830
+      "bytes": 756
     },
     {
       "path": "README.md",
       "title": "src",
-      "bytes": 4412
+      "bytes": 4451
     },
     {
       "path": "apps/aphrody/DESIGN.md",
@@ -9280,13 +9988,13 @@
     },
     {
       "path": "apps/aphrody/PRD.md",
-      "title": "PRD: `apps/aphrody`",
-      "bytes": 538
+      "title": "PRD: `apps/aphrody` (Merged Static SEO & Assets)",
+      "bytes": 426
     },
     {
       "path": "apps/aphrody/README.md",
-      "title": "Aphrody Web Surface (`apps/aphrody`)",
-      "bytes": 681
+      "title": "Aphrody (`apps/aphrody`)",
+      "bytes": 649
     },
     {
       "path": "apps/auto/.github/pull_request_template.md",
@@ -9295,33 +10003,33 @@
     },
     {
       "path": "apps/auto/AY_FIELD_TEST.md",
-      "title": "Essai terrain de `ay` sur auto",
-      "bytes": 3642
+      "title": "Field test of `ay` on auto",
+      "bytes": 3630
     },
     {
       "path": "apps/auto/CONTRIBUTING.md",
-      "title": "Contribuer",
-      "bytes": 817
+      "title": "Contributing",
+      "bytes": 846
     },
     {
       "path": "apps/auto/MIGRATION.md",
       "title": "Migration de auto : fr1 vers usa",
-      "bytes": 16572
+      "bytes": 16626
     },
     {
       "path": "apps/auto/README.md",
       "title": "auto",
-      "bytes": 12575
+      "bytes": 12590
     },
     {
       "path": "apps/auto/SECURITY.md",
-      "title": "Sécurité",
-      "bytes": 374
+      "title": "Security",
+      "bytes": 355
     },
     {
       "path": "apps/auto/UI_PLAN.md",
-      "title": "Plan UI d'auto : piles Rust natives et web",
-      "bytes": 5768
+      "title": "UI plan of auto: native Rust and web stacks",
+      "bytes": 5463
     },
     {
       "path": "apps/auto/apps/extension/CHROMEWEBSTORE.md",
@@ -9349,24 +10057,19 @@
       "bytes": 7734
     },
     {
-      "path": "apps/auto/docs/APPAREILS.md",
-      "title": "Connexion navigateur des applications natives",
-      "bytes": 3566
-    },
-    {
       "path": "apps/auto/docs/ARCHITECTURE.md",
       "title": "Architecture",
       "bytes": 19363
     },
     {
-      "path": "apps/auto/docs/ARRIVAGES.md",
-      "title": "Arrivages depuis un serveur de fichiers",
-      "bytes": 6604
+      "path": "apps/auto/docs/ARRIVALS.md",
+      "title": "Arrivals from a file server",
+      "bytes": 6103
     },
     {
       "path": "apps/auto/docs/AUTH.md",
       "title": "Authentification (Better Auth 1.7)",
-      "bytes": 23653
+      "bytes": 23649
     },
     {
       "path": "apps/auto/docs/AUTOMATISATIONS.md",
@@ -9379,19 +10082,14 @@
       "bytes": 3425
     },
     {
-      "path": "apps/auto/docs/CHANTIERS.md",
-      "title": "Fournisseurs, chantiers et analytique",
-      "bytes": 8636
-    },
-    {
       "path": "apps/auto/docs/CONCURRENTS.md",
       "title": "Comparatif concurrentiel : facturation pour indépendants et TPE",
       "bytes": 26125
     },
     {
-      "path": "apps/auto/docs/COURRIER.md",
-      "title": "Boîte personnelle unifiée et administration Auto",
-      "bytes": 7848
+      "path": "apps/auto/docs/CONSTRUCTION-SITES.md",
+      "title": "Suppliers, construction sites and analytics",
+      "bytes": 8233
     },
     {
       "path": "apps/auto/docs/CRAFT.md",
@@ -9399,9 +10097,14 @@
       "bytes": 4929
     },
     {
-      "path": "apps/auto/docs/DEPLOIEMENT.md",
-      "title": "Déploiement",
-      "bytes": 10648
+      "path": "apps/auto/docs/DEPLOYMENT.md",
+      "title": "Deployment",
+      "bytes": 10754
+    },
+    {
+      "path": "apps/auto/docs/DEVICES.md",
+      "title": "Browser sign-in for native apps",
+      "bytes": 3322
     },
     {
       "path": "apps/auto/docs/DISTRIBUTION.md",
@@ -9419,14 +10122,19 @@
       "bytes": 11193
     },
     {
+      "path": "apps/auto/docs/MAILBOX.md",
+      "title": "Unified personal mailbox and Auto administration",
+      "bytes": 7324
+    },
+    {
       "path": "apps/auto/docs/N8N.md",
       "title": "n8n",
       "bytes": 4432
     },
     {
       "path": "apps/auto/docs/OPEN-SOURCE.md",
-      "title": "Ce qu'auto reprend de l'open source",
-      "bytes": 5467
+      "title": "What auto takes from open source",
+      "bytes": 4860
     },
     {
       "path": "apps/auto/docs/PA.md",
@@ -9436,7 +10144,7 @@
     {
       "path": "apps/auto/docs/PRODUCTION.md",
       "title": "Qualification des intégrations de production",
-      "bytes": 20495
+      "bytes": 20445
     },
     {
       "path": "apps/auto/docs/RESEND.md",
@@ -9446,7 +10154,7 @@
     {
       "path": "apps/auto/docs/STACK.md",
       "title": "Pile technique d'auto",
-      "bytes": 8207
+      "bytes": 8264
     },
     {
       "path": "apps/auto/docs/STRIPE.md",
@@ -9466,7 +10174,7 @@
     {
       "path": "apps/auto/docs/UI.md",
       "title": "Interfaces",
-      "bytes": 13399
+      "bytes": 13196
     },
     {
       "path": "apps/auto/docs/VIDEO.md",
@@ -9476,7 +10184,7 @@
     {
       "path": "apps/auto/docs/WINDOWS-LOCAL.md",
       "title": "Auto local sur Windows",
-      "bytes": 4538
+      "bytes": 4540
     },
     {
       "path": "apps/auto/docs/conformite/README.md",
@@ -9535,8 +10243,8 @@
     },
     {
       "path": "apps/auto/docs/recon/README.md",
-      "title": "Recon : référence UX facturation (Pennylane principal, Abby secondaire)",
-      "bytes": 3617
+      "title": "Recon: invoicing UX reference (Pennylane primary, Abby secondary)",
+      "bytes": 3540
     },
     {
       "path": "apps/auto/docs/recon/avis.md",
@@ -9545,13 +10253,13 @@
     },
     {
       "path": "apps/auto/docs/recon/recon.md",
-      "title": "Carte de recon",
-      "bytes": 10984
+      "title": "Recon map",
+      "bytes": 10857
     },
     {
       "path": "apps/auto/docs/recon/tests.md",
-      "title": "Plan de test et rapports de bugs, apps/web et packages/ui",
-      "bytes": 6173
+      "title": "Test plan and bug reports, apps/web and packages/ui",
+      "bytes": 6061
     },
     {
       "path": "apps/auto/licenses/bun/169d8c5ea17b/LICENSE.md",
@@ -9656,67 +10364,57 @@
     {
       "path": "apps/nt/CLAUDE.md",
       "title": "nt",
-      "bytes": 1261
+      "bytes": 1427
     },
     {
       "path": "apps/nt/README.md",
       "title": "nt",
-      "bytes": 2624
+      "bytes": 2636
     },
     {
       "path": "apps/nt/docs/bun/dotnet-native.md",
-      "title": ".NET natif depuis bun, sans node-api-dotnet",
-      "bytes": 19632
+      "title": "Native .NET from bun, without node-api-dotnet",
+      "bytes": 18905
     },
     {
       "path": "apps/nt/docs/bun/feature-graph.md",
-      "title": "Graphe des fonctionnalités de bun (amont)",
-      "bytes": 122929
+      "title": "Feature graph of bun (upstream)",
+      "bytes": 37533
     },
     {
       "path": "apps/nt/docs/interop/bun-lowlevel.md",
-      "title": "Bun : Node-API et bun:ffi au niveau code",
-      "bytes": 17284
+      "title": "Bun: Node-API and bun:ffi at code level",
+      "bytes": 16764
     },
     {
       "path": "apps/nt/docs/interop/dotnet-lowlevel.md",
-      "title": ".NET : primitives natives d'interop C-ABI",
-      "bytes": 12102
+      "title": ".NET: native C-ABI interop primitives",
+      "bytes": 11762
     },
     {
       "path": "apps/nt/docs/interop/mapping.md",
-      "title": "Correspondance node-api-dotnet → primitives Bun / .NET, goulots et correctifs",
-      "bytes": 28909
+      "title": "Mapping node-api-dotnet → Bun / .NET primitives, bottlenecks and fixes",
+      "bytes": 28500
     },
     {
       "path": "apps/nt/docs/interop/node-api-dotnet.md",
-      "title": "node-api-dotnet : architecture au niveau code",
-      "bytes": 20880
+      "title": "node-api-dotnet: architecture at code level",
+      "bytes": 20505
     },
     {
       "path": "apps/nt/docs/msindex/README.md",
-      "title": "msindex : pile Microsoft indexée et prouvée sur ce poste",
-      "bytes": 3440
+      "title": "msindex: Microsoft stack indexed and proven on this machine",
+      "bytes": 3321
     },
     {
       "path": "apps/nt/docs/plan/architecture-microsoft.md",
-      "title": "nt sur la pile Microsoft — décisions du 2026-11-12",
-      "bytes": 5769
+      "title": "nt on the Microsoft stack — decisions of 2026-11-12",
+      "bytes": 5525
     },
     {
-      "path": "apps/nt/docs/research/claude-to-nt-stack.md",
-      "title": "De Claude Code au noyau NT : couches, latences, leviers (2026-11-12)",
-      "bytes": 9366
-    },
-    {
-      "path": "apps/nt/docs/research/rust-in-windows.md",
-      "title": "Rust dans Windows — enquête (2026-11-12)",
-      "bytes": 7903
-    },
-    {
-      "path": "apps/nt/docs/research/shell-replacement.md",
-      "title": "Remplacer Git Bash et pwsh — recherche et preuves (2026-11-12)",
-      "bytes": 5787
+      "path": "bench/BENCHMARK_REPORT.md",
+      "title": "Sovereign Hardware & Compiler Benchmark Suite Report",
+      "bytes": 7665
     },
     {
       "path": "docs/ALPHABET.md",
@@ -9726,7 +10424,7 @@
     {
       "path": "docs/ARCHITECTURE.md",
       "title": "Architecture de src",
-      "bytes": 77515
+      "bytes": 77502
     },
     {
       "path": "docs/PLAN.mdx",
@@ -9736,12 +10434,12 @@
     {
       "path": "docs/README.md",
       "title": "docs",
-      "bytes": 4954
+      "bytes": 4772
     },
     {
       "path": "docs/agents/AGENT-FIRST.md",
       "title": "Agent-first: operating model of src",
-      "bytes": 23467
+      "bytes": 23466
     },
     {
       "path": "docs/agents/WINDOWS-NATIVE-PORT.md",
@@ -9756,12 +10454,47 @@
     {
       "path": "docs/ai/DISTRIBUTED-INFERENCE.md",
       "title": "Tissu d'inférence distribué",
-      "bytes": 29618
+      "bytes": 29632
     },
     {
       "path": "docs/ai/PROVIDERS.md",
       "title": "LLM providers",
       "bytes": 27519
+    },
+    {
+      "path": "docs/audit/first-party.md",
+      "title": "First-party units audit",
+      "bytes": 25199
+    },
+    {
+      "path": "docs/audit/legacy-forks.md",
+      "title": "Legacy forks and builds",
+      "bytes": 4362
+    },
+    {
+      "path": "docs/axum/FEATURES.md",
+      "title": "Axum feature matrix and the Shenron host port",
+      "bytes": 11859
+    },
+    {
+      "path": "docs/axum/README.md",
+      "title": "Axum, tower, tower-http",
+      "bytes": 1816
+    },
+    {
+      "path": "docs/axum/graph/axum/GRAPH_REPORT.md",
+      "title": "Graph Report - axum",
+      "bytes": 8404
+    },
+    {
+      "path": "docs/axum/graph/tower-http/GRAPH_REPORT.md",
+      "title": "Graph Report - tower-http",
+      "bytes": 15124
+    },
+    {
+      "path": "docs/axum/graph/tower/GRAPH_REPORT.md",
+      "title": "Graph Report - tower",
+      "bytes": 6913
     },
     {
       "path": "docs/ay/MIGRATION.md",
@@ -9771,7 +10504,7 @@
     {
       "path": "docs/ay/NAMING.md",
       "title": "Naming",
-      "bytes": 36133
+      "bytes": 35713
     },
     {
       "path": "docs/base-ui/BLOG.md",
@@ -9876,7 +10609,7 @@
     {
       "path": "docs/bun/CONSOLIDATION.md",
       "title": "Consolidation bun (2026-11-13)",
-      "bytes": 18886
+      "bytes": 21250
     },
     {
       "path": "docs/bun/NATIVE-BINARY.md",
@@ -9969,6 +10702,11 @@
       "bytes": 11773
     },
     {
+      "path": "docs/craft/PLAN.md",
+      "title": "Craft: one repository, one workspace, every platform",
+      "bytes": 3651
+    },
+    {
       "path": "docs/design/DESIGN.md",
       "title": null,
       "bytes": 4318
@@ -9996,7 +10734,7 @@
     {
       "path": "docs/design/replica/console/architecture.md",
       "title": "Architecture: the Aphrody console shell (hybrid fullscreen launcher)",
-      "bytes": 42434
+      "bytes": 42493
     },
     {
       "path": "docs/design/replica/console/recon.md",
@@ -10071,12 +10809,12 @@
     {
       "path": "docs/epic/RESOURCES.md",
       "title": "Epic Games ecosystem: official and community resources",
-      "bytes": 13818
+      "bytes": 13844
     },
     {
       "path": "docs/epic/TRACKING.md",
       "title": "Epic/Bevy upstream tracking in src",
-      "bytes": 928
+      "bytes": 948
     },
     {
       "path": "docs/games/ARTCRAFT.md",
@@ -10086,7 +10824,7 @@
     {
       "path": "docs/games/ASSET-TESTS.md",
       "title": "Asset tests",
-      "bytes": 2529
+      "bytes": 2531
     },
     {
       "path": "docs/games/BROWSER-OS.md",
@@ -10105,23 +10843,23 @@
     },
     {
       "path": "docs/games/MERGE-APHRODY.md",
-      "title": null,
-      "bytes": 0
+      "title": "Merge of apps/aphrody and apps/aphrody-app (2026-11-13)",
+      "bytes": 14682
     },
     {
       "path": "docs/games/MULTIPLAYER.md",
       "title": "Multiplayer: design note (2026-11-13)",
-      "bytes": 2823
+      "bytes": 2827
     },
     {
       "path": "docs/games/PARITY.md",
       "title": "Parity list (2026-11-13)",
-      "bytes": 4134
+      "bytes": 5343
     },
     {
       "path": "docs/games/PLAN.md",
       "title": "Games and creative suite in src: plan (rewritten 2026-11-13)",
-      "bytes": 26017
+      "bytes": 28789
     },
     {
       "path": "docs/games/PLATFORM-EQUIV.md",
@@ -10156,62 +10894,62 @@
     {
       "path": "docs/i18n/es/PLAN.md",
       "title": "Juegos y suite creativa en src: plan (reescrito el 2026-11-13)",
-      "bytes": 7855
+      "bytes": 8624
     },
     {
       "path": "docs/i18n/es/README.md",
       "title": "src",
-      "bytes": 3519
+      "bytes": 3719
     },
     {
       "path": "docs/i18n/fr/AGENTS.md",
       "title": "src : contrat de fonctionnement des agents (`AGENTS.md`)",
-      "bytes": 3920
+      "bytes": 3994
     },
     {
       "path": "docs/i18n/fr/PLAN.md",
       "title": "Jeux et suite créative dans src : plan (réécrit le 2026-11-13)",
-      "bytes": 11409
+      "bytes": 12936
     },
     {
       "path": "docs/i18n/fr/README.md",
       "title": "src",
-      "bytes": 6538
+      "bytes": 6934
     },
     {
       "path": "docs/i18n/ja/AGENTS.md",
       "title": "src: エージェント運用規約 (`AGENTS.md`)",
-      "bytes": 2399
+      "bytes": 2465
     },
     {
       "path": "docs/i18n/ja/PLAN.md",
       "title": "src のゲームとクリエイティブスイート: 計画(2026-11-13 改訂)",
-      "bytes": 10924
+      "bytes": 11924
     },
     {
       "path": "docs/i18n/ja/README.md",
       "title": "src",
-      "bytes": 5693
+      "bytes": 5778
     },
     {
       "path": "docs/i18n/zh-CN/AGENTS.md",
       "title": "src：代理操作约定（`AGENTS.md`）",
-      "bytes": 2290
+      "bytes": 2356
     },
     {
       "path": "docs/i18n/zh-CN/PLAN.md",
       "title": "src 中的游戏与创作套件：计划（2026-11-13 重写）",
-      "bytes": 12503
+      "bytes": 14033
     },
     {
       "path": "docs/i18n/zh-CN/README.md",
       "title": "src",
-      "bytes": 6155
+      "bytes": 6485
     },
     {
       "path": "docs/infra/AGENT-TOOLCHAIN.md",
       "title": "Reproducible agent tooling (skills, plugins, MCP)",
-      "bytes": 9304
+      "bytes": 9295
     },
     {
       "path": "docs/infra/AUDIT.md",
@@ -10221,17 +10959,17 @@
     {
       "path": "docs/infra/AUTH-ECOSYSTEM.md",
       "title": "Écosystème d'authentification « AI first » : comparaison et choix pour src",
-      "bytes": 46570
+      "bytes": 46588
     },
     {
       "path": "docs/infra/AUTH.md",
       "title": "Authentication and network access of the fleet",
-      "bytes": 25022
+      "bytes": 24760
     },
     {
       "path": "docs/infra/CLOUDFLARE-ONE.md",
       "title": "Cloudflare One : migration du mesh WireGuard (pilote `mig-`)",
-      "bytes": 17266
+      "bytes": 17298
     },
     {
       "path": "docs/infra/CLUSTER.md",
@@ -10241,32 +10979,37 @@
     {
       "path": "docs/infra/DEPLOY.md",
       "title": "Deployment, scaling and rollback of src",
-      "bytes": 13156
+      "bytes": 12879
+    },
+    {
+      "path": "docs/infra/FILESYSTEMS.md",
+      "title": "Filesystems for build and monorepo workloads: XFS vs ext4 vs btrfs",
+      "bytes": 8229
     },
     {
       "path": "docs/infra/FLEET-OFFLOAD.md",
       "title": "Fleet offload (fr1 load, isolation, dispatch)",
-      "bytes": 13981
+      "bytes": 28013
     },
     {
       "path": "docs/infra/FLEET.md",
       "title": "aphrody fleet: roles, state, procedures",
-      "bytes": 13668
+      "bytes": 13703
     },
     {
       "path": "docs/infra/FR1-CHROMIUM-HOST.md",
       "title": "fr1 : hôte dédié Chromium, ChromiumOS, LLVM et noyau",
-      "bytes": 16751
+      "bytes": 16774
     },
     {
       "path": "docs/infra/FR2-CLOUDFLARE.md",
       "title": "fr2 et Cloudflare : inventaire, cible, migration, preuves (2026-11-13)",
-      "bytes": 101372
+      "bytes": 101377
     },
     {
       "path": "docs/infra/GCP-BILLING.md",
       "title": "Facturation Google Cloud gérée par agents",
-      "bytes": 20509
+      "bytes": 20557
     },
     {
       "path": "docs/infra/GEMINI-WEB-MCP.md",
@@ -10281,37 +11024,37 @@
     {
       "path": "docs/infra/GLOBAL-STACK.md",
       "title": "Global production stack (plan, 2026-11-13)",
-      "bytes": 5115
+      "bytes": 5299
     },
     {
       "path": "docs/infra/HOSTING-POLICY.md",
       "title": "Hosting policy: Cloudflare Free + VPS (Vercel Hobby on hold)",
-      "bytes": 13594
+      "bytes": 13616
     },
     {
       "path": "docs/infra/IDENTITY-CONSOLIDATION.md",
       "title": "Consolidation des identités sur aphrody-labs",
-      "bytes": 17600
+      "bytes": 17628
     },
     {
       "path": "docs/infra/IDENTITY.md",
       "title": "Identity",
-      "bytes": 4739
+      "bytes": 4755
     },
     {
       "path": "docs/infra/INFRA_MATRIX.md",
       "title": "Infrastructure matrix",
-      "bytes": 15213
+      "bytes": 15233
     },
     {
       "path": "docs/infra/INSTALL_UPDATE.md",
       "title": "Install and update",
-      "bytes": 20823
+      "bytes": 20827
     },
     {
       "path": "docs/infra/MIGRATION-VERCEL-CF.md",
       "title": "Migration Vercel + Cloudflare (2026-11-12)",
-      "bytes": 13203
+      "bytes": 13255
     },
     {
       "path": "docs/infra/NPM.md",
@@ -10326,12 +11069,12 @@
     {
       "path": "docs/infra/PROD-MAP.md",
       "title": "Production map (2026-11-13)",
-      "bytes": 28391
+      "bytes": 28404
     },
     {
       "path": "docs/infra/REINSTALL-PLAN.md",
       "title": "Plan de reinstallation complète de la flotte (usa/prd, fr1, fr2)",
-      "bytes": 17104
+      "bytes": 17125
     },
     {
       "path": "docs/infra/RESILIENCE.md",
@@ -10344,19 +11087,24 @@
       "bytes": 4709
     },
     {
+      "path": "docs/infra/SINGLE-SERVER.md",
+      "title": "Single logical server (fr1 + fr2 + prd)",
+      "bytes": 9470
+    },
+    {
       "path": "docs/infra/UPSTREAM-STACK.md",
       "title": "Upstream stack of the aphrody infra (2026-11-13)",
-      "bytes": 27807
+      "bytes": 27925
     },
     {
       "path": "docs/infra/VAULT.md",
       "title": "Coffre aphrody (`var/secrets`)",
-      "bytes": 28098
+      "bytes": 28129
     },
     {
       "path": "docs/infra/WSL.md",
       "title": "WSL aphrody (CachyOS)",
-      "bytes": 10378
+      "bytes": 10348
     },
     {
       "path": "docs/legal/LICENSE-QUEUE.md",
@@ -11421,12 +12169,12 @@
     {
       "path": "docs/native/AY-UNIVERSAL-PIPELINE.md",
       "title": "`ay` Universal Compiler, Lifter & Monorepo Pipeline (`docs/native/AY-UNIVERSAL-PIPELINE.md`)",
-      "bytes": 18916
+      "bytes": 19290
     },
     {
       "path": "docs/native/BUILD-SCIENCE.md",
       "title": "Build science",
-      "bytes": 7388
+      "bytes": 7390
     },
     {
       "path": "docs/native/BUILD_SPEED.md",
@@ -11436,12 +12184,12 @@
     {
       "path": "docs/native/CHROMIUM-FACTORY.md",
       "title": "Usine Chromium : état actuel et refonte (2026-11-12)",
-      "bytes": 34301
+      "bytes": 34304
     },
     {
       "path": "docs/native/COMPAT-WINDOWS-LINUX.md",
       "title": "Compatibilité Windows natif / Linux de src",
-      "bytes": 14418
+      "bytes": 16137
     },
     {
       "path": "docs/native/DEPOT_ARCHITECTURE.md",
@@ -11451,32 +12199,32 @@
     {
       "path": "docs/native/NAMESPACE-ISOLATION.md",
       "title": "Domain & Namespace Isolation Matrix (`docs/native/NAMESPACE-ISOLATION.md`)",
-      "bytes": 5961
+      "bytes": 6381
     },
     {
       "path": "docs/native/PIPELINE.md",
       "title": "Index pipeline",
-      "bytes": 9741
+      "bytes": 9743
     },
     {
       "path": "docs/native/PURE-C-WASM-UI-2026.md",
       "title": "Pure C11, Assembly, WebAssembly 3.0, WASI & WebGPU UI Specification (2026)",
-      "bytes": 43502
+      "bytes": 45282
     },
     {
       "path": "docs/native/README.md",
       "title": "Native C, Assembly, LLVM & WebAssembly Hub (`docs/native/`)",
-      "bytes": 5601
+      "bytes": 5988
     },
     {
       "path": "docs/native/ROADMAP.md",
       "title": "Aphrody roadmap and specification",
-      "bytes": 2924
+      "bytes": 3383
     },
     {
       "path": "docs/native/SYS-ARCHITECTURE.md",
       "title": "Central System Core (`src/`): Linux 7.4-rc2, LLVM, Freedesktop, Wine, NT & WebAssembly",
-      "bytes": 5423
+      "bytes": 5828
     },
     {
       "path": "docs/native/TOOLCHAIN_UPSTREAM_LEVERS.md",
@@ -11486,12 +12234,17 @@
     {
       "path": "docs/native/UNIX.md",
       "title": "Aphrody Unix Distribution: Omarchy + CachyOS + Arch Linux GitLab WSL2 Engine",
-      "bytes": 5461
+      "bytes": 5795
+    },
+    {
+      "path": "docs/native/UNIXWIN.md",
+      "title": "unixwin fusion",
+      "bytes": 5793
     },
     {
       "path": "docs/native/VCS-FORGE.md",
       "title": "NHITL VCS & GitHub Forge Specification (`docs/native/VCS-FORGE.md`)",
-      "bytes": 5238
+      "bytes": 5351
     },
     {
       "path": "docs/native/VCS_FORGE_MATRIX.md",
@@ -11501,17 +12254,17 @@
     {
       "path": "docs/native/WAYLAND.md",
       "title": "Rust WSLg Compositor (`wslg-rs`): Direct3D 12 + Hyprland + COSMIC + Omarchy Patch",
-      "bytes": 3575
+      "bytes": 3596
     },
     {
       "path": "docs/native/WEBASSEMBLY-EMSCRIPTEN.md",
       "title": "WebAssembly & Emscripten Ecosystem Specification (`docs/native/WEBASSEMBLY-EMSCRIPTEN.md`)",
-      "bytes": 6597
+      "bytes": 6624
     },
     {
       "path": "docs/native/WINDOWS_UNIX_TOOLCHAIN.md",
       "title": "Windows 11 and Unix toolchain",
-      "bytes": 9836
+      "bytes": 9871
     },
     {
       "path": "docs/native/android/ECOSYSTEM.md",
@@ -11521,7 +12274,7 @@
     {
       "path": "docs/native/android/PROOF-x64.md",
       "title": "Proof: monorepo on Android x86_64 (x86_64-linux-android)",
-      "bytes": 4506
+      "bytes": 4508
     },
     {
       "path": "docs/native/android/SETUP.md",
@@ -11536,12 +12289,12 @@
     {
       "path": "docs/native/compat/DEDUP.md",
       "title": "Dédup Wine / Proton / MinGW / MSYS2 — 2026-11-12",
-      "bytes": 20112
+      "bytes": 20190
     },
     {
       "path": "docs/native/compat/ECOSYSTEM.md",
       "title": "Écosystème compat Windows (Wine / Proton / ReactOS / LiberNT) — 2026-11-12",
-      "bytes": 11049
+      "bytes": 11069
     },
     {
       "path": "docs/native/compat/MSYS-MONOREPO.md",
@@ -11716,7 +12469,7 @@
     {
       "path": "docs/native/linux/PATCHSETS.md",
       "title": "Patchsets noyau : CachyOS en tier 1, même méthode pour les autres (2026-11-13)",
-      "bytes": 8947
+      "bytes": 8976
     },
     {
       "path": "docs/native/llvm/AY-AS-LLVM.md",
@@ -11756,7 +12509,7 @@
     {
       "path": "docs/native/llvm/ROADMAP.md",
       "title": "Feuille de route `ay` façon LLVM (2026-11-12)",
-      "bytes": 3662
+      "bytes": 3574
     },
     {
       "path": "docs/native/llvm/TOOLCHAIN-FORKS.md",
@@ -11800,8 +12553,8 @@
     },
     {
       "path": "docs/native/shell/CUSTOMIZATION-INDEX.md",
-      "title": "Index 2026 — Shells, CLIs, TUIs, Terminaux, Polices & Themes",
-      "bytes": 9118
+      "title": "Index 2026 — Shells, CLIs, TUIs, Terminals, Fonts & Themes",
+      "bytes": 9103
     },
     {
       "path": "docs/native/shell/INDEX.md",
@@ -11811,12 +12564,12 @@
     {
       "path": "docs/native/shell/MATRIX.md",
       "title": "Matrice des shells (2026-11-12, configuration partagée 2026-11-13)",
-      "bytes": 20265
+      "bytes": 20283
     },
     {
       "path": "docs/native/shell/PLAN.md",
       "title": "Plan d'exécution : brush pour Claude Code (2026-11-12)",
-      "bytes": 7512
+      "bytes": 7499
     },
     {
       "path": "docs/native/shell/ROADMAP.md",
@@ -11826,12 +12579,12 @@
     {
       "path": "docs/native/shell/SETUP.md",
       "title": "Shells: reproducible installation (2026-11-13)",
-      "bytes": 11970
+      "bytes": 11966
     },
     {
       "path": "docs/native/shell/bash-setup.md",
       "title": "Famille bash : config commune (niubash, Git Bash, brush) — 2026-11-13",
-      "bytes": 15728
+      "bytes": 15690
     },
     {
       "path": "docs/native/shell/ecosystem-links.md",
@@ -11871,12 +12624,12 @@
     {
       "path": "docs/native/shell/windows-native.md",
       "title": "Plateforme shell native Windows",
-      "bytes": 24100
+      "bytes": 24087
     },
     {
       "path": "docs/native/specs/APHRODY_DESIGN_CAHIER_DES_CHARGES.md",
       "title": "Cahier des Charges (PRD) & Architecture Maquette — `aphrody.com` & Studio d'Actifs Ouverts",
-      "bytes": 8982
+      "bytes": 9069
     },
     {
       "path": "docs/native/terminal/ARCHITECTURE.md",
@@ -11885,38 +12638,38 @@
     },
     {
       "path": "docs/native/unixwin/BUILD.md",
-      "title": null,
-      "bytes": 0
+      "title": "unixwin : build et installation depuis les forks",
+      "bytes": 5041
     },
     {
       "path": "docs/native/unixwin/DEDUP.md",
-      "title": null,
-      "bytes": 0
+      "title": "unixwin : déduplication avec src (2026-11-13)",
+      "bytes": 16044
     },
     {
       "path": "docs/native/unixwin/DEPS.md",
-      "title": null,
-      "bytes": 0
+      "title": "unixwin : dépendances et alignement sur docs/native/deps/POLICY.md",
+      "bytes": 9520
     },
     {
       "path": "docs/native/unixwin/LEARNINGS.md",
-      "title": null,
-      "bytes": 0
+      "title": "unixwin : apprentissages de la suite de bout en bout (2026-11-13)",
+      "bytes": 14484
     },
     {
       "path": "docs/native/unixwin/README.md",
-      "title": null,
-      "bytes": 0
+      "title": "unixwin dans src",
+      "bytes": 7303
     },
     {
       "path": "docs/native/unixwin/SITE.md",
-      "title": null,
-      "bytes": 0
+      "title": "unixwin.dev : index structuré",
+      "bytes": 10448
     },
     {
       "path": "docs/net/NETWORK-STACK.md",
       "title": "Network stack of src (kernel to Chromium)",
-      "bytes": 6905
+      "bytes": 6958
     },
     {
       "path": "docs/nextjs/BLOG.md",
@@ -11931,7 +12684,7 @@
     {
       "path": "docs/nextjs/FORK.md",
       "title": "Maintenance du fork aphrody-labs/next.js",
-      "bytes": 4458
+      "bytes": 4289
     },
     {
       "path": "docs/nextjs/PRS.md",
@@ -11941,7 +12694,7 @@
     {
       "path": "docs/nextjs/README.md",
       "title": "Next.js canary (fork aphrody-labs/next.js)",
-      "bytes": 2663
+      "bytes": 1836
     },
     {
       "path": "docs/nextjs/RELEASES.md",
@@ -11950,8 +12703,8 @@
     },
     {
       "path": "docs/nextjs/RUST-PLAN.md",
-      "title": null,
-      "bytes": 0
+      "title": "Rust migration plan",
+      "bytes": 6290
     },
     {
       "path": "docs/nextjs/WORKSPACE.md",
@@ -11996,12 +12749,12 @@
     {
       "path": "docs/packaging/VERSIONING.md",
       "title": "Versioning and release channels (frozen 2026-11-13)",
-      "bytes": 8996
+      "bytes": 9023
     },
     {
       "path": "docs/product/UNIFIED-STACK.md",
-      "title": null,
-      "bytes": 0
+      "title": "Unified stack",
+      "bytes": 46728
     },
     {
       "path": "docs/proofs/ai-os-interop-2026-11-13.md",
@@ -12016,7 +12769,7 @@
     {
       "path": "docs/proofs/fleet-resilience-2026-11-13.md",
       "title": "Preuve : la flotte survit au reboot, au crash et au kill (2026-11-13)",
-      "bytes": 15384
+      "bytes": 15395
     },
     {
       "path": "docs/proofs/sites-2026-11-13/README.md",
@@ -12031,12 +12784,12 @@
     {
       "path": "docs/publish/STATUS.md",
       "title": "Repository visibility (2026-11-12)",
-      "bytes": 7295
+      "bytes": 7324
     },
     {
       "path": "docs/reference/bun-ffi.md",
       "title": "bun:ffi in src",
-      "bytes": 3029
+      "bytes": 2691
     },
     {
       "path": "docs/reference/llvm-toolchain.md",
@@ -12046,7 +12799,7 @@
     {
       "path": "docs/reference/tree-sitter.md",
       "title": "tree-sitter in src",
-      "bytes": 1957
+      "bytes": 1892
     },
     {
       "path": "docs/reference/wck-modern-web.md",
@@ -12055,38 +12808,38 @@
     },
     {
       "path": "docs/replica/ARCHITECTURE.md",
-      "title": null,
-      "bytes": 0
+      "title": "Architecture web cible de src (replica-architect)",
+      "bytes": 20405
     },
     {
       "path": "docs/replica/FEATURE-MATRIX.md",
-      "title": null,
-      "bytes": 0
+      "title": "Matrice de fonctionnalités : Vercel, Cloudflare, Google contre src",
+      "bytes": 17865
     },
     {
       "path": "docs/replica/MIGRATION.md",
-      "title": null,
-      "bytes": 0
+      "title": "Migration vers l'architecture web cible",
+      "bytes": 4785
     },
     {
       "path": "docs/replica/recon/cloudflare.md",
       "title": "Recon Cloudflare — compte aphrody (lecture seule)",
-      "bytes": 82516
+      "bytes": 82974
     },
     {
       "path": "docs/replica/recon/estate.md",
-      "title": null,
-      "bytes": 0
+      "title": "Recon de l'estate web (replica-recon)",
+      "bytes": 37232
     },
     {
       "path": "docs/replica/recon/google.md",
       "title": "Recon Google — dépôts web et Google Workspace",
-      "bytes": 24615
+      "bytes": 25242
     },
     {
       "path": "docs/replica/recon/vercel.md",
       "title": "Recon Vercel (2026-11-13)",
-      "bytes": 25392
+      "bytes": 25599
     },
     {
       "path": "docs/research/EDITORS-AGENTS-MATRIX.md",
@@ -12095,13 +12848,13 @@
     },
     {
       "path": "docs/research/RUST_6_ORGS_FUSION_INVENTORY.md",
-      "title": "Upstream inventory: 6 Rust GitHub organizations",
-      "bytes": 135488
+      "title": "RUST 6-ORG UPSTREAM INVENTORY & SOVEREIGN FUSION BLUEPRINT",
+      "bytes": 306380
     },
     {
       "path": "docs/research/VERCEL_CHROMIUM_BUN_TAILWIND_SHADCN_NEXT_RUST_BLUEPRINT.md",
-      "title": null,
-      "bytes": 0
+      "title": "Target Stacks to Full-Rust Blueprint: Vercel, Chromium, Bun v1.4.4, TailwindCSS v4, Base UI, Shadcn/ui, and Next.js 16",
+      "bytes": 86327
     },
     {
       "path": "docs/research/ai-os-stack-factcheck.md",
@@ -12110,18 +12863,23 @@
     },
     {
       "path": "docs/research/bun-v1-4-4-full-rust-architecture-bun-serve-bun-sql-bun-sqlite-bun-ffi-w.md",
-      "title": null,
-      "bytes": 0
+      "title": "Sovereign Deep-Research Dossier: Bun v1.4.4 Full-Rust architecture Bun.serve Bun.SQL bun:sqlite bun:ffi WebGPU WASM32 Material Design 3 Expressive HCT Fluent 2 CRDT Spacedrive VDFS 10",
+      "bytes": 20140
     },
     {
       "path": "docs/research/cachyos.md",
       "title": "CachyOS as a performance reference (2026-11-15)",
-      "bytes": 3861
+      "bytes": 2980
+    },
+    {
+      "path": "docs/research/claude-to-nt-stack.md",
+      "title": "From Claude Code to the NT kernel: layers, latencies, levers (2026-11-12)",
+      "bytes": 9030
     },
     {
       "path": "docs/research/dioxus-blitz-stylo-taffy-vello-parley-kurbo-wgpu-gpui-gpui-component-ser.md",
-      "title": null,
-      "bytes": 0
+      "title": "Sovereign Deep-Research Dossier: Dioxus Blitz Stylo Taffy Vello Parley Kurbo Wgpu GPUI gpui-component Servo Tokio Axum Next.js Tailwind Shadcn Base UI Rust 12",
+      "bytes": 19158
     },
     {
       "path": "docs/research/dragon-ball.md",
@@ -12130,8 +12888,18 @@
     },
     {
       "path": "docs/research/linux-7-4-kernel-releases-git-architecture-and-distribution-packaging.md",
-      "title": null,
-      "bytes": 0
+      "title": "Sovereign Deep-Research Dossier: Linux 7.4 kernel releases git architecture and distribution packaging",
+      "bytes": 11536
+    },
+    {
+      "path": "docs/research/rust-in-windows.md",
+      "title": "Rust in Windows — survey (2026-11-12)",
+      "bytes": 7764
+    },
+    {
+      "path": "docs/research/shell-replacement.md",
+      "title": "Replacing Git Bash and pwsh — research and proofs (2026-11-12)",
+      "bytes": 5627
     },
     {
       "path": "docs/reviews/e2e-desktop-2026-11-15.md",
@@ -12161,7 +12929,7 @@
     {
       "path": "docs/reviews/hardcode-slop-purge-2026-11-15.md",
       "title": "Hardcode and slop purge, 2026-11-15",
-      "bytes": 10426
+      "bytes": 6426
     },
     {
       "path": "docs/reviews/purge-2026-11-15.md",
@@ -12181,7 +12949,7 @@
     {
       "path": "docs/shadcn/FORK.md",
       "title": "shadcn-ui (aphrody-labs/ui) : conversion Bun, passe 2",
-      "bytes": 9340
+      "bytes": 8304
     },
     {
       "path": "docs/shadcn/PRS.md",
@@ -12251,12 +13019,12 @@
     {
       "path": "docs/tooling/AI-TOOLING-AUDIT.md",
       "title": "Audit de l'outillage agent : Google, DeepMind, Chrome, gcloud, Gemini, Antigravity et catalogues de skills",
-      "bytes": 20589
+      "bytes": 20715
     },
     {
       "path": "docs/tooling/ARCHGUARD.md",
-      "title": null,
-      "bytes": 0
+      "title": "Sovereign Monorepo Architecture & Integrity Gate: ArchGuard",
+      "bytes": 7192
     },
     {
       "path": "docs/tooling/CLAUDE-CODE-TUNING.md",
@@ -12266,7 +13034,7 @@
     {
       "path": "docs/tooling/CONFORMANCE.md",
       "title": "Conformance",
-      "bytes": 10597
+      "bytes": 14853
     },
     {
       "path": "docs/tools/CLI-LIBS.md",
@@ -12301,7 +13069,7 @@
     {
       "path": "docs/ui/ECOSYSTEM-AUDIT.md",
       "title": "Audit de l'écosystème design / UI / UX",
-      "bytes": 38129
+      "bytes": 38217
     },
     {
       "path": "docs/ui/IMMERSIVE.md",
@@ -12319,6 +13087,11 @@
       "bytes": 20696
     },
     {
+      "path": "docs/upstream/spacedrive-cosmic-locally-uncensored.md",
+      "title": "Spacedrive, COSMIC and Locally Uncensored: fork, pin, map",
+      "bytes": 10686
+    },
+    {
       "path": "docs/web/MODERN-WEB-GUIDANCE.mdx",
       "title": "Modern Web Guidance, RAG, and @aphrody/wck",
       "bytes": 1613
@@ -12331,12 +13104,12 @@
     {
       "path": "docs/web/WEB-ECOSYSTEM.md",
       "title": "Écosystème web et navigateurs (inventaire GitHub, 2026-11-12)",
-      "bytes": 35537
+      "bytes": 39093
     },
     {
       "path": "infra/README.md",
       "title": "infra/",
-      "bytes": 2443
+      "bytes": 2447
     },
     {
       "path": "infra/agents/claude/CLAUDE.md",
@@ -12350,28 +13123,28 @@
     },
     {
       "path": "infra/fleet/ACME.md",
-      "title": "Shared ACME on fr2 (cdn, 51.255.162.6, 10.200.77.3)",
-      "bytes": 2321
+      "title": "Shared ACME on fr2 (cdn, <fr2-public-ip>, <fr2-mesh-ip>)",
+      "bytes": 2312
     },
     {
       "path": "infra/fleet/RUNBOOK.md",
       "title": "Fleet runbook (fr1, fr2, prd)",
-      "bytes": 10729
+      "bytes": 10753
     },
     {
       "path": "infra/gcloud/README.md",
       "title": "Aphrody Multi-Google Cloud (`gcloud`) 3-Principal Sharing & IAM Architecture",
-      "bytes": 6001
+      "bytes": 6029
     },
     {
       "path": "infra/gitlab/README.md",
       "title": "GitLab & Tri-Forge Infrastructure (`infra/gitlab`)",
-      "bytes": 3355
+      "bytes": 3364
     },
     {
       "path": "infra/mail/README.md",
       "title": "`contact@aphrody.com` Mailing Infrastructure (`C:\\src\\infra\\mail`)",
-      "bytes": 7665
+      "bytes": 7689
     },
     {
       "path": "infra/upstream/patches/bun-parity/RUST_INTEGRATION_SPEC.md",
@@ -12380,38 +13153,38 @@
     },
     {
       "path": "licenses/lore/AGENTS.md",
-      "title": null,
-      "bytes": 0
+      "title": "AGENTS.md",
+      "bytes": 2316
     },
     {
       "path": "licenses/lore/CODE_OF_CONDUCT.md",
-      "title": null,
-      "bytes": 0
+      "title": "Contributor Covenant 3.0 Code of Conduct",
+      "bytes": 8513
     },
     {
       "path": "licenses/lore/CONTRIBUTING.md",
-      "title": null,
-      "bytes": 0
+      "title": "Contributing to Lore",
+      "bytes": 11402
     },
     {
       "path": "licenses/lore/GOVERNANCE.md",
-      "title": null,
-      "bytes": 0
+      "title": "Governance",
+      "bytes": 5704
     },
     {
       "path": "licenses/lore/MAINTAINERS.md",
-      "title": null,
-      "bytes": 0
+      "title": "Maintainers",
+      "bytes": 2744
     },
     {
       "path": "licenses/lore/README.md",
       "title": null,
-      "bytes": 0
+      "bytes": 8602
     },
     {
       "path": "licenses/lore/SECURITY.md",
-      "title": null,
-      "bytes": 0
+      "title": "Security policy",
+      "bytes": 4237
     },
     {
       "path": "packages/ai-os/README.md",
@@ -12466,7 +13239,7 @@
     {
       "path": "packages/ai-os/docs/ROADMAP.md",
       "title": "Roadmap",
-      "bytes": 3081
+      "bytes": 3090
     },
     {
       "path": "packages/ai-os/docs/ROUTER.md",
@@ -12481,7 +13254,7 @@
     {
       "path": "packages/ai-os/docs/cli-reference/claude-code.md",
       "title": "Claude Code CLI reference (NHITL)",
-      "bytes": 4681
+      "bytes": 4695
     },
     {
       "path": "packages/ai-os/docs/gemini-web/RECON.md",
@@ -12524,16 +13297,6 @@
       "bytes": 1077
     },
     {
-      "path": "packages/bun-types/README.md",
-      "title": "TypeScript types for Bun",
-      "bytes": 973
-    },
-    {
-      "path": "packages/bun-types/authoring.md",
-      "title": "Authoring @types/bun",
-      "bytes": 4754
-    },
-    {
       "path": "packages/bunify/README.md",
       "title": "@aphrody/bunify",
       "bytes": 5100
@@ -12556,7 +13319,7 @@
     {
       "path": "packages/env-kit/README.md",
       "title": "`@aphrody/env-kit` — Monorepo Environment & Secret Architecture",
-      "bytes": 5758
+      "bytes": 5778
     },
     {
       "path": "packages/ghidra/PARITY.md",
@@ -12574,61 +13337,6 @@
       "bytes": 4626
     },
     {
-      "path": "packages/native/native/AGENTS.md",
-      "title": "Agent Guide",
-      "bytes": 3547
-    },
-    {
-      "path": "packages/native/native/CHANGELOG.md",
-      "title": "Changelog",
-      "bytes": 177071
-    },
-    {
-      "path": "packages/native/native/CONTRIBUTING.md",
-      "title": "Contributing",
-      "bytes": 3183
-    },
-    {
-      "path": "packages/native/native/README.md",
-      "title": "Native SDK",
-      "bytes": 4665
-    },
-    {
-      "path": "packages/native/native/RELEASING.md",
-      "title": "Releasing",
-      "bytes": 2493
-    },
-    {
-      "path": "packages/native/native/apps/schema/README.md",
-      "title": "Native SDK schemas",
-      "bytes": 928
-    },
-    {
-      "path": "packages/native/native/src/primitives/canvas/fonts/README.md",
-      "title": "Bundled fonts",
-      "bytes": 950
-    },
-    {
-      "path": "packages/native/native/src/primitives/canvas/testdata/markdown_document.md",
-      "title": "Fieldnote",
-      "bytes": 3580
-    },
-    {
-      "path": "packages/native/native/third_party/cef/README.md",
-      "title": "CEF Vendor Layout",
-      "bytes": 2333
-    },
-    {
-      "path": "packages/native/native/third_party/sqlite/README.md",
-      "title": "SQLite amalgamation",
-      "bytes": 552
-    },
-    {
-      "path": "packages/native/native/third_party/webview2/README.md",
-      "title": "WebView2 SDK Vendor Layout",
-      "bytes": 1564
-    },
-    {
       "path": "packages/py2bun/README.md",
       "title": "py2bun",
       "bytes": 7506
@@ -12644,9 +13352,24 @@
       "bytes": 7617
     },
     {
+      "path": "src/apm/README.md",
+      "title": "aphrody-apm",
+      "bytes": 4542
+    },
+    {
+      "path": "src/archguard/README.md",
+      "title": "`archguard` (`C:\\src\\tools\\archguard`)",
+      "bytes": 13064
+    },
+    {
       "path": "src/bundler/linker_context/README.md",
       "title": "LinkerContext Documentation",
       "bytes": 39591
+    },
+    {
+      "path": "src/corelib/README.md",
+      "title": "corelib (`aphrody-corelib`)",
+      "bytes": 3300
     },
     {
       "path": "src/css/README.md",
@@ -12666,67 +13389,67 @@
     {
       "path": "src/gnu/bc/PROOF.md",
       "title": "Preuve : bc 1.08.2",
-      "bytes": 1241
+      "bytes": 1252
     },
     {
       "path": "src/gnu/coreutils/PROOF.md",
       "title": "Preuve : coreutils 9.12 (uutils/coreutils)",
-      "bytes": 1775
+      "bytes": 1777
     },
     {
       "path": "src/gnu/diffutils/PROOF.md",
       "title": "Preuve : diffutils 3.12 (uutils/diffutils)",
-      "bytes": 1444
+      "bytes": 1446
     },
     {
       "path": "src/gnu/ed/PROOF.md",
       "title": "Preuve : ed 1.22.6",
-      "bytes": 1350
+      "bytes": 1361
     },
     {
       "path": "src/gnu/findutils/PROOF.md",
       "title": "Preuve : findutils 4.11.0 (uutils/findutils)",
-      "bytes": 1429
+      "bytes": 1431
     },
     {
       "path": "src/gnu/gawk/PROOF.md",
       "title": "Preuve : gawk 5.4.1 (uutils/awk)",
-      "bytes": 887
+      "bytes": 889
     },
     {
       "path": "src/gnu/grep/PROOF.md",
       "title": "Preuve : grep 3.12 (uutils/grep)",
-      "bytes": 1305
+      "bytes": 1307
     },
     {
       "path": "src/gnu/m4/PROOF.md",
       "title": "Preuve : m4 1.4.21",
-      "bytes": 1195
+      "bytes": 1206
     },
     {
       "path": "src/gnu/sed/PROOF.md",
       "title": "Preuve : sed 4.10 (uutils/sed)",
-      "bytes": 1564
+      "bytes": 1566
     },
     {
       "path": "src/gnu/tar/PROOF.md",
       "title": "Preuve : tar 1.35 (uutils/tar)",
-      "bytes": 1141
+      "bytes": 1143
     },
     {
       "path": "src/gnu/time/PROOF.md",
       "title": "Preuve : time 1.10",
-      "bytes": 1220
+      "bytes": 1231
     },
     {
       "path": "src/gnu/which/PROOF.md",
       "title": "Preuve : which 2.25",
-      "bytes": 1217
+      "bytes": 1228
     },
     {
       "path": "src/js/AGENTS.md",
-      "title": "JavaScript Builtins in Bun",
-      "bytes": 2779
+      "title": null,
+      "bytes": 61
     },
     {
       "path": "src/js/CLAUDE.md",
@@ -12779,6 +13502,66 @@
       "bytes": 86722
     },
     {
+      "path": "src/lore/aws/README.md",
+      "title": "urc-aws",
+      "bytes": 124
+    },
+    {
+      "path": "src/lore/chaos-client/README.md",
+      "title": "Example Commands",
+      "bytes": 2609
+    },
+    {
+      "path": "src/lore/fuse/README.md",
+      "title": "lore-fuse",
+      "bytes": 263443
+    },
+    {
+      "path": "src/lore/fuse/bench/m3/fortnite-experiments.md",
+      "title": "Fortnite from scratch: p4, Lore, Lore over FUSE",
+      "bytes": 18411
+    },
+    {
+      "path": "src/lore/hashicorp/src/consul/README.md",
+      "title": null,
+      "bytes": 137
+    },
+    {
+      "path": "src/lore/io/BENCHMARKS.md",
+      "title": "lore-io benchmarks",
+      "bytes": 90734
+    },
+    {
+      "path": "src/lore/proto/README.md",
+      "title": "Lore Protos",
+      "bytes": 760
+    },
+    {
+      "path": "src/lore/revision/README-PROTOCOLS.md",
+      "title": "Protocols",
+      "bytes": 5967
+    },
+    {
+      "path": "src/lore/revision/native/swfs/README.md",
+      "title": "Updating instructions",
+      "bytes": 198
+    },
+    {
+      "path": "src/lore/server/DOCKER.md",
+      "title": "Running loreserver in Docker",
+      "bytes": 5884
+    },
+    {
+      "path": "src/lore/server/README.md",
+      "title": "Lore Server",
+      "bytes": 8153
+    },
+    {
+      "path": "src/lore/server/src/protocol/test_data/README.md",
+      "title": "Test Certificates",
+      "bytes": 1941
+    },
+    {
       "path": "src/node-fallbacks/README.md",
       "title": "Browser polyfills for `bun build --target=browser`",
       "bytes": 657
@@ -12817,6 +13600,31 @@
       "path": "src/runtime/napi/README.md",
       "title": "Public N-API headers",
       "bytes": 1061
+    },
+    {
+      "path": "src/rust-stack/RUST_ALTERNATIVES_MATRIX.md",
+      "title": "Rust Alternatives Matrix (`rust-stack` v0.1.0)",
+      "bytes": 20243
+    },
+    {
+      "path": "src/steam/README.md",
+      "title": "bun-steam",
+      "bytes": 3772
+    },
+    {
+      "path": "src/steam/UPSTREAM.md",
+      "title": "bun-steam upstream map",
+      "bytes": 10902
+    },
+    {
+      "path": "src/taffy/README.md",
+      "title": null,
+      "bytes": 8354
+    },
+    {
+      "path": "test/lore/README.md",
+      "title": "Lore Integration Tests",
+      "bytes": 4137
     },
     {
       "path": "tools/gnu-index/DISTROS-head.md",

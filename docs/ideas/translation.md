@@ -1,6 +1,6 @@
 # Translation and language identification: Google's offerings
 
-Facts read from a crawl of Google's documentation, made with `tools/site-mirror --follow --prefix` on fr2. The mirror (screenshots, rendered DOM, every response) is in `/srv/research/mirror/google-translate/<name>`:
+Facts read from a crawl of Google's documentation, made with `tools/site-mirror --follow --prefix` on the test host. The mirror (screenshots, rendered DOM, every response) is in the mirror's output directory on that host, one folder per crawl:
 - `cloud-translate`: docs.cloud.google.com/translate/
 - `chrome-ai`: developer.chrome.com/docs/ai/
 - `mlkit-translate`: developers.google.com/ml-kit/language/
@@ -25,7 +25,7 @@ Under R22/D20 these are backends behind the machine-translation adapter, not pic
 
 ## Measured
 
-In the owner's Chrome 157, through claude-in-chrome:
+In a desktop Chrome 157, through claude-in-chrome:
 - `LanguageDetector` is available on device. One sentence each in fr, en and ja was detected at confidence 1.000, 0.999 and 0.999.
 - `Translator.availability()` for fr→en and en→ja returns `downloadable`.
 

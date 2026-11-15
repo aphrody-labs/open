@@ -1,6 +1,6 @@
 # Handoff from src (session src-8a4291)
 
-Work done in `C:\src` (GitHub `aphrody-labs/aphrody`) in the areas `open` now owns: UI and Material 3, browser engines, AI routing. Each item gives the state, the files and commits in src, and what is left. src only repairs breakages in these areas from now on.
+Work done in the Aphrody monorepo (`aphrody-labs/aphrody`) in the areas `open` now owns: UI and Material 3, browser engines, AI routing. Each item gives the state, the files and commits in src, and what is left. src only repairs breakages in these areas from now on.
 
 ## Web UI and Material 3
 
@@ -9,19 +9,19 @@ Work done in `C:\src` (GitHub `aphrody-labs/aphrody`) in the areas `open` now ow
 - Proof: `bun test packages/design` 31/31 (re-run by src-8a4291). The Chrome render (4 cards, 7 buttons, empty console, wasm host boots, theme toggle) was reported by the migration agent and not re-run. The root catalog now pins `@angular/core` and `@angular/material` at `22.3.0-rc.0`.
 - `packages/deploy` Worker pages lost their `md-*` buttons (native `.btn` on the same tokens).
 - Commits: `64e76a49e0`, `7b86d5fc57`, `6a9d4f4153`.
-- Left for open: align with the owner decision "Angular on an auto-following fork with Bun patches, AOT/LTO, shared C ABI" (the src build uses stock `@angular/*` from npm); `md-*` strings remain in `src/ui/m3.c`, `src/ui/site_wasi.c`, `apps/auto` and `packages/design/src/adapters.ts`.
+- Left for open: align with decision D3 (Angular on an auto-following fork with Bun patches, AOT/LTO, shared C ABI) (the src build uses stock `@angular/*` from npm); `md-*` strings remain in `src/ui/m3.c`, `src/ui/site_wasi.c`, `apps/auto` and `packages/design/src/adapters.ts`.
 - Warning: the migration agent ran a bare `bun fmt` over the shared src tree; about 107 files with other sessions' uncommitted edits may carry formatting-only noise.
 
 ## Brand pipeline (repair in progress in src)
 
 - `src/ui/kit/src/brand/mod.rs` (`ay brand build`, bin `aphrody-brand`) is broken since src commit `0c8ed2d7`: `brand.toml` `font_file` points at the Material Symbols icon font while text is shaped with it (`font = "Google Sans Flex"`); `build()` deletes all of `assets/brand/gen/`, which now holds committed inputs (`gen/symbols`, `gen/zukan`, `gen/themes` from `packages/assets`); it reads `assets/brand/symbols/<name>.svg`, which no longer exists. `assets/brand/{fetch,check,publish}.ts` were deleted with no replacement.
-- A src agent is repairing it as a breakage (live-resolved font and symbol sources with a lock, inputs dir never deleted, check step in Rust, double build compared on fr1). Further brand or design work belongs to open.
+- A src agent is repairing it as a breakage (live-resolved font and symbol sources with a lock, inputs dir never deleted, check step in Rust, double build compared on the build host). Further brand or design work belongs to open.
 
 ## Browser engines
 
-- Registry: `packages/chromium-bun/src/engines/registry.ts`, one row per engine (Chrome for Testing channels, Playwright, system Chrome, repo Chromium on fr1, Obscura, Servo, Blitz, JavaScriptCore, V8, Dawn, wgpu, automation tools).
+- Registry: `packages/chromium-bun/src/engines/registry.ts`, one row per engine (Chrome for Testing channels, Playwright, system Chrome, repo Chromium built on a build host, Obscura, Servo, Blitz, JavaScriptCore, V8, Dawn, wgpu, automation tools).
 - Backend selection: `packages/chromium-bun/src/engines/backend.ts`, `ay engines backend list|pick|use [id] [--need cdp,webgpu] [--js ..] [--channel ..] [--write]`. No list of its own: candidates, channels and automation deps come from the registry; order is argument, `AY_BACKEND`, `.engine-version`, needs, project detection, then the running Bun (JavaScriptCore). Commits `4d754ef5f9`, `a6f4aacca9`, `0e5d9c97bd`.
-- Lightpanda: absorbed in `packages/browser/native` (fork `aphrody-labs/browser`, upstream `lightpanda-io/browser`, `build.zig.zon` 1.1.0-dev, Zig 0.17.0 minimum) with a C ABI (`src/capi_main.zig`, `lp_*`) and the Bun binding `packages/browser/src/index.ts`. Registered as engine `lightpanda` (CDP, `serve --host 127.0.0.1 --port N`) in `05a0c29704`; release binary install added in `49db7cf8` (tools.toml). Not done: building the fork on fr1, `browser_capi` shared library, a CDP navigation proof, `bun test packages/browser` against a built library.
+- Lightpanda: absorbed in `packages/browser/native` (fork `aphrody-labs/browser`, upstream `lightpanda-io/browser`, `build.zig.zon` 1.1.0-dev, Zig 0.17.0 minimum) with a C ABI (`src/capi_main.zig`, `lp_*`) and the Bun binding `packages/browser/src/index.ts`. Registered as engine `lightpanda` (CDP, `serve --host 127.0.0.1 --port N`) in `05a0c29704`; release binary install added in `49db7cf8` (tools.toml). Not done: building the fork on a build host, `browser_capi` shared library, a CDP navigation proof, `bun test packages/browser` against a built library.
 
 ## AI routing
 

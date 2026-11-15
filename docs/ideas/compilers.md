@@ -30,7 +30,7 @@
 
 Reading: scriptc targets engine-less binaries and a linkable ABI (useful for the shared C ABI); Bun AOT keeps every semantic and API. Both get measured on the benchmark (size, start-up, throughput, memory, coverage); no figure is kept without a measurement.
 
-## Cross TypeScript toolchain (owner request)
+## Cross TypeScript toolchain
 
 Tools: oxc (parse, lint, format), `bun check`, TypeScript 7 (native compiler), scriptc, Bun AOT. References: the ECMAScript specification (ECMA-262, TC39) and Microsoft's TypeScript documentation. Goal: a system that compares engines, runtimes, linters and compilers on the same programs, with benchmarks.
 

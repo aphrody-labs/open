@@ -1,6 +1,6 @@
 # Design system: Material 3 from Google's official sources
 
-Owner direction: re-implement nothing, fork and absorb what Google ships. "Google already ships M3 on Flutter, Jetpack Compose and Angular."
+Direction: re-implement nothing; fork and absorb what Google ships (Material 3 on Flutter, Jetpack Compose and Angular).
 
 ## Official implementations and status
 

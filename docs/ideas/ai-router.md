@@ -8,7 +8,7 @@ Aphrody's `ai-os` router (TypeScript, Bun) has the logic: catalog joined from mo
 
 ## Prototypes built, then removed
 
-Everything below was built, tested, then purged on the owner's decision. The facts remain useful:
+Everything below was built, tested, then purged. The facts remain useful:
 
 | Prototype | Measured result |
 |---|---|

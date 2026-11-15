@@ -1,19 +1,21 @@
-// Reference run on a fleet host. Nothing about the host is written here:
-//   - the host is the first node of the fleet file whose role is --role ([nodes.*] tables with `role` and
-//     `ssh_alias`; the Aphrody monorepo's infra/deploy.toml has that shape), reached with `ssh <ssh_alias>`;
-//   - Bun is the canary from the host's runtime manager (`ay rt install bun@canary`, `ay rt run bun@canary`);
+// Reference run on another machine. Nothing about the machine is written here or in a file:
+//   - --host is an ssh destination (an alias of the caller's ~/.ssh/config, or user@address), resolved live by
+//     `ssh -G`; the caller's ssh configuration is the only per-machine input;
+//   - Bun is the canary from that machine's runtime manager (`ay rt install bun@canary`, `ay rt run bun@canary`);
 //   - the code is this repository's `origin` at the local HEAD, checked out sparsely (this app only) in the
-//     host user's state directory; the run data stays in the runner's default state directory there;
+//     remote user's state directory; the run data stays in the runner's default state directory there;
 //   - the server runs as a systemd user unit on a free port, and the coverage report comes back to coverage.json.
-// bun remote.ts --fleet <deploy.toml> --role <role> [--resume] [--keep]
+// bun remote.ts --host <ssh destination> [--resume] [--keep]
 import { join, relative } from "node:path";
 import { parseArgs } from "node:util";
 
-const { values: a } = parseArgs({ options: { fleet: { type: "string" }, role: { type: "string" }, resume: { type: "boolean", default: false }, keep: { type: "boolean", default: false } } });
-if (!a.fleet || !a.role) throw new Error("usage: bun remote.ts --fleet <deploy.toml> --role <role> [--resume] [--keep]");
-const fleet = Bun.TOML.parse(await Bun.file(a.fleet).text()) as { nodes?: Record<string, { role?: string; ssh_alias?: string }> };
-const [name, node] = Object.entries(fleet.nodes ?? {}).find(([, n]) => n.role === a.role) ?? [];
-if (!node?.ssh_alias) throw new Error(`no node with role "${a.role}" and an ssh_alias in ${a.fleet}`);
+const { values: a } = parseArgs({ options: { host: { type: "string" }, resume: { type: "boolean", default: false }, keep: { type: "boolean", default: false } } });
+if (!a.host) throw new Error("usage: bun remote.ts --host <ssh destination> [--resume] [--keep]");
+// `ssh -G` prints the resolved configuration without connecting: an unknown alias still resolves to itself
+const resolved = Object.fromEntries(Bun.spawnSync(["ssh", "-G", a.host], { stdout: "pipe" }).stdout.toString().split("\n").map((l) => l.split(" ", 2)).filter((p) => p.length === 2));
+if (!resolved.hostname) throw new Error(`ssh cannot resolve ${a.host}`);
+const name = a.host;
+const node = { ssh_alias: a.host };
 
 const app = import.meta.dir;
 const local = (...args: string[]) => Bun.spawnSync(["git", "-C", app, ...args], { stdout: "pipe" }).stdout.toString().trim();
@@ -31,7 +33,7 @@ async function ssh(script: string, timeoutMs: number): Promise<string> {
 
 const q = (s: string) => `'${s.replaceAll("'", `'\\''`)}'`;
 const repoDir = `"\${XDG_STATE_HOME:-$HOME/.local/state}/bun-m3-src"`;
-console.log(`host ${name} (${node.ssh_alias}), role ${a.role}, ${origin} @ ${rev.slice(0, 9)}`);
+console.log(`host ${name}, ${origin} @ ${rev.slice(0, 9)}`);
 const port = (
   await ssh(
     `

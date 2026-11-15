@@ -1,6 +1,6 @@
 # `open` roadmap
 
-Working draft: nothing is committed until the decisions marked "open" are taken with the owner.
+Working draft: the decisions marked "open" are not taken yet.
 
 | File | Contents |
 |---|---|

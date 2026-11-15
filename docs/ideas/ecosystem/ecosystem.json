@@ -48,7 +48,7 @@
       "latest_release": "v1.19.5",
       "overlap": "third_party/metadata/opencode exists; anomalyco repos already flattened in open; sst/opencode redirects to anomalyco/opencode",
       "relevance": "Bun/TS agent CLI; already absorbed",
-      "source": "gh api repos/sst/opencode (full_name) 2026-11-15; fd C:/src/third_party"
+      "source": "gh api repos/sst/opencode (full_name) 2026-11-15; fd third_party in the Aphrody monorepo"
     },
     {
       "name": "opencode-ai/opencode (Go)",
@@ -1166,7 +1166,7 @@
       "last_push": "2026-11-14",
       "language": "Zig",
       "size_kb": 95412,
-      "overlap": "C:/src/packages/machine/shells/ghostty/ exists (shell matrix); not in forks.txt per rg",
+      "overlap": "the Aphrody monorepo's packages/machine/shells/ghostty/ exists (shell matrix); not in forks.txt per rg",
       "relevance": "not open-branded, not in anomalyco; Zig terminal; pin only",
       "source": "gh api + tags 2026-11-15; fd"
     },
@@ -1182,7 +1182,7 @@
       "last_push": "2026-11-14",
       "language": "Rust",
       "size_kb": 317152,
-      "overlap": "C:/src/packages/machine/shells/wezterm/ exists; not in forks.txt",
+      "overlap": "the Aphrody monorepo's packages/machine/shells/wezterm/ exists; not in forks.txt",
       "relevance": "Rust terminal, large; pin",
       "source": "gh api 2026-11-15; fd"
     },
@@ -2813,7 +2813,7 @@
       "license": "Apache-2.0",
       "mode": "pin",
       "relevance": "Chromium TLS; shared LLVM/Chromium stack",
-      "overlap": "boringssl/boringssl_sys crates referenced in C:/src/Cargo.toml; Chromium DEPS carries it",
+      "overlap": "boringssl/boringssl_sys crates referenced in the Aphrody monorepo's Cargo.toml; Chromium DEPS carries it",
       "size_kb": 400634,
       "language": "C++",
       "last_push": "2026-11-13",

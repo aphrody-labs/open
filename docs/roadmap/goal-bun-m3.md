@@ -1,6 +1,6 @@
 # Goal validation deliverable: Bun fullstack × Material 3
 
-Owner criterion: the goal is validated only once this deliverable exists.
+Acceptance criterion: the goal is met only once this deliverable exists.
 
 ## Definition
 

@@ -1,6 +1,6 @@
 # Toolchain and validation gates
 
-## Monorepo toolchain (owner decisions D12, D13)
+## Monorepo toolchain (decisions D12, D13)
 
 | Role | Tool |
 |---|---|

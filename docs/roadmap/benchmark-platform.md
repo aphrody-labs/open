@@ -1,4 +1,4 @@
-# `open` as an automated benchmark (owner request)
+# `open` as an automated benchmark
 
 ## Requested
 
