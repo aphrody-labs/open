@@ -1,32 +1,30 @@
-# Économie des fournisseurs
+# Provider economics
 
-Prix relevés sur les pages officielles pendant la session. Ils changent : à revérifier avant toute décision.
+Prices read on the official pages while working. They change: re-check before any decision.
 
-## Hébergement et calcul
+## Hosting and compute
 
-| Fournisseur | Élément | Prix |
+| Provider | Item | Price |
 |---|---|---|
-| Cloudflare Workers Paid | forfait | 5 $/mois, 10 M requêtes incluses, puis 0,30 $/M |
-| Cloudflare | assets statiques | gratuits |
-| Cloudflare R2 Standard | stockage | 0,015 $/Go-mois ; classe A 4,50 $/M ; classe B 0,36 $/M ; sortie gratuite |
-| Cloudflare R2 Infrequent Access | stockage | 0,01 $/Go ; classe A 9 $/M ; classe B 0,90 $/M |
-| Cloudflare Workers AI | inférence | 0,011 $ / 1000 neurones ; gpt-oss-120b 0,35 $ entrée / 0,75 $ sortie par M tokens |
-| Cloudflare AI Gateway | passerelle | gratuite ; 5 % sur les crédits en facturation unifiée |
-| Vercel | Hobby / Pro | 0 $ / 20 $ par siège |
-| Vercel AI Gateway | passerelle | sans marge |
+| Cloudflare Workers Paid | plan | $5/month, 10 M requests included, then $0.30/M |
+| Cloudflare | static assets | free |
+| Cloudflare R2 Standard | storage | $0.015/GB-month; class A $4.50/M; class B $0.36/M; free egress |
+| Cloudflare R2 Infrequent Access | storage | $0.01/GB; class A $9/M; class B $0.90/M |
+| Cloudflare Workers AI | inference | $0.011 per 1,000 neurons; gpt-oss-120b $0.35 input / $0.75 output per M tokens |
+| Cloudflare AI Gateway | gateway | free; 5% on unified-billing credits |
+| Vercel | Hobby / Pro | $0 / $20 per seat |
+| Vercel AI Gateway | gateway | no markup |
 
-## Modèles
+## Models
 
-| Canal | Frais | Exemples |
+| Channel | Fees | Examples ($ per M tokens, input / output) |
 |---|---|---|
-| OpenRouter | 5,5 % à l'achat de crédits ; BYOK gratuit jusqu'à 25 k$/mois puis 5 % | gpt-5.6-sol 4,40 / 22 $ ; gpt-oss-120b 0,15 / 0,60 $ |
-| opencode Zen | 4,6 % + 0,31 $ par achat ; Go 10 $, Go Plus 40 $, Teams 20 $/membre | |
-| OpenAI direct | Batch et Flex -50 % | gpt-5.6-sol 4 / 20 $ ; terra 2 / 12 $ ; luna 0,20 / 1,20 $ |
-| Vercel AI Gateway | prix fournisseur | gpt-5.6-sol 4 / 20 $ ; gpt-oss-120b 0,10 / 0,50 $ |
+| OpenRouter | 5.5% on credit purchases; BYOK free up to $25k/month then 5% | gpt-5.6-sol 4.40 / 22; gpt-oss-120b 0.15 / 0.60 |
+| opencode Zen | 4.6% + $0.31 per purchase; Go $10, Go Plus $40, Teams $20 per member | |
+| OpenAI direct | Batch and Flex -50% | gpt-5.6-sol 4 / 20; terra 2 / 12; luna 0.20 / 1.20 |
+| Vercel AI Gateway | provider price | gpt-5.6-sol 4 / 20; gpt-oss-120b 0.10 / 0.50 |
 
-(prix en $ par million de tokens, entrée / sortie)
+## Levers
 
-## Leviers notés
-
-- Les opérations de classe A dominent un bucket de sauvegarde quotidienne avec `--checksum` : `--size-only` les réduit.
-- Un routeur qui préfère les offres gratuites puis les moins chères capte la plus grande économie ; les marges de passerelle (OpenRouter 5,5 %, Zen 4,6 %) disparaissent en direct ou par Vercel AI Gateway.
+- Class A operations dominate a daily-backup bucket synced with `--checksum`; `--size-only` cuts them.
+- A router that prefers free offers, then the cheapest paid ones, captures the largest saving; gateway margins (OpenRouter 5.5%, Zen 4.6%) disappear when calling providers directly or through Vercel AI Gateway.

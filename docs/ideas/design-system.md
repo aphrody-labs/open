@@ -1,39 +1,33 @@
-# Design system : Material 3, sources officielles Google
+# Design system: Material 3 from Google's official sources
 
-Direction donnée par le propriétaire : ne rien réimplémenter, forker et absorber ce que Google publie. « Google livre déjà M3 sur Flutter, Jetpack Compose et Angular. »
+Owner direction: re-implement nothing, fork and absorb what Google ships. "Google already ships M3 on Flutter, Jetpack Compose and Angular."
 
-## Implémentations officielles et état
+## Official implementations and status
 
-| Plateforme | Dépôt | État |
+| Platform | Repository | Status |
 |---|---|---|
-| Web | angular/components (Angular Material) | actif ; Google le recommande pour le web |
-| Web | material-components/material-web | en maintenance « pending new maintainers » (README) ; le propriétaire le considère legacy |
-| Android | androidx/androidx (Compose material3) | actif |
-| Android (Views) | material-components/material-components-android | actif |
-| Multiplateforme | flutter/flutter (material) | actif |
-| iOS | material-components/material-components-ios | archivé |
-| Couleur | material-foundation/material-color-utilities | actif |
-| Icônes | google/material-design-icons (Material Symbols) | actif |
-| Polices | google/fonts, googlefonts/googlesans, googlesans-flex, googlesans-code | actifs |
-| Tokens | material-foundation/material-tokens, material-theme-builder | archivés |
+| Web | angular/components (Angular Material) | active; Google recommends it for the web |
+| Web | material-components/material-web | in maintenance, "pending new maintainers" (README); the owner considers it legacy |
+| Android | androidx/androidx (Compose material3) | active |
+| Android (Views) | material-components/material-components-android | active |
+| Cross-platform | flutter/flutter (material) | active |
+| iOS | material-components/material-components-ios | archived |
+| Colour | material-foundation/material-color-utilities | active |
+| Icons | google/material-design-icons (Material Symbols) | active |
+| Fonts | google/fonts, googlefonts/googlesans, googlesans-flex, googlesans-code | active |
+| Tokens | material-foundation/material-tokens, material-theme-builder | archived |
 
-Sources de référence pour les règles : m3.material.io et design.google (crawl en cours de conception, voir [browser-and-crawl.md](browser-and-crawl.md)) ; bibliothèque Figma « Material 3 Design Kit » (communauté) déjà connectée au compte.
+Reference sources for the rules: m3.material.io and design.google (crawl, see [browser-and-crawl.md](browser-and-crawl.md)); the community Figma library "Material 3 Design Kit", already connected to the account.
 
 ## Tokens
 
-- Le jeu de tokens officiel le plus récent publié par Google (« Google Material 3 », version 34.x, `tokens/versions/latest/sass` dans le paquet `@material/web`) passe à des variables Sass simples. Il apporte deux valeurs nouvelles par rapport à l'ancien `v0_192` : opacité de focus 0.10 (au lieu de 0.12) et une opacité d'état « disabled » 0.38.
-- Angular Material expose ses propres tokens `--mat-sys-*` : c'est la source à suivre si le web passe sur Angular Material.
+- Google's latest official token set ("Google Material 3", version 34.x, `tokens/versions/latest/sass` in the `@material/web` package) moved to plain Sass variables. Compared with the old `v0_192` it brings a focus opacity of 0.10 (was 0.12) and a "disabled" state opacity of 0.38.
+- Angular Material exposes its own `--mat-sys-*` tokens: the source to follow on the web.
 
-## Couleur (HCT)
+## Colour (HCT)
 
-Un portage C freestanding de material-color-utilities (CAM16, HctSolver, schémas dynamiques 2021) a reproduit la référence MCU 0.4.0 à 1e-12 et un schéma complet au bit près, en natif et en wasm sans import. Retiré depuis ; l'enseignement : la science des couleurs se porte exactement, mais la source doit rester MCU.
+A freestanding C port of material-color-utilities (CAM16, HctSolver, 2021 dynamic schemes) matched the MCU 0.4.0 reference to 1e-12 and a full scheme bit for bit, native and in wasm with no import. Since removed; the lesson: colour science ports exactly, but the source stays MCU.
 
 ## Rust
 
-Google ne publie pas M3 pour Rust. Options vérifiées : FerroUI (port d'Avalonia, thème Material 3 Expressive avec composants natifs), egui-material3 (M3 standard), un fork Slint (plan seulement).
-
-## Points ouverts pour la spec
-
-- Web : Angular Material implique le framework Angular ; quelles surfaces passent dessus.
-- Desktop natif : Compose Multiplatform, Flutter desktop, ou un framework Rust (voir [native-ui.md](native-ui.md)).
-- Identité Aphrody (couleur source, police) appliquée par les mécanismes officiels de theming de chaque implémentation.
+Google does not ship M3 for Rust. Options checked: FerroUI (Avalonia port, Material 3 Expressive theme with native components), egui-material3 (standard M3), a Slint fork (plan only). The generated inventory ([inventory/frameworks.md](inventory/frameworks.md), category `material-rust`) lists the rest.

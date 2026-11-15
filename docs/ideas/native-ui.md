@@ -1,30 +1,30 @@
-# Frameworks UI natifs à réunir
+# Native UI frameworks to bring together
 
-Demande : fusionner en un monorepo (Rust, Bun, C, Zig) les frameworks UI suivants, avec leurs crates, paquets, exemples et écosystème.
+Request: merge into one monorepo (Rust, Bun, C, Zig) the UI frameworks below, with their crates, packages, examples and ecosystem.
 
-| Dépôt | Description (GitHub) | Langage | Licence |
+| Repository | Description (GitHub) | Language | License |
 |---|---|---|---|
 | anomalyco/rune | Native UI framework | Rust | MIT |
-| longbridge/nsh | Native Shell : UI native iOS, Android, macOS, Windows, Linux et web | Rust | non déclarée |
-| microsoft/webui | SSR sans JavaScript côté serveur, Web Components | Rust | MIT |
-| vercel-labs/ui | Comportements pour que des agents construisent des interfaces | TypeScript | Apache-2.0 |
-| vercel-labs/native | Toolkit d'apps desktop natives | Zig | Apache-2.0 |
-| vercel-labs/wterm | Émulateur de terminal pour le web | TypeScript | Apache-2.0 |
-| zed-industries/zed : `crates/gpui` | framework UI GPU de Zed | Rust | non déclarée |
-| anomalyco/opentui | Bibliothèque de TUI | TypeScript | MIT |
-| iced-rs/iced | GUI Rust inspirée d'Elm | Rust | MIT |
-| emilk/egui | GUI immédiate, web et natif | Rust | Apache-2.0 |
-| shadcn-ui/ui | Composants à copier et adapter | TypeScript | MIT |
-| mui/base-ui | Composants sans style, accessibles | TypeScript | MIT |
+| longbridge/nsh | Native Shell: native UI for iOS, Android, macOS, Windows, Linux and the web | Rust | not declared |
+| microsoft/webui | SSR without JavaScript on the server, Web Components | Rust | MIT |
+| vercel-labs/ui | Behaviours for agents to build interfaces | TypeScript | Apache-2.0 |
+| vercel-labs/native | Native desktop app toolkit | Zig | Apache-2.0 |
+| vercel-labs/wterm | Terminal emulator for the web | TypeScript | Apache-2.0 |
+| zed-industries/zed: `crates/gpui` | Zed's GPU UI framework | Rust | not declared |
+| anomalyco/opentui | TUI library | TypeScript | MIT |
+| iced-rs/iced | Elm-inspired Rust GUI | Rust | MIT |
+| emilk/egui | Immediate-mode GUI, web and native | Rust | Apache-2.0 |
+| shadcn-ui/ui | Components to copy and adapt | TypeScript | MIT |
+| mui/base-ui | Unstyled, accessible components | TypeScript | MIT |
 
-## Ce qu'un essai a montré
+## What a trial showed
 
-- Les 12 sources s'aplatissent en environ 550 Mo avec un lock de provenance.
-- `gpui` seul tire 15 crates internes de Zed par ses dépendances de chemin, plus des dépendances propres à chaque plateforme (`gpui_linux`, `gpui_macos`, ...) déclarées dans `[target.'cfg(...)'.dependencies]` : il faut suivre ces sections et ré-enraciner le workspace de Zed (`[workspace.dependencies]`) pour que `cargo` résolve.
-- Plusieurs dépôts sont eux-mêmes des workspaces (rune, nsh, webui) : ils restent autonomes dans le workspace racine.
-- Deux dépôts portent le même nom (`aphrody-labs/ui` fork de shadcn-ui, et `vercel-labs/ui`) : préfixer par l'organisation.
+- The 12 sources flatten to about 550 MB with a provenance lock.
+- `gpui` alone pulls 15 internal Zed crates through path dependencies, plus platform-specific ones (`gpui_linux`, `gpui_macos`, ...) declared in `[target.'cfg(...)'.dependencies]`: those sections must be followed and Zed's workspace (`[workspace.dependencies]`) re-rooted for `cargo` to resolve.
+- Several repositories are workspaces themselves (rune, nsh, webui): they stay standalone in the root workspace.
+- Two repositories share a name (`aphrody-labs/ui`, the shadcn-ui fork, and `vercel-labs/ui`): prefix with the organisation.
 
-## Points ouverts
+## Open points
 
-- But de la fusion : catalogue de référence, base de code commune, ou choix d'un framework cible pour Aphrody.
-- Lien avec Material 3 : lequel de ces frameworks reçoit les composants M3 (voir [design-system.md](design-system.md)).
+- Purpose of the merge: reference catalog, common code base, or choice of a target framework.
+- Link with Material 3: which of these frameworks receives the M3 components (see [design-system.md](design-system.md)); D4 asks for Rust at the same level as Flutter.

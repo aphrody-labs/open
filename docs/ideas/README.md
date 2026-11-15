@@ -1,18 +1,19 @@
-# Idées et recherches
+# Ideas and research
 
-Ce dossier rassemble ce que la session de construction d'`open` a appris : faits vérifiés (source citée), idées testées, échecs. Rien ici n'est une décision ; les décisions vivent dans [`../roadmap/`](../roadmap/).
+What building `open` taught: verified facts (source cited), tested ideas, failures. Nothing here is a decision; decisions live in [`../roadmap/`](../roadmap/).
 
-| Fichier | Sujet |
+| File | Topic |
 |---|---|
-| [monorepo.md](monorepo.md) | Ce que contient `open`, comment il est construit, ce qui manque |
-| [ecosystem/](ecosystem/) | Classement de l'écosystème « open » (186 projets, 9 domaines) |
-| [ai-router.md](ai-router.md) | Routeur IA gratuit, multi-fournisseurs, ABI C : recherche, prototypes, résultats |
-| [economics.md](economics.md) | Prix relevés (Cloudflare, Vercel, OpenRouter, opencode, OpenAI) et leviers |
-| [design-system.md](design-system.md) | Material 3 : sources officielles Google, état, tokens, options Rust |
-| [browser-and-crawl.md](browser-and-crawl.md) | Moteurs, pilotes, crawlers : dépendances réelles et pipeline de mirror |
-| [native-ui.md](native-ui.md) | Fusion de frameworks UI natifs (gpui, rune, nsh, webui, iced, egui, ...) |
-| [compilers.md](compilers.md) | scriptc et Bun AOT, chaîne TypeScript croisée (oxc, bun check, TS 7) |
-| [lessons.md](lessons.md) | Ce qui a échoué dans la session et les règles qui en découlent |
-| [src-handoff.md](src-handoff.md) | Ce que src contient dans le périmètre d'open (UI, mobile, moteurs, IA) et où le reprendre |
+| [monorepo.md](monorepo.md) | What `open` contains, how it is built, what is missing |
+| [ecosystem/](ecosystem/) | Classification of the "open" ecosystem (186 projects, 9 domains) |
+| [inventory/](inventory/) | Generated inventories: ecosystem frameworks (842 projects), the Aphrody monorepo, tools per host |
+| [ai-router.md](ai-router.md) | Free, multi-provider AI router with a C ABI: research, prototypes, results |
+| [economics.md](economics.md) | Prices read from providers (Cloudflare, Vercel, OpenRouter, opencode, OpenAI) and levers |
+| [design-system.md](design-system.md) | Material 3: Google's official sources, status, tokens, Rust options |
+| [browser-and-crawl.md](browser-and-crawl.md) | Engines, drivers, crawlers: real dependencies and the mirror pipeline |
+| [native-ui.md](native-ui.md) | Native UI frameworks to bring together (gpui, rune, nsh, webui, iced, egui, ...) |
+| [compilers.md](compilers.md) | scriptc and Bun AOT, cross TypeScript toolchain (oxc, bun check, TypeScript 7) |
+| [lessons.md](lessons.md) | What failed and the rules that follow |
+| [src-handoff.md](src-handoff.md), [handoff-src.md](handoff-src.md) | What src holds in open's scope (UI, mobile, engines, AI) and where to pick it up |
 
-Statut des faits : chaque chiffre vient d'une commande, d'un manifeste ou d'une page lue pendant la session. Les prix, versions et états de dépôts bougent ; ils se revérifient avant toute décision.
+Facts: every figure comes from a command, a manifest or a page read while working. Prices, versions and repository states move; re-check them before any decision.

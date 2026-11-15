@@ -1,41 +1,37 @@
-# `open` comme banc d'essai automatisé (demande du propriétaire)
+# `open` as an automated benchmark (owner request)
 
-## Ce qui est demandé
+## Requested
 
-1. **Inventaires**
-   - Frameworks Rust équivalents à Flutter, Jetpack Compose et Angular ; idem pour Next.js, shadcn/ui, Base UI, Better Auth et Tailwind CSS.
-   - Monorepo Aphrody complet : third party, first party et documentation.
-2. **Outils installés globalement sur chaque hôte (PC et VPS)** : tree-sitter, Helix, Magika, markitdown, Obscura, Lightpanda, Crawlee, Apify, hyperfine (fork), et le reste de l'inventaire navigateurs et crawl.
-3. **Banc d'essai** : chaque outil testé sur son propre site, sur design.google et sur m3.material.io.
-4. **Une seule base de résultats** : SQLite, Redis, JSON et MDX ; reprise après interruption ; plusieurs hôtes.
-5. **Réseau et stockage** : tunnel Cloudflare, bucket R2, Worker, Pages, DNS ; pilotage par CDP ; flux de résultats en streaming ; mesures hyperfine.
-6. **Navigateur ↔ UI, dans les deux sens et de façon récursive** : d'un sitemap, générer au pixel près une application full-stack dans un framework ; rendre l'application générée, la comparer à l'original, recommencer.
+1. **Inventories**
+   - Rust frameworks equivalent to Flutter, Jetpack Compose and Angular; likewise for Next.js, shadcn/ui, Base UI, Better Auth and Tailwind CSS.
+   - The full Aphrody monorepo: third party, first party and documentation.
+2. **Tools installed globally on every host (PC and VPS)**: tree-sitter, Helix, Magika, markitdown, Obscura, Lightpanda, Crawlee, Apify, hyperfine (fork), and the rest of the browser and crawl inventory.
+3. **Benchmark**: every tool tested on its own site, on design.google and on m3.material.io.
+4. **One results store**: SQLite, Redis, JSON and MDX; resumable; multiple hosts.
+5. **Network and storage**: Cloudflare tunnel, R2 bucket, Worker, Pages, DNS; driven through CDP; streamed results; hyperfine measurements.
+6. **Browser ↔ UI, both ways and recursively**: from a sitemap, generate a pixel-perfect full-stack application in a framework; render it, compare with the original, iterate.
 
-## Exigences
+## Requirements
 
-- R17. Les inventaires sont produits par des scripts dans `open` depuis des sources interrogeables (API GitHub, manifestes, locks), avec la requête de provenance ; aucune liste tenue à la main.
-- R18. L'installation des outils est reproductible et idempotente sur chaque hôte.
-- R19. Chaque exécution du banc enregistre outil, version, hôte, cible, mesures, artefacts ; elle reprend là où elle s'est arrêtée.
-- R20. La génération sitemap → application est jugée par différence de pixels et de DOM contre le rendu de référence (Chrome for Testing).
-- R21. Outil sans build pour une plateforme (ex. Lightpanda sous Windows) : fork, patch, push, release, puis distribution par `ay` et le téléchargement Aphrody avec mise à jour automatique. Outil inexistant : on le crée selon les pratiques des frameworks, des grands clouds, des stores et des gestionnaires de paquets.
+- R17. Inventories are produced by scripts in `open` from queryable sources (GitHub API, registries, manifests, locks), with the provenance query; no hand-kept list.
+- R18. Tool installation is reproducible and idempotent on every host.
+- R19. Every benchmark run records tool, version, host, target, measurements and artefacts; it resumes where it stopped.
+- R20. The sitemap → application generation is judged by pixel and DOM difference against the reference rendering (Chrome for Testing).
+- R21. A tool with no build for a platform (e.g. Lightpanda on Windows): fork, patch, push, release, then distribute through `ay` and the Aphrody download with self-update. A tool that does not exist: create it following the practices of frameworks, the big clouds, the stores and the package managers.
 
-## Premier cas R21 : Lightpanda sous Windows
+## First R21 case: Lightpanda on Windows
 
-La PR amont lightpanda-io/browser#3753 (« native Windows support », 26 fichiers, +1436/-108, ouverte) remplit le `WindowsIO` laissé vide dans `Server.zig` et adapte `build.zig` (MSVC, SDK Windows, bibliothèques système). Plan : l'appliquer sur `aphrody-labs/browser`, construire, tester, publier une release Windows, l'ajouter à `scripts/hosts/tools.json`.
+Upstream PR lightpanda-io/browser#3753 ("native Windows support", 26 files, +1436/-108, open) fills the `WindowsIO` left empty in `Server.zig` and adapts `build.zig` (MSVC, Windows SDK, system libraries). Plan: apply it on `aphrody-labs/browser`, build, test, publish a Windows release, add it to `scripts/hosts/tools.json`.
 
-## Phases ajoutées
+## Added phases
 
-| Phase | Livrable |
+| Phase | Deliverable |
 |---|---|
-| 7 | Inventaires (frameworks, monorepo Aphrody) |
-| 8 | Outils installés sur le PC et les VPS, vérifiés |
-| 9 | Banc d'essai : base de résultats commune, reprise, multi-hôtes, Cloudflare |
-| 10 | Boucle navigateur ↔ UI : génération depuis un sitemap, comparaison au pixel près, itération |
+| 7 | Inventories (frameworks, Aphrody monorepo) |
+| 8 | Tools installed on the PC and the VPS, verified |
+| 9 | Benchmark: shared results store, resumable, multi-host, Cloudflare |
+| 10 | Browser ↔ UI loop: generation from a sitemap, pixel comparison, iteration |
 
-## À trancher
+## Open decisions
 
-| Id | Question |
-|---|---|
-| D15 | Base de vérité : SQLite comme source, Redis comme cache et file, JSON et MDX comme exports ? |
-| D16 | Frameworks cibles de la génération full-stack (Angular, Next.js, Flutter web, Leptos, Dioxus, ...) |
-| D17 | Où tourne le banc : PC seul, VPS, ou les deux avec répartition |
+D15 (results store), D16 (target frameworks of the generation), D17 (where the benchmark runs): see [decisions.md](decisions.md).

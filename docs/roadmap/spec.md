@@ -1,51 +1,50 @@
-# Cahier des charges (brouillon)
+# Requirements
 
-## Périmètre
+## Scope
 
-| Inclus | Exclu (proposé) |
+| In | Out (proposed) |
 |---|---|
-| Monorepo `open` : sources absorbées, lock, workspaces Bun et Cargo | Le reste d'Aphrody (src, flotte VPS) |
-| Routeur IA : bibliothèque, ABI C, service, surfaces | Entraînement de modèles |
-| UI Material 3 officielle pour les surfaces du routeur | Design maison |
-| Archive de référence design.google + m3.material.io | Republication publique de contenu Google |
+| The `open` monorepo: absorbed sources, lock, Bun and Cargo workspaces | Areas the rest of Aphrody keeps |
+| AI router: library, C ABI, service, surfaces | Model training |
+| Official Material 3 UI for the router surfaces | Home-made design |
+| Reference archive of design.google + m3.material.io | Public republication of Google content |
 
-## Exigences
+## Requirements
 
 ### Monorepo
-- R1. Chaque source a son entrée dans `open.lock.json` (url, rev, licence, chemins).
-- R2. `bun install` à la racine produit un `bun.lock` ; `bun test` passe par paquet.
-- R3. Les crates Rust se construisent en release, LTO fat ; les CLI Bun se compilent en AOT.
-- R4. Le dépôt se clone sous Windows, Linux et macOS (aucun chemin invalide).
+- R1. Every source has its entry in `open.lock.json` (url, rev, license, paths).
+- R2. `bun install` at the root produces a `bun.lock`; `bun test` passes per package.
+- R3. Rust crates build in release with fat LTO; Bun CLIs compile AOT.
+- R4. The repository clones on Windows, Linux and macOS (no invalid path). Done.
 
-### Routeur
-- R5. API compatible OpenAI (`/v1/chat/completions`, `/v1/models`) et Anthropic (`/v1/messages`).
-- R6. Catalogue découvert à l'exécution ; aucune liste de modèles en dur.
-- R7. Politique par défaut : gratuit d'abord, bascule automatique avec trace des essais.
-- R8. ABI C stable, HTTPS par la pile TLS du système ou un transport fourni par la plateforme.
-- R9. Surfaces : CLI, TUI plein écran, desktop, mobile, serverless, auto-hébergé.
-- R9a. Livré à la fois comme bibliothèque embarquée et comme service (D2).
-- R9b. Local first : l'inférence locale est tentée en premier ; tous les types d'inférence et tous les fournisseurs cloud sont pris en charge (D8).
-- R9c. L'ABI C est consommée par Angular, Flutter, Compose, Rust, Zig, .NET et C++, sans réécrire le cœur.
+### Router
+- R5. OpenAI-compatible API (`/v1/chat/completions`, `/v1/models`) and Anthropic (`/v1/messages`).
+- R6. Catalog discovered at run time; no hardcoded model list.
+- R7. Default policy: local first, then free, automatic failover with a trace of attempts.
+- R8. Stable C ABI; HTTPS through the OS TLS stack or a transport supplied by the platform.
+- R9. Surfaces: CLI, full-screen TUI, desktop, mobile, serverless, self-hosted.
+- R9a. Shipped as both an embedded library and a service (D2).
+- R9b. Local first; every inference type and every cloud provider supported (D8).
+- R9c. The C ABI is consumed by Angular, Flutter, Compose, Rust, Zig, .NET and C++ without rewriting the core.
 
 ### UI
-- R10. Composants et tokens officiels Google uniquement ; identité Aphrody par le theming officiel.
-- R10a. Couverture maximale : Angular (fork), Flutter (desktop, mobile, web), Compose Multiplatform, un framework Rust au même niveau (D3, D4).
-- R10b. Fork Angular suivant l'amont automatiquement, patchs Bun, compilation AOT et LTO.
-- R11. Clair, sombre, contrastes moyen et élevé ; accessibilité M3 (cibles 48 dp, contrastes, focus).
+- R10. Google's official components and tokens only; Aphrody identity through official theming.
+- R10a. Maximum coverage: Angular (fork), Flutter (desktop, mobile, web), Compose Multiplatform, a Rust framework at the same level (D3, D4).
+- R10b. Angular fork following upstream automatically, Bun patches, AOT and LTO compilation.
+- R11. Light, dark, medium and high contrast; M3 accessibility (48 dp targets, contrast, focus).
 
-### Archive de référence
-- R12. Toutes les pages des deux sites, rendues dans un navigateur réel : capture, DOM, réseau, archive WACZ.
-- R13. Respect de robots.txt ; usage interne.
+### Reference archive
+- R12. Every page of both sites rendered in a real browser: screenshot, DOM, network, WACZ archive.
+- R13. robots.txt respected; internal use.
 
-### Outillage et portes
-- R14. Outillage : just, Turborepo, Bun, Cargo, LLVM ; Bazel là où l'amont l'impose.
-- R15. Portes de validation exécutées comme plugin Bun et Cargo avant toute compilation : pratiques web modernes, W3C (HTML, CSS), WCAG, Material Design, design system sans valeur en dur, docs et roadmap, hygiène. Détail : [toolchain-and-gates.md](toolchain-and-gates.md).
-- R16. Core Web Vitals (Lighthouse, web-vitals) mesurés sur le rendu, bloquants avant publication.
+### Toolchain and gates
+- R14. Toolchain: Bazel everywhere (D12), calling just, Turborepo, Bun, Cargo, LLVM.
+- R15. Validation gates run as a Bun and Cargo plugin before any compilation, by level like Bun's commands (D13). Details: [toolchain-and-gates.md](toolchain-and-gates.md).
+- R16. Core Web Vitals (Lighthouse, web-vitals) measured on the rendering, blocking before release.
 
-## Définition de « fini » (pour chaque livrable)
+### Language
+- R22. English at the source everywhere; every user-facing string goes through i18n; translations produced by the translation stack.
 
-Construit sans erreur, lancé, testé (tests automatiques verts), prouvé par une capture ou une sortie réelle, scan de secrets propre, revue Gemini Carbon High archivée.
+## Definition of done (every deliverable)
 
-## Hors décision à ce stade
-
-Voir [decisions.md](decisions.md).
+Built without error, running, tested (automated tests green), proven by a screenshot or real output, secret scan clean, Gemini Carbon High review archived.

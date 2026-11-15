@@ -1,39 +1,39 @@
-# Spec du design system
+# Design system spec
 
 ## Sources
 
-| Couche | Source officielle |
+| Layer | Official source |
 |---|---|
-| Règles | m3.material.io, design.google (archive de référence) |
-| Couleur | material-color-utilities (schéma dynamique depuis la couleur source Aphrody) |
-| Tokens | jeu officiel le plus récent de Google ; `--mat-sys-*` d'Angular Material pour le web |
-| Composants web | Angular Material (angular/components), sur fork |
-| Composants Flutter | Flutter material (desktop, mobile, web) |
-| Composants Compose | Jetpack Compose material3, en Compose Multiplatform |
-| Icônes | Material Symbols (google/material-design-icons) |
-| Polices | Google Sans Flex, Google Sans Code (googlefonts) |
-| Maquettes | bibliothèque Figma « Material 3 Design Kit » |
+| Rules | m3.material.io, design.google (reference archive) |
+| Colour | material-color-utilities (dynamic scheme from the Aphrody source colour) |
+| Tokens | Google's latest official set; Angular Material `--mat-sys-*` on the web |
+| Web components | Angular Material (angular/components), on a fork |
+| Flutter components | Flutter material (desktop, mobile, web) |
+| Compose components | Jetpack Compose material3, in Compose Multiplatform |
+| Icons | Material Symbols (google/material-design-icons) |
+| Fonts | Google Sans Flex, Google Sans Code (googlefonts) |
+| Mockups | Figma library "Material 3 Design Kit" |
 
-## Couverture (décision D4 : maximale)
+## Coverage (decision D4: maximum)
 
-| Cible | Implémentations |
+| Target | Implementations |
 |---|---|
 | Web | Angular Material (fork), Flutter web, Compose Multiplatform (wasm) |
 | Android | Flutter, Compose material3 |
 | iOS | Flutter, Compose Multiplatform |
-| Desktop (Windows, macOS, Linux) | Flutter desktop, Compose Multiplatform desktop, framework Rust (D7) |
-| Terminal | à trancher (D5) |
+| Desktop (Windows, macOS, Linux) | Flutter desktop, Compose Multiplatform desktop, Rust framework (D7) |
+| Terminal | open (D5) |
 
-## Fork Angular (décision D3)
+## Angular fork (decision D3)
 
-- Forks `angular/angular`, `angular/components` et `angular/angular-cli` dans `aphrody-labs`, qui suivent l'amont automatiquement : la pile de patchs Aphrody est rejouée sur chaque nouvelle tête amont, construite, testée, puis publiée ; un conflit ouvre un ticket au lieu de casser la branche.
-- Patchs Bun agressifs : Bun remplace les outils Node (gestionnaire de paquets, exécution des scripts, tests et bundling quand c'est possible).
-- Compilation AOT et LTO de la chaîne.
+- Forks of `angular/angular`, `angular/components` and `angular/angular-cli` in `aphrody-labs` (created), following upstream automatically: the Aphrody patch stack is replayed on every new upstream head, built, tested, then published; a conflict opens an issue instead of breaking the branch.
+- Aggressive Bun patches: Bun replaces the Node tools (package manager, script runner, tests and bundling where possible).
+- AOT and LTO compilation of the chain.
 
-## ABI C partagée
+## Shared C ABI
 
-Un cœur commun exposé par une ABI C, consommé par Angular (Bun FFI ou WebAssembly), Flutter (`dart:ffi`), Compose (JNI ou Kotlin/Native cinterop), Rust, Zig, .NET (`LibraryImport`) et C++. Le routeur IA est le premier module de ce cœur.
+A common core exposed through a C ABI, consumed by Angular (Bun FFI or WebAssembly), Flutter (`dart:ffi`), Compose (JNI or Kotlin/Native cinterop), Rust, Zig, .NET (`LibraryImport`) and C++. The AI router is the first module of this core.
 
-## Identité Aphrody
+## Aphrody identity
 
-Couleur source, variante de schéma et police appliquées par le theming officiel de chaque implémentation (Angular `mat.theme`, Flutter `ColorScheme.fromSeed`, Compose `ColorScheme`). Aucune autre valeur : tout le reste vient des tokens officiels.
+Source colour, scheme variant and font applied through each implementation's official theming (Angular `mat.theme`, Flutter `ColorScheme.fromSeed`, Compose `ColorScheme`). No other value: everything else comes from the official tokens.

@@ -1,12 +1,12 @@
 {
-  "source": "aphrody-labs/aphrody @ 49db7cf8",
+  "source": "aphrody-labs/aphrody @ 7de1138b",
   "counts": {
     "thirdParty": 521,
     "crates": 216,
     "packages": 51,
-    "apps": 7,
-    "docs": 1462,
-    "trackedFiles": 15479
+    "apps": 6,
+    "docs": 1453,
+    "trackedFiles": 13946
   },
   "thirdParty": [
     {
@@ -5358,6 +5358,12 @@
       "workspace": false
     },
     {
+      "path": "apps/auto/packages/i18n",
+      "name": "@auto/i18n",
+      "description": null,
+      "workspace": false
+    },
+    {
       "path": "apps/auto/packages/ingest",
       "name": "@auto/ingest",
       "description": null,
@@ -5439,12 +5445,6 @@
       "path": "packages/assets",
       "name": "@aphrody/assets",
       "description": "Redistribution-safe asset library: manifest with SPDX license, sha256 and attribution; fetch, verify, list",
-      "workspace": true
-    },
-    {
-      "path": "packages/browser",
-      "name": "@aphrody/browser",
-      "description": "Lightpanda Zig headless browser core fused with Aphrody monorepo V8 and bun:ffi C ABI",
       "workspace": true
     },
     {
@@ -5570,7 +5570,6 @@
   ],
   "apps": [
     "DEPS.rules",
-    "android-shell",
     "aphrody",
     "auto",
     "nt",
@@ -5584,7 +5583,7 @@
     "CLAUDE.md": 1,
     "GEMINI.md": 1,
     "README.md": 1,
-    "apps": 88,
+    "apps": 89,
     "docs/ALPHABET.md": 1,
     "docs/ARCHITECTURE.md": 1,
     "docs/PLAN.mdx": 1,
@@ -5628,7 +5627,7 @@
     "docs/web": 3,
     "infra": 9,
     "licenses": 7,
-    "packages": 55,
+    "packages": 45,
     "plugins": 1,
     "src": 35,
     "tools": 16
@@ -9272,7 +9271,7 @@
     {
       "path": "README.md",
       "title": "src",
-      "bytes": 4429
+      "bytes": 4412
     },
     {
       "path": "apps/aphrody/DESIGN.md",
@@ -9312,7 +9311,7 @@
     {
       "path": "apps/auto/README.md",
       "title": "auto",
-      "bytes": 12155
+      "bytes": 12575
     },
     {
       "path": "apps/auto/SECURITY.md",
@@ -9410,6 +9409,11 @@
       "bytes": 15392
     },
     {
+      "path": "apps/auto/docs/I18N.md",
+      "title": "Internationalization",
+      "bytes": 2072
+    },
+    {
       "path": "apps/auto/docs/MAIL.md",
       "title": "Mail (lot L7)",
       "bytes": 11193
@@ -9442,7 +9446,7 @@
     {
       "path": "apps/auto/docs/STACK.md",
       "title": "Pile technique d'auto",
-      "bytes": 8264
+      "bytes": 8207
     },
     {
       "path": "apps/auto/docs/STRIPE.md",
@@ -9727,7 +9731,7 @@
     {
       "path": "docs/PLAN.mdx",
       "title": "Aphrody Master Architectural Plan",
-      "bytes": 7645
+      "bytes": 7602
     },
     {
       "path": "docs/README.md",
@@ -10142,7 +10146,7 @@
     {
       "path": "docs/i18n/README.md",
       "title": "Internationalization",
-      "bytes": 2191
+      "bytes": 1855
     },
     {
       "path": "docs/i18n/es/AGENTS.md",
@@ -11467,7 +11471,7 @@
     {
       "path": "docs/native/ROADMAP.md",
       "title": "Aphrody roadmap and specification",
-      "bytes": 2891
+      "bytes": 2924
     },
     {
       "path": "docs/native/SYS-ARCHITECTURE.md",
@@ -11517,7 +11521,7 @@
     {
       "path": "docs/native/android/PROOF-x64.md",
       "title": "Proof: monorepo on Android x86_64 (x86_64-linux-android)",
-      "bytes": 4855
+      "bytes": 4506
     },
     {
       "path": "docs/native/android/SETUP.md",
@@ -12032,7 +12036,7 @@
     {
       "path": "docs/reference/bun-ffi.md",
       "title": "bun:ffi in src",
-      "bytes": 3211
+      "bytes": 3029
     },
     {
       "path": "docs/reference/llvm-toolchain.md",
@@ -12337,12 +12341,12 @@
     {
       "path": "infra/agents/claude/CLAUDE.md",
       "title": "Global",
-      "bytes": 2604
+      "bytes": 2984
     },
     {
       "path": "infra/agents/claude/output-styles/autonome.md",
       "title": null,
-      "bytes": 968
+      "bytes": 1009
     },
     {
       "path": "infra/fleet/ACME.md",
@@ -12518,56 +12522,6 @@
       "path": "packages/ai-os/templates/home/USER.md",
       "title": "USER.md - User Model",
       "bytes": 1077
-    },
-    {
-      "path": "packages/browser/native/AGENTS.md",
-      "title": "AGENTS.md",
-      "bytes": 2072
-    },
-    {
-      "path": "packages/browser/native/CLA.md",
-      "title": "Lightpanda (Selecy SAS) Grant and Contributor License Agreement (“Agreement”)",
-      "bytes": 6047
-    },
-    {
-      "path": "packages/browser/native/CLAUDE.md",
-      "title": null,
-      "bytes": 11
-    },
-    {
-      "path": "packages/browser/native/CONTRIBUTING.md",
-      "title": "Contributing",
-      "bytes": 2949
-    },
-    {
-      "path": "packages/browser/native/LICENSING.md",
-      "title": "Licensing",
-      "bytes": 176
-    },
-    {
-      "path": "packages/browser/native/README.md",
-      "title": null,
-      "bytes": 19843
-    },
-    {
-      "path": "packages/browser/native/SECURITY.md",
-      "title": "Reporting security issues",
-      "bytes": 380
-    },
-    {
-      "path": "packages/browser/native/orderfile/README.md",
-      "title": "Hot-code orderfile",
-      "bytes": 5734
-    },
-    {
-      "path": "packages/browser/native/src/browser/tests/markdown_leading_blank.md",
-      "title": "Title",
-      "bytes": 17
-    },
-    {
-      "path": "packages/browser/native/src/browser/tests/markdown_source.md",
-      "title": "Title",
-      "bytes": 75
     },
     {
       "path": "packages/bun-types/README.md",

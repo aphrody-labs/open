@@ -1,33 +1,33 @@
-# Routeur IA libre, gratuit, multi-fournisseurs
+# A free, open, multi-provider AI router
 
-Idée : un seul routeur, compatible OpenAI et Anthropic, qui découvre les modèles à l'exécution et bascule d'une offre à l'autre jusqu'à obtenir une réponse ; utilisable depuis n'importe quel langage par une ABI C, et depuis toutes les surfaces (CLI, TUI, desktop, mobile, serverless, auto-hébergé).
+Idea: one router, compatible with OpenAI and Anthropic, that discovers models at run time and fails over from one offer to the next until one answers; usable from any language through a C ABI and from every surface (CLI, TUI, desktop, mobile, serverless, self-hosted).
 
-## Ce qui existe déjà comme base
+## Existing base
 
-Le routeur `ai-os` d'Aphrody (TypeScript, Bun) a la logique : catalogue joint depuis models.dev, la table de prix litellm, OpenRouter `/models`, le routeur Hugging Face et le classement Arena ; politiques `auto`, `auto:cheap`, `auto:fast`, `auto:code`, `auto:long`, `arena` ; bascule sur 429, 5xx, délai, quota, 4xx propre au modèle ; HTTP `/v1/chat/completions`, `/v1/messages`, `/v1/models`.
+Aphrody's `ai-os` router (TypeScript, Bun) has the logic: catalog joined from models.dev, the litellm price table, OpenRouter `/models`, the Hugging Face router and the Arena leaderboard; policies `auto`, `auto:cheap`, `auto:fast`, `auto:code`, `auto:long`, `arena`; failover on 429, 5xx, timeout, quota, model-specific 4xx; HTTP `/v1/chat/completions`, `/v1/messages`, `/v1/models`.
 
-## Prototypes faits puis retirés
+## Prototypes built, then removed
 
-Tout a été construit, testé, puis purgé sur décision du propriétaire. Les faits restent utiles :
+Everything below was built, tested, then purged on the owner's decision. The facts remain useful:
 
-| Prototype | Résultat mesuré |
+| Prototype | Measured result |
 |---|---|
-| ABI C (5 appels : `open`, `request`, `chat`, `models`, `close`), sockets BSD et Winsock | OK sur Linux contre un serveur OpenAI factice : réponse simple et réponse chunked, bearer, échappement JSON |
-| HTTPS par la pile TLS du système : WinHTTP sous Windows, libcurl chargée par `dlopen` ailleurs | OK en direct sous Windows et Linux, sans dépendance de lien |
-| Hook de transport `ay_router_set_transport` : la plateforme fournit HTTPS (Java `HttpURLConnection` sur Android, URLSession sur iOS) | écrit, jamais compilé |
-| Politique `auto:free` : offres à prix nul d'abord (meilleur score Arena), puis payantes les moins chères | 21 tests verts |
-| Worker Cloudflare compatible OpenAI, offres découvertes à l'exécution (Workers AI, Gemini free tier) | `glm-5.3-flash` refusé (« not available on the Workers Free plan »), bascule automatique sur `glm-4.7-flash` qui répond ; trace des essais renvoyée dans la réponse |
-| Binding Rust (`build.rs` compile le C) | test en direct vert |
-| CLI, chat terminal en ligne, chat desktop Win32 | réponses réelles obtenues |
+| C ABI (5 calls: `open`, `request`, `chat`, `models`, `close`), BSD sockets / Winsock | OK on Linux against a fake OpenAI server: plain and chunked replies, bearer, JSON escaping |
+| HTTPS through the OS TLS stack: WinHTTP on Windows, libcurl loaded with `dlopen` elsewhere | OK live on Windows and Linux, no link dependency |
+| Transport hook `ay_router_set_transport`: the platform supplies HTTPS (Java `HttpURLConnection` on Android, URLSession on iOS) | written, never compiled |
+| `auto:free` policy: zero-priced offers first (best Arena score), then the cheapest paid ones | 21 tests green |
+| OpenAI-compatible Cloudflare Worker, offers discovered at run time (Workers AI, Gemini free tier) | `glm-5.3-flash` refused ("not available on the Workers Free plan"), automatic failover to `glm-4.7-flash` which answered; attempt trace returned in the response |
+| Rust binding (`build.rs` compiles the C) | live test green |
+| CLI, line-based terminal chat, Win32 desktop chat | real answers obtained |
 
-Échecs : clés Gemini du coffre refusées par Google (403 « invalid API key ») ; interfaces jugées laides (CSS et Win32 faits à la main au lieu des composants officiels) ; aucune surface mobile ni TUI plein écran.
+Failures: the Gemini keys in the vault were refused by Google (403 "invalid API key"); hand-made interfaces judged ugly (CSS and Win32 instead of official components); no mobile surface and no full-screen TUI.
 
-## Marché
+## Market
 
-Les passerelles open source sont des proxys, pas des bibliothèques : LiteLLM (Python, MIT, existe aussi en build Rust), Bifrost (Go, Apache-2.0), Portkey (TypeScript, Workers), LLM Gateway (AGPLv3), Agent Router (ex Envoy AI Gateway). Aucune ne publie d'ABI C : c'est le créneau.
+Open-source gateways are proxies, not libraries: LiteLLM (Python, MIT, also a Rust build), Bifrost (Go, Apache-2.0), Portkey (TypeScript, Workers), LLM Gateway (AGPLv3), Agent Router (formerly Envoy AI Gateway). None ships a C ABI: that is the gap.
 
-## Points ouverts pour la spec
+## Open points for the spec
 
-- « Gratuit et illimité » : aucune offre gratuite n'est illimitée (Workers AI : allocation quotidienne ; plans gratuits des fournisseurs limités). Illimité suppose des modèles locaux (llama.cpp, Ollama) en dernier recours.
-- Où vit le routeur : bibliothèque embarquée, service auto-hébergé, ou les deux.
-- Quelle UI : composants officiels Google (voir [design-system.md](design-system.md)).
+- "Free and unlimited": no free offer is unlimited (Workers AI has a daily allocation; free provider plans are capped). Unlimited means local models (llama.cpp, Ollama) as the last resort; the owner chose local first (D8).
+- Library and service (D2 decided: both).
+- UI: Google's official components (see [design-system.md](design-system.md)).

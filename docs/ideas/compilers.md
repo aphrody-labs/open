@@ -1,37 +1,37 @@
-# Compiler du TypeScript en natif : scriptc et Bun AOT
+# Compiling TypeScript to native code: scriptc and Bun AOT
 
 ## vercel-labs/scriptc
 
-- « TypeScript-to-Native Compiler », Apache-2.0, expérimental.
-- Compile TypeScript et JavaScript en exécutable natif et en WebAssembly, en s'appuyant sur les types vérifiés par le compilateur TypeScript ; aucun moteur JavaScript embarqué, Node.js n'est pas requis à l'exécution.
-- Couvre un sous-ensemble de JavaScript, TypeScript et des API Node.js ; `scriptc coverage` indique ce qui compile ; diagnostics et suggestions de réécriture pour le reste ; valeurs de type inconnu (`unknown`, `any`, `JSON.parse`) stockées avec leur type et vérifiées à la conversion.
-- Dépendances npm compilées dans l'exécutable (prise en charge partielle).
-- Intégration native : `--emit=obj` produit un objet relogeable à lier dans Xcode, CMake ou un éditeur de liens ; `--lib --profile` produit une bibliothèque appelable par une application hôte ; FFI vers le C déclaré en TypeScript et décrit par un manifeste JSON.
-- Installation par npm (Node.js 24+) ou archives autonomes.
+- "TypeScript-to-Native Compiler", Apache-2.0, experimental.
+- Compiles TypeScript and JavaScript to native executables and WebAssembly using the types checked by the TypeScript compiler; no JavaScript engine embedded, Node.js not needed at run time.
+- Covers a subset of JavaScript, TypeScript and the Node.js APIs; `scriptc coverage` reports what compiles; diagnostics and rewrite hints for the rest; values of unknown type (`unknown`, `any`, `JSON.parse`) are stored with their type and checked on conversion.
+- npm dependencies compiled into the executable (partial support).
+- Native integration: `--emit=obj` writes a relocatable object to link from Xcode, CMake or a linker; `--lib --profile` builds a library a host application calls; FFI to C declared in TypeScript and described by a JSON manifest.
+- Installed with npm (Node.js 24+) or standalone archives.
 
-## Bun `--compile` et AOT
+## Bun `--compile` and AOT
 
-- Produit un exécutable autonome qui embarque le runtime Bun (JavaScriptCore) et le programme : sémantique JavaScript complète, toutes les API Bun et Node.js prises en charge par Bun.
-- `bytecode` : bytecode précompilé (démarrage plus rapide) ; `bytecodeOrder` : disposition du bytecode guidée par un profil d'exécution.
-- `aot: true` : compile le programme en code machine avant l'exécution ; `aotExplain` rapporte les gardes posées ; `aotHarden` ajoute des vérifications à l'exécution ; `obfuscate` retire noms et emplacements ; `allowCodeFromDisk` est désactivé par défaut.
-- `trim` retire les API Bun et Node.js jamais appelées.
-- Compilation croisée vers 9 cibles (macOS, Linux glibc et musl, Windows, x64 et arm64).
+- Produces a standalone executable embedding the Bun runtime (JavaScriptCore) and the program: full JavaScript semantics, every Bun and Node.js API Bun supports.
+- `bytecode`: precompiled bytecode (faster start); `bytecodeOrder`: bytecode layout driven by a run profile.
+- `aot: true`: compiles the program to machine code ahead of time; `aotExplain` reports the guards it set; `aotHarden` adds run-time checks; `obfuscate` strips names and locations; `allowCodeFromDisk` is off by default.
+- `trim` removes the Bun and Node.js APIs never called.
+- Cross-compilation to 9 targets (macOS, Linux glibc and musl, Windows, x64 and arm64).
 
-## Comparaison
+## Comparison
 
 | | scriptc | Bun AOT |
 |---|---|---|
-| Moteur à l'exécution | aucun (code natif, runtime minimal) | JavaScriptCore embarqué, programme en code machine |
-| Couverture du langage | sous-ensemble, rapport de couverture | complète |
-| API | sous-ensemble de Node.js | Bun + Node.js |
-| Sorties | exécutable, WebAssembly, objet natif, bibliothèque | exécutable |
-| Interop C | FFI par manifeste, objet et bibliothèque liables | `bun:ffi` |
-| Maturité | expérimental | partie de Bun |
+| Run-time engine | none (native code, minimal runtime) | JavaScriptCore embedded, program in machine code |
+| Language coverage | subset, coverage report | complete |
+| APIs | subset of Node.js | Bun + Node.js |
+| Outputs | executable, WebAssembly, native object, library | executable |
+| C interop | FFI by manifest, linkable object and library | `bun:ffi` |
+| Maturity | experimental | part of Bun |
 
-Lecture : scriptc vise des binaires sans moteur et une ABI liable (utile pour l'ABI C partagée) ; Bun AOT garde toute la sémantique et toutes les API. Les deux se mesurent sur le banc d'essai (taille, démarrage, débit, mémoire, couverture), aucun chiffre n'est retenu sans mesure.
+Reading: scriptc targets engine-less binaries and a linkable ABI (useful for the shared C ABI); Bun AOT keeps every semantic and API. Both get measured on the benchmark (size, start-up, throughput, memory, coverage); no figure is kept without a measurement.
 
-## Chaîne TypeScript croisée (demande du propriétaire)
+## Cross TypeScript toolchain (owner request)
 
-Outils : oxc (analyse, lint, format), `bun check`, TypeScript 7 (compilateur natif), scriptc, Bun AOT. Références : spécification ECMAScript (ECMA-262, TC39) et documentation TypeScript de Microsoft. Objectif : un système qui compare moteurs, runtimes, linters et compilateurs sur les mêmes programmes, avec benchmarks.
+Tools: oxc (parse, lint, format), `bun check`, TypeScript 7 (native compiler), scriptc, Bun AOT. References: the ECMAScript specification (ECMA-262, TC39) and Microsoft's TypeScript documentation. Goal: a system that compares engines, runtimes, linters and compilers on the same programs, with benchmarks.
 
-Constat : `typescript@latest` est la 7.0.2 ; son API JavaScript a changé (`typescript/unstable/*`), `ts.createProgram` n'existe plus à l'export par défaut.
+Observed: `typescript@latest` is 7.0.2; its JavaScript API changed (`typescript/unstable/*`); `ts.createProgram` is no longer on the default export.

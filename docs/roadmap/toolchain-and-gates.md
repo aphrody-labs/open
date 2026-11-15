@@ -1,40 +1,35 @@
-# Outillage et portes de validation
+# Toolchain and validation gates
 
-## Outillage du monorepo (décision du propriétaire)
+## Monorepo toolchain (owner decisions D12, D13)
 
-| Rôle | Outil |
+| Role | Tool |
 |---|---|
-| Commandes | just |
-| Orchestration et cache des tâches JS/TS | Turborepo |
-| JS/TS : paquets, scripts, tests, bundling, AOT | Bun |
-| Rust | Cargo, profil release LTO fat |
-| Compilation native, LTO croisé C/C++/Rust | LLVM (clang, lld) |
-| Projets amont qui l'exigent (Angular, Chromium) | Bazel, tel que l'amont le livre |
+| Build graph, caching, remote execution | Bazel (everywhere) |
+| Commands | just |
+| JS/TS task orchestration and cache | Turborepo |
+| JS/TS: packages, scripts, tests, bundling, AOT | Bun |
+| Rust | Cargo, release profile with fat LTO |
+| Native compilation, cross-language C/C++/Rust LTO | LLVM (clang, lld) |
 
-Les autres outils recommandés par Google entrent par les portes ci-dessous.
+## Validation gates
 
-## Portes de validation
+Nothing compiles without passing the gates. They run as a build plugin:
+- Bun side: `Bun.plugin` / `bun build` plugin (`onLoad`, `onResolve`) validating every loaded file;
+- Cargo side: shared `build.rs` or a `cargo` subcommand run before `cargo build`.
 
-Rien ne compile sans passer les portes. Elles tournent comme un plugin de build :
-- côté Bun : plugin `Bun.plugin` / `bun build` (`onLoad`, `onResolve`) qui valide chaque fichier chargé ;
-- côté Cargo : `build.rs` partagé ou sous-commande `cargo` lancée avant `cargo build`.
+Levels follow Bun's commands (D13): `check`, `fmt`, `lint`, `build`, `compile`, `test`, `webview`, `pm`, reusing `ay` and the Bun Rust crates in Aphrody.
 
-| Porte | Ce qu'elle vérifie | Source de vérité |
+| Gate | What it checks | Source of truth |
 |---|---|---|
-| Pratiques web modernes | API et motifs conformes, fonctionnalités Baseline | GoogleChrome/modern-web-guidance, web-platform-dx/web-features |
-| HTML | conformité W3C | validator/validator (Nu Html Checker) |
-| CSS | conformité W3C | w3c/css-validator |
-| Accessibilité | WCAG | dequelabs/axe-core, w3c/wcag |
-| Material Design | composants, tokens, états, mise en page, accessibilité M3 | m3.material.io, design.google (archive de référence), specs extraites en JSON |
-| Design system | aucune valeur en dur : couleurs, polices, rayons, espacements viennent des tokens officiels | tokens générés |
-| Performances | Core Web Vitals (LCP, INP, CLS) | GoogleChrome/lighthouse, GoogleChrome/web-vitals |
-| Documentation et roadmap | docs intemporelles, exigences reliées à leur spec, liens valides | Google developer documentation style guide, guide de revue Google eng-practices |
-| Hygiène | versions et dates figées, chemins absolus, listes en dur, slop | scanner d'hygiène |
+| Modern web practices | APIs and patterns, Baseline features | GoogleChrome/modern-web-guidance, web-platform-dx/web-features |
+| HTML | W3C conformance | validator/validator (Nu Html Checker) |
+| CSS | W3C conformance | w3c/css-validator |
+| Accessibility | WCAG | dequelabs/axe-core, w3c/wcag |
+| Material Design | components, tokens, states, layout, M3 accessibility | m3.material.io, design.google (reference archive), specs extracted to JSON |
+| Design system | no hardcoded value: colours, fonts, radii, spacing come from the official tokens | generated tokens |
+| Performance | Core Web Vitals (LCP, INP, CLS) | GoogleChrome/lighthouse, GoogleChrome/web-vitals |
+| Docs and roadmap | timeless docs, requirements tied to their spec, valid links | Google developer documentation style guide, Google eng-practices review guide |
+| Hygiene | pinned versions and dates, absolute paths, hardcoded lists, slop, non-English source text | hygiene scanner |
+| TypeScript toolchain | type check, lint, format, native compile | `bun check`, oxc, TypeScript 7, scriptc, Bun AOT (see [../ideas/compilers.md](../ideas/compilers.md)) |
 
-Limite à noter : les Core Web Vitals se mesurent sur un rendu exécuté. Cette porte tourne donc juste après la compilation et bloque la publication, pas la compilation elle-même. Les autres portes sont statiques et bloquent avant compilation.
-
-## Décisions
-
-- D12 : Bazel partout ; just, Turborepo, Bun, Cargo et LLVM sont appelés par des cibles Bazel.
-- D13 : portes rangées par niveau comme les commandes de Bun (`check`, `fmt`, `lint`, `build`, `compile`, `test`, `webview`, `pm`), en s'appuyant sur `ay` et les crates Rust de Bun déjà présentes dans Aphrody.
-- D14 : specs Material extraites de toutes les sources listées dans [decisions.md](decisions.md).
+Limit: Core Web Vitals are measured on an executed rendering. That gate runs right after compilation and blocks release, not compilation itself. The other gates are static and block before compilation.

@@ -1,14 +1,21 @@
-# Vision long terme (proposition)
+# Long-term vision
 
-`open` réunit l'écosystème open source dont Aphrody a besoin, dans un seul dépôt construit de bout en bout, et en tire trois produits :
+`open` gathers the open-source ecosystem Aphrody needs into a single repository built end to end, and derives three products from it:
 
-1. **Un routeur IA libre** : multi-fournisseurs, gratuit d'abord (offres gratuites, puis modèles locaux, puis payant au moins cher), compatible OpenAI et Anthropic, exposé par une ABI C pour être embarqué partout, et auto-hébergeable.
-2. **Des interfaces Material 3 authentiques** : les implémentations officielles de Google (Angular Material, Compose, Flutter), thémées avec l'identité Aphrody, sur web, desktop, mobile et terminal.
-3. **Une source de vérité vivante** : sites et dépôts de référence (design.google, m3.material.io, implémentations M3, écosystème « open ») archivés, indexés et reliés au code.
+1. **A free AI router**: multi-provider, local first, then free offers, then the cheapest paid ones; compatible with OpenAI and Anthropic; exposed as an embeddable library through a C ABI and as a self-hostable service.
+2. **Authentic Material 3 interfaces**: Google's official implementations (Angular Material, Compose, Flutter) plus Rust at the same level, themed with the Aphrody identity, on web, desktop, mobile and terminal.
+3. **A living source of truth**: reference sites and repositories (design.google, m3.material.io, M3 implementations, the "open" ecosystem) archived, indexed and linked to the code.
 
-Principes :
+Editions (owner): `open` is the open-source edition and `auto` (`apps/auto` in aphrody-labs/aphrody) is its paid hosted edition. One vision, one codebase, one feature set, in the relation Crawlee has to Apify, n8n to n8n Cloud, Chromium to Chrome:
 
-- Absorber plutôt que réécrire ; une provenance (lock) pour tout ce qui entre.
-- Aucune valeur en dur : données lues d'une source, versions résolues à l'exécution.
-- Livrer complet : chaque étape se termine construite, lancée, testée et prouvée.
-- Bun pour le JS/TS (AOT), Rust en LTO fat, C pour l'ABI, Zig là où l'amont l'utilise.
+- `open` holds the core: workflow automation, agents, ingestion, crawl and browser engines, store, client, domain model, UI, native bindings, i18n.
+- `auto` consumes that core and keeps only the hosted layer: tenancy, billing, hosted workers, administration, store listings.
+- auto's core packages (`automate`, `agent`, `ingest`, `store`, `client`, `domain`, `ui`, `native`, `i18n`) move into `open` with their history once their English and i18n pass in src has landed (decision D22).
+
+Principles:
+
+- Absorb rather than rewrite; provenance (lock) for everything that enters.
+- No hardcoded values: data read from a source, versions resolved at run time.
+- Deliver complete: every step ends built, running, tested and proven.
+- English at the source, multilingual through i18n.
+- Bazel everywhere; Bun for JS/TS (AOT), Rust with fat LTO, C for the ABI, Zig where upstream uses it.

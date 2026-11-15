@@ -1,17 +1,18 @@
-# Roadmap d'`open`
+# `open` roadmap
 
-Brouillon de discussion : rien n'est engagé tant que les décisions marquées « à trancher » ne sont pas prises avec le propriétaire.
+Working draft: nothing is committed until the decisions marked "open" are taken with the owner.
 
-| Fichier | Contenu |
+| File | Contents |
 |---|---|
-| [vision.md](vision.md) | Vision long terme |
-| [spec.md](spec.md) | Cahier des charges : périmètre, exigences, définition de « fini » |
-| [design-system.md](design-system.md) | Spec du design system (Material 3 officiel) |
-| [phases.md](phases.md) | Ordre de livraison |
-| [toolchain-and-gates.md](toolchain-and-gates.md) | Outillage du monorepo et portes de validation avant compilation |
-| [benchmark-platform.md](benchmark-platform.md) | `open` comme banc d’essai automatisé, inventaires, boucle navigateur ↔ UI |
-| [decisions.md](decisions.md) | Décisions à trancher, avec options et recommandation |
+| [vision.md](vision.md) | Long-term vision |
+| [spec.md](spec.md) | Requirements: scope, requirements, definition of done |
+| [design-system.md](design-system.md) | Design system spec (official Material 3) |
+| [phases.md](phases.md) | Delivery order |
+| [toolchain-and-gates.md](toolchain-and-gates.md) | Monorepo toolchain and pre-compilation validation gates |
+| [benchmark-platform.md](benchmark-platform.md) | `open` as an automated benchmark, inventories, browser ↔ UI loop |
+| [goal-bun-m3.md](goal-bun-m3.md) | Goal validation deliverable: Bun fullstack × Material 3 |
+| [decisions.md](decisions.md) | Decisions taken and still open, with options |
 
-Matière première : [`../ideas/`](../ideas/).
+Raw material: [`../ideas/`](../ideas/).
 
-Handoff GUI : la migration Electron vers Tauri v3 / GPUI vit dans `src/electron-migrate` (`ay electron`, skill `electron-migrate`, outils MCP `electron__*`) ; non étendue côté src, la suite appartient à `open`.
+GUI handoff: the Electron to Tauri v3 / GPUI migration lives in `src/electron-migrate` (`ay electron`, skill `electron-migrate`, MCP tools `electron__*`); src no longer extends it, the rest belongs to `open`.

@@ -1,14 +1,15 @@
-# Leçons de la session
+# Lessons
 
-Verdict du propriétaire sur le travail livré : 0/10. Tout a été purgé. Causes, et règles qui en découlent.
+Owner's verdict on the work delivered: 0/10. Everything was purged. Causes, and the rules that follow.
 
-| Ce qui s'est passé | Règle |
+| What happened | Rule |
 |---|---|
-| Interfaces faites à la main (CSS, Win32, moteur de couleur, maquettes Figma génériques) | Composants et tokens officiels Google uniquement ; jamais de réimplémentation |
-| Valeurs en dur (lignes de tableau, couleurs, listes de modèles) | Les données viennent d'une source (lock, API, tokens générés) |
-| Fan-out d'agents, 90 dépôts clonés, déploiements multiples, sans plan | Une roadmap et un cahier des charges validés avant d'exécuter |
-| Livraison par petits morceaux « non vérifié, non compilé » | Livrer complet : construit, lancé, testé, prouvé |
-| Vérifications de surface (README) | Lire manifestes, code, Context7, graphe de dépendances avant de choisir |
-| Playwright choisi sans justification alors qu'une liste d'outils était donnée | Partir de la liste du propriétaire et de l'inventaire existant |
-| Material Web présenté comme l'implémentation web | Vérifier l'état réel d'un projet (maintenance, archivage) avant de l'adopter |
-| Excuses de machine (« ce PC n'a pas ... ») | Corriger la configuration de façon reproductible |
+| Hand-made interfaces (CSS, Win32, colour engine, generic Figma mockups) | Google's official components and tokens only; never re-implement |
+| Hardcoded values (table rows, colours, model lists) | Data comes from a source (lock, API, generated tokens) |
+| Agent fan-out, 90 repositories cloned, many deployments, no plan | A roadmap and a spec agreed before executing |
+| Delivery in small pieces "not verified, not compiled" | Deliver complete: built, running, tested, proven |
+| Surface checks (READMEs) | Read manifests, code, Context7 and the dependency graph before choosing |
+| Playwright chosen without justification while a list of tools was given | Start from the owner's list and the existing inventory |
+| Material Web presented as the web implementation | Check a project's real status (maintenance, archived) before adopting it |
+| Machine excuses ("this PC has no ...") | Fix the configuration reproducibly |
+| French written straight into docs and reports | English source, multilingual through i18n and a translation stack |

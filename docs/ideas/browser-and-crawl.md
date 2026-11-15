@@ -1,45 +1,45 @@
-# Navigateurs, moteurs et crawl
+# Browsers, engines and crawl
 
-Objectif évoqué : capturer et mirrorer intégralement design.google et m3.material.io (HTML, CSS, JS, polices, images, vidéo, appels réseau), avec captures d'écran de chaque page, pour servir de source réelle.
+Goal: capture and fully mirror design.google and m3.material.io (HTML, CSS, JS, fonts, images, video, network calls), with a screenshot of every page, as a real source.
 
-## Pourquoi un vrai navigateur
+## Why a real browser
 
-Sur `m3.material.io/components/buttons/overview`, `curl` reçoit 62 Ko dont 9 mots visibles ; le DOM rendu en contient 460. Les pages sont construites en JavaScript. Un premier passage a aussi vu 276 requêtes `fetch` et 425 `xhr`.
+On `m3.material.io/components/buttons/overview`, `curl` receives 62 KB with 9 visible words; the rendered DOM has 460. The pages are built by JavaScript. A first pass also saw 276 `fetch` and 425 `xhr` requests.
 
-Plans de site : m3.material.io publie un sitemap (375 URL) ; design.google aussi. robots.txt : design.google interdit `/api/` ; m3 interdit `/archive`, `/search.html` et les URL de recherche ou de tracking.
+Sitemaps: m3.material.io publishes one (375 URLs); so does design.google. robots.txt: design.google disallows `/api/`; m3 disallows `/archive`, `/search.html` and search or tracking URLs.
 
-## Dépendances réelles (lues dans les manifestes et le code)
+## Real dependencies (read in manifests and code)
 
-| Outil | Moteur JS | Rendu graphique | Client CDP | Navigateur piloté |
+| Tool | JS engine | Graphics rendering | CDP client | Browser driven |
 |---|---|---|---|---|
-| Playwright | celui du navigateur | celui du navigateur | interne | Chromium = build Chrome for Testing servi par `cdn.playwright.dev` ; Firefox et WebKit en révisions propres à Playwright |
-| Puppeteer | idem | idem | interne | Chrome for Testing (`storage.googleapis.com/chrome-for-testing-public`) |
-| agent-browser | idem | idem | client Rust maison (`tokio-tungstenite`), sans Playwright | Chrome for Testing ; modules Lightpanda et Obscura |
-| Obscura | V8 via `deno_core` | moteur maison (html5ever, taffy, tiny-skia), polices embarquées | serveur CDP maison | aucun |
-| Lightpanda | V8 (fork zig-v8), réseau curl + BoringSSL + nghttp2 | aucun : capture PNG en rendu texte ; domaine CSS limité à 2 méthodes | serveur CDP (port 9222) | aucun |
-| Crawlee (JS) | — | — | — | `playwright` en dépendance pair ; navigateur distant par `remoteBrowser` |
-| Crawlee (Python) | — | — | — | extra `playwright`, empreintes `browserforge`, HTTP `impit` / `curl-cffi` |
-| anomalyco/browse | — | — | — | pilote les onglets avec Playwright ; serveur MCP + extension Chromium |
+| Playwright | the browser's | the browser's | internal | Chromium = Chrome for Testing build served by `cdn.playwright.dev`; Firefox and WebKit in Playwright-specific revisions |
+| Puppeteer | same | same | internal | Chrome for Testing (`storage.googleapis.com/chrome-for-testing-public`) |
+| agent-browser | same | same | own Rust client (`tokio-tungstenite`), no Playwright | Chrome for Testing; Lightpanda and Obscura modules |
+| Obscura | V8 through `deno_core` | own engine (html5ever, taffy, tiny-skia), embedded fonts | own CDP server | none |
+| Lightpanda | V8 (zig-v8 fork); network curl + BoringSSL + nghttp2 | none: PNG capture is a text rendering; CSS domain limited to 2 methods | CDP server (port 9222) | none |
+| Crawlee (JS) | — | — | — | `playwright` as a peer dependency; remote browser through `remoteBrowser` |
+| Crawlee (Python) | — | — | — | `playwright` extra, fingerprints `browserforge`, HTTP `impit` / `curl-cffi` |
+| anomalyco/browse | — | — | — | drives tabs with Playwright; MCP server + Chromium extension |
 
-Doc Playwright : `connectOverCDP` ne fonctionne qu'avec Chromium et offre une fidélité « significantly lower » que son protocole propre.
+Playwright docs: `connectOverCDP` works only with Chromium and is "significantly lower fidelity" than Playwright's own protocol.
 
-## Inventaire complet
+## Full inventory
 
-- Moteurs : Chrome for Testing, Chromium, WebKit, Firefox, Servo (WebDriver classique seulement), Blitz, Obscura, Lightpanda, Ladybird, Brave, ungoogled-chromium.
-- Pilotes : Playwright, Puppeteer, Selenium, WebDriver BiDi, Chrome DevTools Protocol, agent-browser, chrome-devtools-mcp, playwright-mcp, browser-use, Stagehand.
-- Crawlers : Crawlee (JS, Python), Scrapy (+ scrapy-playwright), crawl4ai, Firecrawl, katana, Apify (CLI, SDK, acteurs).
-- Archivage : browsertrix-crawler (WARC/WACZ), pywb (relecture), single-file-cli, monolith, httrack, wget2.
-- Réseau : mitmproxy (HAR, API).
-- Extraction : markitdown, trafilatura, readability, Jina Reader.
-- Services : Cloudflare Browser Run `/crawl` (découverte, rendu, HTML/Markdown/JSON), browserless, steel-browser.
+- Engines: Chrome for Testing, Chromium, WebKit, Firefox, Servo (classic WebDriver only), Blitz, Obscura, Lightpanda, Ladybird, Brave, ungoogled-chromium.
+- Drivers: Playwright, Puppeteer, Selenium, WebDriver BiDi, Chrome DevTools Protocol, agent-browser, chrome-devtools-mcp, playwright-mcp, browser-use, Stagehand.
+- Crawlers: Crawlee (JS, Python), Scrapy (+ scrapy-playwright), crawl4ai, Firecrawl, katana, Apify (CLI, SDK, actors).
+- Archiving: browsertrix-crawler (WARC/WACZ), pywb (replay), single-file-cli, monolith, httrack, wget2.
+- Network: mitmproxy (HAR, API).
+- Extraction: markitdown, trafilatura, readability, Jina Reader.
+- Services: Cloudflare Browser Run `/crawl` (discovery, rendering, HTML/Markdown/JSON), browserless, steel-browser.
 
-## Pipeline proposée
+## Proposed pipeline
 
-1. Découverte : sitemaps, katana, Crawlee (file, reprises, limites robots).
-2. Rendu de référence : Chrome for Testing (agent-browser) ; trace réseau complète.
-3. Archive fidèle : browsertrix-crawler en WACZ, relu par pywb ; single-file par page.
-4. Comparaison : Obscura, Lightpanda, WebKit sur le même lot (DOM, réseau).
-5. Contenu : markitdown, trafilatura.
-6. Liaison au code : chaque composant M3 relié à son implémentation (angular/components, androidx, flutter) et au kit Figma.
+1. Discovery: sitemaps, katana, Crawlee (queue, retries, robots limits).
+2. Reference rendering: Chrome for Testing (agent-browser); full network trace.
+3. Faithful archive: browsertrix-crawler to WACZ, replayed with pywb; single-file per page.
+4. Comparison: Obscura, Lightpanda, WebKit on the same batch (DOM, network).
+5. Content: markitdown, trafilatura.
+6. Code link: every M3 component tied to its implementation (angular/components, androidx, flutter) and to the Figma kit.
 
-Erreur à ne pas refaire : un premier mirror a été écrit sur Playwright seul, sans justification, avec un seul moteur.
+Mistake not to repeat: a first mirror was written on Playwright alone, without justification, with a single engine.
