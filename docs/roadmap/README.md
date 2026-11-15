@@ -13,3 +13,5 @@ Brouillon de discussion : rien n'est engagé tant que les décisions marquées �
 | [decisions.md](decisions.md) | Décisions à trancher, avec options et recommandation |
 
 Matière première : [`../ideas/`](../ideas/).
+
+Handoff GUI : la migration Electron vers Tauri v3 / GPUI vit dans `src/electron-migrate` (`ay electron`, skill `electron-migrate`, outils MCP `electron__*`) ; non étendue côté src, la suite appartient à `open`.
