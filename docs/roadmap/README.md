@@ -9,6 +9,7 @@ Brouillon de discussion : rien n'est engagé tant que les décisions marquées �
 | [design-system.md](design-system.md) | Spec du design system (Material 3 officiel) |
 | [phases.md](phases.md) | Ordre de livraison |
 | [toolchain-and-gates.md](toolchain-and-gates.md) | Outillage du monorepo et portes de validation avant compilation |
+| [benchmark-platform.md](benchmark-platform.md) | `open` comme banc d’essai automatisé, inventaires, boucle navigateur ↔ UI |
 | [decisions.md](decisions.md) | Décisions à trancher, avec options et recommandation |
 
 Matière première : [`../ideas/`](../ideas/).

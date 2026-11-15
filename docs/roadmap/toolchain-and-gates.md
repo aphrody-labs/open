@@ -33,10 +33,8 @@ Rien ne compile sans passer les portes. Elles tournent comme un plugin de build 
 
 Limite à noter : les Core Web Vitals se mesurent sur un rendu exécuté. Cette porte tourne donc juste après la compilation et bloque la publication, pas la compilation elle-même. Les autres portes sont statiques et bloquent avant compilation.
 
-## À trancher
+## Décisions
 
-| Id | Question | Options |
-|---|---|---|
-| D12 | Bazel | uniquement là où l'amont l'impose (Angular) ; ou comme orchestrateur global à côté de Turborepo |
-| D13 | Seuils des portes | bloquant dès la première violation ; ou bloquant par niveau (erreur / avertissement) |
-| D14 | Specs Material en JSON | extraites de l'archive de référence (phase 6) ; ou écrites à la main en attendant |
+- D12 : Bazel partout ; just, Turborepo, Bun, Cargo et LLVM sont appelés par des cibles Bazel.
+- D13 : portes rangées par niveau comme les commandes de Bun (`check`, `fmt`, `lint`, `build`, `compile`, `test`, `webview`, `pm`), en s'appuyant sur `ay` et les crates Rust de Bun déjà présentes dans Aphrody.
+- D14 : specs Material extraites de toutes les sources listées dans [decisions.md](decisions.md).

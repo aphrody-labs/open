@@ -8,6 +8,10 @@
 | D3 | UI web | **Angular** sur un fork qui suit l'amont automatiquement, avec patchs Bun agressifs, compilation AOT et LTO, et ABI C partagée avec les autres frameworks (Rust, TypeScript, Zig, .NET, C++, ...) |
 | D4 | Desktop, mobile, web | **Couverture maximale** : Flutter (desktop, mobile, web), Rust au même niveau, Jetpack Compose Multiplatform en plus |
 | D8 | Inférence | **Local first** ; tous les types d'inférence et tous les fournisseurs cloud |
+| D12 | Système de build | **Bazel partout** dans Aphrody (pensé comme un futur projet Google) ; just, Turborepo, Bun, Cargo et LLVM sont appelés par les cibles Bazel |
+| D13 | Niveaux des portes | **Calqués sur les commandes de Bun** : `check`, `fmt`, `lint`, `build`, `compile`, `test`, `webview`, `pm` ; on réutilise `ay` et les crates Rust de Bun présentes dans Aphrody |
+| D14 | Source des specs Material | **Extraction multi-sources** : kit Figma Material 3 ; dépôts GitHub de Google, Chrome et Chromium (UI views), Jetpack Compose, composants Angular, Flutter ; les sites complets de A à Z ; les skills et MCP design de Google ; les versions communautaires (MUI, ...) |
+| D18 | Inventaire de l'écosystème | **Très large** : Material pour GTK 4, Qt, COSMIC, Hyprland, egui, iced, Dioxus, gpui ; taffy ; shadcn, Tailwind, Base UI ; React, Svelte, JS, TS ; .NET ; etc. |
 
 ## Restant à trancher
 
