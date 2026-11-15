@@ -36,10 +36,11 @@ async function runAll(filter: (skill: string) => boolean, timeoutMs: number) {
   const worker = async () => {
     for (let q = pagesQ.shift(); q; q = pagesQ.shift())
       for (const { skill, s } of q) {
-        const r = await run(skill, s, timeoutMs, S[skill]);
+        // a run that cannot even start (disk full, quota) is a failure of that example, not of the whole run
+        const status: Status = await run(skill, s, timeoutMs, S[skill]).then((r) => r.status, (e) => (console.error(`${skill}#${s.id}: ${e}`), "fail"));
         j.done++;
-        j.counts[r.status]++;
-        emit({ type: "run", skill, id: s.id, status: r.status, done: j.done, total: j.total });
+        j.counts[status]++;
+        emit({ type: "run", skill, id: s.id, status, done: j.done, total: j.total });
       }
   };
   Promise.all(Array.from({ length: availableParallelism() }, worker)).then(() => emit({ type: "done", ...j }));
