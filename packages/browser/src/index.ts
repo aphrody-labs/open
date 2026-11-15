@@ -1,4 +1,5 @@
-// @aphrody/browser: Lightpanda Zig headless browser core + unified monorepo V8 resolver + bun:ffi bridge.
+// Lightpanda headless browser core through its C ABI (lp_*) and bun:ffi; the library is BROWSER_LIB or the package's own
+// native build. Without it, title extraction and URL normalisation run in TypeScript.
 import { CString, FFIType, dlopen, ptr, suffix, type Pointer } from "bun:ffi";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
@@ -22,53 +23,13 @@ const cstr = (s: string) => ptr(Buffer.from(`${s}\0`, "utf8"));
 export function browserLibCandidates(): string[] {
   const pkgRoot = join(import.meta.dir, "..");
   return [
-    process.env.APHRODY_BROWSER_LIB,
+    process.env.BROWSER_LIB,
     join(pkgRoot, "native", "zig-out", "bin", BROWSER_LIB_FILE),
     join(pkgRoot, "native", "zig-out", "lib", BROWSER_LIB_FILE),
     join(homedir(), ".local", "bin", BROWSER_LIB_FILE),
   ].filter((p): p is string => Boolean(p));
 }
 
-/** Unified V8 locator: consolidates V8/CEF/Chromium consumers onto the monorepo V8 (rusty_v8 / chromium/v8). */
-export function resolveAphrodyV8(): { source: string; path: string } | null {
-  if (process.env.APHRODY_V8_LIB && existsSync(process.env.APHRODY_V8_LIB)) {
-    return { source: "env", path: process.env.APHRODY_V8_LIB };
-  }
-  const repoRoot = join(import.meta.dir, "..", "..", "..");
-  const candidates: Array<{ source: string; path: string }> = [
-    {
-      source: "rusty_v8",
-      path: join(
-        repoRoot,
-        "third_party",
-        "rusty_v8",
-        "target",
-        "release",
-        "rusty_v8.lib",
-      ),
-    },
-    {
-      source: "rusty_v8",
-      path: join(
-        repoRoot,
-        "third_party",
-        "rusty_v8",
-        "target",
-        "release",
-        "librusty_v8.a",
-      ),
-    },
-    { source: "rusty_v8-src", path: join(repoRoot, "third_party", "rusty_v8") },
-    {
-      source: "chromium-v8",
-      path: join(repoRoot, "third_party", "chromium", "v8"),
-    },
-  ];
-  for (const c of candidates) {
-    if (existsSync(c.path)) return c;
-  }
-  return null;
-}
 
 let cached: { lib: BrowserLib; path: string } | null | undefined;
 
@@ -115,7 +76,7 @@ export function lpCapabilities(): {
       native: false,
       abi: LP_ABI_VERSION,
       engine: "ts-fallback",
-      v8: resolveAphrodyV8()?.source ?? "none",
+      v8: "none",
       features: ["extract_title", "normalize_url"],
     };
   }

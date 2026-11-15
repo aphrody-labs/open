@@ -1,7 +1,7 @@
 {
   "name": "@aphrody/browser",
   "version": "0.1.0",
-  "description": "Lightpanda Zig headless browser core fused with Aphrody monorepo V8 and bun:ffi C ABI",
+  "description": "Lightpanda headless browser core through its C ABI and bun:ffi, with a TypeScript fallback",
   "type": "module",
   "private": true,
   "main": "src/index.ts",

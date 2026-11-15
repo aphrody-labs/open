@@ -7,10 +7,9 @@ import {
   lpCapabilities,
   lpExtractTitle,
   lpNormalizeUrl,
-  resolveAphrodyV8,
 } from "./index";
 
-test("lightpanda Zig browser_capi FFI and unified V8 resolution", () => {
+test("lightpanda browser_capi FFI or TypeScript fallback", () => {
   const dll = join(
     import.meta.dir,
     "..",
@@ -29,9 +28,8 @@ test("lightpanda Zig browser_capi FFI and unified V8 resolution", () => {
   expect(caps.abi).toBe(LP_ABI_VERSION);
   expect(caps.features).toContain("extract_title");
   expect(
-    lpExtractTitle("<html><head><Title> Aphrody </title></head></html>"),
-  ).toBe("Aphrody");
-  expect(lpNormalizeUrl("aphrody.com/docs")).toBe("https://aphrody.com/docs");
-  expect(lpNormalizeUrl("https://aphrody.com")).toBe("https://aphrody.com");
-  expect(resolveAphrodyV8()).not.toBeNull();
+    lpExtractTitle("<html><head><Title> Example </title></head></html>"),
+  ).toBe("Example");
+  expect(lpNormalizeUrl("example.com/docs")).toBe("https://example.com/docs");
+  expect(lpNormalizeUrl("https://example.com")).toBe("https://example.com");
 });
