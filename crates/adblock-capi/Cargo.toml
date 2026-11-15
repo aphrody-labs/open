@@ -12,7 +12,7 @@ name = "aphrody_adblock"
 crate-type = ["cdylib"]
 
 [dependencies]
-aphrody-core-capi = { workspace = true, default-features = false }
+c-abi.workspace = true
 adblock.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true

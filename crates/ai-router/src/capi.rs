@@ -2,10 +2,10 @@
 //! See include/ai_router.h.
 
 use crate::{Config, Router};
-use aphrody_core_capi::cabi::{c_str, into_c_string, json_err};
+use c_abi::{c_str, into_c_string, json_err};
 use std::ffi::c_char;
 
-pub use aphrody_core_capi::{aphrody_abi_version, aphrody_free};
+pub use c_abi::{aphrody_abi_version, aphrody_free};
 
 /// Opens a router from a JSON configuration (NULL or "" for defaults). Returns NULL on error; the error text is
 /// then available from `aphrody_router_last_error`.
