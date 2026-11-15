@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-// chromium-bun engines list | matrix | channels | path <id> | install [id...] | launch <id> [--port N]
-// Standalone executable (bun packages/chromium-bun/src/engines/cli.ts ...) without loading the rest of the package; `ay rt` calls it that way.
+// browser-engines engines list | matrix | channels | path <id> | install [id...] | launch <id> [--port N]
+// Standalone executable (bun packages/browser-engines/src/engines/cli.ts ...) without loading the rest of the package; `ay rt` calls it that way.
 import { runBackendCommand } from "./backend.ts";
 import { DEFAULT_INSTALL, installEngines } from "./install.ts";
 import { launchEngine } from "./launch.ts";
@@ -24,7 +24,6 @@ export async function runEnginesCommand(args: string[]): Promise<number> {
         protocol: e.protocol,
         language: e.language,
         install: e.install.via,
-        third_party: e.thirdParty ?? "-",
         path: resolveExecutable(e) ?? "-",
       }));
       if (rest.includes("--json")) console.log(JSON.stringify(rows, null, 2));
@@ -114,13 +113,13 @@ export async function runEnginesCommand(args: string[]): Promise<number> {
 function usage(): number {
   console.error(
     [
-      "chromium-bun engines list [--json]          registry, protocol, installation, resolved executable",
-      "chromium-bun engines matrix [--json]        latest version (official source, live), installed, JS engine, WebGPU",
-      "chromium-bun engines channels               canaux Chrome for Testing (API JSON officielle) et cache local",
-      "chromium-bun engines path <id>              engine executable (exit code 1 if missing)",
-      "chromium-bun engines install [id...]        installation idempotente (ay up, CfT, Playwright, uv tool)",
-      "chromium-bun engines launch <id> [--port N] [--probe]   exposes CDP or WebDriver on 127.0.0.1",
-      "chromium-bun engines backend list|pick|use [id] [--need cdp,webgpu] [--js ..] [--channel ..] [--write]   C++ backend chosen from the registry",
+      "browser-engines engines list [--json]          registry, protocol, installation, resolved executable",
+      "browser-engines engines matrix [--json]        latest version (official source, live), installed, JS engine, WebGPU",
+      "browser-engines engines channels               Chrome for Testing channels (official JSON API) and local cache",
+      "browser-engines engines path <id>              engine executable (exit code 1 if missing)",
+      "browser-engines engines install [id...]        idempotent installation (ay up, CfT, Playwright, uv tool)",
+      "browser-engines engines launch <id> [--port N] [--probe]   exposes CDP or WebDriver on 127.0.0.1",
+      "browser-engines engines backend list|pick|use [id] [--need cdp,webgpu] [--js ..] [--channel ..] [--write]   C++ backend chosen from the registry",
     ].join("\n"),
   );
   return 2;

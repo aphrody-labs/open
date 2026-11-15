@@ -1,11 +1,9 @@
-// SPDX-License-Identifier: Apache-2.0
 /**
- * Chromium + Bun Web Crawler (RFC 9309 robots.txt + SSRF Guard + Tracker Shields + CDP Render)
+ * Web crawler: robots.txt (RFC 9309), SSRF guard, content shields, optional rendering through a CDP browser, and
+ * indexing into a search shard. The user agent identifies whoever runs the crawl and is given by the caller.
  */
-import { launchHeadlessChromium } from "../browser/launcher.ts";
-import { ContentShieldsEngine } from "../browser/shields.ts";
-import { SsrfGuard, type SsrfGuardOptions } from "../browser/ssrf.ts";
-import type { IndexedWebDocument, SovereignSearchShardDb } from "./indexer.ts";
+import { ContentShieldsEngine, launchHeadlessChromium, SsrfGuard, type SsrfGuardOptions } from "@aphrody/browser-engines";
+import type { IndexedWebDocument, SearchShard } from "./shards.ts";
 
 export interface RobotsRuleSet {
   allow: string[];
@@ -24,12 +22,12 @@ export interface CrawlPageResult {
   links: string[];
   trackersBlocked: number;
   durationMs: number;
-  blake3Hash?: string;
+  contentHash?: string;
 }
 
 export function parseRobotsTxt(
   rawText: string,
-  userAgent = "aphrodybot",
+  userAgent: string,
 ): RobotsRuleSet {
   const lines = rawText.split(/\r?\n/);
   const targetAgent = userAgent.toLowerCase();
@@ -132,15 +130,16 @@ export function isAllowedByRobotsTxt(
   return false;
 }
 
-export interface ChromiumBunCrawlerOptions {
+export interface CrawlerOptions {
   ssrf?: SsrfGuardOptions;
-  userAgent?: string;
+  /** Identifies whoever runs the crawl (product token, version, contact URL); required by robots.txt etiquette. */
+  userAgent: string;
   respectRobotsTxt?: boolean;
   renderMode?: "fast-html" | "chromium-cdp";
   timeoutMs?: number;
 }
 
-export class ChromiumBunCrawler {
+export class Crawler {
   readonly ssrf: SsrfGuard;
   readonly shields: ContentShieldsEngine;
   readonly userAgent: string;
@@ -149,12 +148,11 @@ export class ChromiumBunCrawler {
   readonly timeoutMs: number;
   private readonly robotsCache = new Map<string, RobotsRuleSet>();
 
-  constructor(options: ChromiumBunCrawlerOptions = {}) {
+  constructor(options: CrawlerOptions) {
     this.ssrf = new SsrfGuard(options.ssrf);
     this.shields = new ContentShieldsEngine();
-    this.userAgent =
-      options.userAgent ??
-      "AphrodyBot/2.1 (+https://aphrody.com/bot; Chromium-Bun Indexer)";
+    // the product token of the user agent is also the robots.txt group the crawler obeys
+    this.userAgent = options.userAgent;
     this.respectRobotsTxt = options.respectRobotsTxt ?? true;
     this.renderMode = options.renderMode ?? "fast-html";
     this.timeoutMs = options.timeoutMs ?? 12_000;
@@ -176,7 +174,7 @@ export class ChromiumBunCrawler {
         return open;
       }
       const txt = await res.text();
-      const parsed = parseRobotsTxt(txt, "aphrodybot");
+      const parsed = parseRobotsTxt(txt, this.userAgent.split(/[\s/]/)[0]!.toLowerCase());
       this.robotsCache.set(origin, parsed);
       return parsed;
     } catch {
@@ -189,7 +187,7 @@ export class ChromiumBunCrawler {
   async crawlPage(
     rawUrl: string,
     options?: {
-      shardDb?: SovereignSearchShardDb;
+      shardDb?: SearchShard;
       category?: IndexedWebDocument["category"];
       renderWithChromium?: boolean;
     },
@@ -269,7 +267,7 @@ export class ChromiumBunCrawler {
     }
 
     const clean = this.shields.extractCleanDocument(html, parsedUrl.href);
-    let blake3Hash: string | undefined;
+    let contentHash: string | undefined;
 
     if (options?.shardDb) {
       const upserted = options.shardDb.upsertDocument({
@@ -284,7 +282,7 @@ export class ChromiumBunCrawler {
         qualityScore: 0.92,
         crawledAt: Date.now(),
       });
-      blake3Hash = upserted.hash;
+      contentHash = upserted.hash;
     }
 
     return {
@@ -298,7 +296,7 @@ export class ChromiumBunCrawler {
       links: clean.links,
       trackersBlocked: clean.trackersBlocked,
       durationMs: Math.round((performance.now() - started) * 100) / 100,
-      blake3Hash,
+      contentHash,
     };
   }
 }

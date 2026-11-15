@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { isForbiddenIpv6, SsrfGuard } from "../src/browser/ssrf.ts";
+import { isForbiddenIpv6, SsrfGuard } from "../src/ssrf.ts";
 
 test("IPv4 embedded in IPv6 is judged on the IPv4", () => {
   for (const ip of [

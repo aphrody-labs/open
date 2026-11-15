@@ -203,7 +203,7 @@ mod tests {
 
         assert!(
             !engine
-                .check_network_url("https://aphrody.com/search?q=bun")
+                .check_network_url("https://example.com/search?q=bun")
                 .blocked
         );
 

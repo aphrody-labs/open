@@ -1,5 +1,5 @@
-// bun:ffi bridge to src/net (cdylib aphrody_net). Library path: APHRODY_NET_LIB,
-// else target/release next to the repo root.
+// Network probe (DNS, connect, TLS, TTFB per URL) through bun:ffi over the aphrody_net cdylib (crate aphrody-net of
+// the Aphrody monorepo, aphrody_* symbols of its C ABI). The library path is CRAWL_NET_PROBE_LIB.
 import { dlopen, FFIType, CString, type Pointer } from "bun:ffi";
 import { join } from "node:path";
 
@@ -33,9 +33,8 @@ const libName =
 
 let lib: ReturnType<typeof open> | undefined;
 function open() {
-  const path =
-    process.env.APHRODY_NET_LIB ??
-    join(import.meta.dir, "../../../../target/release", libName);
+  const path = process.env.CRAWL_NET_PROBE_LIB;
+  if (!path) throw new Error(`set CRAWL_NET_PROBE_LIB to the ${libName} built from the aphrody-net crate`);
   return dlopen(path, {
     aphrody_net_probe_json: {
       args: [FFIType.cstring, FFIType.cstring],

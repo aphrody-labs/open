@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "lib": [
+      "ESNext",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "module": "esnext",
+    "target": "esnext",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "jsx": "react-jsx",
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowJs": true,
+    "paths": {
+      "@aphrody/browser-engines": [
+        "../browser-engines/src/index.ts"
+      ]
+    },
+    "types": [
+      "bun"
+    ]
+  },
+  "include": [
+    "src/**/*",
+    "test/**/*"
+  ]
+}

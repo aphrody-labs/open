@@ -11,12 +11,12 @@ import {
   resolveChromium,
   resolveExecutable,
 } from "../engines/registry.ts";
-import { ChromiumBunCdpClient } from "./cdp-client.ts";
+import { CdpClient } from "./client.ts";
 
 export interface LaunchedChromiumInstance extends AsyncDisposable {
   readonly binaryPath: string;
   readonly wsEndpoint: string;
-  readonly client: ChromiumBunCdpClient;
+  readonly client: CdpClient;
   readonly userDataDir: string;
   close(): Promise<void>;
 }
@@ -38,11 +38,11 @@ export async function launchHeadlessChromium(options?: {
   const binaryPath = options?.binaryPath ?? findLocalChromiumBinary();
   if (!binaryPath) {
     throw new Error(
-      "No Chromium/Chrome binary found. Set CHROME_PATH or run `chromium-bun engines install chrome@stable`.",
+      "No Chromium/Chrome binary found. Set CHROME_PATH or run `browser-engines engines install chrome@stable`.",
     );
   }
 
-  const userDataDir = mkdtempSync(join(tmpdir(), "chromium-bun-profile-"));
+  const userDataDir = mkdtempSync(join(tmpdir(), "browser-engines-profile-"));
   const args = [
     binaryPath,
     "--headless=new",
@@ -108,7 +108,7 @@ export async function launchHeadlessChromium(options?: {
     })();
   });
 
-  const client = await ChromiumBunCdpClient.connect({
+  const client = await CdpClient.connect({
     endpoint: wsEndpoint,
     timeoutMs,
   });

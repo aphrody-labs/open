@@ -1,22 +1,19 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Idempotent installation and update of the engines (Windows and Linux), only through
- * installeurs officiels : `ay up` (tools.toml), @puppeteer/browsers (Chrome for Testing),
- * `playwright install`, `uv tool install`. Rien n'est compilé ici : les entrées `build` renvoient
- * vers fr1 (Chromium, V8) ou prd (Blitz, JavaScriptCore).
+ * Idempotent installation and update of the engines (Windows and Linux), only through official installers:
+ * `ay up`, @puppeteer/browsers (Chrome for Testing), `playwright install`, `uv tool install`, each at its latest
+ * version. Nothing is compiled here: `build` entries report that they are built from source by the caller.
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import {
   type Engine,
   ENGINES,
-  PINS,
   binDir,
   cftCache,
   cftIndexFile,
   getEngine,
   playwrightCache,
   readCftIndex,
-  repoRoot,
   resolveExecutable,
 } from "./registry.ts";
 
@@ -32,7 +29,6 @@ async function run(
   env: Record<string, string> = {},
 ): Promise<{ ok: boolean; out: string }> {
   const p = Bun.spawn(argv, {
-    cwd: repoRoot(),
     env: { ...process.env, ...env },
     stdin: "ignore",
     stdout: "pipe",
@@ -92,7 +88,7 @@ export async function installEngines(
         "bun",
         "x",
         "--bun",
-        `@puppeteer/browsers@${PINS.puppeteerBrowsers}`,
+        "@puppeteer/browsers@latest",
         "install",
         `${i.browser}@${i.channel}`,
         "--path",
@@ -117,7 +113,7 @@ export async function installEngines(
         "bun",
         "x",
         "--bun",
-        `playwright@${PINS.playwright}`,
+        "playwright@latest",
         "install",
         ...(names.includes("chromium-headless-shell") ? [] : ["--no-shell"]),
         ...names,
@@ -125,7 +121,7 @@ export async function installEngines(
       { PLAYWRIGHT_BROWSERS_PATH: playwrightCache() },
     );
     for (const e of pw)
-      done(e, r.ok, r.ok ? `playwright ${PINS.playwright}` : last(r.out));
+      done(e, r.ok, r.ok ? "playwright (latest)" : last(r.out));
   }
 
   // 4. Isolated Python tools; uv does not reinstall an already satisfied specification.
@@ -144,7 +140,7 @@ export async function installEngines(
       done(
         e,
         resolveExecutable(e) !== null,
-        `build on ${e.install.host} (${e.thirdParty})`,
+        `built from source (${e.upstream})`,
       );
     else if (v === "dependency")
       done(e, true, `dependency ${e.install.registry} ${e.install.name}`);

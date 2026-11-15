@@ -64,7 +64,7 @@ const docs = [];
 for (const f of tracked.filter((f) => /\.(md|mdx)$/i.test(f) && !f.startsWith("third_party/") && !f.includes("node_modules/"))) {
   const t = await read(f);
   const title = t.match(/^#\s+(.+)$/m)?.[1]?.trim() ?? null;
-  docs.push({ path: f, title, bytes: t.length });
+  docs.push({ path: f, title: quote(title), bytes: t.length });
 }
 const docsByArea: Record<string, number> = {};
 for (const d of docs) {

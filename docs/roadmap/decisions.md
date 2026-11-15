@@ -60,7 +60,7 @@ An import lands only after six checks, recorded in `docs/reviews/<unit>.md`:
 5. **Reorganisation**: split by concern into units named by D23.
 6. **Review**: each point checked against the code, outcome written.
 
-The rule applies to the units already moved (`packages/chromium-bun`, `crates/adblock-capi`).
+The rule was applied to the units already moved: `packages/chromium-bun` became `packages/browser-engines` and `packages/crawl` ([review](../reviews/browser-engines.md)), `crates/adblock-capi` ([review](../reviews/adblock-capi.md)).
 
 ## Still open
 

@@ -1,16 +1,7 @@
-// SPDX-License-Identifier: Apache-2.0
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { DEFAULT_INSTALL } from "../src/engines/install.ts";
 import { freePort } from "../src/engines/launch.ts";
-import { ENGINES, getEngine, repoRoot } from "../src/engines/registry.ts";
-
-const tools = readFileSync(join(repoRoot(), "tools.toml"), "utf8");
-const forks = readFileSync(
-  join(repoRoot(), "third_party", "forks.txt"),
-  "utf8",
-);
+import { ENGINES, getEngine } from "../src/engines/registry.ts";
 
 describe("engines registry", () => {
   test("ids are unique", () => {
@@ -18,23 +9,13 @@ describe("engines registry", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  test("every ay-installed engine is pinned in tools.toml", () => {
-    for (const e of ENGINES)
-      if (e.install.via === "ay")
-        expect(tools).toContain(`name = "${e.install.tool}"`);
+  test("every engine names its upstream as a URL", () => {
+    for (const e of ENGINES) expect(() => new URL(e.upstream)).not.toThrow();
   });
 
-  test("every upstream on GitHub is listed in third_party/forks.txt", () => {
-    for (const e of ENGINES) {
-      const m = /^https:\/\/github\.com\/([^/]+\/[^/]+)$/.exec(e.upstream);
-      if (m) expect(forks.toLowerCase()).toContain(`${m[1]!.toLowerCase()} `);
-    }
-  });
-
-  test("third_party paths stay relative and flat", () => {
+  test("source builds read their output directory from the environment, never from a fixed path", () => {
     for (const e of ENGINES)
-      if (e.thirdParty)
-        expect(e.thirdParty).toMatch(/^third_party\/[^/]+(\/src\/v8)?$/);
+      if (e.install.via === "build" && e.install.outEnv) expect(e.install.outEnv).toMatch(/^BROWSER_ENGINES_[A-Z0-9_]+$/);
   });
 
   test("default install set only names known engines", () => {
@@ -49,13 +30,10 @@ describe("engines registry", () => {
       }
   });
 
-  test("lightpanda: release binary pinned per platform, fork build on fr1", () => {
+  test("lightpanda: release binary through ay, CDP on loopback", () => {
     const e = getEngine("lightpanda");
     expect(e.install).toMatchObject({ via: "ay", tool: "lightpanda" });
     expect(e.serve?.(9333, "p")).toEqual(["serve", "--host", "127.0.0.1", "--port", "9333"]);
-    const block = tools.slice(tools.indexOf('name = "lightpanda"'), tools.indexOf('name = "servo"'));
-    for (const k of ["linux-x86_64", "linux-aarch64", "macos-x86_64", "macos-aarch64"])
-      expect(block).toMatch(new RegExp(`sha256\\.${k} = "[0-9a-f]{64}"`));
   });
 
   test("freePort returns a usable TCP port", () => {

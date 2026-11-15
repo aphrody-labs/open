@@ -1,17 +1,7 @@
-// SPDX-License-Identifier: Apache-2.0
-export * from "./types.ts";
-export * from "./layers.ts";
-export * from "./audit/chromium-inspector.ts";
-export * from "./audit/purge-matrix.ts";
-export * from "./winner-picker.ts";
-export * from "./benchmarks/runner.ts";
-export * from "./browser/cdp-client.ts";
-export * from "./browser/ssrf.ts";
-export * from "./browser/shields.ts";
-export * from "./browser/launcher.ts";
+// Browsing, automation and crawl engines: registry, installation, launch and backend choice; a CDP client with its
+// launcher, headless profile and content shields; an SSRF guard for fetches made on behalf of untrusted input.
 export * from "./engines/index.ts";
-export * from "./browser/chromium-tracker.ts";
-export * from "./browser/bun-v8-bridge.ts";
-export * from "./search/index.ts";
-export * from "./qa/real-browser-audit.ts";
-export * from "./qa/e2e-runner.ts";
+export * from "./cdp/client.ts";
+export * from "./cdp/launcher.ts";
+export * from "./cdp/shields.ts";
+export * from "./ssrf.ts";

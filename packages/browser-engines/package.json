@@ -1,31 +1,29 @@
 {
-  "name": "@aphrody/chromium-bun",
+  "name": "@aphrody/browser-engines",
   "version": "0.0.0",
   "private": true,
-  "description": "CDP client, SSRF-guarded crawler, BM25 search shards, engine registry and runtime benchmarks, on bun",
+  "description": "Browsing, automation and crawl engines: registry, installation, launch and backend choice, CDP client, headless profile, content shields, SSRF guard",
   "type": "module",
   "main": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./search": "./src/search/index.ts",
-    "./cdp": "./src/browser/cdp-client.ts",
     "./engines": "./src/engines/index.ts",
-    "./net": "./src/net/probe.ts"
+    "./cdp": "./src/cdp/client.ts",
+    "./ssrf": "./src/ssrf.ts"
+  },
+  "bin": {
+    "browser-engines": "./src/cli.ts"
   },
   "scripts": {
-    "start": "bun run src/cli.ts",
-    "bench": "bun run src/benchmarks/runner.ts",
-    "inspect": "bun run src/audit/chromium-inspector.ts",
+    "start": "bun src/cli.ts",
     "test": "bun test",
     "check": "bun check",
-    "fmt": "bun fmt",
-    "test:e2e-auth": "bun test test/gemini.e2e-auth.test.ts",
-    "probe": "bun src/net/probe.ts"
+    "fmt": "bun fmt"
   },
   "license": "MIT OR Apache-2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/aphrody-labs/open.git",
-    "directory": "packages/chromium-bun"
+    "directory": "packages/browser-engines"
   }
 }

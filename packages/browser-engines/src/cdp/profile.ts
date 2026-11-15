@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Profil headless/cloud (profiles/headless.json) : arguments de lancement, politiques Linux,
- * agent-browser configuration and persistent launcher (fr1 service). Standalone: imports only the JSON,
- * so it can be copied as is to fr1 (`just chromium-headless-deploy`).
+ * Headless profile (profiles/headless.json): launch arguments, Linux policies, agent-browser configuration and a
+ * persistent launcher. Standalone: it imports only the JSON, so it can be copied to any host as is.
  *
- *   bun src/browser/profile.ts args [--os linux|win] [--gpu software|hardware|off]
- *   bun src/browser/profile.ts policies
- *   bun src/browser/profile.ts agent-browser-config [--write] [--os ..] [--gpu ..]
- *   bun src/browser/profile.ts launch --port 9222 --user-data-dir DIR [--bin PATH] [--gpu ..]
+ *   bun src/cdp/profile.ts args [--os linux|win] [--gpu software|hardware|off]
+ *   bun src/cdp/profile.ts policies
+ *   bun src/cdp/profile.ts agent-browser-config [--write] [--os ..] [--gpu ..]
+ *   bun src/cdp/profile.ts launch --port 9222 --user-data-dir DIR [--bin PATH] [--gpu ..]
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";

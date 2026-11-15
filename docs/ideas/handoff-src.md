@@ -19,8 +19,8 @@ Work done in the Aphrody monorepo (`aphrody-labs/aphrody`) in the areas `open` n
 
 ## Browser engines
 
-- Registry: `packages/chromium-bun/src/engines/registry.ts`, one row per engine (Chrome for Testing channels, Playwright, system Chrome, repo Chromium built on a build host, Obscura, Servo, Blitz, JavaScriptCore, V8, Dawn, wgpu, automation tools).
-- Backend selection: `packages/chromium-bun/src/engines/backend.ts`, `ay engines backend list|pick|use [id] [--need cdp,webgpu] [--js ..] [--channel ..] [--write]`. No list of its own: candidates, channels and automation deps come from the registry; order is argument, `AY_BACKEND`, `.engine-version`, needs, project detection, then the running Bun (JavaScriptCore). Commits `4d754ef5f9`, `a6f4aacca9`, `0e5d9c97bd`.
+- Registry: `packages/browser-engines/src/engines/registry.ts`, one row per engine (Chrome for Testing channels, Playwright, system Chrome, repo Chromium built on a build host, Obscura, Servo, Blitz, JavaScriptCore, V8, Dawn, wgpu, automation tools).
+- Backend selection: `packages/browser-engines/src/engines/backend.ts`, `ay engines backend list|pick|use [id] [--need cdp,webgpu] [--js ..] [--channel ..] [--write]`. No list of its own: candidates, channels and automation deps come from the registry; order is argument, `AY_BACKEND`, `.engine-version`, needs, project detection, then the running Bun (JavaScriptCore). Commits `4d754ef5f9`, `a6f4aacca9`, `0e5d9c97bd`.
 - Lightpanda: absorbed in `packages/browser/native` (fork `aphrody-labs/browser`, upstream `lightpanda-io/browser`, `build.zig.zon` 1.1.0-dev, Zig 0.17.0 minimum) with a C ABI (`src/capi_main.zig`, `lp_*`) and the Bun binding `packages/browser/src/index.ts`. Registered as engine `lightpanda` (CDP, `serve --host 127.0.0.1 --port N`) in `05a0c29704`; release binary install added in `49db7cf8` (tools.toml). Not done: building the fork on a build host, `browser_capi` shared library, a CDP navigation proof, `bun test packages/browser` against a built library.
 
 ## AI routing

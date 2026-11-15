@@ -1,0 +1,22 @@
+{
+  "name": "@aphrody/crawl",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Web crawler (robots.txt, SSRF guard, content shields, CDP rendering), search shards on bun:sqlite FTS5 with BM25, network probe",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./shards": "./src/shards.ts",
+    "./net-probe": "./src/net-probe.ts"
+  },
+  "dependencies": {
+    "@aphrody/browser-engines": "workspace:*"
+  },
+  "scripts": {
+    "test": "bun test",
+    "check": "bun check"
+  },
+  "license": "MIT OR Apache-2.0",
+  "repository": { "type": "git", "url": "git+https://github.com/aphrody-labs/open.git", "directory": "packages/crawl" }
+}

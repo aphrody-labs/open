@@ -10,7 +10,6 @@ import {
   type Engine,
   ENGINES,
   type Latest,
-  PINS,
   readCftIndex,
   resolveExecutable,
 } from "./registry.ts";
@@ -27,7 +26,6 @@ export interface MatrixRow {
   readonly source: string | null;
   readonly installed: string | null;
   readonly path: string | null;
-  readonly third_party: string | null;
 }
 
 const CFT =
@@ -40,7 +38,7 @@ function json(url: string, headers: Record<string, string> = {}): Promise<any> {
     memo.set(
       url,
       fetch(url, {
-        headers: { "User-Agent": "aphrody-engines-matrix", ...headers },
+        headers: { "User-Agent": "browser-engines-matrix", ...headers },
         signal: AbortSignal.timeout(15_000),
       }).then((r) => (r.ok ? r.json() : null)),
     );
@@ -60,7 +58,7 @@ export function sourceUrl(l: Latest): string {
     case "crates":
       return `https://crates.io/api/v1/crates/${l.name}`;
     case "playwright":
-      return `https://raw.githubusercontent.com/microsoft/playwright/v${PINS.playwright}/packages/playwright-core/browsers.json`;
+      return `https://raw.githubusercontent.com/microsoft/playwright/main/packages/playwright-core/browsers.json`;
   }
 }
 
@@ -140,7 +138,6 @@ export async function engineMatrix(): Promise<MatrixRow[]> {
         source: e.latest ? sourceUrl(e.latest) : null,
         installed: installedVersion(e, path),
         path,
-        third_party: e.thirdParty,
       };
     }),
   );

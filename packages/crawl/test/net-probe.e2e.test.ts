@@ -1,20 +1,17 @@
-// e2e:auth — needs the owner's logged-in Chrome reachable over CDP (APHRODY_CDP_URL,
-// e.g. http://127.0.0.1:9222 for a Chrome started with --remote-debugging-port and
-// --user-data-dir=$APHRODY_CHROME_PROFILE). Skipped cleanly otherwise. Run on the PC.
+// End to end: network probe timings against a browser's own timings for the same targets. Needs a browser reachable
+// over CDP (CRAWL_CDP_URL, for example a Chrome started with --remote-debugging-port) and the probe library
+// (CRAWL_NET_PROBE_LIB); skipped otherwise.
 import { describe, expect, test } from "bun:test";
-import { probe } from "../src/net/probe.ts";
-import {
-  ChromiumBunCdpClient,
-  networkTimingFromResponse,
-} from "../src/browser/cdp-client.ts";
+import { probe } from "../src/net-probe.ts";
+import { CdpClient, networkTimingFromResponse } from "@aphrody/browser-engines";
 import targets from "./targets.json";
 
-const CDP = process.env.APHRODY_CDP_URL;
+const CDP = process.env.CRAWL_CDP_URL;
 const T = targets.gemini;
 
 describe.skipIf(!CDP)("e2e:auth gemini", () => {
   test("authenticated load, prompt, streamed model response, h2/h3 + TLS 1.3", async () => {
-    const cdp = await ChromiumBunCdpClient.connect({ endpoint: CDP! });
+    const cdp = await CdpClient.connect({ endpoint: CDP! });
     const events: { method: string; params: Record<string, any> }[] = [];
     const targetId = await cdp.createTarget("about:blank");
     try {
@@ -52,7 +49,7 @@ describe.skipIf(!CDP)("e2e:auth gemini", () => {
           e.params.type === "Document",
       );
       const chrome = networkTimingFromResponse(doc!.params);
-      expect(["h2", "h3"]).toContain(chrome.protocol);
+      expect(["h2", "h3"]).toContain(chrome.protocol ?? "");
       expect(chrome.tls).toBe("TLS 1.3");
 
       const before = page.events.length;
@@ -82,7 +79,7 @@ describe.skipIf(!CDP)("e2e:auth gemini", () => {
       expect(stream).toBe(true);
 
       // Same load through src/net: protocol family and TLS must match Chrome.
-      if (process.env.APHRODY_NET_LIB) {
+      if (process.env.CRAWL_NET_PROBE_LIB) {
         const ours = probe(T.url);
         expect(ours.tls_version).toBe("TLSv1_3");
         expect(ours.alt_svc ?? "").toContain("h3");

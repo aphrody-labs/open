@@ -228,7 +228,7 @@ mod tests {
             .1["blocked"],
             false
         );
-        assert_eq!(check(e, "https://aphrody.com/", "", "").1["blocked"], false);
+        assert_eq!(check(e, "https://example.com/", "", "").1["blocked"], false);
 
         let g = cosmetic(e, "https://www.google.com/", "ConsentBanner other");
         let sel: Vec<&str> = g["hideSelectors"]

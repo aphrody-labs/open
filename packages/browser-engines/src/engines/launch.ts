@@ -8,7 +8,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ChromiumBunCdpClient } from "../browser/cdp-client.ts";
+import { CdpClient } from "../cdp/client.ts";
 import { type Engine, getEngine, resolveExecutable } from "./registry.ts";
 
 export interface RunningEngine extends AsyncDisposable {
@@ -20,7 +20,7 @@ export interface RunningEngine extends AsyncDisposable {
   /** CDP: browser WebSocket URL; classic WebDriver: null. */
   readonly webSocketDebuggerUrl: string | null;
   readonly version: string;
-  connect(): Promise<ChromiumBunCdpClient>;
+  connect(): Promise<CdpClient>;
   close(): Promise<void>;
 }
 
@@ -33,6 +33,7 @@ export function freePort(): number {
   });
   const port = s.port;
   s.stop(true);
+  if (port === undefined) throw new Error("the system gave no port");
   return port;
 }
 
@@ -62,7 +63,7 @@ export async function launchEngine(
     );
   const executable = resolveExecutable(engine);
   if (!executable)
-    throw new Error(`${id} missing: \`chromium-bun engines install ${id}\``);
+    throw new Error(`${id} missing: \`browser-engines engines install ${id}\``);
   const port = options.port ?? freePort();
   const profileDir = mkdtempSync(
     join(tmpdir(), `engine-${engine.id.replace(/[^\w-]/g, "_")}-`),
@@ -117,7 +118,7 @@ export async function launchEngine(
     connect: () => {
       if (engine.protocol !== "cdp")
         throw new Error(`${id} parle ${engine.protocol}, pas CDP`);
-      return ChromiumBunCdpClient.connect({ endpoint: ready.ws ?? base });
+      return CdpClient.connect({ endpoint: ready.ws ?? base });
     },
     close,
     async [Symbol.asyncDispose]() {

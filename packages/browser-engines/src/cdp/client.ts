@@ -97,7 +97,7 @@ export function normalizeCdpWebSocketUrl(endpoint: string): string {
   return `${proto}//${u.host}${u.pathname === "/" ? "/devtools/browser" : u.pathname}`;
 }
 
-export class ChromiumBunCdpClient implements AsyncDisposable {
+export class CdpClient implements AsyncDisposable {
   readonly wsUrl: string;
   readonly httpUrl: string;
   private readonly token?: string;
@@ -121,7 +121,7 @@ export class ChromiumBunCdpClient implements AsyncDisposable {
 
   static async connect(
     options: CdpClientOptions,
-  ): Promise<ChromiumBunCdpClient> {
+  ): Promise<CdpClient> {
     let endpoint = options.endpoint;
     if (!/^wss?:\/\//i.test(endpoint)) {
       const httpUrl = normalizeCdpHttpUrl(endpoint);
@@ -147,7 +147,7 @@ export class ChromiumBunCdpClient implements AsyncDisposable {
       }
       endpoint = info.webSocketDebuggerUrl;
     }
-    const client = new ChromiumBunCdpClient({ ...options, endpoint });
+    const client = new CdpClient({ ...options, endpoint });
     await client.open();
     return client;
   }

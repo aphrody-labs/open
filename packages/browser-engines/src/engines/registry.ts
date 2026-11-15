@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Single registry of the repository's browsing, automation and crawl engines.
- * Each entry says where the code comes from (third_party/<name>, aphrody-labs fork), how the binary
- * s'installe (ay up, Chrome for Testing, Playwright, uv tool, build distante) et quel protocole il
- * speaks (CDP, WebDriver, MCP, CLI, library). No version is hardcoded here outside the pins
- * of the official installers (PINS); release binaries are pinned in tools.toml.
+ * Registry of browsing, automation and crawl engines: where each comes from (upstream repository), how its binary
+ * is installed (ay up, Chrome for Testing, Playwright, uv tool, built from source, system) and which protocol it
+ * speaks (CDP, WebDriver, Playwright, MCP, CLI, library). No version is written here: installers fetch the latest.
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -22,16 +20,17 @@ export type PlaywrightBrowser =
   "chromium" | "chromium-headless-shell" | "webkit";
 
 export type EngineInstall =
-  /** Release binary pinned in tools.toml, installed by `ay up <tool>`. */
+  /** Release binary installed by `ay up <tool>` (the tool manifest embedded in ay, or AY_TOOLS_MANIFEST). */
   | { via: "ay"; tool: string; bin: string }
-  /** Chrome for Testing (API JSON officielle) par @puppeteer/browsers. */
+  /** Chrome for Testing (official JSON API) through @puppeteer/browsers. */
   | { via: "cft"; browser: CftBrowser; channel: CftChannel }
   /** Playwright browsers (`playwright install`), cache shared by JS and Python. */
   | { via: "playwright"; browser: PlaywrightBrowser }
   /** Python tool isolated by `uv tool install`. */
   | { via: "uv"; spec: string; bin: string }
-  /** Built off the workstation: fr1 (Chromium, LLVM) or prd (the rest). */
-  | { via: "build"; host: "fr1" | "prd"; output?: string[]; bin?: string }
+  /** Built from the upstream source by the caller; `outEnv` names the environment variable that gives the build
+   *  output directory, where `bin` (default chrome) is looked up. */
+  | { via: "build"; outEnv?: string; bin?: string }
   /** Library consumed as a dependency (bun add, uv add, cargo), no binary. */
   | { via: "dependency"; registry: "npm" | "pypi" | "crates"; name: string }
   /** Browser installed by the system (Chrome, Edge). */
@@ -43,8 +42,6 @@ export interface Engine {
   readonly language: string;
   readonly protocol: EngineProtocol;
   readonly upstream: string;
-  /** Folder relative to the repository root (third_party/<name>) or null if the upstream code is not there. */
-  readonly thirdParty: string | null;
   readonly install: EngineInstall;
   /** Role in the matrix when the protocol is not enough (rendering libraries, JS engines, WebGPU). */
   readonly role?: "render" | "js-engine" | "gpu";
@@ -56,31 +53,20 @@ export interface Engine {
   serve?(port: number, profileDir: string): string[];
 }
 
-/** Versions of the official installers launched by `bun x` (npm and PyPI, verified on 2026-11-13). */
-export const PINS = {
-  playwrightPython: "1.65.1",
-  crawleePython: "1.11.2",
-  puppeteerBrowsers: "3.2.7",
-  playwright: "1.65.0",
-} as const;
-
-export const repoRoot = (): string =>
-  Bun.env.SRC_ROOT || join(import.meta.dir, "..", "..", "..", "..");
-
 export const binDir = (): string => join(homedir(), ".local", "bin");
 
-/** Cache of downloaded browsers: APHRODY_BROWSERS, otherwise LOCALAPPDATA (Windows) or XDG_CACHE_HOME. */
+/** Cache of downloaded browsers: BROWSER_ENGINES_CACHE, otherwise the user cache directory of the platform. */
 export const browsersCache = (): string =>
-  Bun.env.APHRODY_BROWSERS ||
+  Bun.env.BROWSER_ENGINES_CACHE ||
   (process.platform === "win32"
     ? join(
         Bun.env.LOCALAPPDATA || join(homedir(), "AppData", "Local"),
-        "aphrody",
+        "browser-engines",
         "browsers",
       )
     : join(
         Bun.env.XDG_CACHE_HOME || join(homedir(), ".cache"),
-        "aphrody",
+        "browser-engines",
         "browsers",
       ));
 
@@ -123,7 +109,6 @@ export const ENGINES: readonly Engine[] = [
       language: "C++",
       protocol: "cdp",
       upstream: gh("GoogleChromeLabs/chrome-for-testing"),
-      thirdParty: "third_party/chrome-for-testing",
       install: { via: "cft", browser: "chrome", channel },
       js: "v8",
       gpu: "dawn",
@@ -136,7 +121,6 @@ export const ENGINES: readonly Engine[] = [
       language: "C++",
       protocol: "cdp",
       upstream: gh("GoogleChromeLabs/chrome-for-testing"),
-      thirdParty: "third_party/chrome-for-testing",
       install: { via: "cft", browser: "chrome-headless-shell", channel },
       js: "v8",
       gpu: "dawn",
@@ -148,19 +132,11 @@ export const ENGINES: readonly Engine[] = [
     id: "chromium",
     js: "v8",
     gpu: "dawn",
-    title: "Repository Chromium (gclient, fr1 build)",
+    title: "Chromium built from source (gclient)",
     language: "C++",
     protocol: "cdp",
     upstream: "https://chromium.googlesource.com/chromium/src",
-    thirdParty: "third_party/chromium",
-    install: {
-      via: "build",
-      host: "fr1",
-      output: [
-        "third_party/chromium/src/out/Release",
-        "third_party/chromium/src/out/Default",
-      ],
-    },
+    install: { via: "build", outEnv: "BROWSER_ENGINES_CHROMIUM_OUT" },
     serve: chromeFlags(true),
   },
   {
@@ -171,7 +147,6 @@ export const ENGINES: readonly Engine[] = [
     language: "C++",
     protocol: "cdp",
     upstream: "https://www.google.com/chrome/",
-    thirdParty: null,
     install: { via: "system" },
     serve: chromeFlags(true),
   },
@@ -183,7 +158,6 @@ export const ENGINES: readonly Engine[] = [
     language: "C++",
     protocol: browser.startsWith("chromium") ? "cdp" : "playwright",
     upstream: gh("microsoft/playwright"),
-    thirdParty: "third_party/playwright",
     install: { via: "playwright", browser },
     js: browser === "webkit" ? "javascriptcore" : "v8",
     gpu: browser === "webkit" ? "none" : "dawn",
@@ -201,7 +175,6 @@ export const ENGINES: readonly Engine[] = [
     language: "Rust",
     protocol: "cdp",
     upstream: gh("h4ckf0r0day/obscura"),
-    thirdParty: "third_party/obscura",
     install: { via: "ay", tool: "obscura", bin: "obscura" },
     serve: (port) => ["serve", "--port", String(port)],
   },
@@ -210,11 +183,10 @@ export const ENGINES: readonly Engine[] = [
     js: "v8",
     gpu: "none",
     latest: { from: "github", repo: "lightpanda-io/browser" },
-    title: "Lightpanda (Zig headless browser, release binary pinned in tools.toml)",
+    title: "Lightpanda (Zig headless browser, release binary)",
     language: "Zig",
     protocol: "cdp",
     upstream: gh("lightpanda-io/browser"),
-    thirdParty: null, // fork source lives in aphrody-labs/open (packages/browser/native)
     install: { via: "ay", tool: "lightpanda", bin: "lightpanda" },
     serve: (port) => ["serve", "--host", "127.0.0.1", "--port", String(port)],
   },
@@ -227,7 +199,6 @@ export const ENGINES: readonly Engine[] = [
     language: "Rust",
     protocol: "webdriver",
     upstream: gh("servo/servo"),
-    thirdParty: "third_party/servo",
     install: { via: "ay", tool: "servo", bin: "servo" },
     serve: (port) => ["--headless", `--webdriver=${port}`, "about:blank"],
   },
@@ -241,8 +212,7 @@ export const ENGINES: readonly Engine[] = [
     language: "Rust",
     protocol: "library",
     upstream: gh("DioxusLabs/blitz"),
-    thirdParty: "third_party/blitz",
-    install: { via: "build", host: "prd" },
+    install: { via: "build" },
   },
   {
     id: "javascriptcore",
@@ -253,8 +223,7 @@ export const ENGINES: readonly Engine[] = [
     language: "C++",
     protocol: "library",
     upstream: gh("oven-sh/WebKit"),
-    thirdParty: "third_party/WebKit",
-    install: { via: "build", host: "prd" },
+    install: { via: "build" },
   },
   {
     id: "v8",
@@ -265,8 +234,7 @@ export const ENGINES: readonly Engine[] = [
     language: "C++",
     protocol: "library",
     upstream: "https://chromium.googlesource.com/v8/v8",
-    thirdParty: "third_party/chromium/src/v8",
-    install: { via: "build", host: "fr1" },
+    install: { via: "build" },
   },
   {
     id: "dawn",
@@ -275,8 +243,7 @@ export const ENGINES: readonly Engine[] = [
     language: "C++",
     protocol: "library",
     upstream: gh("google/dawn"),
-    thirdParty: "third_party/dawn",
-    install: { via: "build", host: "fr1" },
+    install: { via: "build" },
     js: "none",
     gpu: "dawn",
   },
@@ -287,7 +254,6 @@ export const ENGINES: readonly Engine[] = [
     language: "Rust",
     protocol: "library",
     upstream: gh("gfx-rs/wgpu"),
-    thirdParty: "third_party/wgpu",
     install: { via: "dependency", registry: "crates", name: "wgpu" },
     js: "none",
     gpu: "wgpu",
@@ -302,7 +268,6 @@ export const ENGINES: readonly Engine[] = [
     language: "Rust",
     protocol: "cli",
     upstream: gh("vercel-labs/agent-browser"),
-    thirdParty: "third_party/agent-browser",
     install: { via: "ay", tool: "agent-browser", bin: "agent-browser" },
   },
   {
@@ -314,7 +279,6 @@ export const ENGINES: readonly Engine[] = [
     language: "TypeScript",
     protocol: "mcp",
     upstream: gh("ChromeDevTools/chrome-devtools-mcp"),
-    thirdParty: "third_party/chrome-devtools-mcp",
     install: {
       via: "ay",
       tool: "chrome-devtools-mcp",
@@ -330,7 +294,6 @@ export const ENGINES: readonly Engine[] = [
     language: "TypeScript",
     protocol: "mcp",
     upstream: gh("microsoft/playwright-mcp"),
-    thirdParty: "third_party/playwright-mcp",
     install: { via: "ay", tool: "playwright-mcp", bin: "playwright-mcp" },
   },
   {
@@ -342,10 +305,9 @@ export const ENGINES: readonly Engine[] = [
     language: "Python",
     protocol: "cli",
     upstream: gh("microsoft/playwright-python"),
-    thirdParty: "third_party/playwright-python",
     install: {
       via: "uv",
-      spec: `playwright==${PINS.playwrightPython}`,
+      spec: "playwright",
       bin: "playwright",
     },
   },
@@ -358,10 +320,9 @@ export const ENGINES: readonly Engine[] = [
     language: "Python",
     protocol: "cli",
     upstream: gh("apify/crawlee-python"),
-    thirdParty: "third_party/crawlee-python",
     install: {
       via: "uv",
-      spec: `crawlee[cli]==${PINS.crawleePython}`,
+      spec: "crawlee[cli]",
       bin: "crawlee",
     },
   },
@@ -374,7 +335,6 @@ export const ENGINES: readonly Engine[] = [
     language: "TypeScript",
     protocol: "cli",
     upstream: gh("apify/apify-cli"),
-    thirdParty: "third_party/apify-cli",
     install: { via: "ay", tool: "apify-cli", bin: "apify" },
   },
   {
@@ -386,7 +346,6 @@ export const ENGINES: readonly Engine[] = [
     language: "TypeScript",
     protocol: "library",
     upstream: gh("apify/crawlee"),
-    thirdParty: "third_party/crawlee",
     install: { via: "dependency", registry: "npm", name: "crawlee" },
   },
   {
@@ -398,7 +357,6 @@ export const ENGINES: readonly Engine[] = [
     language: "TypeScript",
     protocol: "library",
     upstream: gh("puppeteer/puppeteer"),
-    thirdParty: "third_party/puppeteer",
     install: { via: "dependency", registry: "npm", name: "puppeteer-core" },
   },
   {
@@ -410,7 +368,6 @@ export const ENGINES: readonly Engine[] = [
     language: "TypeScript",
     protocol: "library",
     upstream: gh("microsoft/playwright"),
-    thirdParty: "third_party/playwright",
     install: { via: "dependency", registry: "npm", name: "playwright-core" },
   },
   {
@@ -422,7 +379,6 @@ export const ENGINES: readonly Engine[] = [
     language: "TypeScript",
     protocol: "library",
     upstream: gh("apify/apify-sdk-js"),
-    thirdParty: "third_party/apify-sdk-js",
     install: { via: "dependency", registry: "npm", name: "apify" },
   },
   {
@@ -434,7 +390,6 @@ export const ENGINES: readonly Engine[] = [
     language: "Python",
     protocol: "library",
     upstream: gh("apify/apify-sdk-python"),
-    thirdParty: "third_party/apify-sdk-python",
     install: { via: "dependency", registry: "pypi", name: "apify" },
   },
   {
@@ -446,7 +401,6 @@ export const ENGINES: readonly Engine[] = [
     language: "TypeScript",
     protocol: "library",
     upstream: gh("apify/apify-client-js"),
-    thirdParty: "third_party/apify-client-js",
     install: { via: "dependency", registry: "npm", name: "apify-client" },
   },
   {
@@ -458,7 +412,6 @@ export const ENGINES: readonly Engine[] = [
     language: "Python",
     protocol: "library",
     upstream: gh("apify/apify-client-python"),
-    thirdParty: "third_party/apify-client-python",
     install: { via: "dependency", registry: "pypi", name: "apify-client" },
   },
 ];
@@ -467,7 +420,7 @@ export function getEngine(id: string): Engine {
   const e = ENGINES.find((x) => x.id === id);
   if (!e)
     throw new Error(
-      `unknown engine: ${id} (see \`chromium-bun engines list\`)`,
+      `unknown engine: ${id} (see \`browser-engines engines list\`)`,
     );
   return e;
 }
@@ -593,20 +546,16 @@ export function resolveExecutable(engine: Engine): string | null {
     case "system":
       return systemChrome();
     case "build": {
-      if (engine.id === "chromium" && Bun.env.CHROMIUM_PATH)
-        return Bun.env.CHROMIUM_PATH;
-      for (const out of i.output ?? []) {
-        const p = join(repoRoot(), out, exe(i.bin ?? "chrome"));
-        if (existsSync(p)) return p;
-      }
-      return null;
+      const out = i.outEnv ? Bun.env[i.outEnv] : undefined;
+      const p = out ? join(out, exe(i.bin ?? "chrome")) : null;
+      return p && existsSync(p) ? p : null;
     }
     case "dependency":
       return null;
   }
 }
 
-/** First available Chromium: CHROME_PATH, repository build, stable Chrome for Testing, Playwright, system. */
+/** First available Chromium: CHROME_PATH, a source build, stable Chrome for Testing, Playwright, system. */
 export function resolveChromium(): string | null {
   if (Bun.env.CHROME_PATH && existsSync(Bun.env.CHROME_PATH))
     return Bun.env.CHROME_PATH;

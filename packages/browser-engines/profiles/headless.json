@@ -1,151 +1,201 @@
 {
-  "$comment": "Profil headless/cloud unique pour les agents navigateur (agent-browser, chromium-bun, Chromium headless de fr1). Chaque entrée cite sa définition dans la source Chromium 157.0.8103.78 (fr1:/srv/chromium/src). Consommé par src/browser/profile.ts ; mesures : docs/infra/CHROMIUM-HEADLESS.md.",
+  "$comment": "One headless profile for browser agents (agent-browser, browser-engines, headless Chromium). Each entry cites its definition in the Chromium source (version of the checkout the profile was verified against).",
   "chromium": "157.0.8103.78",
   "source": "chromium/src@157.0.8103.78",
   "notes": [
-    "base/command_line.cc:436-455 : un commutateur répété garde la dernière valeur (aucun DuplicateSwitchHandler hors tests). agent-browser ajoute ses arguments utilisateur après les siens : --disable-features du profil remplace son --disable-features=Translate.",
-    "Translate n'est pas une fonctionnalité de base::Feature en 157 (components/translate/core/common/translate_features.cc ne définit que TranslateTrigger, TranslateSimplifiedHindi, ...) : le --disable-features=Translate d'agent-browser 0.42.0 est sans effet ; la traduction est coupée par la politique TranslateEnabled sur Linux.",
-    "chrome/browser/headless/headless_mode_util.cc:21 : le mode headless ne teste que la présence de --headless ; la valeur =new est ignorée en 157 (ancien headless = binaire headless_shell séparé).",
-    "chrome/browser/devtools/remote_debugging_server.cc:90,133 : le port CDP n'écoute que sur 127.0.0.1."
+    "base/command_line.cc:436-455: a repeated switch keeps its last value (no DuplicateSwitchHandler outside tests). agent-browser appends user arguments after its own, so the profile's --disable-features replaces its --disable-features=Translate.",
+    "Translate is not a base::Feature in Chromium 157 (components/translate/core/common/translate_features.cc defines only TranslateTrigger, TranslateSimplifiedHindi, ...): agent-browser's --disable-features=Translate has no effect; translation is turned off by the TranslateEnabled policy on Linux.",
+    "chrome/browser/headless/headless_mode_util.cc:21: headless mode only tests that --headless is present; the =new value is ignored in 157 (the old headless is the separate headless_shell binary).",
+    "chrome/browser/devtools/remote_debugging_server.cc:90,133: the CDP port listens on 127.0.0.1 only."
   ],
   "args": [
     {
       "arg": "--headless=new",
-      "os": ["linux", "win"],
+      "os": [
+        "linux",
+        "win"
+      ],
       "src": "components/embedder_support/switches.h (kHeadless) ; chrome/browser/headless/headless_mode_util.cc:21",
-      "why": "navigateur complet sans fenêtre"
+      "why": "full browser without a window"
     },
     {
       "arg": "--no-first-run",
-      "os": ["linux", "win"],
+      "os": [
+        "linux",
+        "win"
+      ],
       "src": "chrome/common/chrome_switches.h:528",
-      "why": "pas d'assistant de premier lancement"
+      "why": "no first-run wizard"
     },
     {
       "arg": "--no-default-browser-check",
-      "os": ["linux", "win"],
+      "os": [
+        "linux",
+        "win"
+      ],
       "src": "chrome/common/chrome_switches.h:507",
-      "why": "pas de vérification navigateur par défaut"
+      "why": "no default-browser check"
     },
     {
       "arg": "--disable-background-networking",
-      "os": ["linux", "win"],
+      "os": [
+        "linux",
+        "win"
+      ],
       "src": "chrome/common/chrome_switches.h:238",
-      "why": "pas de trafic de fond (variations, promos, prélecture)"
+      "why": "no background traffic (variations, promotions, prefetch)"
     },
     {
       "arg": "--disable-component-update",
-      "os": ["linux", "win"],
+      "os": [
+        "linux",
+        "win"
+      ],
       "src": "chrome/common/chrome_switches.h:245",
-      "why": "pas de téléchargement de composants au démarrage d'un profil jetable"
+      "why": "no component download when a disposable profile starts"
     },
     {
       "arg": "--disable-default-apps",
-      "os": ["linux", "win"],
+      "os": [
+        "linux",
+        "win"
+      ],
       "src": "chrome/common/chrome_switches.h:254",
-      "why": "pas d'installation des applis par défaut"
+      "why": "no default apps installation"
     },
     {
       "arg": "--disable-domain-reliability",
-      "os": ["linux", "win"],
+      "os": [
+        "linux",
+        "win"
+      ],
       "src": "chrome/common/chrome_switches.h:262",
-      "why": "pas de balises Domain Reliability envoyées à Google"
+      "why": "no Domain Reliability beacons"
     },
     {
       "arg": "--no-pings",
-      "os": ["linux", "win"],
+      "os": [
+        "linux",
+        "win"
+      ],
       "src": "chrome/common/chrome_switches.h:535",
-      "why": "pas de pings d'audit de liens <a ping>"
+      "why": "no <a ping> hyperlink auditing"
     },
     {
       "arg": "--disable-sync",
-      "os": ["linux", "win"],
+      "os": [
+        "linux",
+        "win"
+      ],
       "src": "components/sync/base/command_line_switches.h:11",
-      "why": "aucune synchronisation de compte"
+      "why": "no account sync"
     },
     {
       "arg": "--metrics-recording-only",
-      "os": ["linux", "win"],
+      "os": [
+        "linux",
+        "win"
+      ],
       "src": "components/metrics/metrics_switches.h:49",
-      "why": "métriques locales seulement, aucun envoi"
+      "why": "local metrics only, nothing uploaded"
     },
     {
       "arg": "--disable-breakpad",
-      "os": ["linux", "win"],
+      "os": [
+        "linux",
+        "win"
+      ],
       "src": "base/base_switches.h:15",
-      "why": "pas de gestionnaire de crash (crashpad) : un processus de moins"
+      "why": "no crash handler (crashpad): one process less"
     },
     {
       "arg": "--mute-audio",
-      "os": ["linux", "win"],
+      "os": [
+        "linux",
+        "win"
+      ],
       "src": "media/base/media_switches.cc:183",
-      "why": "aucune sortie audio côté serveur/agent"
+      "why": "no audio output for a server or agent"
     },
     {
       "arg": "--disable-renderer-backgrounding",
-      "os": ["linux", "win"],
+      "os": [
+        "linux",
+        "win"
+      ],
       "src": "content/public/common/content_switches.cc:243",
-      "why": "les onglets d'arrière-plan d'un agent gardent leur priorité"
+      "why": "an agent's background tabs keep their priority"
     },
     {
       "arg": "--disable-background-timer-throttling",
-      "os": ["linux", "win"],
+      "os": [
+        "linux",
+        "win"
+      ],
       "src": "content/public/common/content_switches.cc:97",
-      "why": "timers non bridés dans les onglets d'arrière-plan"
+      "why": "timers are not throttled in background tabs"
     },
     {
       "arg": "--disable-backgrounding-occluded-windows",
-      "os": ["linux", "win"],
+      "os": [
+        "linux",
+        "win"
+      ],
       "src": "content/public/common/content_switches.cc:93",
-      "why": "fenêtres masquées non mises en veille"
+      "why": "occluded windows are not put to sleep"
     },
     {
       "arg": "--disk-cache-size=268435456",
-      "os": ["linux", "win"],
+      "os": [
+        "linux",
+        "win"
+      ],
       "src": "chrome/common/chrome_switches.h:288",
-      "why": "cache disque plafonné à 256 Mio (profil persistant de fr1)"
+      "why": "disk cache capped at 256 MiB for a persistent profile"
     },
     {
       "arg": "--password-store=basic",
-      "os": ["linux"],
+      "os": [
+        "linux"
+      ],
       "src": "components/password_manager/core/browser/password_manager_switches.cc:13",
-      "why": "pas de trousseau (gnome-keyring/kwallet) sur un serveur"
+      "why": "no keyring (gnome-keyring, kwallet) on a server"
     }
   ],
   "disableFeatures": [
     {
       "name": "BackForwardCache",
       "src": "content/public/common/content_features.cc:182",
-      "why": "un agent navigue en série dans un onglet : les pages quittées ne restent pas en mémoire"
+      "why": "an agent browses serially in one tab: pages it left do not stay in memory"
     },
     {
       "name": "OptimizationHints",
       "src": "components/optimization_guide/core/optimization_guide_features.cc:60",
-      "why": "pas de récupération d'indices d'optimisation"
+      "why": "no optimization hints fetch"
     },
     {
       "name": "MediaRouter",
       "src": "chrome/browser/media/router/media_router_feature.cc:47",
-      "why": "pas de découverte Cast/DIAL"
+      "why": "no Cast/DIAL discovery"
     },
     {
       "name": "AutofillServerCommunication",
       "src": "components/autofill/core/common/autofill_debug_features.cc:143",
-      "why": "pas de requêtes au serveur Autofill"
+      "why": "no Autofill server queries"
     }
   ],
   "gpu": {
-    "$comment": "software = hôte sans GPU (fr1) ; hardware = GPU réel (PC, ANGLE D3D11 par défaut) ; off = GPU coupé sans repli SwiftShader explicite. Choix par mesure (docs/infra/CHROMIUM-HEADLESS.md) : sur fr1, --disable-gpu + SwiftShader = 422 Mo contre 504 Mo avec --use-angle=swiftshader, WebGL2 conservé dans les deux cas.",
+    "$comment": "software = host without a GPU; hardware = real GPU (ANGLE, D3D11 by default on Windows); off = GPU disabled without an explicit SwiftShader fallback. On a GPU-less Linux host, --disable-gpu with SwiftShader used 422 MB against 504 MB with --use-angle=swiftshader; WebGL2 works in both.",
     "software": [
       {
         "arg": "--disable-gpu",
         "src": "content/public/common/content_switches.cc:134",
-        "why": "pas d'essai de pilote GPU absent ; compositing logiciel"
+        "why": "no attempt at a missing GPU driver; software compositing"
       },
       {
         "arg": "--enable-unsafe-swiftshader",
         "src": "ui/gl/gl_switches.cc:168",
-        "why": "garde WebGL2 en repli SwiftShader (CPU) ; agent-browser l'ajoute aussi en headless"
+        "why": "keeps WebGL2 through the SwiftShader (CPU) fallback; agent-browser adds it in headless mode too"
       }
     ],
     "hardware": [],
@@ -153,20 +203,23 @@
       {
         "arg": "--disable-gpu",
         "src": "content/public/common/content_switches.cc:134",
-        "why": "compositing logiciel"
+        "why": "software compositing"
       }
     ],
     "rejected": [
       {
         "arg": "--use-angle=swiftshader",
         "src": "ui/gl/gl_switches.cc:102",
-        "why": "mesuré sur fr1 : +82 Mo de RAM finale contre --disable-gpu, sans gain"
+        "why": "measured on a GPU-less Linux host: 82 MB more final RAM than --disable-gpu, no gain"
       }
     ],
-    "default": { "linux": "software", "win": "hardware" }
+    "default": {
+      "linux": "software",
+      "win": "hardware"
+    }
   },
   "policies": {
-    "$comment": "Linux seulement : /etc/opt/chrome/policies/managed/aphrody-headless.json sur fr1. Sous Windows le Chrome headless lit les politiques HKLM/HKCU du Chrome de l'utilisateur : rien n'y est posé ici. Définitions : components/policy/resources/templates/policy_definitions/.",
+    "$comment": "Linux only: written to Chrome's managed policy directory (/etc/opt/chrome/policies/managed/). On Windows the headless Chrome reads the user's HKLM/HKCU Chrome policies: nothing is set there. Definitions: components/policy/resources/templates/policy_definitions/.",
     "linux": {
       "BackgroundModeEnabled": {
         "value": false,
@@ -209,23 +262,23 @@
   "excluded": [
     {
       "arg": "--no-sandbox",
-      "why": "sandbox conservé : fr1 a chrome-sandbox setuid et userns autorisés (kernel.apparmor_restrict_unprivileged_userns=0), lancement vérifié sans"
+      "why": "sandbox kept: needs a setuid chrome-sandbox or unprivileged user namespaces on the host; launch verified with the sandbox on"
     },
     {
       "arg": "--disable-ipc-flooding-protection",
-      "why": "protection du processus navigateur (content_switches.cc:167) : exclue"
+      "why": "browser process protection (content_switches.cc:167): excluded"
     },
     {
       "arg": "--disable-client-side-phishing-detection",
-      "why": "Safe Browsing : exclu"
+      "why": "Safe Browsing: excluded"
     },
     {
       "arg": "--disable-dev-shm-usage",
-      "why": "inutile sur fr1 (/dev/shm 23 Gio) ; agent-browser l'ajoute seul sous 256 Mio (base/base_switches.h:153)"
+      "why": "not needed when /dev/shm is large; agent-browser adds it by itself below 256 MiB (base/base_switches.h:153)"
     }
   ],
   "agentBrowserBaseline": {
-    "$comment": "Arguments qu'agent-browser 0.42.0 passe d'office en headless (third_party/agent-browser/cli/src/native/cdp/chrome.rs:466-577) : base de comparaison « avant ».",
+    "$comment": "Arguments agent-browser passes by default in headless mode (its cli/src/native/cdp/chrome.rs): the comparison baseline.",
     "version": "0.42.0",
     "common": [
       "--no-first-run",

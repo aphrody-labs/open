@@ -1,12 +1,12 @@
 {
-  "source": "aphrody-labs/aphrody @ 576d8795",
+  "source": "aphrody-labs/aphrody @ cc9311db1",
   "counts": {
     "thirdParty": 559,
-    "crates": 214,
+    "crates": 219,
     "packages": 50,
     "apps": 6,
-    "docs": 1556,
-    "trackedFiles": 16258
+    "docs": 1754,
+    "trackedFiles": 20872
   },
   "thirdParty": [
     {
@@ -645,7 +645,7 @@
       "path": "third_party/codex",
       "url": "https://github.com/aphrody-labs/codex.git",
       "upstream": "https://github.com/openai/codex.git",
-      "commit": "568c592f9cbe4388aafe9759bf6f3ed1bb0fd5e3",
+      "commit": "b016cd18472588606c04af565528c4cd6746a41f",
       "branch": "main",
       "pillar": "git"
     },
@@ -2013,7 +2013,7 @@
       "path": "third_party/niubash",
       "url": "https://github.com/aphrody-labs/niubash.git",
       "upstream": "https://github.com/unixwin/niubash.git",
-      "commit": "868ef46bfff8b70aaf32d9701fffc1f5046a0696",
+      "commit": "1b235ab85f7d517639b477bd1b512546570add47",
       "branch": "master",
       "pillar": "git"
     },
@@ -2501,7 +2501,7 @@
       "path": "third_party/rubash",
       "url": "https://github.com/aphrody-labs/rubash.git",
       "upstream": "https://github.com/unixwin/rubash.git",
-      "commit": "2fb9bc210f11312d732a8aa65c6bfa7708c3ecef",
+      "commit": "14794773239afe0c12114bf12eb2829d9b8e14a9",
       "branch": "master",
       "pillar": "git"
     },
@@ -4333,7 +4333,7 @@
       "path": "third_party/WinuxCmd",
       "url": "https://github.com/aphrody-labs/WinuxCmd.git",
       "upstream": "https://github.com/unixwin/WinuxCmd.git",
-      "commit": "c74112c06a1a1946361492baab2a4715b76d95e7",
+      "commit": "47fcf45430ff71c8f0239a5d7fec74945769c218",
       "branch": "main",
       "pillar": "git"
     },
@@ -4341,7 +4341,7 @@
       "path": "third_party/winuxcmd-i18n",
       "url": "https://github.com/aphrody-labs/winuxcmd-i18n.git",
       "upstream": "https://github.com/unixwin/winuxcmd-i18n.git",
-      "commit": "5738b421b2c82a1c7c4915e5712b6e7c72baf553",
+      "commit": "f88bec1bab6341761fca7e0e4635d045cb565a0a",
       "branch": "main",
       "pillar": "git"
     },
@@ -5119,6 +5119,16 @@
       "description": "Unified network probe: DNS, TCP, TLS (rustls + platform verifier), ALPN, HTTP/1.1 and HTTP/2 with per-phase timings."
     },
     {
+      "path": "src/niubash",
+      "name": "niubash",
+      "description": "AI-native bash-compatible shell for Windows, built on rubash + winuxcmd"
+    },
+    {
+      "path": "src/niubash/runtime",
+      "name": "niubash-runtime",
+      "description": "Runtime crate for niubash: rubash-backed shell REPL on Windows"
+    },
+    {
       "path": "src/node_path",
       "name": "bun_node_path",
       "description": null
@@ -5232,6 +5242,21 @@
       "path": "src/rt",
       "name": "aphrody-rt",
       "description": "Runtime manager behind `ay rt`: Python engines and versions on uv (CPython, free-threaded, PyPy, GraalPy, Pyodide, RustPython), Node, Deno and Bun versions, runtime and engine combinations, package managers, PyTorch backends"
+    },
+    {
+      "path": "src/rubash",
+      "name": "rubash",
+      "description": "A Rust implementation of the GNU Bash shell"
+    },
+    {
+      "path": "src/ruline",
+      "name": "reedline",
+      "description": "A GNU readline-compatible line editor for niubash"
+    },
+    {
+      "path": "src/ruline/readline-abi",
+      "name": "readline-abi",
+      "description": "Clean-room GNU readline 8.x C ABI adapter for ruline"
     },
     {
       "path": "src/runtime",
@@ -5748,12 +5773,6 @@
       "workspace": true
     },
     {
-      "path": "packages/chromium-bun",
-      "name": "@aphrody/chromium-bun",
-      "description": "CDP client, SSRF-guarded crawler, BM25 search shards, engine registry and runtime benchmarks, on bun",
-      "workspace": true
-    },
-    {
       "path": "packages/core",
       "name": "@aphrody/core",
       "description": "bun:ffi bridge to src/core/capi: tree-sitter parse/query, BLAKE3, recursive index (sqlite + JSON)",
@@ -5826,6 +5845,12 @@
       "workspace": true
     },
     {
+      "path": "packages/omniu",
+      "name": "@aphrody/omniu",
+      "description": "oh-my-niu for Bun: plugin bundle as data, validator, packager and scaffolder, and the host that loads the ay plugin into both Bun and niu",
+      "workspace": true
+    },
+    {
       "path": "packages/py2bun",
       "name": "@aphrody/py2bun",
       "description": "Python 3 to Bun TypeScript transpiler: runtime and CLI wrapper (Rust crate at src/py2bun)",
@@ -5872,7 +5897,7 @@
     "GEMINI.md": 1,
     "README.md": 1,
     "apps": 86,
-    "bench": 1,
+    "bench": 2,
     "docs/ALPHABET.md": 1,
     "docs/ARCHITECTURE.md": 1,
     "docs/PLAN.mdx": 1,
@@ -5919,10 +5944,10 @@
     "docs/web": 3,
     "infra": 9,
     "licenses": 7,
-    "packages": 32,
+    "packages": 51,
     "plugins": 1,
-    "src": 54,
-    "test": 1,
+    "src": 230,
+    "test": 3,
     "tools": 16
   },
   "docs": [
@@ -7794,7 +7819,7 @@
     {
       "path": ".agents/skills/bun/references/zero-dep.md",
       "title": "Bun zero-dependency rules and native replacements (src)",
-      "bytes": 5026
+      "bytes": 5036
     },
     {
       "path": ".agents/skills/chrome-devtools-cli/SKILL.md",
@@ -7819,7 +7844,7 @@
     {
       "path": ".agents/skills/chromium/SKILL.md",
       "title": "Chromium / ChromiumOS",
-      "bytes": 9924
+      "bytes": 9955
     },
     {
       "path": ".agents/skills/chromium/references/repos.md",
@@ -9909,7 +9934,7 @@
     {
       "path": ".claude/agents/chromium-integrator.md",
       "title": null,
-      "bytes": 1773
+      "bytes": 1803
     },
     {
       "path": ".claude/agents/coherence-fixer.md",
@@ -9949,7 +9974,7 @@
     {
       "path": ".claude/agents/ts-packages.md",
       "title": null,
-      "bytes": 1671
+      "bytes": 1657
     },
     {
       "path": ".claude/agents/upstream-absorber.md",
@@ -9979,7 +10004,7 @@
     {
       "path": "README.md",
       "title": "src",
-      "bytes": 4451
+      "bytes": 4435
     },
     {
       "path": "apps/aphrody/DESIGN.md",
@@ -10417,6 +10442,11 @@
       "bytes": 7665
     },
     {
+      "path": "bench/shell/README.md",
+      "title": "shellbench",
+      "bytes": 745
+    },
+    {
       "path": "docs/ALPHABET.md",
       "title": "Aphrody, modèle Alphabet",
       "bytes": 7125
@@ -10424,7 +10454,7 @@
     {
       "path": "docs/ARCHITECTURE.md",
       "title": "Architecture de src",
-      "bytes": 77502
+      "bytes": 77532
     },
     {
       "path": "docs/PLAN.mdx",
@@ -10449,7 +10479,7 @@
     {
       "path": "docs/ai/ANOMALYCO.md",
       "title": "anomalyco (github.com/orgs/anomalyco) in src",
-      "bytes": 7067
+      "bytes": 7097
     },
     {
       "path": "docs/ai/DISTRIBUTED-INFERENCE.md",
@@ -10499,12 +10529,12 @@
     {
       "path": "docs/ay/MIGRATION.md",
       "title": "ay as the low-level CLI for Bun and Chromium: migration plan",
-      "bytes": 23331
+      "bytes": 23401
     },
     {
       "path": "docs/ay/NAMING.md",
       "title": "Naming",
-      "bytes": 35713
+      "bytes": 35723
     },
     {
       "path": "docs/base-ui/BLOG.md",
@@ -10609,7 +10639,7 @@
     {
       "path": "docs/bun/CONSOLIDATION.md",
       "title": "Consolidation bun (2026-11-13)",
-      "bytes": 21250
+      "bytes": 21299
     },
     {
       "path": "docs/bun/NATIVE-BINARY.md",
@@ -10864,7 +10894,7 @@
     {
       "path": "docs/games/PLATFORM-EQUIV.md",
       "title": "Platform equivalents: Windows, Linux and Chromium layers in the repository",
-      "bytes": 11998
+      "bytes": 12038
     },
     {
       "path": "docs/games/WASM-DEPLOY.md",
@@ -10988,7 +11018,7 @@
     },
     {
       "path": "docs/infra/FLEET-OFFLOAD.md",
-      "title": "Fleet offload (fr1 load, isolation, dispatch)",
+      "title": "Fleet offload (<host> load, isolation, dispatch)",
       "bytes": 28013
     },
     {
@@ -11054,7 +11084,7 @@
     {
       "path": "docs/infra/MIGRATION-VERCEL-CF.md",
       "title": "Migration Vercel + Cloudflare (2026-11-12)",
-      "bytes": 13255
+      "bytes": 13331
     },
     {
       "path": "docs/infra/NPM.md",
@@ -11088,8 +11118,8 @@
     },
     {
       "path": "docs/infra/SINGLE-SERVER.md",
-      "title": "Single logical server (fr1 + fr2 + prd)",
-      "bytes": 9470
+      "title": "Single logical server (<host> + fr2 + prd)",
+      "bytes": 11314
     },
     {
       "path": "docs/infra/UPSTREAM-STACK.md",
@@ -12283,7 +12313,7 @@
     },
     {
       "path": "docs/native/bench/REPORT.md",
-      "title": "Headless engine benchmark, Aphrody Labs (fr1, 2026-11-12)",
+      "title": "Headless engine benchmark, Aphrody Labs (<host>, 2026-11-12)",
       "bytes": 38977
     },
     {
@@ -12319,7 +12349,7 @@
     {
       "path": "docs/native/deps/CHROMIUM-STACK-ALIGNMENT.md",
       "title": "Chromium stack alignment (2026-11-14)",
-      "bytes": 3322
+      "bytes": 3352
     },
     {
       "path": "docs/native/deps/DEDUP.md",
@@ -12669,7 +12699,7 @@
     {
       "path": "docs/net/NETWORK-STACK.md",
       "title": "Network stack of src (kernel to Chromium)",
-      "bytes": 6958
+      "bytes": 7103
     },
     {
       "path": "docs/nextjs/BLOG.md",
@@ -12728,7 +12758,7 @@
     },
     {
       "path": "docs/packaging/OURS.md",
-      "title": "Ce que C:\\src possède déjà (inspecté le 2026-11-12, lecture seule)",
+      "title": "Ce que  possède déjà (inspecté le 2026-11-12, lecture seule)",
       "bytes": 5331
     },
     {
@@ -12789,7 +12819,7 @@
     {
       "path": "docs/reference/bun-ffi.md",
       "title": "bun:ffi in src",
-      "bytes": 2691
+      "bytes": 2731
     },
     {
       "path": "docs/reference/llvm-toolchain.md",
@@ -13123,13 +13153,13 @@
     },
     {
       "path": "infra/fleet/ACME.md",
-      "title": "Shared ACME on fr2 (cdn, <fr2-public-ip>, <fr2-mesh-ip>)",
+      "title": "Shared ACME on <host> (<host>, <fr2-public-ip>, <fr2-mesh-ip>)",
       "bytes": 2312
     },
     {
       "path": "infra/fleet/RUNBOOK.md",
-      "title": "Fleet runbook (fr1, fr2, prd)",
-      "bytes": 10753
+      "title": "Fleet runbook (<host>, fr2, prd)",
+      "bytes": 10755
     },
     {
       "path": "infra/gcloud/README.md",
@@ -13143,7 +13173,7 @@
     },
     {
       "path": "infra/mail/README.md",
-      "title": "`contact@aphrody.com` Mailing Infrastructure (`C:\\src\\infra\\mail`)",
+      "title": "`contact@aphrody.com` Mailing Infrastructure (`\\infra\\mail`)",
       "bytes": 7689
     },
     {
@@ -13302,11 +13332,6 @@
       "bytes": 5100
     },
     {
-      "path": "packages/chromium-bun/REPORT.md",
-      "title": "6-Layer Architecture & Chromium-Bun Public Benchmark Suite",
-      "bytes": 37922
-    },
-    {
       "path": "packages/deploy/README.md",
       "title": "@aphrody/deploy: aphrody.app",
       "bytes": 3815
@@ -13337,6 +13362,106 @@
       "bytes": 4626
     },
     {
+      "path": "packages/omniu/CHANGELOG.md",
+      "title": "Changelog",
+      "bytes": 7225
+    },
+    {
+      "path": "packages/omniu/README.md",
+      "title": "@aphrody/omniu",
+      "bytes": 1316
+    },
+    {
+      "path": "packages/omniu/aliases/README.md",
+      "title": "Alias Assets",
+      "bytes": 424
+    },
+    {
+      "path": "packages/omniu/completions/README.md",
+      "title": "Completion Assets",
+      "bytes": 1254
+    },
+    {
+      "path": "packages/omniu/docs/authoring.md",
+      "title": "Plugin Authoring",
+      "bytes": 12765
+    },
+    {
+      "path": "packages/omniu/docs/command-not-found-provider-abi.md",
+      "title": "Command-Not-Found Provider ABI Draft",
+      "bytes": 2111
+    },
+    {
+      "path": "packages/omniu/docs/compatibility.md",
+      "title": "Compatibility",
+      "bytes": 5397
+    },
+    {
+      "path": "packages/omniu/docs/design-manifest-first-retired.md",
+      "title": "Retired: Manifest-First Oh My Niu Design",
+      "bytes": 9014
+    },
+    {
+      "path": "packages/omniu/docs/design.md",
+      "title": "Oh My Niu Framework Design",
+      "bytes": 15578
+    },
+    {
+      "path": "packages/omniu/docs/externalization-readiness.md",
+      "title": "Externalization Readiness",
+      "bytes": 7639
+    },
+    {
+      "path": "packages/omniu/docs/framework-smoke-notes.md",
+      "title": "Framework Smoke Notes",
+      "bytes": 2571
+    },
+    {
+      "path": "packages/omniu/docs/migration.md",
+      "title": "Legacy Migration",
+      "bytes": 1909
+    },
+    {
+      "path": "packages/omniu/docs/plugin-migration-status.md",
+      "title": "Plugin Migration Status",
+      "bytes": 9082
+    },
+    {
+      "path": "packages/omniu/docs/roadmap.md",
+      "title": "Historical Oh My Niu Roadmap",
+      "bytes": 21055
+    },
+    {
+      "path": "packages/omniu/docs/theme-plugin-release-checklist.md",
+      "title": "0.10.0 Theme And Plugin Release Checklist",
+      "bytes": 5326
+    },
+    {
+      "path": "packages/omniu/keybindings/README.md",
+      "title": "Keybinding Assets",
+      "bytes": 1720
+    },
+    {
+      "path": "packages/omniu/plugins/README.md",
+      "title": "Plugin Directories",
+      "bytes": 517
+    },
+    {
+      "path": "packages/omniu/prompts/README.md",
+      "title": "Prompt Assets",
+      "bytes": 1329
+    },
+    {
+      "path": "packages/omniu/templates/README.md",
+      "title": "Authoring Templates",
+      "bytes": 666
+    },
+    {
+      "path": "packages/omniu/themes/README.md",
+      "title": "Theme Assets",
+      "bytes": 542
+    },
+    {
       "path": "packages/py2bun/README.md",
       "title": "py2bun",
       "bytes": 7506
@@ -13358,8 +13483,8 @@
     },
     {
       "path": "src/archguard/README.md",
-      "title": "`archguard` (`C:\\src\\tools\\archguard`)",
-      "bytes": 13064
+      "title": "`archguard` (`\\tools\\archguard`)",
+      "bytes": 13013
     },
     {
       "path": "src/bundler/linker_context/README.md",
@@ -13562,6 +13687,486 @@
       "bytes": 1941
     },
     {
+      "path": "src/niubash/CHANGELOG.md",
+      "title": "Changelog",
+      "bytes": 84513
+    },
+    {
+      "path": "src/niubash/PRIVACY.md",
+      "title": "Privacy Policy / 隐私政策",
+      "bytes": 1605
+    },
+    {
+      "path": "src/niubash/README-zh.md",
+      "title": "Niubash — 原生 Windows Bash（Git Bash alternative）",
+      "bytes": 21476
+    },
+    {
+      "path": "src/niubash/README.md",
+      "title": "Niubash — native Bash for Windows (Git Bash alternative)",
+      "bytes": 32313
+    },
+    {
+      "path": "src/niubash/docs/api-ledger.md",
+      "title": "API Ledger — the engine surface niubash consumes",
+      "bytes": 146104
+    },
+    {
+      "path": "src/niubash/docs/audit/AUDIT-PLAN.md",
+      "title": "Niubash Self-Discovery Audit Plan (wt74/audit)",
+      "bytes": 27294
+    },
+    {
+      "path": "src/niubash/docs/audit/adversarial-matrix.md",
+      "title": "The Adversarial Test Matrix (lanes AM01–AM12)",
+      "bytes": 33733
+    },
+    {
+      "path": "src/niubash/docs/audit/ecosystem-form-factors.md",
+      "title": "Ecosystem Plugin Form Factors — Evidence-Based Taxonomy",
+      "bytes": 25644
+    },
+    {
+      "path": "src/niubash/docs/audit/findings/i368-read-unit-line-identity.md",
+      "title": "i368 — read-unit / line-number identity audit (alias + line-based semantics)",
+      "bytes": 14450
+    },
+    {
+      "path": "src/niubash/docs/audit/findings/wt100-i185.md",
+      "title": "wt100/i185 — readline INTERFACE-SURFACE audit (bind -x / READLINE_LINE / inputrc / fzf CTRL-R)",
+      "bytes": 13815
+    },
+    {
+      "path": "src/niubash/docs/audit/findings/wt82-L01.md",
+      "title": "wt82-L01 — L01 verb-sweep formalization + L22 1.2.x→1.3.3 migration audit",
+      "bytes": 14455
+    },
+    {
+      "path": "src/niubash/docs/audit/findings/wt82-L02.md",
+      "title": "Audit findings — lane wt82-L02 (domains L02 wizard fresh-walk + L05 gallery/preview truth)",
+      "bytes": 16898
+    },
+    {
+      "path": "src/niubash/docs/audit/findings/wt82-L08.md",
+      "title": "wt82-L08 — plugin `add` flows (L08) + rc backup/managed blocks (L16)",
+      "bytes": 18795
+    },
+    {
+      "path": "src/niubash/docs/audit/findings/wt91-allthemes.md",
+      "title": "wt91/allthemes — ALL-THEMES INTERACTIVE HANG SWEEP (full matrix, ConPTY, hard timeouts)",
+      "bytes": 31711
+    },
+    {
+      "path": "src/niubash/docs/audit/readline-live-abi.md",
+      "title": "Live readline ABI routing (niubash#775)",
+      "bytes": 7278
+    },
+    {
+      "path": "src/niubash/docs/audit/shell-gap-matrix.md",
+      "title": "Shell capability gap matrix: niubash/rubash vs fish, zsh, nushell",
+      "bytes": 55679
+    },
+    {
+      "path": "src/niubash/docs/cwd-state.md",
+      "title": "工作目录状态契约（Agent cwd-state）",
+      "bytes": 5144
+    },
+    {
+      "path": "src/niubash/docs/download-surface-audit.md",
+      "title": "Download Surface Audit (wt49/smokesweep, 2026-10-02)",
+      "bytes": 4327
+    },
+    {
+      "path": "src/niubash/docs/engine-sinking-list.md",
+      "title": "Engine Sinking List (host-layer findings, 2026-09-22)",
+      "bytes": 2972
+    },
+    {
+      "path": "src/niubash/docs/git-operations-safety.md",
+      "title": "Git Operations Safety Guide",
+      "bytes": 5087
+    },
+    {
+      "path": "src/niubash/docs/interactive-test-methodology.md",
+      "title": "How Real Shells Test Interactive Rendering — and the Niubash Adoption Plan",
+      "bytes": 33013
+    },
+    {
+      "path": "src/niubash/docs/journey-gate.md",
+      "title": "The Golden User Journey Gate",
+      "bytes": 32510
+    },
+    {
+      "path": "src/niubash/docs/journey-spec.md",
+      "title": "The Expanded Golden Journey Specification (P1–P10)",
+      "bytes": 31232
+    },
+    {
+      "path": "src/niubash/docs/native-builtins-uutils-port-inventory.md",
+      "title": "Native builtins: retired inventory",
+      "bytes": 1146
+    },
+    {
+      "path": "src/niubash/docs/planning/bash-upstream-local.md",
+      "title": "GNU Bash upstream local gate",
+      "bytes": 3922
+    },
+    {
+      "path": "src/niubash/docs/planning/code-signing-free-options.md",
+      "title": "代码签名免费方案提案(AV 影响名单 + 免费签名路线)",
+      "bytes": 5352
+    },
+    {
+      "path": "src/niubash/docs/planning/download-architecture-analysis.md",
+      "title": "下载职责的架构归属：shell 内部还是插件管理器层？",
+      "bytes": 11839
+    },
+    {
+      "path": "src/niubash/docs/planning/eco-harvest-resume.md",
+      "title": "生态收割：待测推进与构建版本重测",
+      "bytes": 2291
+    },
+    {
+      "path": "src/niubash/docs/planning/handoff-444-pface.md",
+      "title": "#444 交接文档 — journey P 面 #359 后适应修复（发版阻塞）",
+      "bytes": 11456
+    },
+    {
+      "path": "src/niubash/docs/planning/host-semantic-layer-elimination.md",
+      "title": "Host Semantic-Layer Elimination",
+      "bytes": 12694
+    },
+    {
+      "path": "src/niubash/docs/planning/lazy-family-source-study.md",
+      "title": "Lazy family source study (lazy.nvim / LazyVim / mason) — wt47/lazystudy",
+      "bytes": 27415
+    },
+    {
+      "path": "src/niubash/docs/planning/locale-utf8-default.md",
+      "title": "Planning: locale 默认值与 `${#var}` 计数（future trigger）",
+      "bytes": 1507
+    },
+    {
+      "path": "src/niubash/docs/planning/native-builtins-uutils-port-inventory.md",
+      "title": "Native builtins: retired inventory",
+      "bytes": 1146
+    },
+    {
+      "path": "src/niubash/docs/planning/niubash-git.md",
+      "title": "niubash-git：无 MSYS 原生最小 Git（路线 B 可行性评估）",
+      "bytes": 7755
+    },
+    {
+      "path": "src/niubash/docs/planning/niubash-next-development-plan.md",
+      "title": "Niubash Next Development Plan",
+      "bytes": 1356
+    },
+    {
+      "path": "src/niubash/docs/planning/niubash-positioning-and-feature-map.md",
+      "title": "Niubash Positioning and Feature Map",
+      "bytes": 1298
+    },
+    {
+      "path": "src/niubash/docs/planning/niubash-v2.2-reference-plan.md",
+      "title": "Niubash v2.2 Nushell Reference Plan",
+      "bytes": 6593
+    },
+    {
+      "path": "src/niubash/docs/planning/niubash-v3-plan.md",
+      "title": "Niubash v3 Plan",
+      "bytes": 1363
+    },
+    {
+      "path": "src/niubash/docs/planning/niubash-zsh-gap-analysis.md",
+      "title": "Niubash gap analysis: reaching ZSH-grade power",
+      "bytes": 10489
+    },
+    {
+      "path": "src/niubash/docs/planning/niugit-integration-study.md",
+      "title": "niugit 替代 Git Bash 可行性全面调研（wt49/niugit-study）",
+      "bytes": 12305
+    },
+    {
+      "path": "src/niubash/docs/planning/nushell-reference-audit.md",
+      "title": "Nushell Reference Audit for Niubash v2.2",
+      "bytes": 5429
+    },
+    {
+      "path": "src/niubash/docs/planning/oh-my-niu-bundle-plan.md",
+      "title": "Oh My Niubash Bundle Plan",
+      "bytes": 5816
+    },
+    {
+      "path": "src/niubash/docs/planning/oh-my-niu-ecosystem.md",
+      "title": "oh-my-niu 生态集成与 setup 体验升级 — 设计文档",
+      "bytes": 61167
+    },
+    {
+      "path": "src/niubash/docs/planning/performance-investigation.md",
+      "title": "Performance investigation: pure-sh nested loops",
+      "bytes": 5838
+    },
+    {
+      "path": "src/niubash/docs/planning/plugin-command-not-found-provider-abi.md",
+      "title": "Command-Not-Found Provider ABI Draft",
+      "bytes": 3791
+    },
+    {
+      "path": "src/niubash/docs/planning/plugin-ecosystem-vs-zsh.md",
+      "title": "Plugin ecosystem: niubash vs zsh — openness audit",
+      "bytes": 3913
+    },
+    {
+      "path": "src/niubash/docs/planning/plugin-externalization-readiness.md",
+      "title": "Plugin Externalization Readiness",
+      "bytes": 1653
+    },
+    {
+      "path": "src/niubash/docs/planning/plugin-system-direction.md",
+      "title": "Plugin System Direction",
+      "bytes": 4790
+    },
+    {
+      "path": "src/niubash/docs/planning/plugin-system-roadmap.md",
+      "title": "Plugin System Roadmap",
+      "bytes": 2504
+    },
+    {
+      "path": "src/niubash/docs/planning/rubash-pr-windows-path.md",
+      "title": "rubash upstream PR: Fix Windows PATH casing bug",
+      "bytes": 6636
+    },
+    {
+      "path": "src/niubash/docs/planning/setup-wizard-redesign.md",
+      "title": "Setup Wizard Redesign",
+      "bytes": 13212
+    },
+    {
+      "path": "src/niubash/docs/planning/user-rc-read-only.md",
+      "title": "User RC Ownership and Read-Only Startup",
+      "bytes": 21607
+    },
+    {
+      "path": "src/niubash/docs/planning/vcs-status-externalization.md",
+      "title": "VCS Status Externalization (git included)",
+      "bytes": 4762
+    },
+    {
+      "path": "src/niubash/docs/planning/wizard-redesign.md",
+      "title": "Wizard Redesign: zsh-Style First Run + Ecosystem Surfacing",
+      "bytes": 8649
+    },
+    {
+      "path": "src/niubash/docs/plugins-guide.md",
+      "title": "Niubash Plugins Guide",
+      "bytes": 18116
+    },
+    {
+      "path": "src/niubash/docs/plugins-quickref.md",
+      "title": "Niubash Plugin System — AI Quick Reference",
+      "bytes": 7426
+    },
+    {
+      "path": "src/niubash/docs/proc-pid-fd-compatibility-plan.md",
+      "title": "Niubash Minimal /proc/<pid>/fd Host Plan",
+      "bytes": 3978
+    },
+    {
+      "path": "src/niubash/docs/release-notes-1.4.0-draft.md",
+      "title": "niubash 1.4.0 — Release Notes (DRAFT)",
+      "bytes": 12585
+    },
+    {
+      "path": "src/niubash/docs/release-runbook.md",
+      "title": "Release runbook (operator)",
+      "bytes": 7880
+    },
+    {
+      "path": "src/niubash/docs/release-tag-ruleset.md",
+      "title": "Release tag immutability ruleset",
+      "bytes": 3786
+    },
+    {
+      "path": "src/niubash/docs/release.md",
+      "title": "Release pipeline",
+      "bytes": 14675
+    },
+    {
+      "path": "src/niubash/docs/repo-stats.md",
+      "title": "Repository stats",
+      "bytes": 370
+    },
+    {
+      "path": "src/niubash/docs/shell-quirks-observed.md",
+      "title": "Observed Shell-Syntax Quirks vs Real Bash (Session Log)",
+      "bytes": 33235
+    },
+    {
+      "path": "src/niubash/docs/src/SUMMARY.md",
+      "title": "Summary",
+      "bytes": 752
+    },
+    {
+      "path": "src/niubash/docs/src/advanced-usage.md",
+      "title": "Advanced Niubash Usage",
+      "bytes": 28027
+    },
+    {
+      "path": "src/niubash/docs/src/agents.md",
+      "title": "Coding agents on Windows, and the shell they run",
+      "bytes": 26339
+    },
+    {
+      "path": "src/niubash/docs/src/architecture.md",
+      "title": "Niubash v2 Architecture",
+      "bytes": 14399
+    },
+    {
+      "path": "src/niubash/docs/src/builtins.md",
+      "title": "Built-ins & Fast Paths",
+      "bytes": 4709
+    },
+    {
+      "path": "src/niubash/docs/src/completion.md",
+      "title": "TAB Completion & Ghost Text",
+      "bytes": 7817
+    },
+    {
+      "path": "src/niubash/docs/src/configuration.md",
+      "title": "Configuration sources and precedence",
+      "bytes": 6618
+    },
+    {
+      "path": "src/niubash/docs/src/external-completion-providers.md",
+      "title": "External Completion Providers",
+      "bytes": 6327
+    },
+    {
+      "path": "src/niubash/docs/src/getting-started.md",
+      "title": "Getting Started with Niubash",
+      "bytes": 7725
+    },
+    {
+      "path": "src/niubash/docs/src/hooks.md",
+      "title": "Hooks",
+      "bytes": 2724
+    },
+    {
+      "path": "src/niubash/docs/src/index.md",
+      "title": "Niubash",
+      "bytes": 4641
+    },
+    {
+      "path": "src/niubash/docs/src/installer.md",
+      "title": "Installer and Self-Update",
+      "bytes": 12099
+    },
+    {
+      "path": "src/niubash/docs/src/niubash-roadmap.md",
+      "title": "Niubash Roadmap",
+      "bytes": 4430
+    },
+    {
+      "path": "src/niubash/docs/src/performance.md",
+      "title": "Performance",
+      "bytes": 8739
+    },
+    {
+      "path": "src/niubash/docs/src/platform-support.md",
+      "title": "Platform Support",
+      "bytes": 27407
+    },
+    {
+      "path": "src/niubash/docs/src/plugins.md",
+      "title": "Plugins & the Bash Ecosystem",
+      "bytes": 9705
+    },
+    {
+      "path": "src/niubash/docs/src/rubash-bash-compat-matrix.md",
+      "title": "Rubash Bash Compatibility Matrix",
+      "bytes": 7791
+    },
+    {
+      "path": "src/niubash/docs/src/why-niubash.md",
+      "title": "Why Niubash",
+      "bytes": 9473
+    },
+    {
+      "path": "src/niubash/docs/src/windows-path-contract.md",
+      "title": "Windows Path Contract",
+      "bytes": 13093
+    },
+    {
+      "path": "src/niubash/docs/store/certification-notes.md",
+      "title": "认证说明（Notes for Certification）",
+      "bytes": 1636
+    },
+    {
+      "path": "src/niubash/docs/store/listing.md",
+      "title": "Microsoft Store 一览文案（Store Listing）",
+      "bytes": 3025
+    },
+    {
+      "path": "src/niubash/docs/windows-signal-compatibility.md",
+      "title": "Windows Signal Compatibility",
+      "bytes": 3942
+    },
+    {
+      "path": "src/niubash/skills/niubash/SKILL.md",
+      "title": "Niubash",
+      "bytes": 13095
+    },
+    {
+      "path": "src/niubash/skills/niubash/references/paths.md",
+      "title": "Path contract",
+      "bytes": 3889
+    },
+    {
+      "path": "src/niubash/skills/niubash/references/prompt-plugins.md",
+      "title": "Prompt ownership and the external plugin ecosystem",
+      "bytes": 5554
+    },
+    {
+      "path": "src/niubash/skills/niubash/references/quickref.md",
+      "title": "Niubash command quick reference",
+      "bytes": 11057
+    },
+    {
+      "path": "src/niubash/skills/niubash/references/wpm.md",
+      "title": "WPM",
+      "bytes": 1938
+    },
+    {
+      "path": "src/niubash/tests/fixtures/sources/bash-preexec/README.md",
+      "title": "bash-preexec (fixture)",
+      "bytes": 463
+    },
+    {
+      "path": "src/niubash/tests/fixtures/sources/complete-alias/README.md",
+      "title": "complete-alias (fixture)",
+      "bytes": 972
+    },
+    {
+      "path": "src/niubash/tests/fixtures/sources/fzf-git.sh/README.md",
+      "title": "fzf-git.sh (fixture)",
+      "bytes": 1009
+    },
+    {
+      "path": "src/niubash/tests/fixtures/sources/no-sourceable/README.md",
+      "title": "no-sourceable (fixture)",
+      "bytes": 182
+    },
+    {
+      "path": "src/niubash/tests/fixtures/sources/unknown-shape/README.md",
+      "title": "unknown-shape (fixture)",
+      "bytes": 210
+    },
+    {
+      "path": "src/niubash/tests/fixtures/sources/wild-spark/README.md",
+      "title": "spark",
+      "bytes": 205
+    },
+    {
       "path": "src/node-fallbacks/README.md",
       "title": "Browser polyfills for `bun build --target=browser`",
       "bytes": 657
@@ -13575,6 +14180,406 @@
       "path": "src/react_compiler/DESIGN.md",
       "title": "bun_react_compiler — direct-lowering design",
       "bytes": 14707
+    },
+    {
+      "path": "src/rubash/CHANGELOG.md",
+      "title": "更新日志",
+      "bytes": 52061
+    },
+    {
+      "path": "src/rubash/README.md",
+      "title": "Rubash — a Bash 5.3-compatible engine, from scratch in Rust",
+      "bytes": 40203
+    },
+    {
+      "path": "src/rubash/SKILL.md",
+      "title": "Rubash GNU Bash Compatibility Skill",
+      "bytes": 4018
+    },
+    {
+      "path": "src/rubash/docs/PROVENANCE.md",
+      "title": "Provenance & Implementation Methodology",
+      "bytes": 4607
+    },
+    {
+      "path": "src/rubash/docs/SOURCE-AUDIT.md",
+      "title": "GNU C Source vs Rust Owner — Line-Level Gap Audit (wt5/audit, 2026-09-28)",
+      "bytes": 15592
+    },
+    {
+      "path": "src/rubash/docs/admission-guard-audit-20260922.md",
+      "title": "词级准入守卫全仓审计（#117 未完成部分）",
+      "bytes": 10419
+    },
+    {
+      "path": "src/rubash/docs/api-ledger-canary-demo.md",
+      "title": "API ledger canary — demonstration record",
+      "bytes": 2262
+    },
+    {
+      "path": "src/rubash/docs/api-ledger.md",
+      "title": "API Ledger — the engine surface niubash consumes",
+      "bytes": 146224
+    },
+    {
+      "path": "src/rubash/docs/architecture.md",
+      "title": "Rubash Engine Architecture",
+      "bytes": 4157
+    },
+    {
+      "path": "src/rubash/docs/archived-metrics-snapshot-2026-10-10.md",
+      "title": "归档基准数字快照（PERF / CORPUS / COMPAT / LINUX）",
+      "bytes": 7180
+    },
+    {
+      "path": "src/rubash/docs/audit/context-inheritance.md",
+      "title": "Nested-context inheritance: what each context inherits and owns",
+      "bytes": 16656
+    },
+    {
+      "path": "src/rubash/docs/audit/fast-path-differential.md",
+      "title": "Fast-path differential audit (rubash ↔ WinuxCmd ↔ GNU)",
+      "bytes": 69597
+    },
+    {
+      "path": "src/rubash/docs/audit/findings/wt98b-goldtri.md",
+      "title": "wt98b/goldtri — ecosystem gold-candidate triage (2026-10-09)",
+      "bytes": 7437
+    },
+    {
+      "path": "src/rubash/docs/audit/state-ownership-invariants.md",
+      "title": "State-ownership invariants: where \"mirrored state, hand-synced\" actually costs us",
+      "bytes": 7714
+    },
+    {
+      "path": "src/rubash/docs/bash-compat-issues.md",
+      "title": "rubash 兼容性差距总览（issue #20-#26 汇总与维修计划）",
+      "bytes": 9907
+    },
+    {
+      "path": "src/rubash/docs/bash-implementation-inventory.md",
+      "title": "Bash Implementation Inventory",
+      "bytes": 32117
+    },
+    {
+      "path": "src/rubash/docs/bash-source-map.md",
+      "title": "Bash Source Map",
+      "bytes": 10414
+    },
+    {
+      "path": "src/rubash/docs/bash-upstream-tests.md",
+      "title": "GNU Bash Upstream Tests",
+      "bytes": 7303
+    },
+    {
+      "path": "src/rubash/docs/bashdb-debugging-rubash.md",
+      "title": "Debugging Rubash Scripts with External bashdb",
+      "bytes": 9365
+    },
+    {
+      "path": "src/rubash/docs/builtins.md",
+      "title": "Rubash Builtin 与 Fast-Path 命令清单（单一事实来源）",
+      "bytes": 10080
+    },
+    {
+      "path": "src/rubash/docs/code-size.md",
+      "title": "代码规模（净行数）追踪",
+      "bytes": 2046
+    },
+    {
+      "path": "src/rubash/docs/command-lookup-cache-and-arith-mode-split.md",
+      "title": "Command Lookup Cache and Arithmetic Mode Split",
+      "bytes": 4038
+    },
+    {
+      "path": "src/rubash/docs/cross-platform-gap-ledger.md",
+      "title": "跨三平台差距台账（rubash 引擎 + niubash 产品层）",
+      "bytes": 10118
+    },
+    {
+      "path": "src/rubash/docs/debugger-cli.md",
+      "title": "Debugging scripts with `rubash --debug`",
+      "bytes": 4165
+    },
+    {
+      "path": "src/rubash/docs/design/1.5.0-session-api.md",
+      "title": "rubash-as-engine: the embeddable Session API (detailed RFC for #595)",
+      "bytes": 42088
+    },
+    {
+      "path": "src/rubash/docs/design/1.5.0-workspace-and-engine-api.md",
+      "title": "1.5.0 — workspace split, embeddable engine API, and the host boundary",
+      "bytes": 6802
+    },
+    {
+      "path": "src/rubash/docs/design/brand-assets.md",
+      "title": "Brand Assets",
+      "bytes": 1530
+    },
+    {
+      "path": "src/rubash/docs/design/debugger-full-design.md",
+      "title": "Native Script Debugger — M0 Design (final)",
+      "bytes": 69208
+    },
+    {
+      "path": "src/rubash/docs/design/debugger-m0.md",
+      "title": "`rubash --debug` M0 — Native Script Debugger, Minimal Design",
+      "bytes": 21056
+    },
+    {
+      "path": "src/rubash/docs/design/issue-2245-comsub-cow.md",
+      "title": "#2245 — comsub ShellState COW: design evaluation (2026-10-31)",
+      "bytes": 11408
+    },
+    {
+      "path": "src/rubash/docs/design/proc-vfs-and-mkfifo.md",
+      "title": "/proc 最小仿真 + mkfifo rendezvous 统一设计（#1917 / #1900 / #1903 / #1905 四条收编）",
+      "bytes": 20429
+    },
+    {
+      "path": "src/rubash/docs/design/respawn-root-line-spans.md",
+      "title": "Respawn inline TEXT bodies: root-command line-span transport (rubash#2332)",
+      "bytes": 6352
+    },
+    {
+      "path": "src/rubash/docs/design/respawn-transport-census.md",
+      "title": "Respawn transport census (rubash#2058)",
+      "bytes": 2292
+    },
+    {
+      "path": "src/rubash/docs/design/session-env-boundary.md",
+      "title": "Session ↔ process-environment boundary: inventory, adjudication, and the InvocationShape construction face",
+      "bytes": 21052
+    },
+    {
+      "path": "src/rubash/docs/dual-store-invariant.md",
+      "title": "The dual-store capture-replay invariant (umbrella: #641)",
+      "bytes": 2876
+    },
+    {
+      "path": "src/rubash/docs/ecosweep4-B-reds-triage-2026-10-01.md",
+      "title": "ecosweep4 B 节 274 红 — 分诊表（wt23/bats364 车道，2026-10-01）",
+      "bytes": 5367
+    },
+    {
+      "path": "src/rubash/docs/gnu-bash-compatibility-implementation-plan.md",
+      "title": "GNU Bash Compatibility Implementation Plan",
+      "bytes": 25145
+    },
+    {
+      "path": "src/rubash/docs/host-contract.md",
+      "title": "Rubash Host & Engine Contract（宿主与引擎合约）",
+      "bytes": 4661
+    },
+    {
+      "path": "src/rubash/docs/issue-614-report.md",
+      "title": "rubash#614 Verification Report",
+      "bytes": 5278
+    },
+    {
+      "path": "src/rubash/docs/issue-suite-diff-analysis.md",
+      "title": "Issue Suite DIFF Analysis",
+      "bytes": 67875
+    },
+    {
+      "path": "src/rubash/docs/issue329-path-form-policy-analysis.md",
+      "title": "Issue #329 policy analysis — POSIX vs drive-form path rendering (CAPTAIN DECISION)",
+      "bytes": 5055
+    },
+    {
+      "path": "src/rubash/docs/issue626-restricted-invocation.md",
+      "title": "Issue 626: restricted library invocation",
+      "bytes": 3993
+    },
+    {
+      "path": "src/rubash/docs/nameref-suite-residual-gnu-race-20261012.md",
+      "title": "nameref residual: the 83rd suite line is a GNU-side coproc reap race",
+      "bytes": 12646
+    },
+    {
+      "path": "src/rubash/docs/niu-product-baseline-20260922.md",
+      "title": "niu 产品层基线与消除计划（2026-09-22）",
+      "bytes": 1840
+    },
+    {
+      "path": "src/rubash/docs/niubash-audit-20260920.md",
+      "title": "niubash × rubash 引擎使用审计（2026-09-20）",
+      "bytes": 6730
+    },
+    {
+      "path": "src/rubash/docs/perf-issue-609.md",
+      "title": "Scalar assignment: measured partial follow-up for #609",
+      "bytes": 5647
+    },
+    {
+      "path": "src/rubash/docs/perf-issue-616-array-store.md",
+      "title": "Indexed array structured store: measured Phase 1a for #616",
+      "bytes": 44861
+    },
+    {
+      "path": "src/rubash/docs/performance-debugging-process.md",
+      "title": "Rubash Performance Debugging Process",
+      "bytes": 14171
+    },
+    {
+      "path": "src/rubash/docs/performance.md",
+      "title": "性能对比账本（维护中）",
+      "bytes": 9050
+    },
+    {
+      "path": "src/rubash/docs/pitfall-taxonomy-and-governance.md",
+      "title": "坑分类学与治理机制（Pitfall Taxonomy & Governance）",
+      "bytes": 23394
+    },
+    {
+      "path": "src/rubash/docs/platform-fd-inheritance.md",
+      "title": "Platform Gap: Foreign Children Cannot Receive Exec-Established Numbered Fds",
+      "bytes": 10125
+    },
+    {
+      "path": "src/rubash/docs/platform-identity.md",
+      "title": "Platform Identity & Path Dialect",
+      "bytes": 7816
+    },
+    {
+      "path": "src/rubash/docs/posix-mode-audit.md",
+      "title": "POSIX-Mode Coverage Audit — rubash vs GNU bash \"What happens when you run bash in POSIX mode\"",
+      "bytes": 24359
+    },
+    {
+      "path": "src/rubash/docs/proc-vfs-plan.md",
+      "title": "/proc 虚拟文件系统最小仿真计划（Windows）",
+      "bytes": 4322
+    },
+    {
+      "path": "src/rubash/docs/release-notes-1.4.0-draft.md",
+      "title": "rubash 1.4.0 Release Notes（草稿 / DRAFT）",
+      "bytes": 10359
+    },
+    {
+      "path": "src/rubash/docs/repo-stats.md",
+      "title": "Repository stats",
+      "bytes": 373
+    },
+    {
+      "path": "src/rubash/docs/source-layout.md",
+      "title": "Rubash Source Layout",
+      "bytes": 5205
+    },
+    {
+      "path": "src/rubash/docs/windows-path-contract.md",
+      "title": "Windows 路径边界契约（Windows Path Contract）",
+      "bytes": 10923
+    },
+    {
+      "path": "src/rubash/editors/vscode/README.md",
+      "title": "rubash Debugger — zero-JS VS Code extension (WP-16)",
+      "bytes": 1434
+    },
+    {
+      "path": "src/rubash/tests/conformance/README.md",
+      "title": "Rubash Conformance Test Suite",
+      "bytes": 1760
+    },
+    {
+      "path": "src/rubash/tests/conformance/RESULTS.md",
+      "title": "Rubash Conformance Test Results",
+      "bytes": 2189
+    },
+    {
+      "path": "src/rubash/tests/difftest/cases-2036/README.md",
+      "title": "#2036 S5 three-way sync corpus",
+      "bytes": 3746
+    },
+    {
+      "path": "src/rubash/tests/fixtures/ecosuite/MANIFEST.md",
+      "title": "ecosuite fixtures (lane wt4/ecosuite, 2026-09-27)",
+      "bytes": 7158
+    },
+    {
+      "path": "src/rubash/tests/fixtures/ecosuite/mvdan-sh/README.md",
+      "title": "mvdan-sh/ — full mvdan/sh snippet corpus + execution-differential ledgers",
+      "bytes": 3940
+    },
+    {
+      "path": "src/rubash/tests/gnu-compat/GAPS.md",
+      "title": "rubash GNU 兼容 Gap 清单（2026-09-14，权威口径）",
+      "bytes": 11330
+    },
+    {
+      "path": "src/rubash/tests/gnu-compat/README.md",
+      "title": "GNU Bash Compatibility Test Suite",
+      "bytes": 2546
+    },
+    {
+      "path": "src/rubash/tests/gnu-compat/RESULTS.md",
+      "title": "GNU Bash Compatibility Test Results",
+      "bytes": 1437
+    },
+    {
+      "path": "src/ruline/ACKNOWLEDGMENTS.md",
+      "title": "Acknowledgements",
+      "bytes": 2073
+    },
+    {
+      "path": "src/ruline/COMPATIBILITY.md",
+      "title": "GNU readline compatibility — definition of done",
+      "bytes": 3433
+    },
+    {
+      "path": "src/ruline/KEYBINDINGS.md",
+      "title": "Default keybindings",
+      "bytes": 18980
+    },
+    {
+      "path": "src/ruline/README.md",
+      "title": "ruline — a GNU readline-compatible line editor",
+      "bytes": 4493
+    },
+    {
+      "path": "src/ruline/UPSTREAM.md",
+      "title": "Provenance and independence",
+      "bytes": 2355
+    },
+    {
+      "path": "src/ruline/UX_TESTING.md",
+      "title": "UX Test Checklist",
+      "bytes": 8212
+    },
+    {
+      "path": "src/ruline/readline-abi/BENCH.md",
+      "title": "readline-abi ABI benchmark baseline",
+      "bytes": 6334
+    },
+    {
+      "path": "src/ruline/readline-abi/README.md",
+      "title": "readline-abi",
+      "bytes": 10213
+    },
+    {
+      "path": "src/ruline/readline-abi/abi/coverage.md",
+      "title": "GNU readline ABI coverage",
+      "bytes": 1812
+    },
+    {
+      "path": "src/ruline/readline-abi/abi/issue-8-comment.md",
+      "title": "Draft comment for issue #8 (ABI coverage)",
+      "bytes": 7643
+    },
+    {
+      "path": "src/ruline/readline-abi/benches/notes.md",
+      "title": null,
+      "bytes": 4185
+    },
+    {
+      "path": "src/ruline/readline-abi/tests/conformance/README.md",
+      "title": "GNU readline differential conformance",
+      "bytes": 1228
+    },
+    {
+      "path": "src/ruline/src/README.md",
+      "title": "Reedline internal developer documentation",
+      "bytes": 5424
     },
     {
       "path": "src/runtime/cli/init/README.default.md",
@@ -13620,6 +14625,16 @@
       "path": "src/taffy/README.md",
       "title": null,
       "bytes": 8354
+    },
+    {
+      "path": "test/diffcorpus/MANIFEST.md",
+      "title": "diffcorpus MANIFEST",
+      "bytes": 32147
+    },
+    {
+      "path": "test/diffcorpus/README.md",
+      "title": "diffcorpus",
+      "bytes": 815
     },
     {
       "path": "test/lore/README.md",
