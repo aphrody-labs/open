@@ -17,8 +17,9 @@ A Bun 1.4.5 fullstack application, compiled to one executable (`bun build --comp
 | Source | Measure |
 |---|---|
 | Bun fork docs (`docs/**/*.mdx`) | 1,405 MDX files: lint 1,051, guides 195, runtime 67, pm 28, snippets 16, test 13, bundler 11, compiler 11, project 6, others 7 |
-| Code examples | 9,609 fenced blocks in 1,397 pages; 6,899 runnable (TS/JS or `bun` commands) |
-| API surface | 624 entries read from Bun 1.4.5: 117 top-level `Bun.*` plus walked namespaces, `bun:sqlite` 5, `bun:ffi` 14, `bun:jsc` 37, `bun:test` 21; `bun:bundle` is build-time only |
+| Code examples | 9,592 fenced blocks parsed by remark-mdx (1 page falls back to Markdown); 6,896 runnable (TS/JS, `bun test` files, `bun` commands) |
+| Reference examples | bun-types JSDoc (the source of bun.com/reference): 17 declaration files with examples, 667 examples, 645 runnable |
+| API surface | 407 entries read from the running Bun: 117 top-level `Bun.*` plus walked namespaces, `bun:sqlite` 5, `bun:ffi` 14, `bun:jsc` 37, `bun:test` 21; `bun:bundle` is build-time only; environment variables and arguments are data, not API, and are not listed |
 | Press kit | bun.com/press-kit: `presskit.zip`, `logo.svg`, `wordmark.svg`, `icon.svg`, PNG icons |
 | Material 3 kit | Figma "Material 3 Design Kit": 169 assets (136 component sets) matching the 36 M3 components of m3.material.io |
 
@@ -31,10 +32,25 @@ A Bun 1.4.5 fullstack application, compiled to one executable (`bun build --comp
 | 3 | Bun API surface | `api.json` | done |
 | 4 | Theme Builder theme from the press kit: web CSS, Angular SCSS, Flutter, Compose, Android XML, Rust | source colour `#fdf3e1` traced to the icon | done |
 | 5 | Figma M3 kit inventory | `kit/kit.json` | done |
-| 6 | Application: one page per skill, real server-side usage (the page's own examples run by Bun) and an Angular Material component client-side | rendering in Chrome for Testing | in progress |
-| 7 | `bun build --compile` (AOT) | executable launched | to do |
-| 8 | Coverage report: Bun APIs and M3 kit components | 100% or the exact list of gaps | to do |
+| 6 | Application: one page per skill; each example runs on the server in a sandbox (`runner.ts`); the docs' MDX components render as Angular Material components (`web/app/blocks.ts`) | rendered and run in Chrome | done |
+| 7 | `bun build.ts`: `Bun.build` with `compile.aot`, every runtime feature kept (`trim.allow` = all `Bun.Build.TrimFeature`), skills embedded as assets | executable serves the client and runs the examples as `bun` (`BUN_BE_BUN`) | done |
+| 8 | Coverage report (`/coverage`): Bun API entries accessed by the executed examples, recorded at run time; M3 components rendered, read from the DOM | the exact list of gaps | done, gaps listed below |
 
 Decision D19: the M3 components of the app are Angular Material.
+
+## How it works
+
+- `gen/sources.ts`: sparse, shallow checkout of the fork (docs, bun-types); `sources.json` records the revision.
+- `gen/skills.ts`, `gen/pages.ts`, `gen/reference.ts`: skills, render trees (remark-mdx, Markdown by `Bun.markdown`), runnable examples; tab and group of each page come from the site navigation (`docs.json`).
+- `gen/theme.ts`, `gen/mat-sys.ts`: Theme Builder scheme from the press kit icon; Angular Material `--mat-sys-*` for three contrast levels.
+- `runner.ts`: each page gets a sandbox outside any project (its own `package.json`, `HOME`, `BUN_INSTALL`, no global binaries on `PATH`), the page's named files are written first, every `Bun` access and `bun` / `bun:*` import goes through a recording proxy, a timeout kills the whole process tree, and examples that act outside the sandbox (global installs, upgrade, publish, login, OS credential store, clipboard, editor) are reported as skipped.
+- `server.ts`: `Bun.serve` routes with the HTML import of the Angular client, the run API, server-sent events, the coverage report; results in `bun:sqlite`.
+
+## Known limits
+
+- Angular runs in JIT mode: Angular's template compiler needs the TypeScript 6 compiler API (angular/angular#69704) and TypeScript 7 has none before 7.1; the project ships no TypeScript 6. The client moves to Angular AOT when compiler-cli supports TypeScript 7.
+- Bun's development server (HMR bundle) leaves rxjs `EMPTY` undefined for Angular Material's expansion panel; the production bundle is correct, so the app is served with `NODE_ENV=production`. To report upstream from the fork.
+- A doc example is a fragment: many fail without the context the prose describes (missing files, servers, credentials). Failures are reported as they are, not hidden.
+- Angular Material has no implementation of 7 of the 37 M3 components (button group, carousel, FAB menu, loading indicator, navigation bar, navigation rail, split button) and partial ones for 5 (search, side sheet, time picker, toolbar, tooltip): `kit/angular-material.json`. Covering them needs another official implementation (Compose Multiplatform or Flutter, D4).
 
 Note on "LTO": Bun AOT compiles the JavaScript program to machine code and embeds the Bun runtime; LTO applies to the native side, i.e. the build of the Bun runtime itself (fork) and any native library the application links.

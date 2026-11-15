@@ -1,0 +1,158 @@
+{
+  "source": "M3 component names: kit/kit.json byComponent (m3.material.io component list). Angular Material entry points: node_modules/@angular/material subpaths and https://material.angular.dev/components/categories. Selectors are the host elements or classes Angular Material renders, so the coverage page reads them from the DOM",
+  "map": {
+    "app bar": {
+      "entry": "toolbar",
+      "selector": "mat-toolbar"
+    },
+    "badge": {
+      "entry": "badge",
+      "selector": ".mat-badge"
+    },
+    "bottom sheet": {
+      "entry": "bottom-sheet",
+      "selector": "mat-bottom-sheet-container"
+    },
+    "button": {
+      "entry": "button",
+      "selector": ".mat-mdc-button-base:not(.mat-mdc-icon-button):not(.mat-mdc-fab-base)"
+    },
+    "button group": {
+      "entry": null,
+      "reason": "Angular Material has no button group (standard or connected)"
+    },
+    "card": {
+      "entry": "card",
+      "selector": "mat-card"
+    },
+    "carousel": {
+      "entry": null,
+      "reason": "Angular Material has no carousel"
+    },
+    "checkbox": {
+      "entry": "checkbox",
+      "selector": "mat-checkbox"
+    },
+    "chip": {
+      "entry": "chips",
+      "selector": "mat-chip, mat-chip-option, mat-chip-row"
+    },
+    "date picker": {
+      "entry": "datepicker",
+      "selector": "mat-datepicker-toggle, mat-calendar"
+    },
+    "dialog": {
+      "entry": "dialog",
+      "selector": "mat-dialog-container"
+    },
+    "divider": {
+      "entry": "divider",
+      "selector": "mat-divider"
+    },
+    "extended FAB": {
+      "entry": "button",
+      "selector": ".mat-mdc-extended-fab"
+    },
+    "FAB": {
+      "entry": "button",
+      "selector": ".mat-mdc-fab-base"
+    },
+    "floating action button": {
+      "entry": "button",
+      "selector": ".mat-mdc-fab-base"
+    },
+    "FAB menu": {
+      "entry": null,
+      "reason": "Angular Material has no FAB menu"
+    },
+    "icon button": {
+      "entry": "button",
+      "selector": ".mat-mdc-icon-button"
+    },
+    "list": {
+      "entry": "list",
+      "selector": "mat-list, mat-nav-list, mat-selection-list"
+    },
+    "loading indicator": {
+      "entry": null,
+      "reason": "Angular Material has progress indicators only, not the M3 loading indicator"
+    },
+    "menu": {
+      "entry": "menu",
+      "selector": ".mat-mdc-menu-panel"
+    },
+    "navigation bar": {
+      "entry": null,
+      "reason": "Angular Material has no navigation bar"
+    },
+    "navigation drawer": {
+      "entry": "sidenav",
+      "selector": "mat-sidenav"
+    },
+    "navigation rail": {
+      "entry": null,
+      "reason": "Angular Material has no navigation rail"
+    },
+    "progress indicator": {
+      "entry": "progress-bar, progress-spinner",
+      "selector": "mat-progress-bar, mat-progress-spinner"
+    },
+    "radio button": {
+      "entry": "radio",
+      "selector": "mat-radio-button"
+    },
+    "search": {
+      "entry": "autocomplete",
+      "selector": ".mat-mdc-autocomplete-trigger",
+      "partial": "text field with autocomplete; no search bar or search view"
+    },
+    "segmented button": {
+      "entry": "button-toggle",
+      "selector": "mat-button-toggle-group"
+    },
+    "side sheet": {
+      "entry": "sidenav",
+      "selector": "mat-sidenav[position=end]",
+      "partial": "end-positioned drawer"
+    },
+    "slider": {
+      "entry": "slider",
+      "selector": "mat-slider"
+    },
+    "snackbar": {
+      "entry": "snack-bar",
+      "selector": "mat-snack-bar-container"
+    },
+    "split button": {
+      "entry": null,
+      "reason": "Angular Material has no split button"
+    },
+    "switch": {
+      "entry": "slide-toggle",
+      "selector": "mat-slide-toggle"
+    },
+    "tabs": {
+      "entry": "tabs",
+      "selector": "mat-tab-group"
+    },
+    "text field": {
+      "entry": "form-field, input",
+      "selector": "mat-form-field"
+    },
+    "time picker": {
+      "entry": "timepicker",
+      "selector": "mat-timepicker-toggle",
+      "partial": "dropdown list; no dial or keyboard picker"
+    },
+    "toolbar": {
+      "entry": "toolbar",
+      "selector": "mat-toolbar",
+      "partial": "top bar; no docked or floating M3 toolbar"
+    },
+    "tooltip": {
+      "entry": "tooltip",
+      "selector": ".mat-mdc-tooltip-trigger",
+      "partial": "plain tooltip; no rich tooltip"
+    }
+  }
+}

@@ -25,6 +25,7 @@ The names in the decisions below are the first instances of these rules (where w
 | D13 | Gate levels | **Modelled on Bun's commands**: `check`, `fmt`, `lint`, `build`, `compile`, `test`, `webview`, `pm`; reuse `ay` and the Bun Rust crates already in Aphrody |
 | D14 | Material spec sources | **Multi-source extraction**: Figma Material 3 kit; GitHub repositories of Google, Chrome and Chromium (UI views), Jetpack Compose, Angular components, Flutter; the full sites from A to Z; Google's design skills and MCP servers; community versions (MUI, ...) |
 | D18 | Ecosystem inventory | **Very wide**: Material for GTK 4, Qt, COSMIC, Hyprland, egui, iced, Dioxus, gpui; taffy; shadcn, Tailwind, Base UI; React, Svelte, JS, TS; .NET; etc. |
+| D3 status | Angular AOT | Angular's template compiler needs the TypeScript 6 compiler API (angular/angular#69704); TypeScript 7 exposes none before 7.1. No TypeScript 6 is shipped: Angular runs in JIT on Bun's transpiler until compiler-cli supports TypeScript 7 |
 | D19 | M3 components in the Bun app | **Angular Material**, following D3 (Material Web removed from src as legacy) |
 | D20 | Language | **English at the source**, multilingual through i18n and a translation stack, for every project |
 | D21 | Selections | **Generalist**: rules over generated registries, see the top of this file |

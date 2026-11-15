@@ -1,0 +1,6 @@
+.data/
+.out/
+node_modules/
+dist/
+pages.json
+snippets.json

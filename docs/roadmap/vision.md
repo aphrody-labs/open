@@ -8,9 +8,10 @@
 
 Editions (owner): `open` is the open-source edition and `auto` (`apps/auto` in aphrody-labs/aphrody) is its paid hosted edition. One vision, one codebase, one feature set, in the relation Crawlee has to Apify, n8n to n8n Cloud, Chromium to Chrome:
 
-- `open` holds the core: workflow automation, agents, ingestion, crawl and browser engines, store, client, domain model, UI, native bindings, i18n.
-- `auto` consumes that core and keeps only the hosted layer: tenancy, billing, hosted workers, administration, store listings.
-- auto's core packages (`automate`, `agent`, `ingest`, `store`, `client`, `domain`, `ui`, `native`, `i18n`) move into `open` with their history once their English and i18n pass in src has landed (decision D22).
+- `open` is a library and holds the product core: workflow automation (`automate`), agents, ingestion, store, client, domain model, UI, the mail and personal-assistant connectors, crawl and browser engines.
+- The Aphrody monorepo (aphrody-labs/aphrody) holds what already exists there once: i18n (MessageFormat 2), secrets at rest (`src/vault`), native document formats (auto's FFI crate merged with `src/craft` behind the C ABI), video and media (`src/tv`).
+- `auto` consumes both and keeps only the hosted layer: tenancy, billing, the hosted part of services, administration, API and worker deployment, store listings.
+- auto's packages move with their history once their English and i18n pass in src has landed (decision D22).
 
 Principles:
 

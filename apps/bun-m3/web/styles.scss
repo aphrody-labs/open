@@ -1,0 +1,27 @@
+// Angular Material M3 theme from the Theme Builder palettes generated from Bun's press kit
+// (theme/angular/_theme-colors.scss); exact scheme roles per contrast level come from mat-sys.css.
+@use "@angular/material" as mat;
+@use "../theme/angular/theme-colors" as brand;
+
+html {
+  color-scheme: light dark;
+  @include mat.theme((
+    color: (primary: brand.$primary-palette, tertiary: brand.$tertiary-palette),
+    typography: (plain-family: "Roboto Flex Variable", brand-family: "Roboto Flex Variable"),
+    density: 0,
+  ));
+}
+html[data-scheme="light"] { color-scheme: light; }
+html[data-scheme="dark"] { color-scheme: dark; }
+
+body {
+  margin: 0;
+  height: 100dvh;
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-medium);
+}
+pre, code { font-family: "Roboto Mono Variable", monospace; }
+a { color: var(--mat-sys-primary); }
+.mat-mdc-card-avatar.mat-icon { display: grid; place-items: center; font-size: 24px; background: var(--mat-sys-secondary-container); color: var(--mat-sys-on-secondary-container); }
+@media (prefers-reduced-motion: reduce) { * { animation-duration: 0s !important; transition-duration: 0s !important; } }

@@ -1,6 +1,6 @@
 {
   "source": "../../.cache/bun-fork/docs",
-  "count": 1405,
+  "count": 1422,
   "skills": [
     {
       "name": "bun-bundler-css",
@@ -12153,6 +12153,142 @@
       "section": "typescript.mdx",
       "title": "TypeScript",
       "description": "Using TypeScript with Bun, including type definitions and compiler options",
+      "components": []
+    },
+    {
+      "name": "bun-reference-bun",
+      "source": "../packages/bun-types/bun.d.ts",
+      "section": "reference",
+      "title": "Reference: bun",
+      "description": "Bun API reference from bun-types bun.d.ts: 151 documented declarations with examples (declare module \"bun\" {, int32, DistributedOmit, stringWidth, stripANSI, sliceAnsi, ...).",
+      "components": []
+    },
+    {
+      "name": "bun-reference-bundle",
+      "source": "../packages/bun-types/bundle.d.ts",
+      "section": "reference",
+      "title": "Reference: bundle",
+      "description": "Bun API reference from bun-types bundle.d.ts: 3 documented declarations with examples (bun, Registry, feature).",
+      "components": []
+    },
+    {
+      "name": "bun-reference-devserver",
+      "source": "../packages/bun-types/devserver.d.ts",
+      "section": "reference",
+      "title": "Reference: devserver",
+      "description": "Bun API reference from bun-types devserver.d.ts: 6 documented declarations with examples (hot, data, accept, accept, accept, prune).",
+      "components": []
+    },
+    {
+      "name": "bun-reference-fetch",
+      "source": "../packages/bun-types/fetch.d.ts",
+      "section": "reference",
+      "title": "Reference: fetch",
+      "description": "Bun API reference from bun-types fetch.d.ts: 1 documented declarations with examples (All).",
+      "components": []
+    },
+    {
+      "name": "bun-reference-ffi",
+      "source": "../packages/bun-types/ffi.d.ts",
+      "section": "reference",
+      "title": "Reference: ffi",
+      "description": "Bun API reference from bun-types ffi.d.ts: 25 documented declarations with examples (bun, int8_t, i8, uint8_t, u8, int16_t, ...).",
+      "components": []
+    },
+    {
+      "name": "bun-reference-globals",
+      "source": "../packages/bun-types/globals.d.ts",
+      "section": "reference",
+      "title": "Reference: globals",
+      "description": "Bun API reference from bun-types globals.d.ts: 32 documented declarations with examples (new, new, LibEmptyOrNodeUtilTextEncoder, encodeInto, LibEmptyOrNodeUtilTextDecoder, ShadowRealm, ...).",
+      "components": []
+    },
+    {
+      "name": "bun-reference-html-rewriter",
+      "source": "../packages/bun-types/html-rewriter.d.ts",
+      "section": "reference",
+      "title": "Reference: html-rewriter",
+      "description": "Bun API reference from bun-types html-rewriter.d.ts: 1 documented declarations with examples (HTMLRewriter).",
+      "components": []
+    },
+    {
+      "name": "bun-reference-jsc",
+      "source": "../packages/bun-types/jsc.d.ts",
+      "section": "reference",
+      "title": "Reference: jsc",
+      "description": "Bun API reference from bun-types jsc.d.ts: 13 documented declarations with examples (bun, jscDescribe, jscDescribeArray, heapStats, bytecodeOrderStats, setRandomSeed, ...).",
+      "components": []
+    },
+    {
+      "name": "bun-reference-overrides",
+      "source": "../packages/bun-types/overrides.d.ts",
+      "section": "reference",
+      "title": "Reference: overrides",
+      "description": "Bun API reference from bun-types overrides.d.ts: 1 documented declarations with examples (AsyncIterableIterator).",
+      "components": []
+    },
+    {
+      "name": "bun-reference-redis",
+      "source": "../packages/bun-types/redis.d.ts",
+      "section": "reference",
+      "title": "Reference: redis",
+      "description": "Bun API reference from bun-types redis.d.ts: 94 documented declarations with examples (ructor, blpop, brpop, blmove, blmpop, brpoplpush, ...).",
+      "components": []
+    },
+    {
+      "name": "bun-reference-s3",
+      "source": "../packages/bun-types/s3.d.ts",
+      "section": "reference",
+      "title": "Reference: s3",
+      "description": "Bun API reference from bun-types s3.d.ts: 46 documented declarations with examples (acl, bucket, region, sessionToken, endpoint, virtualHostedStyle, ...).",
+      "components": []
+    },
+    {
+      "name": "bun-reference-serve",
+      "source": "../packages/bun-types/serve.d.ts",
+      "section": "reference",
+      "title": "Reference: serve",
+      "description": "Bun API reference from bun-types serve.d.ts: 36 documented declarations with examples (ServerWebSocketSendStatus, ServerWebSocket, send, sendText, sendBinary, publish, ...).",
+      "components": []
+    },
+    {
+      "name": "bun-reference-shell",
+      "source": "../packages/bun-types/shell.d.ts",
+      "section": "reference",
+      "title": "Reference: shell",
+      "description": "Bun API reference from bun-types shell.d.ts: 20 documented declarations with examples ($, braces, env, Promise, env, text, ...).",
+      "components": []
+    },
+    {
+      "name": "bun-reference-sql",
+      "source": "../packages/bun-types/sql.d.ts",
+      "section": "reference",
+      "title": "Reference: sql",
+      "description": "Bun API reference from bun-types sql.d.ts: 34 documented declarations with examples (checkServerIdentity, Transform, tls, Options, ResultColumn, readable, ...).",
+      "components": []
+    },
+    {
+      "name": "bun-reference-sqlite",
+      "source": "../packages/bun-types/sqlite.d.ts",
+      "section": "reference",
+      "title": "Reference: sqlite",
+      "description": "Bun API reference from bun-types sqlite.d.ts: 32 documented declarations with examples (bun, strict, Disposable, run, query, prepare, ...).",
+      "components": []
+    },
+    {
+      "name": "bun-reference-test",
+      "source": "../packages/bun-types/test.d.ts",
+      "section": "reference",
+      "title": "Reference: test",
+      "description": "Bun API reference from bun-types test.d.ts: 26 documented declarations with examples (bun, ModuleMockFactory, module, setSystemTime, spyOn, mockObject, ...).",
+      "components": []
+    },
+    {
+      "name": "bun-reference-vitest",
+      "source": "../packages/bun-types/vitest.d.ts",
+      "section": "reference",
+      "title": "Reference: vitest",
+      "description": "Bun API reference from bun-types vitest.d.ts: 10 documented declarations with examples (spyOn, Matchers, resolves, rejects, poll, extend, ...).",
       "components": []
     }
   ]

@@ -11,6 +11,8 @@ const seen = new WeakSet<object>();
 function walk(name: string, value: unknown, depth: number) {
   const kind = typeof value === "function" ? (/^class\s/.test(Function.prototype.toString.call(value)) || /^[A-Z]/.test(name.split(".").pop()!) ? "class" : "function") : typeof value;
   out.push({ name, kind });
+  // runtime data, not API: never list environment variables or arguments
+  if (name === "Bun.env" || name === "Bun.argv") return;
   if (depth >= 3 || value === null || (typeof value !== "object" && typeof value !== "function")) return;
   if (seen.has(value as object)) return;
   seen.add(value as object);

@@ -2,7 +2,34 @@
   "name": "bun-m3",
   "private": true,
   "type": "module",
+  "scripts": {
+    "sources": "bun gen/sources.ts",
+    "gen": "bun gen/sources.ts && bun gen/skills.ts && bun gen/pages.ts && bun gen/reference.ts && bun gen/api.ts && bun gen/theme.ts && bun gen/mat-sys.ts",
+    "dev": "bun server.ts",
+    "build": "bun build.ts"
+  },
   "dependencies": {
-    "@material/material-color-utilities": "^0.4.0"
+    "@angular/cdk": "^22.3.0-rc.0",
+    "@angular/common": "^22.3.0-rc.0",
+    "@angular/compiler": "^22.3.0-rc.0",
+    "@angular/core": "^22.3.0-rc.0",
+    "@angular/forms": "^22.3.0-rc.0",
+    "@angular/material": "^22.3.0-rc.0",
+    "@angular/platform-browser": "^22.3.0-rc.0",
+    "@angular/router": "^22.3.0-rc.0",
+    "@fontsource-variable/material-symbols-outlined": "^5.3.9",
+    "@fontsource-variable/roboto-flex": "^5.3.0",
+    "@fontsource-variable/roboto-mono": "^5.3.0",
+    "@material/material-color-utilities": "^0.4.0",
+    "rxjs": "^7.8.2",
+    "tslib": "^2.9.1"
+  },
+  "devDependencies": {
+    "remark-frontmatter": "^5.0.0",
+    "remark-gfm": "^4.0.1",
+    "remark-mdx": "^3.1.1",
+    "remark-parse": "^11.0.0",
+    "sass": "^1.108.2",
+    "unified": "^11.0.5"
   }
 }
