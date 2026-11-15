@@ -1,0 +1,2439 @@
+{
+  "site": "design.google",
+  "pages": 304,
+  "records": 8170,
+  "list": [
+    {
+      "url": "https://design.google/library/2017-design-google",
+      "status": 200,
+      "title": "Google Design’s Best of 2017",
+      "bytes": 151318,
+      "sha256": "1912b22d95ef9535d1df66dc866f07c54b2e4a393d3e3d7f529bbf10410fa073",
+      "screenshot": null
+    },
+    {
+      "url": "https://fonts.googleblog.com/2022/07/lexend.html",
+      "status": 200,
+      "title": "Google Fonts Blog: Partnering to change how the world reads: Expanding Lexend to different weights",
+      "bytes": 122272,
+      "sha256": "8c926d378ec7811f64330f9cfb62a8f6a9c6c1bb9006ddc4cafc6b4b2c9702e0",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/2018-design-google",
+      "status": 200,
+      "title": "Google Design’s Best of 2018",
+      "bytes": 120468,
+      "sha256": "383bd4f2088bf60d3acb4a3f7d4a8e2f182f2df7a4682e57ef71ad9504b29db2",
+      "screenshot": null
+    },
+    {
+      "url": "https://2542116.fls.doubleclick.net/activityi;dc_pre=CISu3KL8iJgDFVXIUwgdoYoJTQ;src=2542116;type=gblog;cat=googl0;ord=ord=1925400211693.5764?",
+      "status": 200,
+      "title": "",
+      "bytes": 340,
+      "sha256": "e862c7f70a4224eb47529d03ffd2970823b9b2a5c58f87f17575433ee17d1a68",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/a-new-interaction-design-paradigm",
+      "status": 200,
+      "title": "Design Beyond Touch: How Soli Reimagines Interaction",
+      "bytes": 93846,
+      "sha256": "4996f6920c72f9a4c3a879a9ffb9d9b00f19fef32630a9d771b924023048127c",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/a-new-take-on-old-style-typeface",
+      "status": 200,
+      "title": "Fun &amp; Flexible: Fraunces, a New Google Font",
+      "bytes": 90730,
+      "sha256": "fa5d59df2cdde543d61d0c8a5eb273d15d55085fe52685a59911f868abab1212",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/absolutely-fab-button",
+      "status": 200,
+      "title": "FAB: UX Design Win",
+      "bytes": 122326,
+      "sha256": "908b522bcfa4c1a2f525d9fc2375bf5f33db87b6dfc005bc60b0f394b341411a",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/a-new-religion-for-designers-john-maeda",
+      "status": 200,
+      "title": "A New Religion for Designers",
+      "bytes": 76141,
+      "sha256": "50187d49c8a6fb166e98e38959719b35e400e5b1faf55a6f941fc47d5f2731db",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/adrian-secord-material-engineering-ai",
+      "status": 200,
+      "title": "Adrian Secord on the Future of UX | Design Notes Podcast",
+      "bytes": 60130,
+      "sha256": "a03a03ec79bb67f4b5b0b24af5b03d09e34aa22736b8ffa6b66ab58e92f3018e",
+      "screenshot": null
+    },
+    {
+      "url": "https://m3.material.io/blog/readability-research/",
+      "status": 200,
+      "title": "Adjusting Grade for Mode",
+      "bytes": 62400,
+      "sha256": "80ccc03607ee3441271a18e3a05323dfa32ec14b12dd87222ab5acb62082e5ad",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/ai-design-roundtable-discussion",
+      "status": 200,
+      "title": "Designing with AI: Balancing Humanity &amp; Technology",
+      "bytes": 75089,
+      "sha256": "ed10f54cc61f1f19cded9335fc156f6caab6a5a9c53e62d99f9071767fb796a6",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.google.com/recaptcha/enterprise/anchor?ar=1&k=6LfwuyUTAAAAAOAmoS0fdqijC2PbbdH4kjq62Y1b&co=aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbTo0NDM.&hl=en&v=4i3aN5wAweL7i3ADI7BSX4B-&size=normal&s=XhxOHiiop3MKeesYvfTHfcmwJ7rSIxDNTxyVkz9sry-yLqxdEVF_pH7wlT_EaJ2Gra_XLTH2qXCUgKWHZubBUL8hi1Ur7cMClPqcokzv1HXbV85EMZzvtjE2frcwzgQM5sRXnrxNpRRU_7JD74bilBNK36zBb0e_b86gvwHnATyONQN5M5RIy9vmX0e25yoAmXgIZvBsMgHyZfrO1US9KxX7KhTNN9r1w33YKGasvkWQ_MWnsUlXahrMkKtnLirpONl7U2Bi_iM95OithTAB9mVeouiCjvU&anchor-ms=20000&execute-ms=30000&ovv=CADq00gF&cb=xprtmoqqkwhq",
+      "status": 200,
+      "title": "reCAPTCHA",
+      "bytes": 54694,
+      "sha256": "22717c1adbbc06bb3f963de5ca51a562116f7c82a72db3cb8032b207591adca3",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.google.com/recaptcha/enterprise/bframe?hl=en&v=4i3aN5wAweL7i3ADI7BSX4B-&k=6LfwuyUTAAAAAOAmoS0fdqijC2PbbdH4kjq62Y1b&bft=0dAFcWeA5hTJbKsBvSCxtKD8YnqxcSCeOm_7G6MhxZFfXE5-5C5FwXg6a6j7xvhGNUTpZz3VUxoUxJMDOB_6Gv0aY1Cakxkt0sEw",
+      "status": 200,
+      "title": "reCAPTCHA",
+      "bytes": 16984,
+      "sha256": "d4b6593ddfb1469bb8da2c2410ee59b0f9d045aef7011983b527a7f596c6027b",
+      "screenshot": null
+    },
+    {
+      "url": "https://feedback-pa.clients6.google.com/static/proxy.html?usegapi=1&jsh=m%3B%2F_%2Fscs%2Fabc-static%2F_%2Fjs%2Fk%3Dgapi.lb.en.etOqPKhAhvg.O%2Fd%3D1%2Frs%3DAHpOoo-l5JrVgGKVELwC844E6riBHX86-w%2Fm%3D__features__",
+      "status": 200,
+      "title": "",
+      "bytes": 432,
+      "sha256": "42e4cdc91f910f29c955ff7548b7def3aed8ac6b4c2a5e81faeca159c33b3255",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/ai-designs-latest-material",
+      "status": 200,
+      "title": "AI in Design - Shaping the Future",
+      "bytes": 70375,
+      "sha256": "f0c5703666afc7d5f9d9bf20985c651a307451b55844c23e7788a1f672213331",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/ai-sparkle-icon-research-pozos-schmidt",
+      "status": 200,
+      "title": "Rise of the AI Sparkle Icon",
+      "bytes": 125059,
+      "sha256": "f4b993e88c83f3eff6baea1e99b895ebb15a692f588ba188dcce22cafddb3a81",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/alexandra-lange-design-of-childhood-interview",
+      "status": 200,
+      "title": "Design Notes: Episode 10",
+      "bytes": 61822,
+      "sha256": "fe3a4392b0feb3b207a9923d382690fb715675d4f41d8dd4a59e71bd2330733d",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/airbnb-invites-you-in",
+      "status": 200,
+      "title": "Airbnb’s UX Design: A Case Study in User-Centricity",
+      "bytes": 77913,
+      "sha256": "74258885eed20be880adda7778319f382b4ecb2efeee1adc73a4f0a7c1f12c21",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/ambient-music-plays",
+      "status": 200,
+      "title": "Experience Music Videos as Poetry",
+      "bytes": 40561,
+      "sha256": "7968256af5aa0441e83daf3c2200544ddb2900f8ccb988645bd7a5f7fd787955",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/an-immersive-exchange-AR-VR",
+      "status": 200,
+      "title": "An Immersive Exchange",
+      "bytes": 83763,
+      "sha256": "2514e4c719a4a8c9d87a595254ff93cbc1718478c6444f091fc7791ef1c4e34f",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/anek-multiscript",
+      "status": 200,
+      "title": "Design for Many - Anek, Google&#x27;s Multiscript Font",
+      "bytes": 133917,
+      "sha256": "7bdd7e912a93fc174b947e1f3e865dd70ab3b04286a436681e57eb115369366e",
+      "screenshot": null
+    },
+    {
+      "url": "https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/turnstile/f/av0/rch/szlj2/0x4AAAAAAADnPIDROrmt1Wwj/light/fbE/new/normal?lang=auto",
+      "status": 200,
+      "title": "Checking your Browser&hellip;",
+      "bytes": 641708,
+      "sha256": "f037d3b8543b61cc302d61ba34c3fb565e7c2bae214e077f18c0e1e6760176e1",
+      "screenshot": null
+    },
+    {
+      "url": "https://m3.material.io/blog/google-fonts-knowledge/",
+      "status": 200,
+      "title": "Announcing Google Fonts Knowledge - Material Design 3",
+      "bytes": 62551,
+      "sha256": "2d75420625f2b69fed742d38dad54e88e77ee9879370bb0dac83601eaafa0f7f",
+      "screenshot": null
+    },
+    {
+      "url": "https://feedback-pa.clients6.google.com/static/proxy.html?usegapi=1&jsh=m%3B%2F_%2Fscs%2Fabc-static%2F_%2Fjs%2Fk%3Dgapi.lb.en.smUXTMp7CeY.O%2Fd%3D1%2Frs%3DAHpOoo_-UMASGI-dbLvJPxfO6N46l3l46A%2Fm%3D__features__",
+      "status": 200,
+      "title": "",
+      "bytes": 432,
+      "sha256": "42e4cdc91f910f29c955ff7548b7def3aed8ac6b4c2a5e81faeca159c33b3255",
+      "screenshot": null
+    },
+    {
+      "url": "https://m2.material.io/articles/material-partner-studies.html",
+      "status": 200,
+      "title": "Material Design",
+      "bytes": 67602,
+      "sha256": "1b308cf6410a50afc70a963d334b7660cffd60cb6c9402b4d3eb2df101fd4cc6",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/artistic-intelligence",
+      "status": 200,
+      "title": "AI Explained Through Art",
+      "bytes": 86998,
+      "sha256": "3bf11634876f38d5b6651f49ad49e8b8a360a4ac8787b5f7d500610f3dea92f1",
+      "screenshot": null
+    },
+    {
+      "url": "https://m3.material.io/blog/material-partner-studies",
+      "status": 200,
+      "title": "Material Partner Studies",
+      "bytes": 62440,
+      "sha256": "bc676f82710330cf940c3a2f65bf5d37f3a2957cbe8e9eeca5f01cd7b689e1a2",
+      "screenshot": null
+    },
+    {
+      "url": "https://consent.youtube.com/m?continue=https%3A%2F%2Fwww.youtube.com%2Fplaylist%3Flist%3DPL0oMAzSh5W9oJSx9BsXeF8UzA44FwB255%26cbrd%3D1&gl=FR&m=0&pc=yt&cm=2&hl=ru&src=1",
+      "status": 200,
+      "title": "Прежде чем перейти к YouTube",
+      "bytes": 582712,
+      "sha256": "4498fb0269838a34f3746e0fa865bc20c249f15f7773e5ac3c481cedccb5957b",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/beneath-the-surface-seed-studio",
+      "status": 200,
+      "title": "Google Pixel Design Inspiration: Nature &amp; Tech",
+      "bytes": 180848,
+      "sha256": "d54f428fc8359ca67c9be31f44146816b160bacf78a2b0d4b3dce6e774251d3d",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/bennett-foddy-getting-over-it-interview",
+      "status": 200,
+      "title": "Design Notes: Episode 7",
+      "bytes": 57480,
+      "sha256": "0972767533ebad85c19b1fede6aa00d129afae2f81289d173fe30eb5a75f8ff9",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/building-better-design-culture",
+      "status": 200,
+      "title": "Fostering Healthy Cultures in UX Design",
+      "bytes": 86777,
+      "sha256": "8fe28a925a53a2db95765b939c1ddb7604ada5bc63da9824699dc39b5c4e33f2",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/beyond-the-desktop-field-research",
+      "status": 200,
+      "title": "Design Beyond Desktops: User Research Immersion",
+      "bytes": 71985,
+      "sha256": "0ec7b81465192daf51bfef2b7856c0822141bed21a6476c7c38d6beb013175c4",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/brand-new",
+      "status": 200,
+      "title": "GV Brand Identity Logo",
+      "bytes": 101357,
+      "sha256": "8ce7d20ebf061831a035e02731453e4721e114129004843dfe4f1883cef1abf2",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/building-for-everyone",
+      "status": 200,
+      "title": "Design Inclusive Products - Reach a Wider Audience",
+      "bytes": 94277,
+      "sha256": "15f0110a1fb1fdbeea6771bb2998a10c04775b1b755c29c7507aef48746fc887",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/california-designing-freedom",
+      "status": 200,
+      "title": "California: Designing Freedom",
+      "bytes": 95720,
+      "sha256": "756a6d65ad197f2f688e45092666742f77a8de0b2268f4cea6a4bf2212309873",
+      "screenshot": null
+    },
+    {
+      "url": "https://fonts.googleblog.com/2022/04/radio-canada-en.html",
+      "status": 200,
+      "title": "Google Fonts Blog: You can now use Radio-Canada&#8217;s brand typeface: The award-winning variable font comes to Google Fonts",
+      "bytes": 112593,
+      "sha256": "96be4b2eca309e18c905f7bb7790c3914b41ecf7db84eaec5e5b03886c98debb",
+      "screenshot": null
+    },
+    {
+      "url": "https://2542116.fls.doubleclick.net/activityi;dc_pre=COSY9dP8iJgDFZkUpggdd8E5sA;src=2542116;type=gblog;cat=googl0;ord=ord=5338566056009.673?",
+      "status": 200,
+      "title": "",
+      "bytes": 339,
+      "sha256": "b6821a01ae86133201668d8be5f588b730d5cc332c0cfa27fed9f3dabbca8d1d",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.google.com/recaptcha/enterprise/anchor?ar=1&k=6LfwuyUTAAAAAOAmoS0fdqijC2PbbdH4kjq62Y1b&co=aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbTo0NDM.&hl=en&v=4i3aN5wAweL7i3ADI7BSX4B-&size=normal&s=FBQvzYITG0Wmsm7B4xZ92-1kJVO_fX2_D9DQeeMrwfhbXgdwMiupwY_r2VyfCkqBdPG1I6sQdOtgAz-XNm7lJiFlXZIEQMvrWI-I9Vjv-scjurFCRa4Y5OV-sTsgCgwpSUkYDtz_rr_HG0JKnoVh1_RTCxMHJvm-m1UQt5iWTNk7ABXsbGorfbHRZX_RUgglqlJsigPmwo2nniwLMJ9gbcW951h5OyyJXuI0yODB-lW916poqyXJ10Jsmh3_0K5mh9MPuzmGdDRmCDucb2fgUrPb1HyP2y4&anchor-ms=20000&execute-ms=30000&ovv=CADq00gF&cb=uvs91741y4fz",
+      "status": 200,
+      "title": "reCAPTCHA",
+      "bytes": 54694,
+      "sha256": "22717c1adbbc06bb3f963de5ca51a562116f7c82a72db3cb8032b207591adca3",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.google.com/recaptcha/enterprise/bframe?hl=en&v=4i3aN5wAweL7i3ADI7BSX4B-&k=6LfwuyUTAAAAAOAmoS0fdqijC2PbbdH4kjq62Y1b&bft=0dAFcWeA5Q6LPNp9pOpQvOWquC58bJ5p74xUEYT7R2CaCEeOFx-HlbUPEG5EkgWeDz0DWUOLVkwBJSdUDjEUTym8t4XVoYNB_cmg",
+      "status": 200,
+      "title": "reCAPTCHA",
+      "bytes": 16984,
+      "sha256": "d4b6593ddfb1469bb8da2c2410ee59b0f9d045aef7011983b527a7f596c6027b",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.google.com/recaptcha/enterprise/anchor?ar=1&k=6LfwuyUTAAAAAOAmoS0fdqijC2PbbdH4kjq62Y1b&co=aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbTo0NDM.&hl=en&v=4i3aN5wAweL7i3ADI7BSX4B-&size=normal&s=clqEGW_P3nL8dPNA96JJisyGnxo1GDwDSAWFcYl9qSJ6zsQ4F0V8p-MPpYRgGlUYlbaqh-2wmU0y9Vl6A9-LFtKw3a57f9Aw8MzmbUkuz_Fj1GFmkj_yzlTqMAZRrOy1As1AnR9JsrjcVhNDoYTdSyognB8VwLecREA9elLYRAsVHVYG5qHOwkm7HscdYcOZRY0VqFXNGgHOYZ7pDh0qbc0A9jDb9Y33s8zc5fkbdetDNfFGWcG8nau-t8kyZLMNas2Nh65MZ8TTGNeCi23kevPG9Z9YGIU&anchor-ms=20000&execute-ms=30000&ovv=CADq00gF&cb=f442n08w9vok",
+      "status": 200,
+      "title": "reCAPTCHA",
+      "bytes": 54694,
+      "sha256": "22717c1adbbc06bb3f963de5ca51a562116f7c82a72db3cb8032b207591adca3",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.google.com/recaptcha/enterprise/bframe?hl=en&v=4i3aN5wAweL7i3ADI7BSX4B-&k=6LfwuyUTAAAAAOAmoS0fdqijC2PbbdH4kjq62Y1b&bft=0dAFcWeA5afisNWM_6kdohlMHeDLwbPfo9_DD-HEyY8VYq9lxSSUT1QBcdXR03_E_W790j88-2KPcephx-dB5W94HOkDCYfIPBFA",
+      "status": 200,
+      "title": "reCAPTCHA",
+      "bytes": 16984,
+      "sha256": "d4b6593ddfb1469bb8da2c2410ee59b0f9d045aef7011983b527a7f596c6027b",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.google.com/recaptcha/enterprise/anchor?ar=1&k=6LfwuyUTAAAAAOAmoS0fdqijC2PbbdH4kjq62Y1b&co=aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbTo0NDM.&hl=en&v=4i3aN5wAweL7i3ADI7BSX4B-&size=normal&s=Bx1TLKDOfiCnUr4hHlYkWp_TC-P-vYt07C0oVepeCLxEPAbpU5UKuJB24sc5xbNsQSnGaIX83zSWSmSbjUAN9pJxN5jOfAZ2zeG-hjGQ2a1G0uSaeFD4Mo9scqns4XxzUzZCagXnvZ75jmq3n0PzqAjf1Viadm6RbAwodijAQaq9heqJs-RKFtYhCTtI3I4d8OWT0T7rBUbodfmhOemUmq10copBx_e_j9XDaRzbXDPtJnsiMqVkv3DzTOSMi8efz-9J6LuKDeYSJjBUOGuXt2rvRcziMCA&anchor-ms=20000&execute-ms=30000&ovv=CADq00gF&cb=xzcffh13row9",
+      "status": 200,
+      "title": "reCAPTCHA",
+      "bytes": 54694,
+      "sha256": "22717c1adbbc06bb3f963de5ca51a562116f7c82a72db3cb8032b207591adca3",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.google.com/recaptcha/enterprise/anchor?ar=1&k=6LfwuyUTAAAAAOAmoS0fdqijC2PbbdH4kjq62Y1b&co=aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbTo0NDM.&hl=en&v=4i3aN5wAweL7i3ADI7BSX4B-&size=normal&s=DzJ2VmgiY6inTZGSQKKvoBeYwCMRmBLK1cAonQ4eMMhDJ5Kn-CojIomcZWbp0kRA8udAcjVXKQIPbNm_VKuLB73Z2btPNQ9q474T4_Wb0NuR8mfJO5N1FhLR0qKwsFcu1QGnQSXQqjvLCbo11UzhUZImBHWtT5_UmlM2L8lcpbgk9JCIHNZF98NmnKz7FgncJtsSosbGjJZZEU0--d6DF2-9DmcPGhH3ZoK7HYOEeGeFbT_w4EBcRKcZSvcPdjbGfhDhnqidQDXTCon9tiZm3HeHbn8UrYE&anchor-ms=20000&execute-ms=30000&ovv=CADq00gF&cb=3x54w2d19jwc",
+      "status": 200,
+      "title": "reCAPTCHA",
+      "bytes": 54694,
+      "sha256": "22717c1adbbc06bb3f963de5ca51a562116f7c82a72db3cb8032b207591adca3",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.google.com/recaptcha/enterprise/bframe?hl=en&v=4i3aN5wAweL7i3ADI7BSX4B-&k=6LfwuyUTAAAAAOAmoS0fdqijC2PbbdH4kjq62Y1b&bft=0dAFcWeA65VV80n2qev8wG2Pw5EaWBCEnHTIR7VUxYrclfszJjabUvOfKEucRKjp6D2IA4CN9peZ7p3K1aRnZQHos9fO6u26lNfA",
+      "status": 200,
+      "title": "reCAPTCHA",
+      "bytes": 16984,
+      "sha256": "d4b6593ddfb1469bb8da2c2410ee59b0f9d045aef7011983b527a7f596c6027b",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.google.com/recaptcha/enterprise/anchor?ar=1&k=6LfwuyUTAAAAAOAmoS0fdqijC2PbbdH4kjq62Y1b&co=aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbTo0NDM.&hl=en&v=4i3aN5wAweL7i3ADI7BSX4B-&size=normal&s=pACQIuhVB4RxdlYxznyz_i1catBdXGtnQWplt1ZAgOvJfWZlJA1hs887syyJZrVgopTkDejZRP9_6ZzB_seei5lIUL-pjNEqEEkdejefXWwuLcemj7pZh-62FqFMzZNCF97ixkDfnhKh4YZlz1JETqQUVCg3spC2d-0UnZ-o_yemF0OstOv56sIQX4hStpxqCFWqEVeKfYREE7Lg9b0vpRsQQ2f1A2_wrhViglQqjtQZuxXzYTXNuVlaivtGSY6_KQ_Dwpn3VjosQYSA9WAufqZuVt7amAg&anchor-ms=20000&execute-ms=30000&ovv=CADq00gF&cb=hen2als1zf5n",
+      "status": 200,
+      "title": "reCAPTCHA",
+      "bytes": 54694,
+      "sha256": "22717c1adbbc06bb3f963de5ca51a562116f7c82a72db3cb8032b207591adca3",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.google.com/recaptcha/enterprise/bframe?hl=en&v=4i3aN5wAweL7i3ADI7BSX4B-&k=6LfwuyUTAAAAAOAmoS0fdqijC2PbbdH4kjq62Y1b&bft=0dAFcWeA6Mk3bMR8R20cGBWMNTKxlAdqCUnX1qmSmGt7RBMDH0D4QFMrdC--rLyhE0yGI8MklVtlaWc4gIZEdOflsNgK1WA0-m6g",
+      "status": 200,
+      "title": "reCAPTCHA",
+      "bytes": 16984,
+      "sha256": "d4b6593ddfb1469bb8da2c2410ee59b0f9d045aef7011983b527a7f596c6027b",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.google.com/recaptcha/enterprise/bframe?hl=en&v=4i3aN5wAweL7i3ADI7BSX4B-&k=6LfwuyUTAAAAAOAmoS0fdqijC2PbbdH4kjq62Y1b&bft=0dAFcWeA5HuwUPKWypjMDeFFCd6F69Iacbuy3t2I5HM_6apW8EPTGI8ShFaA3d_jEtFbeVXk5Y_p5phqDmVD5fPPk3D6jxde2rSQ",
+      "status": 200,
+      "title": "reCAPTCHA",
+      "bytes": 16984,
+      "sha256": "d4b6593ddfb1469bb8da2c2410ee59b0f9d045aef7011983b527a7f596c6027b",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.google.com/recaptcha/enterprise/anchor?ar=1&k=6LfwuyUTAAAAAOAmoS0fdqijC2PbbdH4kjq62Y1b&co=aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbTo0NDM.&hl=en&v=4i3aN5wAweL7i3ADI7BSX4B-&size=normal&s=Ac5JuM-WTqe8GBU18uicyQfJG2jf6J8SGCH6sGRjl_hh7I7nhI1W-IE1A0xc6H6eE-GMFGzmrVfUxkEQlxw5LDmwnf3_kZSPirBiYBdzomX5c0ivJgbjz_NRIeWSP5xFwmOtWwjkKvNDoSWlpRE47UCClUpdoteJEN-5JNguC6ORKDQvN9q9CTT9xCIVelEzLB4fDffTzOMFYtXlAlLMe6EaiOfXDVXk-WB8B_Xw8eJGMn0H8oJzWNrT24rx0gMq8DkElzU5E3mosJ0UHT7jtbIiB9FzbFY&anchor-ms=20000&execute-ms=30000&ovv=CADq00gF&cb=89eszmk1uqar",
+      "status": 200,
+      "title": "reCAPTCHA",
+      "bytes": 54694,
+      "sha256": "22717c1adbbc06bb3f963de5ca51a562116f7c82a72db3cb8032b207591adca3",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.google.com/recaptcha/enterprise/anchor?ar=1&k=6LfwuyUTAAAAAOAmoS0fdqijC2PbbdH4kjq62Y1b&co=aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbTo0NDM.&hl=en&v=4i3aN5wAweL7i3ADI7BSX4B-&size=normal&s=1Hhuwok4pTWVVMTU6Lt-1J-OYwNP0GGNdfUdC5Zf9w7ID7R5GRWXEIBk1muR_G_AV7AREjRMUUbIVvtPPtksfYRV6_9vg-puXdF0p2pRqTjxHN_SGZTg9p8AH8OjILWowi1xjqRNA3ExFHyDAvdNbt6V1xETtF2cUx6UDPUodhHA1EFhReLeSihIomO0uZG8za40vcP6ccyYM6TrcKQssiM1HZJFTab9uknpKuJBUFDzxiHmvIJSgtIfmLuFpzyzny6FFJrFtSlIvt6-SUlKMM3nBMVCeDw&anchor-ms=20000&execute-ms=30000&ovv=CADq00gF&cb=yi7p2jubrsyz",
+      "status": 200,
+      "title": "reCAPTCHA",
+      "bytes": 54694,
+      "sha256": "22717c1adbbc06bb3f963de5ca51a562116f7c82a72db3cb8032b207591adca3",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.google.com/recaptcha/enterprise/bframe?hl=en&v=4i3aN5wAweL7i3ADI7BSX4B-&k=6LfwuyUTAAAAAOAmoS0fdqijC2PbbdH4kjq62Y1b&bft=0dAFcWeA5qN9esZ4cys8ceRvDgJM4yXkGImGwSDk6CPfj5onanJBLba56ROlBG4pnBAcbROCEEYDNlCsx1kEf-1HXsU5pEgys6Bg",
+      "status": 200,
+      "title": "reCAPTCHA",
+      "bytes": 16984,
+      "sha256": "d4b6593ddfb1469bb8da2c2410ee59b0f9d045aef7011983b527a7f596c6027b",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.google.com/recaptcha/enterprise/anchor?ar=1&k=6LfwuyUTAAAAAOAmoS0fdqijC2PbbdH4kjq62Y1b&co=aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbTo0NDM.&hl=en&v=4i3aN5wAweL7i3ADI7BSX4B-&size=normal&s=JLsgj6ihGd7-iHU453SA69f5bID9O5olLrV0M2yR-0BRAQCP6uaf1IBh-dlK_7eJFLHCpdwUanqIfMwLGnFq5a9All106YtmOED8vtJ7NmJG80XNpZulHg34H6Gi1JfsRtzxc60PuRVVJe-ffCOGBDiJ-HLeupPDiAzpzFTfdKfG_V83fV2YBeKKiQMeu--k38sYYTQEMebQj6qNoh66l31jf5LZPew8LklPbwZksu0u3wjpTxNkPS9lgArnPicTXcBO5PKUXeJ29Mz1eyIo89vrkiJDeI4&anchor-ms=20000&execute-ms=30000&ovv=CADq00gF&cb=2osxjskmnmo",
+      "status": 200,
+      "title": "reCAPTCHA",
+      "bytes": 54694,
+      "sha256": "22717c1adbbc06bb3f963de5ca51a562116f7c82a72db3cb8032b207591adca3",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/code-is-a-design-material",
+      "status": 200,
+      "title": "Code is a Design Material",
+      "bytes": 93261,
+      "sha256": "9f8f9cf7606d444e93b81345f568d95cbb8cea323ea025edbda1ad1a78b9ec4d",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.google.com/recaptcha/enterprise/bframe?hl=en&v=4i3aN5wAweL7i3ADI7BSX4B-&k=6LfwuyUTAAAAAOAmoS0fdqijC2PbbdH4kjq62Y1b&bft=0dAFcWeA6VXJFXOsQUS09Z_VKS_DH13QFFltXGp7G5D-tTBs7CbHhVgSTKfFMT3JthqBxJtInhSD-zsHFFGUyqqzEVhamSuZZESw",
+      "status": 200,
+      "title": "reCAPTCHA",
+      "bytes": 16984,
+      "sha256": "d4b6593ddfb1469bb8da2c2410ee59b0f9d045aef7011983b527a7f596c6027b",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/color-theory-ruxandra-duru",
+      "status": 200,
+      "title": "Rethinking Color Theory",
+      "bytes": 180574,
+      "sha256": "7fe5c3e9f4dcb24d80d3bac2494b664a9cc6d2c4b0a4a0a1e65952bd1467384c",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.google.com/recaptcha/enterprise/bframe?hl=en&v=4i3aN5wAweL7i3ADI7BSX4B-&k=6LfwuyUTAAAAAOAmoS0fdqijC2PbbdH4kjq62Y1b&bft=0dAFcWeA5N75Hni2NxMM_6eg0SMIsm6CoxZm9UlJhOET5KU2oH_f0S4KEncUywmIdjJigjmrMSmFS-EL4sIC_FbE4Jl231e9xRrQ",
+      "status": 200,
+      "title": "reCAPTCHA",
+      "bytes": 16984,
+      "sha256": "d4b6593ddfb1469bb8da2c2410ee59b0f9d045aef7011983b527a7f596c6027b",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/config-2024",
+      "status": 200,
+      "title": "Config - Takeways from Figma&#x27;s 2024 Conference",
+      "bytes": 98045,
+      "sha256": "1ff5c4242da52b42ec2a0af0e47e1b2a88a37960433aaf703c920a464bea5ad3",
+      "screenshot": null
+    },
+    {
+      "url": "https://research.google/blog/neural-network-generated-illustrations-in-allo/?m=1",
+      "status": 200,
+      "title": "Neural Network-Generated Illustrations in Allo",
+      "bytes": 170754,
+      "sha256": "430af7dcb4f53a9f337a5a9f7536285e69a35e48496d032573d10b3a8deb6575",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/connecting-with-a-global-audience-survey-methods",
+      "status": 200,
+      "title": "UX Research Tips for Global Markets",
+      "bytes": 70329,
+      "sha256": "0f7b3397190ce094370a0c7dccc0da3c40d0c2fd366ec4c4813413dbc981d2b3",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/contrary-to-popular-belief",
+      "status": 200,
+      "title": "Contrary to Popular Belief",
+      "bytes": 99343,
+      "sha256": "da804663a51cffeca2c52454e68ff126aa02c2df443636c2202e475cadbb4d25",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/connectivity-culture-and-credit",
+      "status": 200,
+      "title": "UX Design for Next Billion",
+      "bytes": 113688,
+      "sha256": "fce0fb3f1c8225d354d3850483c6d8f398062814f71154149ef504f36a75f574",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/control-and-simplicity",
+      "status": 200,
+      "title": "Control and Simplicity in the Age of AI",
+      "bytes": 123792,
+      "sha256": "abc8e20776a375cbef31b1c25b89f45318b1ab12c8aae1c85400a73ca0d611fb",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/conversation-design-intro",
+      "status": 200,
+      "title": "In Dialogue—With Our Devices",
+      "bytes": 51534,
+      "sha256": "133c97d6dffe31c93bb75d0cbe7ccfdf04656dea89a8d27d47280993f60d0b77",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/creating-consistency-one-pixel-at-a-time",
+      "status": 200,
+      "title": "Creating Consistency one Pixel at a Time",
+      "bytes": 98475,
+      "sha256": "b43bc35111e99bba21171ed39fb2fb3a7015fea3d19fd8327a11ca5405229d13",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=z9I9hMHIouo",
+      "status": 200,
+      "title": "- YouTube",
+      "bytes": 1420837,
+      "sha256": "c3319e20065c44e99c7b9f79d524cd1506871af2addbf6199dab3fb11b074739",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/david-reinfurt-teaches-design",
+      "status": 200,
+      "title": "True Design is Better than New Design",
+      "bytes": 74521,
+      "sha256": "8fa37c5c3ebe0de230f8b5b8a01049b2ac5def60e94ae030bcdc4eed867890f0",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/demystifying-density",
+      "status": 200,
+      "title": "Demystifying Density",
+      "bytes": 66171,
+      "sha256": "d1629504789a124bc8d15a77b596e0ea0be4b52a7dec5b8a92937edcde0cba70",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/design-company-of-year-2026",
+      "status": 200,
+      "title": "Google is Fast Company’s Design Company of the Year",
+      "bytes": 45308,
+      "sha256": "c1952efca4e50b0319a0ceac30a5780e02515cb8fb95b28dfec878670418e80b",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.google.com/recaptcha/enterprise/anchor?ar=1&k=6LfwuyUTAAAAAOAmoS0fdqijC2PbbdH4kjq62Y1b&co=aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbTo0NDM.&hl=en&v=4i3aN5wAweL7i3ADI7BSX4B-&size=normal&s=vUO5aWNCjHYIiE-yKbQ9HDRT4JI8AeYrScnPF4xPhLDAe0QxRGKwvzS9sTaNr-dYtJMadYdb6EMQKkVA2XMdAo2BZblFKsolcyOpACvRVqxE6FhHoy_iy48Kljhnd5bR3xoCgtT5O8HNuvtXnVZsW9PRvfHXJy6lIQhhrHCjNqNUue-031pdV79gAme2-vH7hjRBK-zHlh9ifisic3mK7dWvCsNuKUggKDQReSSrQBbSCSQ1bo8Ljq_SvDwF6UYBx1pidkHNKRn0ODtykS7LnZljqEpg85E&anchor-ms=20000&execute-ms=30000&ovv=CADq00gF&cb=n7xd9rsdkel2",
+      "status": 200,
+      "title": "reCAPTCHA",
+      "bytes": 54694,
+      "sha256": "22717c1adbbc06bb3f963de5ca51a562116f7c82a72db3cb8032b207591adca3",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.google.com/recaptcha/enterprise/bframe?hl=en&v=4i3aN5wAweL7i3ADI7BSX4B-&k=6LfwuyUTAAAAAOAmoS0fdqijC2PbbdH4kjq62Y1b&bft=0dAFcWeA5wzLfNm_nCqy25OIiXUxSpRTOjeHZ7p8n2Tq-S-HZPOMkOkN3TfznQqwC_ndPRE5qiWEzn7hVkt1dZkVj6kb0U5yUyEg",
+      "status": 200,
+      "title": "reCAPTCHA",
+      "bytes": 16984,
+      "sha256": "d4b6593ddfb1469bb8da2c2410ee59b0f9d045aef7011983b527a7f596c6027b",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/design-ios-android-and-back-again",
+      "status": 200,
+      "title": "From iOS to Android (and Back Again)",
+      "bytes": 150139,
+      "sha256": "b48c49880a205caf925996c39dd677f4ca362c9a5ab3d9e6d0e5387f9b55b059",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/design-is-human",
+      "status": 200,
+      "title": "A Human Touch",
+      "bytes": 44076,
+      "sha256": "0e197f488b03567e1bbd857809b4d5f0bc8123ecc7ce3b24fbc04f214ad7870d",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/design-is-smart",
+      "status": 200,
+      "title": "What is HCML?",
+      "bytes": 46593,
+      "sha256": "e912099d0357df27a304e8afac27ac82851e9eab3caedff73b884daa6badd720",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.google.com/recaptcha/enterprise/anchor?ar=1&k=6LfwuyUTAAAAAOAmoS0fdqijC2PbbdH4kjq62Y1b&co=aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbTo0NDM.&hl=en&v=4i3aN5wAweL7i3ADI7BSX4B-&size=normal&s=nohegPRa1Km9XLVsNI8t46lZuNxSNEv_R2sLz1REqTgGqYQLTozvh4dtCWho4Qdbv0GOMh1VbN8BtRkrf9XzewLYpNxusdMGNBiRiU2C11CaNOYZlriE-5Kz92zdIKAIHp4R0XBg-AMFsUkxv9YiWVddj0o4pRzJuvjCkROkZNAGLXHq8TragM3SgckwjahwrIdyLtXd1mAKn1P5EZKT3mVbMArsDE_XLpDq41Le8xs69yERMTy-QdaDbHvwDaaKiCDsfIdHsCAx06eC9phtg-fuZ9vTO40&anchor-ms=20000&execute-ms=30000&ovv=CADq00gF&cb=lykq0ngqkp6e",
+      "status": 200,
+      "title": "reCAPTCHA",
+      "bytes": 54694,
+      "sha256": "22717c1adbbc06bb3f963de5ca51a562116f7c82a72db3cb8032b207591adca3",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/design-notes-ai-mediated-art",
+      "status": 200,
+      "title": "Design Notes: AI-Mediated Art",
+      "bytes": 49193,
+      "sha256": "339f384da7c3836946371df0c90b087d5e9ee2fcb176655fc31b618d380dec15",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.google.com/recaptcha/enterprise/bframe?hl=en&v=4i3aN5wAweL7i3ADI7BSX4B-&k=6LfwuyUTAAAAAOAmoS0fdqijC2PbbdH4kjq62Y1b&bft=0dAFcWeA7a8jHkLQWY4MHTtYONC8voxyqSR4vWa62_yFmaF2VznfIFNDeF0RWpIDwkvzehVGuHYhZ9nxoW_6AWLpOeRxc8ID3Hog",
+      "status": 200,
+      "title": "reCAPTCHA",
+      "bytes": 16984,
+      "sha256": "d4b6593ddfb1469bb8da2c2410ee59b0f9d045aef7011983b527a7f596c6027b",
+      "screenshot": null
+    },
+    {
+      "url": "https://design-notes.show/",
+      "status": 200,
+      "title": "Design Notes Podcast",
+      "bytes": 17838,
+      "sha256": "a8855475f8790241a3be80a4de1c67f31ab42481c32a7ab0502b4e74a82e1ed0",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/design-notes-bringing-material-design-life",
+      "status": 200,
+      "title": "Design Notes: Bringing Material Design to Life",
+      "bytes": 62886,
+      "sha256": "29632b06f079d4aa0d8bf65bda65ca7dad50b3b7b687db609139fdcca251d250",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/design-notes-celebrating-awkwardness",
+      "status": 200,
+      "title": "Design Notes: Celebrating Awkwardness",
+      "bytes": 46164,
+      "sha256": "fb15893cc13d44d1dddb994f4a6ba14303b5137527665baa926368918ecffc53",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/design-notes-creative-animus",
+      "status": 200,
+      "title": "Design Notes: The Creative Animus",
+      "bytes": 46353,
+      "sha256": "5200ea15703c77869d5cc4ff4e1836472cd975f9b61995c92d096709632dc717",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/design-notes-creative-possibilities-identity",
+      "status": 200,
+      "title": "Design Notes: Creative Identity",
+      "bytes": 47401,
+      "sha256": "e361d3909186ccc5668984c2635f74ddd24c6312280cc95160695a955ea011bc",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/design-notes-episode-15",
+      "status": 200,
+      "title": "Design Notes: Episode 15",
+      "bytes": 59769,
+      "sha256": "317746dc9490428e712efb7d20ee9815c39fc1944f768968dd7785cfd42a7d31",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/design-notes-episode-4",
+      "status": 200,
+      "title": "Design Notes: Episode 4",
+      "bytes": 61591,
+      "sha256": "a382bbd1434b8b17098f4b1581d9940b209630fb9eb70e74e69ee7e011c7f90c",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/design-notes-making-mistakes-purpose",
+      "status": 200,
+      "title": "Design Notes: Making Mistakes on Purpose",
+      "bytes": 46819,
+      "sha256": "4d088ffd2dfd83d867cc1c8768803e5a2326e78eae66d83e62ba2a04361a8f2e",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/design-notes-material-3-expressive-liam-spradlin",
+      "status": 200,
+      "title": "Material 3 Expressive – Design Notes",
+      "bytes": 54523,
+      "sha256": "9050b9b9a379b29a332ae075f545143e8bce0b9963f70c668844362a3181d837",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/design-notes-podcast-episode-1",
+      "status": 200,
+      "title": "Design Notes: Episode 1",
+      "bytes": 53734,
+      "sha256": "81c4d2b1c6b6012101ebd1dc5a3b25d3d48044efd03cf0f4bac9b0af653f99cb",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/design-notes-podcast-episode-2",
+      "status": 200,
+      "title": "Design Notes: Episode 2",
+      "bytes": 62295,
+      "sha256": "2b8f8f9deaa2510736aad6ca6f843b00a60d27569e9e585fa3cfc3baa9151520",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/design-notes-podcast-episode-3",
+      "status": 200,
+      "title": "Design Notes: Episode 3",
+      "bytes": 54019,
+      "sha256": "ce21257bc6629141b58fc30a662cb176c75c01caa25f618aed9f37964af64c05",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/design-notes-podcast-episode-8",
+      "status": 200,
+      "title": "Design Notes: Episode 8",
+      "bytes": 57481,
+      "sha256": "ad0aa04e530ea6b0dc49ae635182ed153419c8c54263220f05377c57a0503d7d",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/design-notes-podcast-episode-9",
+      "status": 200,
+      "title": "Design Notes: Episode 9",
+      "bytes": 54976,
+      "sha256": "17557dfb0a89ff778c76b3c856bf9c154e5c105c7b899987a3db99b44b5ff6ba",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/design-notes-podcast-virtual-couture-interview",
+      "status": 200,
+      "title": "Design Notes: Virtual Couture",
+      "bytes": 46779,
+      "sha256": "e2a14bc48bb84abc1a69d65c9cb5f9348f30a6df8878c7c9d4c66ecf8d7d5426",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/design-notes-riffing-on-design",
+      "status": 200,
+      "title": "Riffing on Design",
+      "bytes": 62023,
+      "sha256": "7ba40beb5c7c5e83c693557c3444aa244b4bf726980b2521bdcc6cb74830a4de",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/design-sprints",
+      "status": 200,
+      "title": "5-Day UX Design Sprint",
+      "bytes": 117350,
+      "sha256": "1641425971858d0dc063318cafe057b4bc102448f0a9276b54a911664e047b47",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.google.com/recaptcha/enterprise/anchor?ar=1&k=6LfwuyUTAAAAAOAmoS0fdqijC2PbbdH4kjq62Y1b&co=aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbTo0NDM.&hl=en&v=4i3aN5wAweL7i3ADI7BSX4B-&size=normal&s=0Av1wIbsZqd1DEsfM6N_b6f42ANvq7IodB1PhH0S95-JfaANw4BE3pyK-7s8BHoH4z7IqGUllXDmDWCsX2oITu5bz7byPWBK2c4X--5tKnPNFbiUWAro4HIOL1vNWQ43BRW2vrwEVPxReCcqc70p8WtboZgJu5rTnuAOehsS2KGmf8k9VXDg1tQIxCJBLUcdfSUKapYQNG6-BfZAVsWLUlcZJRHUz03aMYtc7SKrHT66SrsxvZfk4Qwd-x8zfnFzBZznHz1hqWfUWbZu5eG-YEI_r1S8jKM&anchor-ms=20000&execute-ms=30000&ovv=CADq00gF&cb=at72xxoux5sp",
+      "status": 200,
+      "title": "reCAPTCHA",
+      "bytes": 54694,
+      "sha256": "22717c1adbbc06bb3f963de5ca51a562116f7c82a72db3cb8032b207591adca3",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/designers-guide-accessibility-research",
+      "status": 200,
+      "title": "UX Design - Research for Accessible Products",
+      "bytes": 84339,
+      "sha256": "d0a0f70e35aec71e5d63b435850fb197fc4cb7e4ed85857a5f2ca4445cca0701",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.google.com/recaptcha/enterprise/bframe?hl=en&v=4i3aN5wAweL7i3ADI7BSX4B-&k=6LfwuyUTAAAAAOAmoS0fdqijC2PbbdH4kjq62Y1b&bft=0dAFcWeA5kYgf5OKi2XZGz_v3a5fH-wR_oE0vMjB1BAtj6r4DEZLMr8lmQjhbDl9I8F-lJt2iKKFl-FQzRA4h3Y67luqjJWy2JyQ",
+      "status": 200,
+      "title": "reCAPTCHA",
+      "bytes": 16984,
+      "sha256": "d4b6593ddfb1469bb8da2c2410ee59b0f9d045aef7011983b527a7f596c6027b",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/designers-talking",
+      "status": 200,
+      "title": "VisD Summit Talks - Design &amp; UX",
+      "bytes": 105371,
+      "sha256": "8bc0e09afbc64c03af8260ed792e16a516bbd77e725864d96e613e561173f6f9",
+      "screenshot": null
+    },
+    {
+      "url": "https://developers.google.com/assistant/conversation-design/welcome",
+      "status": 200,
+      "title": "Conversation Design &nbsp;|&nbsp; Google for Developers",
+      "bytes": 152036,
+      "sha256": "91bbfd96c1102e69e0cd6143ff25ab11edb68e75822597cf3de47f6dd4f8ce30",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/designing-for-digital-wellbeing",
+      "status": 200,
+      "title": "Designing UX Wellbeing",
+      "bytes": 112754,
+      "sha256": "f285238caac411921eb7e6932ab07cc87594a1c1e42f5dfd6b7d86e980ab61bb",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/designing-global-accessibility-part-2",
+      "status": 200,
+      "title": "Designing For Global Accessiblitity: Part 2",
+      "bytes": 74614,
+      "sha256": "ceed4fceb6c8731f19799db81b16eea58ec525f55d8a2bf5470494b599819509",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/designing-global-accessibility-part-iii",
+      "status": 200,
+      "title": "Designing For Global Accessiblitity: Part 3",
+      "bytes": 75066,
+      "sha256": "a912b7f17e9ad81904e94a0ff46b11047c0dca97277b936ce7d2fbcb719a0def",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/designing-google-maps-motorbikes",
+      "status": 200,
+      "title": "Designing for Bikes: Google Maps",
+      "bytes": 104712,
+      "sha256": "a8193f07c82076a92e3351a14fb85486c35e2c4e47fa399f394ca90ed901eaed",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.google.com/recaptcha/enterprise/anchor?ar=1&k=6LfwuyUTAAAAAOAmoS0fdqijC2PbbdH4kjq62Y1b&co=aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbTo0NDM.&hl=en&v=4i3aN5wAweL7i3ADI7BSX4B-&size=normal&s=4yYPKZz9hCKtcDt8sNFAORTdi8yCbRBp66tBbaWmIeQ2DvCQo7EOwUgv1x12YSBqc7ua7LP1Lq1_o6i23YOM47j26Fh6-5Q1CGj70woTB4nxWb9tBPuaHvTjjHN5SJl_-q2iBSH0e6eYh5Z3AOTFxPHrlopjuOmAvowTW7wAr-opFgTFyaT6gN9qK26u7DCOCxB8DVfdCDdleVV1g0M4w7fgxcE1ToRsurZQcFIuA1NjmwSjHUXb2Yc-UmFp0h92JwEqos1K8PjQJvBiU363zbsJVfFkbi8&anchor-ms=20000&execute-ms=30000&ovv=CADq00gF&cb=89p2xlpeu969",
+      "status": 200,
+      "title": "reCAPTCHA",
+      "bytes": 54694,
+      "sha256": "22717c1adbbc06bb3f963de5ca51a562116f7c82a72db3cb8032b207591adca3",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.google.com/recaptcha/enterprise/bframe?hl=en&v=4i3aN5wAweL7i3ADI7BSX4B-&k=6LfwuyUTAAAAAOAmoS0fdqijC2PbbdH4kjq62Y1b&bft=0dAFcWeA4lAgl1rfRp4JsYU0CPRI3hj64zNnvQ9a813P8lK2g0aOsijSIMk72H6Up728hboIZkpsJuPViFRZWIpBuWpZDd2rvo6Q",
+      "status": 200,
+      "title": "reCAPTCHA",
+      "bytes": 16984,
+      "sha256": "d4b6593ddfb1469bb8da2c2410ee59b0f9d045aef7011983b527a7f596c6027b",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/designing-span-2017",
+      "status": 200,
+      "title": "Google’s Event Design: Rebranding SPAN 2017",
+      "bytes": 125236,
+      "sha256": "c503af9e5d52bef55ed29035e95d0de0aa5f3cda6c1160e73182d18b85ce6d85",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/device-specific-privacy",
+      "status": 200,
+      "title": "Mobile Phone Privacy",
+      "bytes": 61515,
+      "sha256": "d8e2ad1f480996d89e92311bbbdb4a35d8280e76bf226c0bed071577483a8832",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/digital-backpack-003",
+      "status": 200,
+      "title": "Dream Digital UX Escape",
+      "bytes": 77043,
+      "sha256": "0e6c8804db01110482d04b3a7a37daefe8a87988853760248d09b78495b9e843",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/digital-backpack-001",
+      "status": 200,
+      "title": "Souvlaki, Playful Puns, and Logging Off",
+      "bytes": 79927,
+      "sha256": "ac82fadefcb7813eb809a2f4ddede71bc059cce8f38f655aa905a50aa956dd73",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/digital-backpack-004",
+      "status": 200,
+      "title": "Design Adventures: UI/UX from Wonderland to Starship",
+      "bytes": 77998,
+      "sha256": "f72c6c05165172caf555563a050ad96eb38f90f03689aa23d082fd9e3899be0a",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/diverse-designs-multicultural",
+      "status": 200,
+      "title": "Diverse Designs",
+      "bytes": 44392,
+      "sha256": "d1517ca03353a33c9b81f951d656b5d42abbe1286a7624f67167f2de6fde5773",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/engagement-is-fabulous-health-app",
+      "status": 200,
+      "title": "Engagement is Fabulous",
+      "bytes": 79564,
+      "sha256": "38185de3466ffbe62cce6e3885bcbdd1c6e6c65f8438da8e8cbd08c82b9f503f",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/early-challenges-in-ar-ux",
+      "status": 200,
+      "title": "Early Challenges in AR UX",
+      "bytes": 72756,
+      "sha256": "680c60ed045294eede2210f0c3f1034b823998542b72409600c2cdcbe28d99e5",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/euphrates-dahout-material-design-figma",
+      "status": 200,
+      "title": "Making Material Design’s Figma UI Kit",
+      "bytes": 73223,
+      "sha256": "d2b162a305971c2c54f7dbcd16b8f9902768987258059fe10b99a7b891dfa2b8",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/evernote-ideas-action",
+      "status": 200,
+      "title": "Keeping Evernote Evergreen",
+      "bytes": 73913,
+      "sha256": "0d5661747d1bcc0872b0906e9c3b74244103be8d6d4c0ea95f868fb60c90c495",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/evoking-emotions-pamela-pavliscak",
+      "status": 200,
+      "title": "Evoking Emotions",
+      "bytes": 44822,
+      "sha256": "08f2af1e19b3e39ee560ac3646058b242f48b1de3be986c3937ae81eac3c9450",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/evolving-google-identity",
+      "status": 200,
+      "title": "Evolving the Google Logo Identity",
+      "bytes": 95219,
+      "sha256": "e3c9d11e8277c365c509577a8379d4c1ccdfb517d2e304ba18a6fd41c4c12dc3",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/exploring-color-google-maps",
+      "status": 200,
+      "title": "Reimagining Google Maps with a New Color Palette",
+      "bytes": 154596,
+      "sha256": "bac3f14f87425afa80cc57859972457082ffe31bf8166bebf2a63d2f25605326",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/expressive-material-design-google-research",
+      "status": 200,
+      "title": "Expressive Design: Google&#x27;s UX Research",
+      "bytes": 150756,
+      "sha256": "17a7fb3590a27ad5ccb5475bff6d615fba0f0d912b0f60e296905c7ef8ffb903",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=wt2btUPPZ_M&feature=youtu.be",
+      "status": 200,
+      "title": "- YouTube",
+      "bytes": 1412638,
+      "sha256": "8982540a81da7980743bbf67aacec959dfb91ebafeeedb645743c344e75dcb73",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=NF98WCdvR6U",
+      "status": 200,
+      "title": "- YouTube",
+      "bytes": 1433957,
+      "sha256": "ea2c0bbabdcbe39509dbeec45f87c2ae16cfd17b7e75bfc7c18360caba1a97a6",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/fair-not-default",
+      "status": 200,
+      "title": "Fair AI Tool",
+      "bytes": 133209,
+      "sha256": "2e3709f3964900ddca7bd4d0cef537b4105bd8f4001ef95940505857aeb8f85b",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/fast-real-time-and-fully-interactive-emoji",
+      "status": 200,
+      "title": "Fast, Real-Time, and Fully Interactive",
+      "bytes": 86494,
+      "sha256": "359eb4a25588be211ab542a1f34514d49ee29e8f0efa7e4073c3a919a86f41f7",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/figma-comments-material-ux-euphrates-dahout",
+      "status": 200,
+      "title": "User Feedback and the World&#x27;s Most Popular Design Kit",
+      "bytes": 94365,
+      "sha256": "683e46cd75ca91cd8e1f6800715f47ea3144bd5b29c5fcdd9ed7e102b8a3c219",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/first-edition",
+      "status": 200,
+      "title": "The Legendary SPAN Reader: A Design Retrospective",
+      "bytes": 96809,
+      "sha256": "bf2cf84c9b9586e4e3cff5ef37eb8c61f4a18013f866c3f673cc82e49088b138",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/form-google-design-paul-schlacter",
+      "status": 200,
+      "title": "FORM: Google&#x27;s First Design Conference",
+      "bytes": 74822,
+      "sha256": "242dfb2884c40acc5581218e8f1caaf3420638b3ce8bfd717228b27384175ffd",
+      "screenshot": null
+    },
+    {
+      "url": "https://fonts.googleblog.com/2022/01/flow-and-redacted-check-out-these-new.html",
+      "status": 200,
+      "title": "Google Fonts Blog: Flow and Redacted: Check out these new options for wireframes and other early-stage designs",
+      "bytes": 97359,
+      "sha256": "ff2e76e552e03fa4983391ee7b1fe329e54c3ef9008fbee97967685595bf310b",
+      "screenshot": null
+    },
+    {
+      "url": "https://2542116.fls.doubleclick.net/activityi;dc_pre=CKCTqrT9iJgDFTsQpggdJuEajQ;src=2542116;type=gblog;cat=googl0;ord=ord=8032594274636.354?",
+      "status": 200,
+      "title": "",
+      "bytes": 339,
+      "sha256": "5765d519e13d0645d619f0f31515e24a6b7ebd6824e24d036092778f338acae5",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/first-raters",
+      "status": 200,
+      "title": "Design for AI: The Future of UI/UX",
+      "bytes": 99783,
+      "sha256": "3f404fc39dc4059e35c62f12556835d61f20cf8ce08a5e611a2ea48fa31d3b47",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/from-simulation-to-action-vr-ar",
+      "status": 200,
+      "title": "From Simulation to Action",
+      "bytes": 49837,
+      "sha256": "6939a950322b3fde6c731f848cbde1a96ac45fece40326cbc7d6020ebed6fd6b",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/gemini-ai-visual-design",
+      "status": 200,
+      "title": "Gemini AI Visual Design",
+      "bytes": 125688,
+      "sha256": "23c34334a5ec680f44f553cf346fbef4ba8d6575f4c4d67b8186ba944bbd6499",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/google-design-2019",
+      "status": 200,
+      "title": "Best of 2019 - Focus on the User",
+      "bytes": 234235,
+      "sha256": "005ed4ee02e0b5f71927720a740d84a3cbad86e52c2c15834344ed7b5e2db6aa",
+      "screenshot": null
+    },
+    {
+      "url": "https://consent.youtube.com/m?continue=https%3A%2F%2Fwww.youtube.com%2Fplaylist%3Flist%3DPLJ21zHI2TNh8UjaNYMR4BP98t26NBT2VL%26cbrd%3D1&gl=FR&m=0&pc=yt&cm=2&hl=ru&src=1",
+      "status": 200,
+      "title": "Прежде чем перейти к YouTube",
+      "bytes": 582712,
+      "sha256": "4498fb0269838a34f3746e0fa865bc20c249f15f7773e5ac3c481cedccb5957b",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/google-design-2020",
+      "status": 200,
+      "title": "UX Design in 2020 - Innovation &amp; Empathy",
+      "bytes": 258692,
+      "sha256": "1024865d92c9a587ef868bd367d92d419b7665a4a7a73f270bf6ea29ee9231d4",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/google-design-download-newsletter-archive",
+      "status": 200,
+      "title": "Newsletter Archive: UX Tips &amp; Tools",
+      "bytes": 69345,
+      "sha256": "8a42b5023882b095ac97ad9dc0235b876d6f0950cf0e739ac18cbc95d5bf2fec",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/google-design-job-search",
+      "status": 200,
+      "title": "Method: Episode 19",
+      "bytes": 58687,
+      "sha256": "dee60b1a9bfa439d558f58a5aef7b4d41e3ac8d512aaaecf6453ef43dc7301a4",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/google-design-leadership-margaret-lee",
+      "status": 200,
+      "title": "Method: Episode 18",
+      "bytes": 56958,
+      "sha256": "5abe51daa092f7888e5c3550def97830e472bd569f8f54e57a5d8276511790ce",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/google-design-ux-research-august-de-los-reyes",
+      "status": 200,
+      "title": "Method: Episode 17",
+      "bytes": 53556,
+      "sha256": "c995fac14a50a6099d2a8f0058bb1e20895baa3c52bf016e767a90556491e9ab",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/google-design-ux-research-jens-riegelsberger",
+      "status": 200,
+      "title": "Method: Episode 15",
+      "bytes": 52194,
+      "sha256": "05fa066dc9f2ad41268ca084482c20d1fb2cb9af91de6e70a33bb98780430c6c",
+      "screenshot": null
+    },
+    {
+      "url": "https://m3.material.io/blog/color-fonts-are-here/",
+      "status": 200,
+      "title": "First Batch of Color Fonts Arrives on Google Fonts",
+      "bytes": 62489,
+      "sha256": "27dfa5ba260bda072cdb45e41b2ae2bfc5b069cc7c54dd5a07c92d3dffcb74e3",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/google-logo-brand-robert-wong",
+      "status": 200,
+      "title": "Google Redesign in 2 Weeks: A Design Sprint Story",
+      "bytes": 68497,
+      "sha256": "013c55f3bf5b33a10e36c8a947f7889808cc0a6228e6746a77b6e097873139ee",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/google-home-ux-miche-alvarez",
+      "status": 200,
+      "title": "Google Home UX: Adapting Material Design",
+      "bytes": 65663,
+      "sha256": "4325c059f18848e56e3229b08f41a813c71e540678eb30193f9c880ad267899b",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/google-logo-brand-gaja-sidrys-caple",
+      "status": 200,
+      "title": "How We Redesigned Google’s Logo",
+      "bytes": 67927,
+      "sha256": "ec55285883950e4b0ec8093342e21360e9d2bf038af55941c7247fab5fbebae2",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/google-lookout-design-accessibility",
+      "status": 200,
+      "title": "Google&#x27;s Lookout: Prioritizing Beauty and Accessibility in App Design",
+      "bytes": 81406,
+      "sha256": "0501c54ff2f8c15b6ee094b93c023404a3db3948b7ae4a91fd0b838024242bcd",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/google-pixel-sound-design-ux-conor-osullivan",
+      "status": 200,
+      "title": "Method: Episode 13",
+      "bytes": 51871,
+      "sha256": "5f2400e5f0d03c1866c0090a108a98927c3b7d67a8ec22fbcfdec76bf422c00f",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/google-sans-flex-font",
+      "status": 200,
+      "title": "Google Sans: Evolving Google’s Typeface",
+      "bytes": 164874,
+      "sha256": "3fc9b12794352148649a6b0c2dc5b719bcbf4d94528a019f6898db8a561816d9",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/guide-span-la",
+      "status": 200,
+      "title": "Guide to 2016 SPAN LA",
+      "bytes": 124296,
+      "sha256": "18baa8eab7ec945bc62a56d65757a76b58383f4f79347330ffa938998bafc712",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/guide-span-tokyo",
+      "status": 200,
+      "title": "Guide to SPAN Tokyo",
+      "bytes": 111708,
+      "sha256": "408f76bca3dc27ee7e65b4adc823fbc033a8110283ecd45ef09168b61d70814d",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/hardware-and-software-can-work-together",
+      "status": 200,
+      "title": "Unboxing a New Collaboration",
+      "bytes": 137810,
+      "sha256": "a87136e14c043b757ea586f30c4628d0506f3762c0e4a54cf1282c99846e803d",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/harvey-moon-creative-technology-interview",
+      "status": 200,
+      "title": "Design Notes: Extending Creativity",
+      "bytes": 46437,
+      "sha256": "b63e5fe96429f86866bc72feaca206d2fc6da7c2713e99a1c4dd2a901c7105e0",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/here-there-everywhere",
+      "status": 200,
+      "title": "WFH Hacks - How Googlers Make it Work",
+      "bytes": 105722,
+      "sha256": "f8220941048eaea29dfaa96d418d2c5db84b9104e919a7f3bcd66d6a7de0daf4",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/hot-type-always-fresh",
+      "status": 200,
+      "title": "Always Fresh Fonts: Simplify Design with Google Fonts",
+      "bytes": 79453,
+      "sha256": "51e2c2a1e47d2d1b78fd658d2e434fb8adb9a4eb3dc34f13b59fbb18a5203b3f",
+      "screenshot": null
+    },
+    {
+      "url": "https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/turnstile/f/av0/rch/mkdoq/0x4AAAAAAADnPIDROrmt1Wwj/light/fbE/new/normal?lang=auto",
+      "status": 200,
+      "title": "Checking your Browser&hellip;",
+      "bytes": 657022,
+      "sha256": "133df89089b292daa3a6afece680f293903974f5d6fa92ae2f702de54d463362",
+      "screenshot": null
+    },
+    {
+      "url": "https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/turnstile/f/av0/rch/z0xqq/0x4AAAAAAADnPIDROrmt1Wwj/light/fbE/new/normal?lang=auto",
+      "status": 200,
+      "title": "Checking your Browser&hellip;",
+      "bytes": 657313,
+      "sha256": "9b5d4ee329826f73db9fc2190ed1f902ad52d24f4d52664f13a65bd298a2a2e2",
+      "screenshot": null
+    },
+    {
+      "url": "https://research.google/blog/exploring-and-visualizing-an-open-global-dataset/",
+      "status": 200,
+      "title": "Exploring and Visualizing an Open Global Dataset",
+      "bytes": 174559,
+      "sha256": "bf71c2116abaad670cb6c90ad69d5e7ebfd6460fca8c263f7623994bb1039f63",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/insights-from-a-reluctant-leader",
+      "status": 200,
+      "title": "Insights from a Reluctant Leader",
+      "bytes": 137100,
+      "sha256": "db1cda1d82e84d1808a540bd3e86563d5660095a950423d5b8649083509b27e6",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.youtube.com/embed/59bMh59JQDo?rel=0&feature=player_embedded",
+      "status": 200,
+      "title": "YouTube",
+      "bytes": 157941,
+      "sha256": "d6e0ac0ffea80cdaac2803c1aaf95de30594a4442d655496590481b1295c5e7b",
+      "screenshot": null
+    },
+    {
+      "url": "https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/turnstile/f/av0/rch/rwf6l/0x4AAAAAAADnPIDROrmt1Wwj/light/fbE/new/normal?lang=auto",
+      "status": 200,
+      "title": "Checking your Browser&hellip;",
+      "bytes": 647157,
+      "sha256": "f4d377718a2884b2bb43a78980c34071eccdb9a2ff5e4e30f72b526a6be6c943",
+      "screenshot": null
+    },
+    {
+      "url": "https://m3.material.io/blog/introducing-symbols/",
+      "status": 200,
+      "title": "Introducing Material Symbols",
+      "bytes": 62467,
+      "sha256": "6c56ef864ebbc00b55fb8ea74433cd8bb27e9e716103447ebacff090f9f00611",
+      "screenshot": null
+    },
+    {
+      "url": "https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/turnstile/f/av0/rch/zoexl/0x4AAAAAAADnPIDROrmt1Wwj/light/fbE/new/normal?lang=auto",
+      "status": 200,
+      "title": "Checking your Browser&hellip;",
+      "bytes": 641696,
+      "sha256": "ae86df0970baaea116ea3b3537ce7baa8dbf6044cdbee4ee7f112e261741767f",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/io-2018-our-definitive-guide-design",
+      "status": 200,
+      "title": "Google I/O 2018 Highlights: Top Apps &amp; Design Talks",
+      "bytes": 113781,
+      "sha256": "858475e957f71017a94be9c0b98930d7b3f398012f2d60336b9e90728ec7dcae",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/io-2019-our-definitive-guide-design",
+      "status": 200,
+      "title": "I/O 2019 UX Conference Recap",
+      "bytes": 144886,
+      "sha256": "c71a73b65a61afa2893f44b2089270e5d1f16d96666286fab6b6bd302496e8f7",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/io-2021-our-definitive-guide-design",
+      "status": 200,
+      "title": "Google I/O 2021: UX Design, AI &amp; Dev Tools",
+      "bytes": 109434,
+      "sha256": "4c948c74e26d180e011a5eb4b000ffce18040771d3845a256bd53a1731de1d89",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/is-it-good-design",
+      "status": 200,
+      "title": "Good Product Design is Simple, Functional, Appealing",
+      "bytes": 154781,
+      "sha256": "963512e50f18cd968e6d591afdb14dfbc041a0f98c183ef00277f495c837d29a",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/its-only-natural-ethical",
+      "status": 200,
+      "title": "It’s Only Natural",
+      "bytes": 45938,
+      "sha256": "c3defc1ece317583fb9fe28975e506c28baddb2a927a7cff2a0eba0e89373ef2",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/leading-by-design",
+      "status": 200,
+      "title": "Leading by Design",
+      "bytes": 92986,
+      "sha256": "245d80b5c537cb8baa883778ec90a72a51c6f2488bbcd4dd48a7a44176ff1f78",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/lexend-readability",
+      "status": 200,
+      "title": "Struggling to Read? A Font May Help",
+      "bytes": 85059,
+      "sha256": "e8ac3d9adce8c31c6093bd99965ee434fe1e6359980b9d25d58309f56abaf1d8",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/libby-vanderploeg-interview-illustration",
+      "status": 200,
+      "title": "Design Notes: Episode 12",
+      "bytes": 60899,
+      "sha256": "84e61e5bf896cd3b52de943fc0dda52a32b16accb62a5e20291b1165a5502902",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/madeline-gannon-robot-tamer-interview",
+      "status": 200,
+      "title": "Design Notes: Episode 11",
+      "bytes": 61911,
+      "sha256": "4b7bc121f9777cac1a96042907bfb085e9361e4a84e9fffeec31ec471dc7f73c",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/making-material-you",
+      "status": 200,
+      "title": "Material You Film Series",
+      "bytes": 49815,
+      "sha256": "64bc4f4bcf92a25e2d5dd1dcc3ff82c47e66e74df84982e42a27c8fb87c37222",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/making-more-with-material",
+      "status": 200,
+      "title": "Material Product Design",
+      "bytes": 85837,
+      "sha256": "c51b026b38149057961a07e324417c06c3f74b0790a5d352f44279eea32cb8a4",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/making-motion-meaningful",
+      "status": 200,
+      "title": "Motion Design - Make Interfaces Meaningful",
+      "bytes": 63044,
+      "sha256": "5d4ca913ecfb8f8607182c538a56ad58b805ea0fa9a0e5047a2a79de0014f124",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/making-sense-color",
+      "status": 200,
+      "title": "How Google Makes Sense of Color",
+      "bytes": 317072,
+      "sha256": "7cc360e4be38ed606480f4d29a96dc01466eec87c0c253e45000a5395c9a32f9",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/making-virtual-a-reality-branding",
+      "status": 200,
+      "title": "Making Virtual A Reality",
+      "bytes": 80058,
+      "sha256": "84275a6a7cd2c4301fd510a17f06f22aded3a875b2405852635d11517917034e",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/managing-ambiguity",
+      "status": 200,
+      "title": "Five Lessons in Managing Ambiguity",
+      "bytes": 82140,
+      "sha256": "7c33eb107d70aa4e7beeb6c2a578918871b238b092e92daa3b2dc11603b1ef71",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/making-youtube-go",
+      "status": 200,
+      "title": "YouTube Go - Watch Videos Without Burning Data",
+      "bytes": 97168,
+      "sha256": "2f6da84ba3492917e85508eb6d8deadb23463950191c10e8eae854bf4709d43f",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/margaret-urban-vui-google-assistant",
+      "status": 200,
+      "title": "Method: Episode 8",
+      "bytes": 51355,
+      "sha256": "0ebcfaab3869a4f65e11fc83a17d5288fceea5ac0c23ab3b66d4664a428b3a93",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/mastering-ambiance-ambient-computing",
+      "status": 200,
+      "title": "Human-Centered Ambient Home Tech",
+      "bytes": 79007,
+      "sha256": "a6c26f66373b1264417ae385b396ff225ac82aea7a9cb9a5fbb11deb930dd9a3",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/material-design-awards-2015",
+      "status": 200,
+      "title": "Material Design Awards 2015",
+      "bytes": 76601,
+      "sha256": "f847a78d9c3129a3b4b04db84bbabae800d4cf087e498589db06fafd8f1fbc64",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/material-design-awards-2017",
+      "status": 200,
+      "title": "Material Design Awards 2017",
+      "bytes": 82362,
+      "sha256": "995449198b55647a55bbed707b14afb9296df8e7faa5a435c40d7b3ea90fcf61",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/material-design-awards-2016",
+      "status": 200,
+      "title": "Material Design Awards 2016",
+      "bytes": 94538,
+      "sha256": "eb9f8feadec6b6c24741b54e8f8e9457eb3f4c50d75bf37166900de46286bdef",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/material-design-awards-2018",
+      "status": 200,
+      "title": "Material Design Awards 2018",
+      "bytes": 90885,
+      "sha256": "a4fb8b9d49340dffd55cd365f107085589be1513efef2a64a7e1f9537428b614",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/material-design-awards-2019",
+      "status": 200,
+      "title": "Material Design Awards 2019 UX",
+      "bytes": 81525,
+      "sha256": "3e431a13b0caf33a27bef3631b7082e52145cc1b9690aa854c7ecad8e6045880",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/material-design-awards-2020",
+      "status": 200,
+      "title": "Material Design Awards 2020: See the Winners!",
+      "bytes": 77147,
+      "sha256": "42ae0967d3211776dfab80567bcc2429f6b1c6366ad08d3b4f114f1f854dd3cb",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/material-design-color-ayan-daniels",
+      "status": 200,
+      "title": "Material Design: UX Features that Matter",
+      "bytes": 60146,
+      "sha256": "601dff5d9fa0034f4f35c47920c0801b5509297186167b106301d370c7fbaeca",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/material-design-dark-theme",
+      "status": 200,
+      "title": "Material Design’s Color Palette",
+      "bytes": 83159,
+      "sha256": "f663bce5ab9be593c404d9ea96f86c6ae186e507c5e31daa6d74eff2ee6ace7b",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/material-design-eras",
+      "status": 200,
+      "title": "Explore First 10 Years of Material Design’s Evolution",
+      "bytes": 118280,
+      "sha256": "18bf4904b2e046aaa0a93dbcc6e197f5519cc0073aacbea1ea09aa3ce207ad30",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/material-design-launch-2014",
+      "status": 200,
+      "title": "Google’s Material Design: A Look Back at Its Beginning",
+      "bytes": 67910,
+      "sha256": "e0b434b1927caea7c351140f7e215765f9f89abbe70c72e34d1312d21675a64a",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/material-design-motion-sharon-harris",
+      "status": 200,
+      "title": "Animate with Impact: UI/UX Motion Principles by Google",
+      "bytes": 60114,
+      "sha256": "4d4a9e29c0dc327dbf8986cf6b640ebc094827f38af4f3ca3bdd7417136e8121",
+      "screenshot": null
+    },
+    {
+      "url": "https://consent.youtube.com/m?continue=https%3A%2F%2Fwww.youtube.com%2Fplaylist%3Flist%3DPLJ21zHI2TNh-rX-Xr_xi9KIEcbdee_1Ah%26cbrd%3D1&gl=FR&m=0&pc=yt&cm=2&hl=ru&src=1",
+      "status": 200,
+      "title": "Прежде чем перейти к YouTube",
+      "bytes": 582712,
+      "sha256": "4498fb0269838a34f3746e0fa865bc20c249f15f7773e5ac3c481cedccb5957b",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/material-design-rich-fulcher-ux",
+      "status": 200,
+      "title": "Method: Episode 12",
+      "bytes": 48981,
+      "sha256": "dad3159d4d2bee4e5ee43fb5ef2d5d2868d7a1666dc8a9437e8baf010cb580d6",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/material-design-ux-phil-cao",
+      "status": 200,
+      "title": "From Tiny Details to Big Impact: Mastering Design",
+      "bytes": 65719,
+      "sha256": "406538dee98caa5bf5bdb22070b6ff607aee206e9889b07d29ebd7066d0d4b4c",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/material-design-will-larche-ai",
+      "status": 200,
+      "title": "Material Design + AI: Will Larche on UI/UX Future",
+      "bytes": 63291,
+      "sha256": "1f5bba0d0a49f20084494033ae630b1db63ca8e0153e16d4d8a781c043d9d00d",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/material-fab-bethany-fong",
+      "status": 200,
+      "title": "Design Secrets Behind the Floating Action Button (FAB)",
+      "bytes": 79305,
+      "sha256": "fd2f051d11d304fb5333442660eac10c70676f65665b347a39bbd623e4661b4f",
+      "screenshot": null
+    },
+    {
+      "url": "https://m3.material.io/blog/material-icons-sehee-lee-interview/",
+      "status": 200,
+      "title": "Material Icons: Sehee Lee",
+      "bytes": 62415,
+      "sha256": "899a847b569bcd668cf63b2d207b7661e9a11bafae30f5fbe8943229573f0967",
+      "screenshot": null
+    },
+    {
+      "url": "https://m2.material.io/articles/how-google-created-a-custom-material-theme.html",
+      "status": 200,
+      "title": "Material Design",
+      "bytes": 67602,
+      "sha256": "1b308cf6410a50afc70a963d334b7660cffd60cb6c9402b4d3eb2df101fd4cc6",
+      "screenshot": null
+    },
+    {
+      "url": "https://m3.material.io/blog/google-material-custom-theme",
+      "status": 200,
+      "title": "How Google created a custom Material theme",
+      "bytes": 62532,
+      "sha256": "27183d4466bed3ae04b034c5a5fba261a55a19fda679763d10798750c93adc50",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/matias-duarte-material-design-ux",
+      "status": 200,
+      "title": "Evolving Interfaces for the Future",
+      "bytes": 57441,
+      "sha256": "237e8c519fc0052f94c4c2e4a0ac97299e4fe42dd5f71f1c68982e0de50e6a9c",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/meant-to-be-a-ux-researcher",
+      "status": 200,
+      "title": "From Joint Family to UX Rockstar - Eshita’s Story",
+      "bytes": 89577,
+      "sha256": "4da17a32a630dab41bdfc0dd12dec1eaa422d7d12673de960bc9957f6f4ad68f",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/meet-questrial-African-languages-font",
+      "status": 200,
+      "title": "Free Fonts for African Languages: Questrial &amp; Beyond",
+      "bytes": 110136,
+      "sha256": "fa043623bc2ac899e164b3755138eec8bd7a8fbd8b170d85fcc1d2b1cd40eaf7",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/method-google-clips-josh-lovejoy",
+      "status": 200,
+      "title": "Method: Episode 9",
+      "bytes": 56421,
+      "sha256": "4319acd6441df79e9d9e91b5d42b53384dafc2c55aead03d8a7ee92552d46b4f",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/method-podcast-episode-1",
+      "status": 200,
+      "title": "Method: Episode 1",
+      "bytes": 49844,
+      "sha256": "b041f6cd058764b75c21016759db0b5c4f0e81c7523da664601087c2fd461246",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/method-podcast-episode-2",
+      "status": 200,
+      "title": "Method: Episode 2",
+      "bytes": 50553,
+      "sha256": "c67cb6f789bbd9d0880356421f906eb3a92219aa08e89d188363faf940355931",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/method-podcast-episode-3",
+      "status": 200,
+      "title": "Method: Episode 3",
+      "bytes": 50497,
+      "sha256": "1f028bfc38dee4442143da1070c54fb0cc8adf8c85c984faa3542f9ed494f1d6",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/method-podcast-episode-4",
+      "status": 200,
+      "title": "Method: Episode 4",
+      "bytes": 51008,
+      "sha256": "290211a0621b78e6e9362586d5eb4bef4404a1970caacbec05446361abe6c7fb",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/method-podcast-episode-5",
+      "status": 200,
+      "title": "Method: Episode 5",
+      "bytes": 53765,
+      "sha256": "3b72042b2c2e4b8db03478e3d1557a05bab1385d9311f4e2ba78cd49b0f2acb9",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/method-podcast-episode-6",
+      "status": 200,
+      "title": "Method: Episode 6",
+      "bytes": 51220,
+      "sha256": "d802be94f725e9a6dd837530755e67de2afa153c0dbe7bd3de229897d01e2f91",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/method-podcast-episode-7",
+      "status": 200,
+      "title": "Method: Episode 7",
+      "bytes": 54160,
+      "sha256": "e5bad0f9e72e461214864b437d95b9e8da409be8e468a2d68e252752a5172bb3",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/minimal-meaningful",
+      "status": 200,
+      "title": "Beyond Minimalism - 4 UX Design Lessons",
+      "bytes": 55248,
+      "sha256": "fd1045b3b02944e8878e410602d9cd76a23238f87de7c58be65bc015e707f766",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/modernizing-arabic-typography-type-design",
+      "status": 200,
+      "title": "Modernizing Arabic Fonts",
+      "bytes": 79617,
+      "sha256": "279df994c933718132286c4f54d5015c3c699291042b8239f0805032388cb371",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=59bMh59JQDo",
+      "status": 200,
+      "title": "- YouTube",
+      "bytes": 1381489,
+      "sha256": "62c306659f27d23db73b0514a230e474797421c8b8f18817b66750e2e964f7ef",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/namaste-deadlines-asana-productivity",
+      "status": 200,
+      "title": "Namaste, Deadlines",
+      "bytes": 74018,
+      "sha256": "77d139193715e9e8386c434484c3971b70872afa4224940ee289e5a57700c7c4",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/new-industrialists",
+      "status": 200,
+      "title": "The New Industrialists",
+      "bytes": 95221,
+      "sha256": "31b0e2e79dc7d930dbaf8bfd8a58d43139e083f2af6b55e41df8786176d1bcc8",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/new-wave-indian-type-design",
+      "status": 200,
+      "title": "Google Fonts Embrace India&#x27;s Diverse Languages",
+      "bytes": 86294,
+      "sha256": "8a6e0059b4b20d4e0e4af314fa893ee1d5c25a0257801c7f0b310fc2fd9e1269",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/no-such-thing-offline",
+      "status": 200,
+      "title": "No Such Thing as Offline",
+      "bytes": 88635,
+      "sha256": "f43565e67683b224611dab2acc8d4cbb49876efef6ab5f97e2668a1d27be8697",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/noto-3d-emoji-design",
+      "status": 200,
+      "title": "Google Noto 3D Emoji Design Process",
+      "bytes": 175627,
+      "sha256": "1d7288e202b56fa5a7f22f1e6a6045f1cccc0720dcc99a71b77887ca06aff966",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/offline-design",
+      "status": 200,
+      "title": "UX Design for Offline: Build Anywhere",
+      "bytes": 99815,
+      "sha256": "8ed1a3071f8cd90d5c92a33e7a97fc66ec30f727d7e812e52d65e5833f8e8255",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/open-source-custom-fonts-google",
+      "status": 200,
+      "title": "Open Source Brand Fonts",
+      "bytes": 111787,
+      "sha256": "cd976d5c77dd8eb7780bd8e041ca74e1b07205cde3e7114c4a1ae8e37e7b898b",
+      "screenshot": null
+    },
+    {
+      "url": "https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/turnstile/f/av0/rch/088tb/0x4AAAAAAADnPIDROrmt1Wwj/light/fbE/new/normal?lang=auto",
+      "status": 200,
+      "title": "Checking your Browser&hellip;",
+      "bytes": 642624,
+      "sha256": "8e069987ae06d8f170a4137881cae50d78b966f03a207ce50aa6d05bf7359b44",
+      "screenshot": null
+    },
+    {
+      "url": "https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/turnstile/f/av0/rch/1qpo4/0x4AAAAAAADnPIDROrmt1Wwj/light/fbE/new/normal?lang=auto",
+      "status": 200,
+      "title": "Checking your Browser&hellip;",
+      "bytes": 671174,
+      "sha256": "7c43d793610feedafe1d890d9b6420a8253ef1592da9ad3f28360a2a84f982e8",
+      "screenshot": null
+    },
+    {
+      "url": "https://pair.withgoogle.com/guidebook/",
+      "status": 200,
+      "title": "PAIR Guidebook",
+      "bytes": 208692,
+      "sha256": "26e8aa3a2efa578de3b575f58c259b265c8b938995cdcaaf3d05d111f7366de3",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/people-ai-research",
+      "status": 200,
+      "title": "Design with AI - Learn from Google Experts",
+      "bytes": 101829,
+      "sha256": "648e050dd05405f78a29ac4d9f1ba87326b694948abd2e41d3244c66d891c658",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/people-products-epiphanies",
+      "status": 200,
+      "title": "Design Epiphanies: Spark Innovation with Your UI/UX Team",
+      "bytes": 94748,
+      "sha256": "907eddaba432c32bfb9c32a736cfd77af353451c75945e72398d412a6c6c3549",
+      "screenshot": null
+    },
+    {
+      "url": "https://m3.material.io/blog/google-fonts-pairing-figma/",
+      "status": 200,
+      "title": "Google Fonts Pairings",
+      "bytes": 62397,
+      "sha256": "2829f7343ebf3a59f98541829363477f0cc0467c8552649c2d7f5a14c92a2659",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/racial-equity-everyday-products",
+      "status": 200,
+      "title": "Racial Equity UX",
+      "bytes": 95414,
+      "sha256": "ada08cf149dca0234925e4ecdb66984e4527a512ff992af243813e07f8548bf5",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/pixel-wallpaper-takes-flight",
+      "status": 200,
+      "title": "Beyond Tech - Pixel Reimagines Wallpaper Art",
+      "bytes": 128242,
+      "sha256": "44890c4b67de0ce6c102aa6f2a121d0444d1a4fcd0d5ef44fae3df69704fc6ea",
+      "screenshot": null
+    },
+    {
+      "url": "https://m3.material.io/blog/atkinson-hyperlegible-design/",
+      "status": 200,
+      "title": "From rebranding to readability with Atkinson Hyperlegible",
+      "bytes": 62557,
+      "sha256": "3fdb90cf391889fc25a3ec663135b40d55667ae29035c9db0a4d43d301462671",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/rehearse-the-future",
+      "status": 200,
+      "title": "Google Designs the Future: Product Innovation Strategies",
+      "bytes": 88633,
+      "sha256": "6da9241d34e95aa317105f3db5bfd3c0dd7d1efdcaf359e07f3edd0e783b4bbc",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/reimagining-google-fonts",
+      "status": 200,
+      "title": "Google Fonts - Explore &amp; Discover New Fonts",
+      "bytes": 88890,
+      "sha256": "739bfc6f6ed2069e322f8cfdb98f85328066c00de3873c0f11b69153433c7a87",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/revealing-invisible",
+      "status": 200,
+      "title": "Revealing the Invisible",
+      "bytes": 79217,
+      "sha256": "0e6443f3ededb87632c9cec327663462a923b6ff2d7002d16ead6a6e0f0041e5",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/reviewing-the-design-review",
+      "status": 200,
+      "title": "Reviewing Graphic Design",
+      "bytes": 78038,
+      "sha256": "0cb9a034164f8d0a5cd958f71d6870cab0a1e436344d3ef0684bc07d64ba15de",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/rich-fulcher-material-ux-system",
+      "status": 200,
+      "title": "Rich Fulcher on Material Design and UX",
+      "bytes": 62590,
+      "sha256": "0889e1db962fd66c30bad4c1c19f67e6fc820c6797b2e5d5ecc17e142ad45922",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/robinhood-investing-material",
+      "status": 200,
+      "title": "Robinhood App: Invest with Material Design Ease",
+      "bytes": 77085,
+      "sha256": "25c1287a588cda91209d73fddd1f67d617ee38e9bd19b551aa5cecd0bccc299f",
+      "screenshot": null
+    },
+    {
+      "url": "https://m3.material.io/blog/roboto-flex/",
+      "status": 200,
+      "title": "Roboto Flex now on Google Fonts - Material Design 3",
+      "bytes": 62523,
+      "sha256": "5b0a0cc9c58af8d9138295b29aff53dcf1a0c337d66cc4d9591e336fde3635c0",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.youtube-nocookie.com/embed/f3IQSmKFokU",
+      "status": 200,
+      "title": "YouTube",
+      "bytes": 154234,
+      "sha256": "7f9e0e0c0e1c16e21c563b4bc73b54c244a34267fc4ad1fd93851cab937dcd8c",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/rule-of-three",
+      "status": 200,
+      "title": "Rule of Three: Design for User Clarity",
+      "bytes": 107498,
+      "sha256": "0a4cf5a69182fd3c66cd7a8cee017f254c6a66bcdced850833584c164c53d6bd",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/ryan-snelson-myspace-aesthetic-interview",
+      "status": 200,
+      "title": "Design Notes: Episode 14",
+      "bytes": 61009,
+      "sha256": "a47cd60500d52825fab4166a60d264c7ee15adcbe97637436b8b073e3f411640",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/sang-mun-zxx-design-privacy-interview",
+      "status": 200,
+      "title": "Design Notes: Episode 13",
+      "bytes": 58861,
+      "sha256": "863995d50216c2f215a53d2d83bbabdc243c26695ee890cbdc050bb300483d18",
+      "screenshot": null
+    },
+    {
+      "url": "https://developers.googleblog.com/sample-dialogs-the-key-to-creating-great-actions-on-google/",
+      "status": 200,
+      "title": "Sample Dialogs: The Key to Creating Great Actions on Google - Google Developers Blog",
+      "bytes": 41662,
+      "sha256": "1f843cf66c7bb65d42d7f606aa63b711cf8646027165b6008536369dba0eeebd",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/scripting-cyrillic",
+      "status": 200,
+      "title": "Design Secrets: Google Fonts for Beautiful Cyrillic Scripts",
+      "bytes": 122370,
+      "sha256": "7688804cb9db275d35f6e1fe2ae5e2f985b63f69e7704a0e68c8dd12e78825bf",
+      "screenshot": null
+    },
+    {
+      "url": "https://m3.material.io/blog/roboto-serif/",
+      "status": 200,
+      "title": "Say hello to Roboto Serif - Material Design 3",
+      "bytes": 62507,
+      "sha256": "0d3aee2361a4abb64ba7fa6808e539fa275e99469545e2735d6d0e91c46f6587",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.youtube.com/embed/wtBS5wRpaHg",
+      "status": 200,
+      "title": "YouTube",
+      "bytes": 156837,
+      "sha256": "62a41bf403878a366941c45d2b5373023eac8ab9d9704d477ff331dea22c535a",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/secret-draft-emails-and-the-edge-of-the-world",
+      "status": 200,
+      "title": "Secret Draft Emails and the Edge of the World",
+      "bytes": 95534,
+      "sha256": "498961d3d1a54b767d67bb41815c24cb9ff0ce5f0ed98e8c4d853633f83ba60c",
+      "screenshot": null
+    },
+    {
+      "url": "https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/turnstile/f/av0/rch/p2a09/0x4AAAAAAADnPIDROrmt1Wwj/light/fbE/new/normal?lang=auto",
+      "status": 200,
+      "title": "Checking your Browser&hellip;",
+      "bytes": 649011,
+      "sha256": "a3f9f4272df65fa17ef0ae15c29e92d896b17084975e0390349ef1f0803605d3",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/six-ai-terms",
+      "status": 200,
+      "title": "Demystifying AI: 6 Key Terms for UX Designers",
+      "bytes": 101417,
+      "sha256": "1a3da96201807930955a542c45e0291a23aed12f533641a6c7c369535b52f669",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/six-ways-to-develop-your-ux-design-career",
+      "status": 200,
+      "title": "Level Up Your UX Career: 6 Tips from Google Experts",
+      "bytes": 95491,
+      "sha256": "34231b2fc7cbb92ed01870f53a5480c858e0a07a7cf0ab7c835683ff2f4a36e8",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/sketch-scroll-or-swipe",
+      "status": 200,
+      "title": "Sketch, Scroll, or Swipe?",
+      "bytes": 89507,
+      "sha256": "58afc0d5da594df99bec6789220b3ed829dbbe005d410548779fc5f57ec5a304",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/sounds-good",
+      "status": 200,
+      "title": "Design Harmony with Musical Instruments",
+      "bytes": 104855,
+      "sha256": "0c645b76ca8725705eadd7ee2bf3ad19ba6fbcefc852c37e113f4ddd2dac301a",
+      "screenshot": null
+    },
+    {
+      "url": "https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/turnstile/f/av0/rch/8ffnc/0x4AAAAAAADnPIDROrmt1Wwj/light/fbE/new/normal?lang=auto",
+      "status": 200,
+      "title": "Checking your Browser&hellip;",
+      "bytes": 650502,
+      "sha256": "9c7a1c3ae39c8b47407a06cddfd2f6f75730102685e86cd68f088d7af13205ba",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/",
+      "status": 200,
+      "title": "Google Design - Discover the people and stories behind the products",
+      "bytes": 95004,
+      "sha256": "ea3f490f29c226cac0450333e6f54d3c50a938f6654b2dd2dc5e5a5753378649",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/span-2017-best-of-podcasts",
+      "status": 200,
+      "title": "Listen to the Best of SPAN 2017",
+      "bytes": 80920,
+      "sha256": "0b34a2abc87c6a37d112b621739701a0eb8931a655c5ea6591d59966834a4e35",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/span-helsinki-meet-our-speakers",
+      "status": 200,
+      "title": "SPAN Helsinki: Meet Our Speakers",
+      "bytes": 250279,
+      "sha256": "5b27dc448402b8f02193ff489d1572ef0905ad179231d6671ef82a60db713f08",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/span-material-rob-giampietro",
+      "status": 200,
+      "title": "Google’s SPAN Conference Bringing Design and Tech Together",
+      "bytes": 78411,
+      "sha256": "a7c2f909f5424504bea5e2722afed73a0b47bb8836072e9b550d942b3368ee0b",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/speak-easy-helpful-design",
+      "status": 200,
+      "title": "Speak Easy",
+      "bytes": 44607,
+      "sha256": "7c12733257ec29845db3be5099d11a76a858276d3a8b75eccadb2df74e9288b5",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/span2019",
+      "status": 200,
+      "title": "SPAN 2019: Brooklyn",
+      "bytes": 146246,
+      "sha256": "f6c7ab3200fff29911e40ed818679106112b578fcbc6eff3b100a148c8007e4f",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/span-tokyo-meets-span-la",
+      "status": 200,
+      "title": "SPAN Tokyo Meets SPAN LA",
+      "bytes": 102164,
+      "sha256": "4950aba8c4050af6928ce5344aa6391f56c526c3c5ac1035eb6b801386ef5079",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/speaking-the-same-language-vui",
+      "status": 200,
+      "title": "UI &amp; UX Principles for Voice Assistants",
+      "bytes": 131170,
+      "sha256": "ffc40464269f4dcc89ceb120d05332cf266f7df0dc91a1fa64ea9a01f4157e1f",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/spectral-new-screen-first-typeface",
+      "status": 200,
+      "title": "Upgrade Your Text: Free Screen-First Font &quot;Spectral&quot;",
+      "bytes": 129768,
+      "sha256": "e5fe29bfbbbbdb509cc288eea297c2ccb6daed0359d40f2e6f4d8575e73303a5",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/staying-true-to-your-identity-material-branding",
+      "status": 200,
+      "title": "Brand Identity with Material Design Logo",
+      "bytes": 165793,
+      "sha256": "5496e4a5f61f5680be4b0d9c5b9fdcf88fa2938d04bdcb8b24c8cac847a55647",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/sticking-around-dynapuff-typeface",
+      "status": 200,
+      "title": "Fun Text Stickers and Fonts on Android? Use DynaPuff!",
+      "bytes": 102347,
+      "sha256": "65554ccc8a064ace52e41bb5d9e963f70a30f90100575fe13237a3932ea98535",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/sticky-conversations",
+      "status": 200,
+      "title": "Sticky Conversations",
+      "bytes": 92466,
+      "sha256": "244f33afe199b80a60bbf2d0722ba654bfae149e81d8f60d8e7db7917359cd4e",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/streamlining-the-process-material-guidelines",
+      "status": 200,
+      "title": "Streamlining the Process",
+      "bytes": 71280,
+      "sha256": "92f8e3d3fb8e9455c269e4c4219d51a7de4cdcaf93e6848f923658259f5a97cb",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/sustainability-isnt-a-space-to-compete",
+      "status": 200,
+      "title": "Sustainability isn’t a Space to Compete",
+      "bytes": 54698,
+      "sha256": "8d87d1b2a75e45210678770f7087ece5e89f5429c147612985ce7ce1866a56a0",
+      "screenshot": null
+    },
+    {
+      "url": "https://fonts.google.com/",
+      "status": 200,
+      "title": "Browse Fonts - Google Fonts",
+      "bytes": 322592,
+      "sha256": "f9ac0d0d6903f88bfca2c78ad67d26f044361cac591da1119d193dbea0ec1c7d",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=xPlwoFRSq_0&t=1s&list=PLJ21zHI2TNh8pOUzr4AWaD7AoLGi9Bm4B&index=2",
+      "status": 200,
+      "title": "- YouTube",
+      "bytes": 1628133,
+      "sha256": "9866a16581b06c88f647189e2ed07c2991ed6dcf19c82594f6adb899c379db9d",
+      "screenshot": null
+    },
+    {
+      "url": "https://m3.material.io/blog/readability-consortium/",
+      "status": 200,
+      "title": "Teaming Up to Improve Reading Research",
+      "bytes": 62288,
+      "sha256": "3873bd8a71df1e9d6702e6032de615fb699d59d0ee8c8aa7b936a4ee3dd4a297",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.youtube.com/embed/FRWmj1KX_0g",
+      "status": 200,
+      "title": "YouTube",
+      "bytes": 156190,
+      "sha256": "7b9bffbbc9cccbbc036bb43a8424b2ff8b02dce2b60512c5bc2e4ab86b831e5b",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/the-goal-behind-the-goal",
+      "status": 200,
+      "title": "Beyond Steps UX Wellness",
+      "bytes": 135463,
+      "sha256": "69c0ad1177e193eda01f6687d19c3e5fb3e73819da469ab98b245e421c551d09",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=YPAd2SCnsRQ&",
+      "status": 200,
+      "title": "- YouTube",
+      "bytes": 1463085,
+      "sha256": "b3b5e0559e509da036431a55515f4e368c54827aaeccc5d41c3678289103dad5",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/the-modern-tiro-indic-collection-font",
+      "status": 200,
+      "title": "Global Text Styles: Modern Fonts for Diverse Languages",
+      "bytes": 128215,
+      "sha256": "ecacdc9a3f0704664776ea0f66c95feaf55aec4067bcc9df4bac1b41f46b9fb8",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/the-next-interface-gemini",
+      "status": 200,
+      "title": "Designing the Next Interface with Gemini",
+      "bytes": 209161,
+      "sha256": "4b391e0e425eebcfce91e5c23726e2f9843c283aebb136469b123eb5dbf9401e",
+      "screenshot": null
+    },
+    {
+      "url": "https://fonts.googleblog.com/2022/08/the-handwriting-fonts-that-help.html",
+      "status": 200,
+      "title": "Google Fonts Blog: The handwriting fonts that help Australian students learn how to read and write are now available in Google Workspace",
+      "bytes": 121636,
+      "sha256": "679da951c51bf584c03410bfd7e6d76454101e07f057f6f74335c082b11a3a33",
+      "screenshot": null
+    },
+    {
+      "url": "https://2542116.fls.doubleclick.net/activityi;dc_pre=CNDrtqr_iJgDFe4ipggdQHgzXg;src=2542116;type=gblog;cat=googl0;ord=ord=5952013553599.043?",
+      "status": 200,
+      "title": "",
+      "bytes": 339,
+      "sha256": "58c36aa8d29b12ff0950179b09c74fb5e401dcce9744c7af7024d96a116e00e8",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/this-wallpaper-is-no-wallflower-paperscapes",
+      "status": 200,
+      "title": "Beautiful Free Wallpaper Art (4K) for Your Phone",
+      "bytes": 86790,
+      "sha256": "a5da6254a9febe0b4cd6d02a9dd2222384629f076451c28b4caafc82e0b65ecb",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/tooling-up-prototyping",
+      "status": 200,
+      "title": "Streamline Your Design: UI/UX Prototyping Tools by Google",
+      "bytes": 169528,
+      "sha256": "168811bc9c3b185985cd96f47abf6c823a0eb7f1177f5daa86b8d311258e3bea",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/towards-resilient-systems",
+      "status": 200,
+      "title": "Towards Resilient Systems",
+      "bytes": 97041,
+      "sha256": "ec529ae46a9e6a7e67559dc0aa7498a8719faa3e66f5ac4747248ce9240755bc",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/transparent-screens",
+      "status": 200,
+      "title": "How to Design for Transparent Screens",
+      "bytes": 181588,
+      "sha256": "bff39a75df8a712374971fc3db5b9fe988e8d2add3a1024983c96b6de49191e7",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/trusting-driverless-cars",
+      "status": 200,
+      "title": "Taming the Road: How Self-Driving Cars Earn Your Trust",
+      "bytes": 102052,
+      "sha256": "5d1d9821cb1c1cc10156f197735d0d48b75de464de1b9d8b990208cca8552693",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/type-detectives-give-life-brygada-en",
+      "status": 200,
+      "title": "Type Detectives Give Life to Brygada",
+      "bytes": 122506,
+      "sha256": "e50c2b6c6c885919475b3c22736ad429b6c4c84a892f3a6ae96546437175b969",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/user-friendly",
+      "status": 200,
+      "title": "How Design Saved UX",
+      "bytes": 90200,
+      "sha256": "17e6ef3d7bade26b1829c2bfabf6eea98fe5478c7d161b451daaeafb9675faea",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/typeartures-nabla-an-isometric-colrv1-font",
+      "status": 200,
+      "title": "Typearture&#x27;s Nabla: an Isometric COLRv1 font",
+      "bytes": 39666,
+      "sha256": "1366a9828a4f777028745b6e43bd26dd844e36b8edce96a284fe647a94443f1c",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/type-detectives-give-life-to-brygada-pl",
+      "status": 200,
+      "title": "Rewitalizacja Zapomnianej Czcionki",
+      "bytes": 123998,
+      "sha256": "f3b4aa36bba5a6331daf07bbe7b67c57677bc23977d2e94f3a75ca88eb4b8ef7",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/ux-ai",
+      "status": 200,
+      "title": "Google Clips and Human-Centered AI",
+      "bytes": 152266,
+      "sha256": "ee9faf1b0ccce25106258d1a5acf132c7e079b91b4fe89b9ba59777f28e11e47",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/ux-design-system-dance",
+      "status": 200,
+      "title": "UX Design as Dance Theater",
+      "bytes": 85390,
+      "sha256": "b933bbbe7dda0f1bbeb9f2c6877d4795e5fff9a486a713a9c3fe12d75d71180d",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/ux-career-hexagon-fiona-yeung-alison-boncha",
+      "status": 200,
+      "title": "Method: Episode 10",
+      "bytes": 54962,
+      "sha256": "326b4529c716239210407fccbc29d3d060b5d5d6fa37e42ff8790e5f071272ce",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/ux-research-chrome-os-todd-hausman",
+      "status": 200,
+      "title": "Method: Episode 11",
+      "bytes": 47773,
+      "sha256": "74e293c4e587a68b4242b8168a4f25eada7ebe02934e9a0a2bb8bdbdcf4fe158",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/ux-sound-haptic-material-design",
+      "status": 200,
+      "title": "Sound &amp; Touch: Design Beyond the Screen",
+      "bytes": 103515,
+      "sha256": "27b2a291ad157c1279444530702990b0dac9feb14e61e796fb1896a4829349d1",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/variable-fonts-are-here-to-stay",
+      "status": 200,
+      "title": "AI Tool for Variable Fonts",
+      "bytes": 115376,
+      "sha256": "32c0e94c3812fd4e5cbd71588c959e9a0964db2db9a7152b1833c9659b246ba5",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/variable-fonts-type",
+      "status": 200,
+      "title": "From Limited Choices to Personalized Fonts",
+      "bytes": 127579,
+      "sha256": "04bea75081555cce4e9f483fb91a85ec25d52e88f39814e08c24940b934b396a",
+      "screenshot": null
+    },
+    {
+      "url": "https://consent.youtube.com/m?continue=https%3A%2F%2Fwww.youtube.com%2Fplaylist%3Flist%3DPLJ21zHI2TNh-MpZ-7h1EPK9O7pjx109Bz%26cbrd%3D1&gl=FR&m=0&pc=yt&cm=2&hl=ru&src=1",
+      "status": 200,
+      "title": "Прежде чем перейти к YouTube",
+      "bytes": 582712,
+      "sha256": "4498fb0269838a34f3746e0fa865bc20c249f15f7773e5ac3c481cedccb5957b",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=6_mHCOAAEI8",
+      "status": 200,
+      "title": "- YouTube",
+      "bytes": 1396376,
+      "sha256": "6b169e9aed0114de62cb195358660bd9b1a61420ecfd67ab2bd6da0f2e315573",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/video-design-vision",
+      "status": 200,
+      "title": "Design Visioning: Storytelling for Business &amp; UX",
+      "bytes": 52630,
+      "sha256": "ea31271485251bfbd349ac98d8ddaa3cac49a34f280f5a3fd6702f1a331d4113",
+      "screenshot": null
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=4e4sXwOmXBM",
+      "status": 200,
+      "title": "- YouTube",
+      "bytes": 1496458,
+      "sha256": "b2867177c4ea4c2e60c6529f6c4c9c722f8d1e6a28381c4949b54e27f23adcca",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/viscosity-texture-dynamism-immersive",
+      "status": 200,
+      "title": "Viscosity, Texture, Dynamism",
+      "bytes": 44448,
+      "sha256": "b8a657fd6ec9e56ecda9c7fe697980e9a76a66ce5f28f835ff071f80c66c2011",
+      "screenshot": null
+    },
+    {
+      "url": "https://m3.material.io/",
+      "status": 200,
+      "title": "Material Design",
+      "bytes": 62386,
+      "sha256": "e546a0024f1cc9a5478a450516ea1e272b7cfd23e897c9af2845cffba96414cb",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/waymo-design-self-driving-car-ui-ryan-powell",
+      "status": 200,
+      "title": "Method: Episode 14",
+      "bytes": 49934,
+      "sha256": "55ab10490a706f3a806aa7e81be76aa3608377ba42524d14e4749ea14a21a65e",
+      "screenshot": null
+    },
+    {
+      "url": "https://fonts.googleblog.com/2022/06/emmy-award-for-web-fonts-faster-online.html",
+      "status": 200,
+      "title": "Google Fonts Blog: Emmy award for web fonts: faster online streaming",
+      "bytes": 87837,
+      "sha256": "d0b139ef2109b5333ddb5e07200969eeb473f0ec6b45420580941a1cb1e04a02",
+      "screenshot": null
+    },
+    {
+      "url": "https://2542116.fls.doubleclick.net/activityi;dc_pre=CPfgqNv_iJgDFfIUpggdK_cdQw;src=2542116;type=gblog;cat=googl0;ord=ord=8406337561255.777?",
+      "status": 200,
+      "title": "",
+      "bytes": 339,
+      "sha256": "2aae35a201301cbd225b2d37d97890fc254af1225bff0fcb7b931b228b140630",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/what-the-fog",
+      "status": 200,
+      "title": "UX Design: Embrace the Fog for Creative Breakthroughs",
+      "bytes": 82742,
+      "sha256": "f43bcb13317a81b57e5561d99dc9139b6b836e7fda9d3985c0d706f9d0eb6931",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/why-google-needs-art-directors",
+      "status": 200,
+      "title": "Art Directors Graphic Language",
+      "bytes": 129241,
+      "sha256": "f6d7d168a08b1959297b7ddcea8810bb9d89fd7eb96fd2b6889f27cea8ed7d39",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/why-google-needs-ux-engineers",
+      "status": 200,
+      "title": "Why Google Needs UX Engineers: They Do More Than Code",
+      "bytes": 98378,
+      "sha256": "e6bb329a031d0d23f9caa6401903008262d6ae38495d96a85e54a707b9d61388",
+      "screenshot": null
+    },
+    {
+      "url": "https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/turnstile/f/av0/rch/ze14g/0x4AAAAAAADnPIDROrmt1Wwj/light/fbE/new/normal?lang=auto",
+      "status": 200,
+      "title": "Checking your Browser&hellip;",
+      "bytes": 647830,
+      "sha256": "3229a76e708f013234506e43e54645d9604869368611dd449f3295abcb151834",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/youtube-sans-font",
+      "status": 200,
+      "title": "YouTube Sans - From Logo to Brand Typeface",
+      "bytes": 133878,
+      "sha256": "b80e9ca0945c25ccbf943836eed86ee1cda8a1aba363bfb99dae72353d5296c4",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/youtube-new-red-color",
+      "status": 200,
+      "title": "YouTube&#x27;s New Red: A Colorful Rebrand",
+      "bytes": 105014,
+      "sha256": "6f347fc0556f5b0e8affe892a984493361b5017f80803083682323976aa2b07d",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/library/youtube-visioning",
+      "status": 200,
+      "title": "YouTube’s Design &amp; Visioning Process",
+      "bytes": 137531,
+      "sha256": "9d63e9797afbb3e12b22554bc71ef21bb5d4cba8da4d27e1afad1a431312eb2e",
+      "screenshot": null
+    },
+    {
+      "url": "https://design.google/m10",
+      "status": 200,
+      "title": "Material Design: Secrets &amp; Stories Behind Google’s UI",
+      "bytes": 103618,
+      "sha256": "9908dac4c5e985c6f809958c9ede9b623e8e8bc7b0d78912174ac6db7dad050c",
+      "screenshot": null
+    }
+  ]
+}
