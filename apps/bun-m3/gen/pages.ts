@@ -23,6 +23,30 @@ const docs = argv.includes("--docs") ? argv[argv.indexOf("--docs") + 1]! : join(
 // MDX and Markdown pages only: the bun-types reference pages come from gen/reference.ts
 const skills = ((await Bun.file(join(app, "skills.json")).json()) as { skills: { name: string; source: string; title: string; description: string; section: string }[] }).skills.filter((s) => /\.mdx?$/.test(s.source));
 
+// Pages written for Markdoc (the blog and older docs pages) use {% tag %} blocks; they map onto the MDX components
+// of the docs so one renderer serves both. Tags with no counterpart keep their content.
+const attrOf = (s: string, k: string) => s.match(new RegExp(`\\b${k}="([^"]*)"`))?.[1];
+const jsxAttr = (v: string) => JSON.stringify(v).replace(/^"|"$/g, "").replace(/"/g, "&quot;");
+function markdoc(src: string): string {
+  if (!src.includes("{%")) return src;
+  return src
+    .replace(/\{%\s*(\/?)codetabs\b[^%]*%\}/g, (_, c) => `\n\n<${c}CodeGroup>\n\n`)
+    .replace(/\{%\s*(\/?)callout\b[^%]*%\}/g, (_, c) => `\n\n<${c}Note>\n\n`)
+    .replace(/\{%\s*details\b([^%]*)%\}/g, (_, a) => `\n\n<Accordion title="${jsxAttr(attrOf(a, "summary") ?? "Details")}">\n\n`)
+    .replace(/\{%\s*\/details\s*%\}/g, "\n\n</Accordion>\n\n")
+    .replace(/\{%\s*image\b([^%]*?)\/?%\}/g, (_, a) => `\n\n<Frame caption="${jsxAttr(attrOf(a, "caption") ?? "")}">\n\n![${attrOf(a, "alt") ?? attrOf(a, "caption") ?? ""}](${attrOf(a, "src") ?? ""})\n\n</Frame>\n\n`)
+    .replace(/\{%\s*since\b([^%]*?)\/?%\}/g, (_, a) => (attrOf(a, "version") ? `<Badge>since ${attrOf(a, "version")}</Badge>` : ""))
+    .replace(/\{%\s*\/?[\w-]+\b[^%]*%\}/g, "");
+}
+
+// Markdown fallback (the page is not valid MDX): Markdoc tags become plain Markdown, images stay images.
+function markdocToMarkdown(src: string): string {
+  return src
+    .replace(/\{%\s*image\b([^%]*?)\/?%\}/g, (_, a) => `![${attrOf(a, "alt") ?? attrOf(a, "caption") ?? ""}](${attrOf(a, "src") ?? ""})`)
+    .replace(/\{%\s*since\b([^%]*?)\/?%\}/g, (_, a) => (attrOf(a, "version") ? `*since ${attrOf(a, "version")}*` : ""))
+    .replace(/\{%\s*\/?[\w-]+\b[^%]*%\}/g, "");
+}
+
 // Navigation of the docs site (Mintlify docs.json): tab and group of every listed page; unlisted pages keep their folder.
 type NavNode = string | { tab?: string; group?: string; pages?: NavNode[]; groups?: NavNode[] };
 const nav = new Map<string, { tab: string; group: string }>();
@@ -83,8 +107,9 @@ function blocks(src: string, nodes: Mdast[], counter: { n: number }, out: Snip[]
     if (n.type === "yaml" || n.type === "mdxjsEsm" || n.type === "mdxFlowExpression") continue;
     if (n.type === "code") {
       flush();
-      const lang = (n.lang ?? "").toLowerCase();
-      const file = n.meta?.match(/(?:^|\s)([\w./@-]+\.\w+)(?=\s|$)/)?.[1] ?? null;
+      // `ts#index.ts` (the blog's fence info): language before #, title after
+      const [lang = "", tag] = (n.lang ?? "").toLowerCase().split("#");
+      const file = n.meta?.match(/(?:^|\s)([\w./@-]+\.\w+)(?=\s|$)/)?.[1] ?? (tag && /\.\w+$/.test(tag) ? tag : null);
       const code = n.value ?? "";
       const kind = runKind(lang, code);
       const id = counter.n++;
@@ -106,16 +131,18 @@ let fallback = 0, codeBlocks = 0, runnable = 0;
 const jsxNames = new Map<string, number>();
 for (const s of skills) {
   const src = await Bun.file(join(docs, s.source)).text();
-  let tree: Mdast, parser: "mdx" | "markdown" = "mdx";
+  // node positions refer to the text that was parsed, so Markdown runs are sliced from that same text
+  let tree: Mdast, parser: "mdx" | "markdown" = "mdx", text = markdoc(src);
   try {
-    tree = mdx.parse(src) as Mdast;
+    tree = mdx.parse(text) as Mdast;
   } catch {
-    tree = md.parse(src) as Mdast;
+    text = markdocToMarkdown(src);
+    tree = md.parse(text) as Mdast;
     parser = "markdown";
     fallback++;
   }
   const out: Snip[] = [];
-  const b = blocks(src, tree.children ?? [], { n: 0 }, out);
+  const b = blocks(text, tree.children ?? [], { n: 0 }, out);
   const walk = (xs: Block[]) => xs.forEach((x) => x.t === "jsx" && (jsxNames.set(x.name, (jsxNames.get(x.name) ?? 0) + 1), walk(x.children)));
   walk(b);
   const where = nav.get(s.source) ?? inherit(s.source) ?? (byHref.has(s.source.split("/")[0]!) ? { tab: byHref.get(s.source.split("/")[0]!)!, group: s.source.split("/")[0]! } : null) ?? { tab: "Unlisted", group: s.source.includes("/") ? s.source.split("/")[0]! : "root" };
