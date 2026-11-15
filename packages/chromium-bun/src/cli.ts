@@ -125,7 +125,7 @@ async function main(): Promise<void> {
     default: {
       console.log(
         [
-          "chromium-bun — Sovereign Bun v1.4.4 + Chromium Browser, Crawler & 3-VPS Search Engine",
+          "chromium-bun — Bun v1.4.4 + Chromium Browser, Crawler & 3-VPS Search Engine",
           "",
           "Commands:",
           "  search <query>                                    Query the RRF search cluster (nodes from infra/deploy.toml)",

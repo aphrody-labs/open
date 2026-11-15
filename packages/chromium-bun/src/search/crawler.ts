@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Sovereign Chromium + Bun Web Crawler (RFC 9309 robots.txt + SSRF Guard + Tracker Shields + CDP Render)
+ * Chromium + Bun Web Crawler (RFC 9309 robots.txt + SSRF Guard + Tracker Shields + CDP Render)
  */
 import { launchHeadlessChromium } from "../browser/launcher.ts";
 import { ContentShieldsEngine } from "../browser/shields.ts";
@@ -154,7 +154,7 @@ export class ChromiumBunCrawler {
     this.shields = new ContentShieldsEngine();
     this.userAgent =
       options.userAgent ??
-      "AphrodyBot/2.1 (+https://aphrody.com/bot; Chromium-Bun Sovereign Indexer)";
+      "AphrodyBot/2.1 (+https://aphrody.com/bot; Chromium-Bun Indexer)";
     this.respectRobotsTxt = options.respectRobotsTxt ?? true;
     this.renderMode = options.renderMode ?? "fast-html";
     this.timeoutMs = options.timeoutMs ?? 12_000;

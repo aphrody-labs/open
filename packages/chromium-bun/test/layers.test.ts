@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { SOVEREIGN_LAYERS, getLayer, getAllLayers } from "../src/layers.ts";
 
-describe("6-Layer Sovereign Architecture Specification", () => {
-  it("should have exactly 6 defined sovereign layers", () => {
+describe("6-Layer Architecture Specification", () => {
+  it("should have exactly 6 defined layers", () => {
     const layers = getAllLayers();
     expect(layers.length).toBe(6);
     expect(layers.map((l) => l.id)).toEqual([1, 2, 3, 4, 5, 6]);
@@ -42,7 +42,7 @@ describe("6-Layer Sovereign Architecture Specification", () => {
     expect(l5.description).toContain("V8");
   });
 
-  it("should define Layer 6 as Bun full Rust sovereign runtime", () => {
+  it("should define Layer 6 as Bun full Rust runtime", () => {
     const l6 = getLayer(6);
     expect(l6.name).toBe("Bun");
     expect(l6.codename).toBe("bun_sovereign_runtime");

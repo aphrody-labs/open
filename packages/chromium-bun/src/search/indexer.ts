@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Sovereign Search Shard Indexer (bun:sqlite WAL + FTS5 BM25 + Blake3 Deduplication)
+ * Search Shard Indexer (bun:sqlite WAL + FTS5 BM25 + Blake3 Deduplication)
  * Merges yolo-web + aphrody-web Top-1 Subdomain Catalog, Knowledge Cards, and Sharded Index.
  */
 import { Database } from "bun:sqlite";
@@ -188,10 +188,10 @@ export const APHRODY_TOP1_SUBDOMAIN_CATALOG: readonly SubdomainAppEntry[] = [
     subdomain: "studio.aphrody.app",
     url: "https://aphrody.com/?suite=studio",
     localRoute: "/?suite=studio",
-    title: "Locally Uncensored Studio — Sovereign Open-Weights Router",
+    title: "Locally Uncensored Studio — Open-Weights Router",
     category: "systems",
     summary:
-      "Direct sovereign inference studio routing across ring3-agent (:8787 CUDA sm_89 / AVX2), local llama-server (:8129), OpenCode (:4318), and deterministic local synthesis without cloud refusals.",
+      "Direct inference studio routing across ring3-agent (:8787 CUDA sm_89 / AVX2), local llama-server (:8129), OpenCode (:4318), and deterministic local synthesis without cloud refusals.",
     keywords: [
       "locally uncensored",
       "heretic",
@@ -263,7 +263,7 @@ export const APHRODY_TOP1_SUBDOMAIN_CATALOG: readonly SubdomainAppEntry[] = [
     subdomain: "chromium.aphrody.app",
     url: "https://aphrody.com/?suite=vision",
     localRoute: "/?suite=vision",
-    title: "Chromium-Bun Sovereign Browser Engine & CDP Inspector",
+    title: "Chromium-Bun Browser Engine & CDP Inspector",
     category: "search",
     summary:
       "6-layer Chromium Blink/Skia/Dawn WebGPU extraction paired with Bun networking, SSRF guard, tracker shields, and automated Core Web Vitals verification.",
@@ -294,11 +294,11 @@ export const SEED_DOCUMENTS_FR1: readonly Omit<
   {
     url: "https://aphrody.com/",
     title:
-      "Aphrody — Sovereign Search, Craft Creative Cloud, Fluent Office & Spacedrive",
+      "Aphrody — Search, Craft Creative Cloud, Fluent Office & Spacedrive",
     description:
       "Sub-100ms unified web platform built on Pure Bun v1.4.4 Full-Rust: 3-VPS Datacenter Search, Craft WASM/WebGPU Creative Studio, Fluent 2 Office (.docx / Formulas / Decks), Spacedrive VDFS, and M3 Workspace.",
     headings: [
-      "Aphrody Sovereign Platform",
+      "Aphrody Platform",
       "Craft Creative Cloud",
       "Fluent Office 365",
       "Spacedrive VDFS",
@@ -381,7 +381,7 @@ export const SEED_DOCUMENTS_FR1: readonly Omit<
   {
     url: "https://dragonballfr.com/",
     title:
-      "Shenron — Dragon Ball Encyclopedia, Streaming Engine & Sovereign API",
+      "Shenron — Dragon Ball Encyclopedia, Streaming Engine & API",
     description:
       "High-velocity media and encyclopedia platform powered by Aphrody edge caching and Bun v1.4.4.",
     headings: ["Encyclopedia", "Episodes & Kanzenban Index", "Streaming API"],
@@ -401,7 +401,7 @@ export const SEED_DOCUMENTS_FR1: readonly Omit<
       "Interactive Chronicles",
       "Community Events",
     ],
-    body: "RoseGriffon combines digital typography, serialized literature publishing, and community event orchestration hosted on the sovereign EU cluster.",
+    body: "RoseGriffon combines digital typography, serialized literature publishing, and community event orchestration hosted on the EU cluster.",
     domain: "rosegriffon.fr",
     category: "web",
     shard: "shard0",

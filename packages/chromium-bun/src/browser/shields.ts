@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Sovereign Content Shields & Tracker/Telemetry Filter Engine
+ * Content Shields & Tracker/Telemetry Filter Engine
  * Blocks ad networks, tracking pixels, and analytics beacons during Chromium crawl & indexing.
  */
 

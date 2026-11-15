@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * SSRF Guard for Sovereign Crawler & Headless Chromium Pool.
+ * SSRF Guard for Crawler & Headless Chromium Pool.
  * Blocks loopback, RFC1918, link-local, cloud metadata (169.254.169.254 / metadata.google.internal), and multicast.
  */
 import { lookup } from "node:dns/promises";

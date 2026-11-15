@@ -57,7 +57,7 @@ export const SOVEREIGN_LAYERS: Record<SovereignLayerId, SovereignLayer> = {
     name: "Bun",
     codename: "bun_sovereign_runtime",
     description:
-      "Modern sovereign JavaScript/TypeScript engine built on JavaScriptCore (WebKit) in Rust. Eliminates Node/NPM/Webpack/Rollup/Terser/Babel/Prettier/Jest bloat with zero external dependencies, native bun check typechecking, bun fmt formatter (286x faster than Prettier), bun build, bun test, and bun:sqlite.",
+      "Modern JavaScript/TypeScript engine built on JavaScriptCore (WebKit) in Rust. Eliminates Node/NPM/Webpack/Rollup/Terser/Babel/Prettier/Jest bloat with zero external dependencies, native bun check typechecking, bun fmt formatter (286x faster than Prettier), bun build, bun test, and bun:sqlite.",
     canonicalSource: "oven-sh/bun (Bun 1.4.4 full Rust)",
     roleInStack:
       "Universal application runtime, native ultra-fast bundler (Bun.build), typechecker (bun check), formatter (bun fmt), transpiler (Bun.Transpiler), unit test runner (bun test), embedded database (bun:sqlite, Bun.SQL), network server (Bun.serve), and fast shell (Bun.$).",

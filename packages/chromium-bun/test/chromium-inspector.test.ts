@@ -9,7 +9,7 @@ import { existsSync } from "node:fs";
 // Integration probe of a local Chromium checkout: skipped where the tree is absent (CI).
 const hasTree = existsSync(CHROMIUM_ROOT) && existsSync(DEPOT_TOOLS_ROOT);
 
-describe.skipIf(!hasTree)("Chromium & depot_tools Sovereign Inspection", () => {
+describe.skipIf(!hasTree)("Chromium & depot_tools Inspection", () => {
   it("should confirm Chromium root and depot_tools presence on disk", () => {
     expect(existsSync(CHROMIUM_ROOT)).toBe(true);
     expect(existsSync(DEPOT_TOOLS_ROOT)).toBe(true);

@@ -223,7 +223,7 @@ export function inspectChromiumTree(): ChromiumInspectionResult {
         : null,
     },
     {
-      tool: "Sovereign Bun",
+      tool: "Bun",
       path: "bun",
       detected: true,
       version: probeExecutable("bun", ["--version"]),
@@ -287,7 +287,7 @@ export function inspectChromiumTree(): ChromiumInspectionResult {
 
 if (import.meta.main) {
   const inspection = inspectChromiumTree();
-  console.log("=== Chromium & depot_tools Sovereign Inspection ===");
+  console.log("=== Chromium & depot_tools Inspection ===");
   console.log(`Chromium Root: ${inspection.chromiumRoot}`);
   console.log(
     `Subsystems Detected: ${inspection.summary.detectedSubsystems}/${inspection.summary.totalSubsystems}`,

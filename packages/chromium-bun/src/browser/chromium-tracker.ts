@@ -337,7 +337,7 @@ export class ChromiumTrackingEngine {
       {
         id: "aphrody-shields-intercept",
         targetSubsystem: "net",
-        name: "Sovereign AdBlock & Cosmetic Filter Native Hook",
+        name: "AdBlock & Cosmetic Filter Native Hook",
         description:
           "Hooks URL request stream to filter trackers with SovereignAdblockEngine and strip cosmetic banners",
         upstreamFile: "src/corelib/src/web.rs",

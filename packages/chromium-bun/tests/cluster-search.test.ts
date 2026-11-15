@@ -47,7 +47,7 @@ describe("@aphrody/chromium-bun — Browser, Crawler & 3-VPS Datacenter Search",
     const html = `<!doctype html>
       <html>
         <head>
-          <title>Aphrody Sovereign Search</title>
+          <title>Aphrody Search</title>
           <meta name="description" content="Distributed 3-VPS BM25 + RRF engine" />
           <script>window.evil = 1;</script>
         </head>
@@ -60,7 +60,7 @@ describe("@aphrody/chromium-bun — Browser, Crawler & 3-VPS Datacenter Search",
       </html>`;
 
     const doc = shields.extractCleanDocument(html, "https://aphrody.com/");
-    expect(doc.title).toBe("Aphrody Sovereign Search");
+    expect(doc.title).toBe("Aphrody Search");
     expect(doc.description).toBe("Distributed 3-VPS BM25 + RRF engine");
     expect(doc.headings).toContain("Cluster Search Engine");
     expect(doc.text).not.toContain("window.evil");

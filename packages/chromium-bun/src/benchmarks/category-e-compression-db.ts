@@ -8,7 +8,7 @@ export function benchmarkCategoryE(): BenchmarkRecord[] {
   {
     const samplePayload = Buffer.from(
       JSON.stringify({
-        architecture: "6-Layer Sovereign Stack",
+        architecture: "6-Layer Stack",
         layers: ["POSIX", "Unix", "Linux", "GNU", "Chromium", "Bun"],
         components: Array.from({ length: 500 }, (_, i) => ({
           id: i,

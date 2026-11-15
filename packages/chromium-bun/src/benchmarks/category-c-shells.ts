@@ -36,7 +36,7 @@ export function getShellTargets(): ShellTarget[] {
       command: "bun",
       args: ["-e", "process.exit(0)"],
       isAvailable: true,
-      layer: 6, // Bun Sovereign Runtime
+      layer: 6, // Bun Runtime
     },
     {
       name: "Git Bash (bash.exe --noprofile -c exit)",
