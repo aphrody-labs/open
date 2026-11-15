@@ -445,7 +445,1443 @@
     "fork": false,
     "rev": "aeba6448ae541d8e09ebd8980e1a5518063a0514",
     "submodules": [],
-    "dropped_files": [],
+    "dropped_files": [
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/amazon.nova-2-lite-v1:0.toml",
+        "bytes": 3459,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/amazon.nova-lite-v1:0.toml",
+        "bytes": 2177,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/amazon.nova-micro-v1:0.toml",
+        "bytes": 1413,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/amazon.nova-pro-v1:0.toml",
+        "bytes": 2170,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/anthropic.claude-haiku-4-5-20251001-v1:0.toml",
+        "bytes": 2712,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/anthropic.claude-opus-4-1-20250805-v1:0.toml",
+        "bytes": 2109,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/anthropic.claude-opus-4-5-20251101-v1:0.toml",
+        "bytes": 2863,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/anthropic.claude-sonnet-4-5-20250929-v1:0.toml",
+        "bytes": 2861,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/apac.amazon.nova-lite-v1:0.toml",
+        "bytes": 2516,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/apac.amazon.nova-micro-v1:0.toml",
+        "bytes": 1748,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/apac.amazon.nova-pro-v1:0.toml",
+        "bytes": 2918,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/apac.anthropic.claude-sonnet-4-20250514-v1:0.toml",
+        "bytes": 2841,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/au.anthropic.claude-haiku-4-5-20251001-v1:0.toml",
+        "bytes": 2973,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/au.anthropic.claude-sonnet-4-5-20250929-v1:0.toml",
+        "bytes": 3123,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/ca.amazon.nova-lite-v1:0.toml",
+        "bytes": 2504,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/deepseek.r1-v1:0.toml",
+        "bytes": 1228,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/deepseek.v3-v1:0.toml",
+        "bytes": 1893,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/eu.amazon.nova-2-lite-v1:0.toml",
+        "bytes": 3476,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/eu.amazon.nova-lite-v1:0.toml",
+        "bytes": 2497,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/eu.amazon.nova-micro-v1:0.toml",
+        "bytes": 1723,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/eu.amazon.nova-pro-v1:0.toml",
+        "bytes": 2899,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/eu.anthropic.claude-haiku-4-5-20251001-v1:0.toml",
+        "bytes": 2751,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/eu.anthropic.claude-opus-4-5-20251101-v1:0.toml",
+        "bytes": 2899,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/eu.anthropic.claude-sonnet-4-20250514-v1:0.toml",
+        "bytes": 2823,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/eu.anthropic.claude-sonnet-4-5-20250929-v1:0.toml",
+        "bytes": 2901,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/eu.mistral.pixtral-large-2502-v1:0.toml",
+        "bytes": 1387,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/global.amazon.nova-2-lite-v1:0.toml",
+        "bytes": 3513,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/global.anthropic.claude-haiku-4-5-20251001-v1:0.toml",
+        "bytes": 2747,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/global.anthropic.claude-opus-4-5-20251101-v1:0.toml",
+        "bytes": 2897,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/global.anthropic.claude-sonnet-4-20250514-v1:0.toml",
+        "bytes": 2773,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/global.anthropic.claude-sonnet-4-5-20250929-v1:0.toml",
+        "bytes": 2897,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/in.anthropic.claude-haiku-4-5-20251001-v1:0.toml",
+        "bytes": 2658,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/jp.amazon.nova-2-lite-v1:0.toml",
+        "bytes": 3490,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/jp.anthropic.claude-haiku-4-5-20251001-v1:0.toml",
+        "bytes": 2973,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/jp.anthropic.claude-sonnet-4-5-20250929-v1:0.toml",
+        "bytes": 3123,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/meta.llama3-1-70b-instruct-v1:0.toml",
+        "bytes": 995,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/meta.llama3-1-8b-instruct-v1:0.toml",
+        "bytes": 992,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/meta.llama3-3-70b-instruct-v1:0.toml",
+        "bytes": 995,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/meta.llama4-maverick-17b-instruct-v1:0.toml",
+        "bytes": 1390,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/meta.llama4-scout-17b-instruct-v1:0.toml",
+        "bytes": 1476,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/mistral.pixtral-large-2502-v1:0.toml",
+        "bytes": 1266,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/openai.gpt-oss-120b-1:0.toml",
+        "bytes": 1747,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/openai.gpt-oss-20b-1:0.toml",
+        "bytes": 2047,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/qwen.qwen3-235b-a22b-2507-v1:0.toml",
+        "bytes": 1517,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/qwen.qwen3-32b-v1:0.toml",
+        "bytes": 1683,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/qwen.qwen3-coder-30b-a3b-v1:0.toml",
+        "bytes": 1612,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/qwen.qwen3-coder-480b-a35b-v1:0.toml",
+        "bytes": 1662,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/us-gov.openai.gpt-oss-120b-1:0.toml",
+        "bytes": 1283,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/us-gov.openai.gpt-oss-20b-1:0.toml",
+        "bytes": 1584,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/us.amazon.nova-2-lite-v1:0.toml",
+        "bytes": 3491,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/us.amazon.nova-lite-v1:0.toml",
+        "bytes": 2492,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/us.amazon.nova-micro-v1:0.toml",
+        "bytes": 1728,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/us.amazon.nova-premier-v1:0.toml",
+        "bytes": 2377,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/us.amazon.nova-pro-v1:0.toml",
+        "bytes": 2895,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/us.anthropic.claude-haiku-4-5-20251001-v1:0.toml",
+        "bytes": 2963,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/us.anthropic.claude-opus-4-1-20250805-v1:0.toml",
+        "bytes": 2393,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/us.anthropic.claude-opus-4-5-20251101-v1:0.toml",
+        "bytes": 3111,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/us.anthropic.claude-sonnet-4-20250514-v1:0.toml",
+        "bytes": 2833,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/us.anthropic.claude-sonnet-4-5-20250929-v1:0.toml",
+        "bytes": 3113,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/us.deepseek.r1-v1:0.toml",
+        "bytes": 1247,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/us.meta.llama3-1-70b-instruct-v1:0.toml",
+        "bytes": 986,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/us.meta.llama3-1-8b-instruct-v1:0.toml",
+        "bytes": 984,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/us.meta.llama3-3-70b-instruct-v1:0.toml",
+        "bytes": 986,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/us.meta.llama4-maverick-17b-instruct-v1:0.toml",
+        "bytes": 1423,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/us.meta.llama4-scout-17b-instruct-v1:0.toml",
+        "bytes": 1506,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/us.mistral.pixtral-large-2502-v1:0.toml",
+        "bytes": 1387,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/us.writer.palmyra-x4-v1:0.toml",
+        "bytes": 1114,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/us.writer.palmyra-x5-v1:0.toml",
+        "bytes": 1263,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/writer.palmyra-x4-v1:0.toml",
+        "bytes": 1089,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/amazon-bedrock/models/writer.palmyra-x5-v1:0.toml",
+        "bytes": 1238,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/bothub/models/gemma-4-31b-it:free.toml",
+        "bytes": 608,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/bothub/models/nemotron-3-ultra-550b-a55b:free.toml",
+        "bytes": 397,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/commandcode/models/inclusionai/ling-3.1-flash:free.toml",
+        "bytes": 919,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/commandcode/models/reflection/beam:free.toml",
+        "bytes": 606,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/commandcode/models/stealth/glyph-cluster:free.toml",
+        "bytes": 1023,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/edenai/models/amazon/amazon.nova-lite-v1:0.toml",
+        "bytes": 203,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/edenai/models/amazon/amazon.nova-lite-v1:0@us.toml",
+        "bytes": 227,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/edenai/models/amazon/amazon.nova-micro-v1:0.toml",
+        "bytes": 207,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/edenai/models/amazon/amazon.nova-micro-v1:0@us.toml",
+        "bytes": 232,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/edenai/models/amazon/amazon.nova-pro-v1:0.toml",
+        "bytes": 198,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/edenai/models/amazon/amazon.nova-pro-v1:0@us.toml",
+        "bytes": 221,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/edenai/models/amazon/mistral.pixtral-large-2502-v1:0.toml",
+        "bytes": 231,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/edenai/models/amazon/mistral.pixtral-large-2502-v1:0@us.toml",
+        "bytes": 235,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/inco/models/deepseek-v4.1-flash:fast.toml",
+        "bytes": 702,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/inco/models/glm-5.3-flash:fast.toml",
+        "bytes": 735,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/inco/models/glm-5.3:fast.toml",
+        "bytes": 573,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/inco/models/kimi-k3:fast.toml",
+        "bytes": 629,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/inco/models/minimax-m3:fast.toml",
+        "bytes": 468,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/infer/models/infer/claude-fable-5-1:low-cost.toml",
+        "bytes": 740,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/infer/models/infer/claude-opus-5-5:low-cost.toml",
+        "bytes": 735,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/infer/models/infer/claude-sonnet-5-5:low-cost.toml",
+        "bytes": 741,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/infer/models/infer/gemini-3.1-pro-preview:low-cost.toml",
+        "bytes": 825,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/infer/models/infer/gemini-3.8-flash:low-cost.toml",
+        "bytes": 768,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/infer/models/infer/gpt-5.6-sol:official.toml",
+        "bytes": 612,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/infer/models/infer/gpt-6-astra:low-cost.toml",
+        "bytes": 796,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/infer/models/infer/gpt-6-astra:official.toml",
+        "bytes": 606,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/infer/models/infer/gpt-6.1-sol:low-cost.toml",
+        "bytes": 795,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/infer/models/infer/grok-4.7:low-cost.toml",
+        "bytes": 792,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/kenari/models/deepseek-v4-flash:free.toml",
+        "bytes": 745,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/kenari/models/glm-4-7-flash:free.toml",
+        "bytes": 610,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/kenari/models/hy3:free.toml",
+        "bytes": 714,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/kenari/models/kimi-k2-6:free.toml",
+        "bytes": 577,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/kenari/models/kimi-k2-7-code:free.toml",
+        "bytes": 587,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/kenari/models/mimo-v2-5:free.toml",
+        "bytes": 548,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/kenari/models/mistral-large:free.toml",
+        "bytes": 515,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/kenari/models/mistral-medium-3-5:free.toml",
+        "bytes": 620,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/kenari/models/nemotron-3-super-120b-a12b:free.toml",
+        "bytes": 763,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/kenari/models/step-3-7-flash:free.toml",
+        "bytes": 595,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/kilo/models/baidu/ernie-5.5-flash-preview:free.toml",
+        "bytes": 639,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/kilo/models/cohere/north-mini-code:free.toml",
+        "bytes": 898,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/kilo/models/dots-studio/dots-3-note-preview:free.toml",
+        "bytes": 1031,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/kilo/models/inclusionai/ling-3.2-flash:free.toml",
+        "bytes": 624,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/kilo/models/liquid/lfm-3-1.7b:free.toml",
+        "bytes": 625,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/kilo/models/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free.toml",
+        "bytes": 722,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/kilo/models/nvidia/nemotron-3-ultra-550b-a55b:free.toml",
+        "bytes": 1698,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/kilo/models/nvidia/nemotron-3.5-lightning:free.toml",
+        "bytes": 1696,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/kilo/models/nvidia/nemotron-3.5-super-vl:free.toml",
+        "bytes": 1699,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/kilo/models/particle-ai/particle-1:free.toml",
+        "bytes": 681,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/moneo/models/MiniMax-M2.7:web.toml",
+        "bytes": 1126,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/moneo/models/deepseek-v4-flash:web.toml",
+        "bytes": 1189,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/moneo/models/gemma-4-31b:web.toml",
+        "bytes": 1094,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/moneo/models/kimi-k2.7-code:web.toml",
+        "bytes": 1188,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/moneo/models/qwen3-235b:web.toml",
+        "bytes": 1231,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/Gemma-4-26B-A4B-MeroMero:thinking.toml",
+        "bytes": 1183,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/Gemma-4-31B-MeroMero-v2:thinking.toml",
+        "bytes": 1180,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/TEE/gemma4-31b:thinking.toml",
+        "bytes": 820,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/TEE/glm-5.2:thinking.toml",
+        "bytes": 744,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/anthropic/claude-haiku-4.5:thinking.toml",
+        "bytes": 1044,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/anthropic/claude-opus-4.1:thinking.toml",
+        "bytes": 1045,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/anthropic/claude-opus-4.1:thinking:1024.toml",
+        "bytes": 1050,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/anthropic/claude-opus-4.1:thinking:32768.toml",
+        "bytes": 1051,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/anthropic/claude-opus-4.1:thinking:8192.toml",
+        "bytes": 1050,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/anthropic/claude-opus-4.5:thinking.toml",
+        "bytes": 1095,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/anthropic/claude-opus-4.6:thinking.toml",
+        "bytes": 1097,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/anthropic/claude-opus-4.6:thinking:low.toml",
+        "bytes": 1049,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/anthropic/claude-opus-4.6:thinking:max.toml",
+        "bytes": 1049,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/anthropic/claude-opus-4.6:thinking:medium.toml",
+        "bytes": 1052,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/anthropic/claude-opus-4.7:thinking.toml",
+        "bytes": 1128,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/anthropic/claude-opus-4.8:thinking.toml",
+        "bytes": 1128,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/anthropic/claude-sonnet-4.5:thinking.toml",
+        "bytes": 1099,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/anthropic/claude-sonnet-4.6:thinking.toml",
+        "bytes": 1118,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/anthropic/claude-sonnet-5.5:thinking.toml",
+        "bytes": 1121,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/anthropic/claude-sonnet-5:thinking.toml",
+        "bytes": 1117,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/deepseek-ai/DeepSeek-V3.1-Terminus:thinking.toml",
+        "bytes": 924,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/deepseek-ai/DeepSeek-V3.1:thinking.toml",
+        "bytes": 795,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/deepseek/deepseek-v3.2:thinking.toml",
+        "bytes": 780,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/deepseek/deepseek-v4-flash-0423:thinking.toml",
+        "bytes": 762,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/deepseek/deepseek-v4-flash-0731:thinking.toml",
+        "bytes": 779,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/deepseek/deepseek-v4-flash:thinking.toml",
+        "bytes": 772,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/deepseek/deepseek-v4-pro-0813:thinking.toml",
+        "bytes": 754,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/deepseek/deepseek-v4-pro-20260423:thinking.toml",
+        "bytes": 683,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/deepseek/deepseek-v4.1-flash-0910-uncensored:thinking.toml",
+        "bytes": 727,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/deepseek/deepseek-v4.1-flash-1017-uncensored:thinking.toml",
+        "bytes": 729,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/deepseek/deepseek-v4.1-flash-1017:thinking.toml",
+        "bytes": 780,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/deepseek/deepseek-v4.1-flash-uncensored:thinking.toml",
+        "bytes": 664,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/deepseek/deepseek-v4.1-flash:thinking.toml",
+        "bytes": 756,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/google/gemma-4-26b-a4b-it:thinking.toml",
+        "bytes": 985,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/google/gemma-4-31b-it:thinking.toml",
+        "bytes": 972,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/holo3-35b-a3b:thinking.toml",
+        "bytes": 1072,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/inclusionai/ling-3.0-flash:thinking.toml",
+        "bytes": 750,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/inclusionai/ling-3.0-tiny:thinking.toml",
+        "bytes": 694,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/longcat-2.0:thinking.toml",
+        "bytes": 674,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/minimax/minimax-m3:thinking.toml",
+        "bytes": 976,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/mistralai/mistral-medium-3.5:thinking.toml",
+        "bytes": 1174,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/mistralai/mistral-small-4-119b-2603:thinking.toml",
+        "bytes": 867,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/moonshotai/kimi-k2.5:thinking.toml",
+        "bytes": 941,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/moonshotai/kimi-k2.6:thinking.toml",
+        "bytes": 934,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/nanogpt/coding-router:high.toml",
+        "bytes": 895,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/nanogpt/coding-router:low.toml",
+        "bytes": 897,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/nanogpt/coding-router:max.toml",
+        "bytes": 890,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/nanogpt/coding-router:medium.toml",
+        "bytes": 900,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/nvidia/nemotron-3-super-120b-a12b:thinking.toml",
+        "bytes": 583,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/nvidia/nemotron-3-ultra-550b-a55b:thinking.toml",
+        "bytes": 721,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/nvidia/nemotron-3.5-lightning:thinking.toml",
+        "bytes": 766,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/orca/orcacyber-flash-1.0:thinking.toml",
+        "bytes": 830,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/ornith-ai/ornith-1.5-35b-a3b:thinking.toml",
+        "bytes": 1211,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/pqhaz/DeepSeek-V4.1-Flash-1017-heretic:thinking.toml",
+        "bytes": 810,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/qwen/qwen3.5-122b-a10b:thinking.toml",
+        "bytes": 768,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/qwen/qwen3.5-27b:thinking.toml",
+        "bytes": 691,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/qwen/qwen3.5-35b-a3b:thinking.toml",
+        "bytes": 697,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/qwen/qwen3.5-397b-a17b:thinking.toml",
+        "bytes": 741,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/qwen/qwen3.5-flash:thinking.toml",
+        "bytes": 528,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/qwen/qwen3.5-plus:thinking.toml",
+        "bytes": 539,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/qwen/qwen3.6-27b:thinking.toml",
+        "bytes": 677,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/qwen/qwen3.6-35b-a3b:thinking.toml",
+        "bytes": 705,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/qwen/qwen3.7-flash:thinking.toml",
+        "bytes": 754,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/qwen/qwen3.7-max:thinking.toml",
+        "bytes": 739,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/qwen/qwen3.7-plus:thinking.toml",
+        "bytes": 748,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/qwen/qwen3.8-27b-uncensored:thinking.toml",
+        "bytes": 1183,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/qwen/qwen3.8-27b:thinking.toml",
+        "bytes": 710,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/qwen/qwen3.8-max:thinking.toml",
+        "bytes": 741,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/stepfun/step-3.7-flash:thinking.toml",
+        "bytes": 767,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/thinkingmachines/Inkling-Small:thinking.toml",
+        "bytes": 773,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/thinkingmachines/inkling:thinking.toml",
+        "bytes": 765,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/upstage/solar-mini4:thinking.toml",
+        "bytes": 718,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/upstage/solar-pro4:thinking.toml",
+        "bytes": 715,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/xiaomi/mimo-v2.5-pro:thinking.toml",
+        "bytes": 719,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/xiaomi/mimo-v2.5:thinking.toml",
+        "bytes": 711,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/xiaomi/mimo-v2.6-flash-uncensored:thinking.toml",
+        "bytes": 1140,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/z-ai/GLM-4.5-Air:thinking.toml",
+        "bytes": 694,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/z-ai/GLM-4.5:thinking.toml",
+        "bytes": 534,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/z-ai/GLM-4.6-turbo:thinking.toml",
+        "bytes": 756,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/z-ai/glm-4.5v:thinking.toml",
+        "bytes": 748,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/z-ai/glm-4.6:thinking.toml",
+        "bytes": 725,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/z-ai/glm-4.7-flash:thinking.toml",
+        "bytes": 699,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/z-ai/glm-4.7-original:thinking.toml",
+        "bytes": 807,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/z-ai/glm-4.7:thinking.toml",
+        "bytes": 706,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/z-ai/glm-5-original:thinking.toml",
+        "bytes": 792,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/z-ai/glm-5.1:thinking.toml",
+        "bytes": 696,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/z-ai/glm-5.2:thinking.toml",
+        "bytes": 717,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/z-ai/glm-5.3:thinking.toml",
+        "bytes": 710,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/z-ai/glm-5:thinking.toml",
+        "bytes": 693,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/nano-gpt/models/z-ai/glm-5v-turbo:thinking.toml",
+        "bytes": 1030,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/ollama-cloud/models/clef:27b.toml",
+        "bytes": 1079,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/ollama-cloud/models/deepseek-v4-pro:0813.toml",
+        "bytes": 2953,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/ollama-cloud/models/deepseek-v4.1-flash:1017.toml",
+        "bytes": 2859,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/ollama-cloud/models/gemma4:31b.toml",
+        "bytes": 1823,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/ollama-cloud/models/gpt-oss:120b.toml",
+        "bytes": 1826,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/ollama-cloud/models/gpt-oss:20b.toml",
+        "bytes": 1823,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/ollama-cloud/models/mistral-large-3:675b.toml",
+        "bytes": 1454,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/ollama-cloud/models/nemotron-3-nano:30b.toml",
+        "bytes": 1317,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/openrouter/models/baidu/ernie-5.5-flash-preview:free.toml",
+        "bytes": 809,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/openrouter/models/cohere/north-mini-code:free.toml",
+        "bytes": 1073,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/openrouter/models/dots-studio/dots-3-note-preview:free.toml",
+        "bytes": 1679,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/openrouter/models/fish-audio/s2.1-pro-free:free.toml",
+        "bytes": 674,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/openrouter/models/google/gemma-4-26b-a4b-it:free.toml",
+        "bytes": 1262,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/openrouter/models/google/gemma-4-31b-it:free.toml",
+        "bytes": 1253,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/openrouter/models/heygen/heygen-voice-1-turbo:free.toml",
+        "bytes": 619,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/openrouter/models/liquid/lfm-3-1.7b:free.toml",
+        "bytes": 773,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/openrouter/models/nvidia/llama-nemotron-embed-vl-1b-v2:free.toml",
+        "bytes": 712,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/openrouter/models/nvidia/llama-nemotron-rerank-vl-1b-v2:free.toml",
+        "bytes": 576,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/openrouter/models/nvidia/nemotron-3-embed-1b:free.toml",
+        "bytes": 486,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/openrouter/models/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free.toml",
+        "bytes": 1189,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/openrouter/models/nvidia/nemotron-3-ultra-550b-a55b:free.toml",
+        "bytes": 1235,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/openrouter/models/nvidia/nemotron-3.5-embed-1b:free.toml",
+        "bytes": 490,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/openrouter/models/nvidia/nemotron-3.5-embed-8b:free.toml",
+        "bytes": 490,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/openrouter/models/nvidia/nemotron-3.5-lightning:free.toml",
+        "bytes": 1297,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/openrouter/models/nvidia/nemotron-3.5-rerank-8b:free.toml",
+        "bytes": 840,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/openrouter/models/nvidia/nemotron-3.5-super-vl:free.toml",
+        "bytes": 1303,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/openrouter/models/parallel/decisions-fast:free.toml",
+        "bytes": 565,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/openrouter/models/particle-ai/particle-1:free.toml",
+        "bytes": 834,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/openrouter/models/perplexity/pplx-decider-flash-v1.3:free.toml",
+        "bytes": 621,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/openrouter/models/perplexity/pplx-decider-v1.3:free.toml",
+        "bytes": 615,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/openrouter/models/recursive/flint-v1.0:free.toml",
+        "bytes": 724,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/openrouter/models/respan/span-01-lite:free.toml",
+        "bytes": 558,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/openrouter/models/thinkingmachines/inkling-2-small:free.toml",
+        "bytes": 623,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/pendra/models/gpt-oss:120b.toml",
+        "bytes": 486,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/pendra/models/llama3.3:70b.toml",
+        "bytes": 252,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/pendra/models/qwen3-coder:30b.toml",
+        "bytes": 192,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/pendra/models/qwen3.6:27b.toml",
+        "bytes": 454,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/synthetic/models/hf:Qwen/Qwen3.8-27B.toml",
+        "bytes": 383,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/synthetic/models/hf:deepseek-ai/DeepSeek-V4.1-Flash-1017.toml",
+        "bytes": 1111,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/synthetic/models/hf:moonshotai/Kimi-K3.1-Pro.toml",
+        "bytes": 487,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/synthetic/models/hf:moonshotai/Kimi-K3.toml",
+        "bytes": 442,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/synthetic/models/hf:openai/gpt-oss-120b.toml",
+        "bytes": 615,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/synthetic/models/hf:zai-org/GLM-4.7-Flash.toml",
+        "bytes": 547,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/synthetic/models/hf:zai-org/GLM-5.3-Flash.toml",
+        "bytes": 521,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/synthetic/models/hf:zai-org/GLM-5.3.toml",
+        "bytes": 420,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/thinkingmachines/models/Qwen/Qwen3.5-397B-A17B:peft:262144.toml",
+        "bytes": 1209,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/thinkingmachines/models/Qwen/Qwen3.5-4B:peft:262144.toml",
+        "bytes": 1205,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/thinkingmachines/models/Qwen/Qwen3.6-35B-A3B:peft:262144.toml",
+        "bytes": 1209,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/thinkingmachines/models/Qwen/Qwen3.8-27B:peft:262144.toml",
+        "bytes": 1209,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/thinkingmachines/models/deepseek-ai/DeepSeek-V4.1-Flash-1017:peft:262144.toml",
+        "bytes": 1143,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/thinkingmachines/models/deepseek-ai/DeepSeek-V4.1-Flash:peft:262144.toml",
+        "bytes": 1138,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/thinkingmachines/models/moonshotai/Kimi-K2.6:peft:131072.toml",
+        "bytes": 1238,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/thinkingmachines/models/nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-BF16:peft:262144.toml",
+        "bytes": 1157,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/thinkingmachines/models/nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16:peft:262144.toml",
+        "bytes": 1200,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/thinkingmachines/models/nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16:peft:262144.toml",
+        "bytes": 1158,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/thinkingmachines/models/nvidia/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-BF16:peft:262144.toml",
+        "bytes": 1291,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/thinkingmachines/models/openai/gpt-oss-120b:peft:131072.toml",
+        "bytes": 1170,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/thinkingmachines/models/thinkingmachines/Inkling-Small:peft:262144.toml",
+        "bytes": 1345,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/thinkingmachines/models/thinkingmachines/Inkling-Small:peft:262144:sampling-nvfp4.toml",
+        "bytes": 1367,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/thinkingmachines/models/thinkingmachines/Inkling:peft:262144.toml",
+        "bytes": 2119,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/thinkingmachines/models/thinkingmachines/Inkling:peft:262144:sampling-nvfp4.toml",
+        "bytes": 1360,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/thinkingmachines/models/zai-org/GLM-5.3-Flash:peft:262144.toml",
+        "bytes": 1265,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/thinkingmachines/models/zai-org/GLM-5.3:peft:262144.toml",
+        "bytes": 1211,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/unorouter/models/deepseek-v4-flash:free.toml",
+        "bytes": 336,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/unorouter/models/deepseek-v4-pro:free.toml",
+        "bytes": 334,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/unorouter/models/gemma-4-31b-it:free.toml",
+        "bytes": 181,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/unorouter/models/glm-4.5-flash:free.toml",
+        "bytes": 156,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/unorouter/models/glm-5.2:free.toml",
+        "bytes": 325,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/unorouter/models/gpt-5.4:free.toml",
+        "bytes": 324,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/unorouter/models/gpt-5.5:free.toml",
+        "bytes": 324,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/unorouter/models/minimax-m2.7:free.toml",
+        "bytes": 155,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/unorouter/models/nemotron-3-ultra-550b-a55b:free.toml",
+        "bytes": 168,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/unorouter/models/qwen3.5-397b-a17b:free.toml",
+        "bytes": 335,
+        "reason": "windows-name"
+      },
+      {
+        "path": "packages/models.dev/providers/unorouter/models/step-3.7-flash:free.toml",
+        "bytes": 307,
+        "reason": "windows-name"
+      }
+    ],
     "license": "MIT"
   },
   {
@@ -493,7 +1929,123 @@
     "fork": true,
     "rev": "aee25c9efcfa85b6029d5d1a2b7aaac7d87ae9d1",
     "submodules": [],
-    "dropped_files": [],
+    "dropped_files": [
+      {
+        "path": "extra/niri/docs/wiki/Configuration:-Animations.md",
+        "bytes": 13588,
+        "reason": "windows-name"
+      },
+      {
+        "path": "extra/niri/docs/wiki/Configuration:-Debug-Options.md",
+        "bytes": 11162,
+        "reason": "windows-name"
+      },
+      {
+        "path": "extra/niri/docs/wiki/Configuration:-Gestures.md",
+        "bytes": 3156,
+        "reason": "windows-name"
+      },
+      {
+        "path": "extra/niri/docs/wiki/Configuration:-Include.md",
+        "bytes": 6405,
+        "reason": "windows-name"
+      },
+      {
+        "path": "extra/niri/docs/wiki/Configuration:-Input.md",
+        "bytes": 13304,
+        "reason": "windows-name"
+      },
+      {
+        "path": "extra/niri/docs/wiki/Configuration:-Introduction.md",
+        "bytes": 4680,
+        "reason": "windows-name"
+      },
+      {
+        "path": "extra/niri/docs/wiki/Configuration:-Key-Bindings.md",
+        "bytes": 15357,
+        "reason": "windows-name"
+      },
+      {
+        "path": "extra/niri/docs/wiki/Configuration:-Layer-Rules.md",
+        "bytes": 8190,
+        "reason": "windows-name"
+      },
+      {
+        "path": "extra/niri/docs/wiki/Configuration:-Layout.md",
+        "bytes": 19130,
+        "reason": "windows-name"
+      },
+      {
+        "path": "extra/niri/docs/wiki/Configuration:-Miscellaneous.md",
+        "bytes": 10888,
+        "reason": "windows-name"
+      },
+      {
+        "path": "extra/niri/docs/wiki/Configuration:-Named-Workspaces.md",
+        "bytes": 3585,
+        "reason": "windows-name"
+      },
+      {
+        "path": "extra/niri/docs/wiki/Configuration:-Outputs.md",
+        "bytes": 11222,
+        "reason": "windows-name"
+      },
+      {
+        "path": "extra/niri/docs/wiki/Configuration:-Overview.md",
+        "bytes": 79,
+        "reason": "windows-name"
+      },
+      {
+        "path": "extra/niri/docs/wiki/Configuration:-Recent-Windows.md",
+        "bytes": 7157,
+        "reason": "windows-name"
+      },
+      {
+        "path": "extra/niri/docs/wiki/Configuration:-Switch-Events.md",
+        "bytes": 1968,
+        "reason": "windows-name"
+      },
+      {
+        "path": "extra/niri/docs/wiki/Configuration:-Window-Rules.md",
+        "bytes": 33424,
+        "reason": "windows-name"
+      },
+      {
+        "path": "extra/niri/docs/wiki/Development:-Animation-Timing.md",
+        "bytes": 4698,
+        "reason": "windows-name"
+      },
+      {
+        "path": "extra/niri/docs/wiki/Development:-Design-Principles.md",
+        "bytes": 11934,
+        "reason": "windows-name"
+      },
+      {
+        "path": "extra/niri/docs/wiki/Development:-Developing-niri.md",
+        "bytes": 4624,
+        "reason": "windows-name"
+      },
+      {
+        "path": "extra/niri/docs/wiki/Development:-Documenting-niri.md",
+        "bytes": 3213,
+        "reason": "windows-name"
+      },
+      {
+        "path": "extra/niri/docs/wiki/Development:-Fractional-Layout.md",
+        "bytes": 3103,
+        "reason": "windows-name"
+      },
+      {
+        "path": "extra/niri/docs/wiki/Development:-Redraw-Loop.md",
+        "bytes": 1729,
+        "reason": "windows-name"
+      },
+      {
+        "path": "extra/niri/docs/wiki/Development:-Releasing-niri.md",
+        "bytes": 4447,
+        "reason": "windows-name"
+      }
+    ],
     "license": "AGPL-3.0"
   },
   {

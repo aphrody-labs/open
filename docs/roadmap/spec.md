@@ -23,9 +23,14 @@
 - R7. Politique par défaut : gratuit d'abord, bascule automatique avec trace des essais.
 - R8. ABI C stable, HTTPS par la pile TLS du système ou un transport fourni par la plateforme.
 - R9. Surfaces : CLI, TUI plein écran, desktop, mobile, serverless, auto-hébergé.
+- R9a. Livré à la fois comme bibliothèque embarquée et comme service (D2).
+- R9b. Local first : l'inférence locale est tentée en premier ; tous les types d'inférence et tous les fournisseurs cloud sont pris en charge (D8).
+- R9c. L'ABI C est consommée par Angular, Flutter, Compose, Rust, Zig, .NET et C++, sans réécrire le cœur.
 
 ### UI
 - R10. Composants et tokens officiels Google uniquement ; identité Aphrody par le theming officiel.
+- R10a. Couverture maximale : Angular (fork), Flutter (desktop, mobile, web), Compose Multiplatform, un framework Rust au même niveau (D3, D4).
+- R10b. Fork Angular suivant l'amont automatiquement, patchs Bun, compilation AOT et LTO.
 - R11. Clair, sombre, contrastes moyen et élevé ; accessibilité M3 (cibles 48 dp, contrastes, focus).
 
 ### Archive de référence

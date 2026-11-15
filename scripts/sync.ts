@@ -13,11 +13,13 @@ const ROOT = resolve(opt("--root", join(import.meta.dir, "..")));
 const SCRATCH = resolve(opt("--scratch", "/srv/open-src"));
 const ONLY = opt("--only", "").split(",").filter(Boolean);
 const MAX = 50 * 1024 * 1024;
+// Characters and names Windows refuses in a path component: such files would make the repository uncloneable there.
+const WINDOWS_INVALID = /[:*?"<>|]|(^|\/)(con|prn|aux|nul|com[1-9]|lpt[1-9])(\.[^/]*)?$|[ .](\/|$)/i;
 const LOCK = join(ROOT, "open.lock.json");
 
 type Entry = {
   name: string; url: string; rev?: string; path: string; language: string;
-  archived: boolean; fork: boolean; license?: string; dropped_files?: { path: string; bytes: number }[];
+  archived: boolean; fork: boolean; license?: string; dropped_files?: { path: string; bytes: number; reason?: "size" | "windows-name" }[];
   submodules?: { path: string; url: string }[];
 };
 
@@ -100,8 +102,10 @@ async function importOne(e: Entry, update: boolean) {
   e.dropped_files = [];
   for (const f of walk(dest)) {
     const sz = statSync(f).size;
-    if (sz > MAX) {
-      e.dropped_files.push({ path: relative(ROOT, f).replaceAll("\\", "/"), bytes: sz });
+    const rel = relative(ROOT, f).replaceAll("\\", "/");
+    const reason = sz > MAX ? "size" : WINDOWS_INVALID.test(rel) ? "windows-name" : null;
+    if (reason) {
+      e.dropped_files.push({ path: rel, bytes: sz, reason });
       rmSync(f);
     }
   }

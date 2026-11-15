@@ -1,13 +1,13 @@
-# Phases proposées
+# Phases
 
 Chaque phase se termine selon la définition de « fini » de [spec.md](spec.md).
 
-| Phase | Livrable | Dépend de |
-|---|---|---|
-| 0 | Décisions D1 à D8 prises ; spec et design system validés | — |
-| 1 | Monorepo sain : clone multiplateforme, `bun.lock`, builds Bun AOT et Rust LTO verts | D1 |
-| 2 | Archive de référence design.google + m3.material.io (pipeline de [browser-and-crawl](../ideas/browser-and-crawl.md)) | D6 |
-| 3 | Thème Aphrody sur les implémentations M3 officielles retenues | D3, D4 |
-| 4 | Routeur : bibliothèque + ABI C + service, politique gratuit d'abord | D2 |
-| 5 | Surfaces du routeur (CLI, TUI, web, desktop, mobile, serverless) en M3 officiel | phases 3 et 4, D5 |
-| 6 | Frameworks UI natifs réunis, si D7 le retient | D7 |
+| Phase | Livrable | Dépend de | État |
+|---|---|---|---|
+| 0 | Décisions prises ; spec et design system validés | — | D2, D3, D4, D8 prises ; D1, D5, D6, D7, D9 à D11 ouvertes |
+| 1 | Monorepo sain : clone multiplateforme, `bun.lock`, builds Bun AOT et Rust LTO verts | D1 | clone Windows en cours de correction |
+| 2 | Forks Angular (angular, components, angular-cli) qui suivent l'amont, patchs Bun, AOT et LTO | D3 | à démarrer |
+| 3 | Cœur ABI C commun et routeur IA (bibliothèque + service, local first) | D2, D8 à D11 | à démarrer |
+| 4 | Thème Aphrody sur Angular Material, Flutter material, Compose material3, framework Rust | D4, D7 | à démarrer |
+| 5 | Surfaces du routeur sur toutes les cibles (web, Android, iOS, desktop, terminal, serverless, auto-hébergé) | phases 2 à 4, D5 | à démarrer |
+| 6 | Archive de référence design.google + m3.material.io | D6 | à démarrer |
