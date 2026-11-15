@@ -1,114 +1,89 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * C++ backend selection for `ay`: Bun's (JavaScriptCore + WebKit, oven-sh fork) or Chromium's
- * (V8 + Dawn + Skia) on the stable, beta, dev or canary channel, or the fr1 build of the repo.
- * A backend is a row of BACKENDS, a use case is a row of USE_CASES: adding either is one entry,
- * no code path changes. Resolution order: explicit id, AY_BACKEND, `.engine-version` holding a
- * backend id, the requested use case, project detection, then the `script` use case.
+ * C++ backend selection for `ay`, with no list of its own: candidates, channels, JS engine and
+ * WebGPU backend all come from the engines registry (registry.ts, whose Chrome channels follow
+ * Chrome for Testing). A request is a set of needs (`--need cdp,webgpu`, `--js v8`,
+ * `--channel canary`); the first registry engine meeting them that is installed wins, else the
+ * first installable one. Order: explicit id, AY_BACKEND, `.engine-version`, needs, project
+ * detection (a dependency that the registry lists as an npm automation library means `cdp`),
+ * and with no need at all the running Bun (JavaScriptCore).
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { installEngines } from "./install.ts";
-import { getEngine, resolveExecutable } from "./registry.ts";
+import { ENGINES, type Engine, getEngine, resolveExecutable } from "./registry.ts";
 
-export type BackendId =
-  | "bun"
-  | "chromium@stable"
-  | "chromium@beta"
-  | "chromium@dev"
-  | "chromium@canary"
-  | "chromium@local";
-
-export interface Backend {
-  readonly id: BackendId;
-  /** Registry engine behind it: JS engine, WebGPU backend and executable come from the registry. */
-  readonly engine: string;
+export interface Needs {
+  protocol?: Engine["protocol"];
+  js?: Engine["js"];
+  gpu?: Engine["gpu"];
+  channel?: string;
 }
 
-export const BACKENDS: readonly Backend[] = [
-  { id: "bun", engine: "javascriptcore" },
-  ...(["stable", "beta", "dev", "canary"] as const).map(
-    (c): Backend => ({ id: `chromium@${c}`, engine: `chrome@${c}` }),
-  ),
-  { id: "chromium@local", engine: "chromium" },
-];
+/** Engines that are a runnable C++ backend: a JS engine library or a browser speaking a protocol. */
+const runnable = (e: Engine) => e.role === "js-engine" || (e.protocol !== "library" && e.js !== "none");
 
-const isBun = (b: Backend) => b.id === "bun";
+const channelOf = (e: Engine) => ("channel" in e.install ? e.install.channel : undefined);
 
-/** Use case -> backend, with the reason kept for `backend list`. */
-export const USE_CASES: Readonly<Record<string, { backend: BackendId; why: string }>> = {
-  script: { backend: "bun", why: "fast startup, Bun APIs, no browser" },
-  test: { backend: "bun", why: "bun test, JSC" },
-  server: { backend: "bun", why: "Bun.serve, low memory" },
-  build: { backend: "bun", why: "bundler and transpiler" },
-  render: { backend: "chromium@stable", why: "Blink layout and Skia, reference rendering" },
-  automation: { backend: "chromium@stable", why: "CDP, Playwright and Puppeteer target" },
-  webgpu: { backend: "chromium@stable", why: "Dawn WebGPU" },
-  ci: { backend: "chromium@stable", why: "reproducible, Chrome for Testing pin" },
-  preview: { backend: "chromium@dev", why: "next milestone features" },
-  canary: { backend: "chromium@canary", why: "newest V8 and Blink, regression hunting" },
-  fork: { backend: "chromium@local", why: "patched Chromium built on fr1" },
-};
-
-export const ENGINE_FILE = ".engine-version";
-const BROWSER_DEPS = ["playwright", "playwright-core", "puppeteer", "puppeteer-core", "@playwright/test"];
-
-export function getBackend(id: string): Backend {
-  const b = BACKENDS.find((x) => x.id === id);
-  if (!b) throw new Error(`unknown backend ${id} (${BACKENDS.map((x) => x.id).join(", ")})`);
-  return b;
+export function matches(e: Engine, n: Needs): boolean {
+  return (
+    runnable(e) &&
+    (!n.protocol || e.protocol === n.protocol) &&
+    (!n.js || e.js === n.js) &&
+    (!n.gpu || e.gpu === n.gpu) &&
+    (!n.channel || channelOf(e) === n.channel)
+  );
 }
 
-/** Use case inferred from the project: browser automation deps mean Chromium, otherwise Bun. */
-export function detectUseCase(dir: string): string {
+/** Needs inferred from package.json: a dependency the registry knows as an automation library. */
+export function detectNeeds(dir: string): Needs {
   try {
     const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
     const deps = { ...pkg.dependencies, ...pkg.devDependencies };
-    if (BROWSER_DEPS.some((d) => d in deps)) return "automation";
+    const libs = ENGINES.flatMap((e) => (e.install.via === "dependency" && e.install.registry === "npm" ? [e.install.name] : []));
+    if (libs.some((l) => l in deps)) return { protocol: "cdp" };
   } catch {}
-  return "script";
+  return {};
+}
+
+/** The running Bun is the JavaScriptCore backend; other engines resolve through the registry. */
+export function executable(e: Engine): string | null {
+  return e.id === "javascriptcore" ? Bun.env.BUN_PATH || process.execPath : resolveExecutable(e);
 }
 
 export interface Pick {
-  backend: Backend;
+  engine: Engine;
   from: string;
-  useCase?: string;
 }
 
 export function pickBackend(
-  opts: { id?: string; useCase?: string; dir?: string; env?: Record<string, string | undefined> } = {},
+  opts: { id?: string; needs?: Needs; dir?: string; env?: Record<string, string | undefined> } = {},
 ): Pick {
   const env = opts.env ?? Bun.env;
   const dir = opts.dir ?? process.cwd();
-  if (opts.id) return { backend: getBackend(opts.id), from: "argument" };
-  if (env.AY_BACKEND) return { backend: getBackend(env.AY_BACKEND), from: "AY_BACKEND" };
-  const file = join(dir, ENGINE_FILE);
-  if (existsSync(file)) {
-    const id = readFileSync(file, "utf8").trim();
-    if (BACKENDS.some((b) => b.id === id)) return { backend: getBackend(id), from: ENGINE_FILE };
-  }
-  const useCase = opts.useCase ?? detectUseCase(dir);
-  const row = USE_CASES[useCase];
-  if (!row) throw new Error(`unknown use case ${useCase} (${Object.keys(USE_CASES).join(", ")})`);
-  return { backend: getBackend(row.backend), from: opts.useCase ? "use case" : "detected", useCase };
+  if (opts.id) return { engine: getEngine(opts.id), from: "argument" };
+  if (env.AY_BACKEND) return { engine: getEngine(env.AY_BACKEND), from: "AY_BACKEND" };
+  const file = join(dir, ".engine-version");
+  const pinned = existsSync(file) ? ENGINES.find((e) => e.id === readFileSync(file, "utf8").trim()) : undefined;
+  if (pinned && runnable(pinned)) return { engine: pinned, from: ".engine-version" };
+  const asked = opts.needs && Object.values(opts.needs).some(Boolean);
+  const needs = asked ? opts.needs! : detectNeeds(dir);
+  if (!Object.values(needs).some(Boolean)) return { engine: getEngine("javascriptcore"), from: "default" };
+  const all = ENGINES.filter((e) => matches(e, needs));
+  const engine = all.find((e) => executable(e)) ?? all.find((e) => e.install.via !== "build") ?? all[0];
+  if (!engine) throw new Error(`no registry engine meets ${JSON.stringify(needs)}`);
+  return { engine, from: asked ? "needs" : "detected" };
 }
 
-/** Executable of the backend on this machine, or null when not installed. */
-export function backendExecutable(b: Backend): string | null {
-  if (isBun(b)) return Bun.env.BUN_PATH || process.execPath;
-  return resolveExecutable(getEngine(b.engine));
-}
-
-/** Install if needed, optionally record it in `.engine-version`; returns the executable. */
-export async function useBackend(b: Backend, write: boolean, dir = process.cwd()): Promise<string> {
-  let exe = backendExecutable(b);
-  if (!exe && !isBun(b)) {
-    const [r] = await installEngines([b.engine]);
-    if (!r?.ok) throw new Error(`install ${b.engine}: ${r?.detail ?? "failed"}`);
-    exe = r.path ?? backendExecutable(b);
+export async function useBackend(e: Engine, write: boolean, dir = process.cwd()): Promise<string> {
+  let exe = executable(e);
+  if (!exe) {
+    const [r] = await installEngines([e.id]);
+    if (!r?.ok) throw new Error(`install ${e.id}: ${r?.detail ?? "failed"}`);
+    exe = r.path ?? executable(e);
   }
-  if (!exe) throw new Error(`${b.id}: no executable (chromium@local is built by \`ay chromium build\` on fr1)`);
-  if (write) writeFileSync(join(dir, ENGINE_FILE), `${b.id}\n`);
+  if (!exe) throw new Error(`${e.id}: no executable`);
+  if (write) writeFileSync(join(dir, ".engine-version"), `${e.id}\n`);
   return exe;
 }
 
@@ -120,39 +95,35 @@ const flag = (args: string[], name: string) => {
 export async function runBackendCommand(args: string[]): Promise<number> {
   const [sub = "pick", ...rest] = args;
   const json = rest.includes("--json");
-  const positional = rest.filter((a, i) => !a.startsWith("--") && !["--use", "--dir"].includes(rest[i - 1] ?? ""));
+  const valued = new Set(["--need", "--js", "--gpu", "--channel", "--dir"]);
+  const id = rest.find((a, i) => !a.startsWith("--") && !valued.has(rest[i - 1] ?? ""));
+  const need = flag(rest, "--need")?.split(",") ?? [];
+  const needs: Needs = {
+    protocol: need.find((n) => n !== "webgpu") as Needs["protocol"],
+    gpu: (flag(rest, "--gpu") ?? (need.includes("webgpu") ? "dawn" : undefined)) as Needs["gpu"],
+    js: flag(rest, "--js") as Needs["js"],
+    channel: flag(rest, "--channel"),
+  };
+  const dir = flag(rest, "--dir");
+  const row = (e: Engine) => ({ id: e.id, js: e.js, gpu: e.gpu, protocol: e.protocol, channel: channelOf(e) ?? "-", path: executable(e) ?? "-" });
   switch (sub) {
     case "list": {
-      const rows = BACKENDS.map((b) => ({
-        ...b,
-        path: backendExecutable(b) ?? "-",
-        use_cases: Object.entries(USE_CASES).filter(([, u]) => u.backend === b.id).map(([k]) => k),
-      }));
-      if (json) console.log(JSON.stringify({ backends: rows, use_cases: USE_CASES }, null, 2));
-      else {
-        for (const r of rows) console.log(`${r.id}\t${r.js}\t${r.gpu}\t${r.use_cases.join(",") || "-"}\t${r.path}`);
-        for (const [k, u] of Object.entries(USE_CASES)) console.log(`  ${k}\t-> ${u.backend}\t${u.why}`);
-      }
+      const rows = ENGINES.filter((e) => matches(e, needs)).map(row);
+      if (json) console.log(JSON.stringify(rows, null, 2));
+      else for (const r of rows) console.log(Object.values(r).join("\t"));
       return 0;
     }
     case "pick":
     case "use": {
-      const p = pickBackend({ id: positional[0], useCase: flag(rest, "--use"), dir: flag(rest, "--dir") });
-      const exe = sub === "use"
-        ? await useBackend(p.backend, rest.includes("--write"), flag(rest, "--dir"))
-        : backendExecutable(p.backend);
-      const e = getEngine(p.backend.engine);
-      const out = { backend: p.backend.id, js: e.js, gpu: e.gpu, from: p.from, use_case: p.useCase, path: exe };
-      console.log(json ? JSON.stringify(out) : `${out.backend}\t${out.from}${p.useCase ? `:${p.useCase}` : ""}\t${exe ?? "not installed"}`);
+      const p = pickBackend({ id, needs, dir });
+      const exe = sub === "use" ? await useBackend(p.engine, rest.includes("--write"), dir) : executable(p.engine);
+      const out = { ...row(p.engine), from: p.from, path: exe };
+      console.log(json ? JSON.stringify(out) : `${out.id}\t${out.from}\t${exe ?? "not installed"}`);
       return exe ? 0 : 1;
     }
     default:
       console.error(
-        [
-          "engines backend list [--json]                          backends, use cases, resolved executables",
-          "engines backend pick [id] [--use <case>] [--dir d]     resolution without side effects (1 if not installed)",
-          "engines backend use  [id] [--use <case>] [--write]     install if needed, --write records .engine-version",
-        ].join("\n"),
+        "engines backend list|pick|use [id] [--need cdp|webdriver|webgpu] [--js v8|javascriptcore] [--channel <cft channel>] [--write] [--json]",
       );
       return 2;
   }

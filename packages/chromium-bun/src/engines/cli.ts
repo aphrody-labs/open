@@ -120,7 +120,7 @@ function usage(): number {
       "chromium-bun engines path <id>              exécutable du moteur (code 1 si absent)",
       "chromium-bun engines install [id...]        installation idempotente (ay up, CfT, Playwright, uv tool)",
       "chromium-bun engines launch <id> [--port N] [--probe]   expose CDP ou WebDriver sur 127.0.0.1",
-      "chromium-bun engines backend list|pick|use [id] [--use <case>] [--write]   backend C++ bun (JSC) ou chromium@stable|beta|dev|canary|local (V8)",
+      "chromium-bun engines backend list|pick|use [id] [--need cdp,webgpu] [--js ..] [--channel ..] [--write]   backend C++ choisi dans le registre",
     ].join("\n"),
   );
   return 2;
