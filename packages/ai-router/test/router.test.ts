@@ -32,3 +32,23 @@ test.skipIf(!built)("an empty catalog and no local server give a clear error, no
   expect(r.models()).toEqual([]);
   expect(r.chat({ messages: [{ role: "user", content: "hi" }] }).error.type).toBe("router_exhausted");
 });
+
+test.skipIf(!built)("streams chunks through the C ABI callback", async () => {
+  const server = Bun.serve({
+    port: 0,
+    hostname: "127.0.0.1",
+    fetch(req) {
+      if (new URL(req.url).pathname.endsWith("/models")) return Response.json({ data: [{ id: "tiny" }] });
+      const sse = ["po", "ng"].map((t) => `data: ${JSON.stringify({ object: "chat.completion.chunk", choices: [{ index: 0, delta: { content: t } }] })}\n\n`).join("") + "data: [DONE]\n\n";
+      return new Response(sse, { headers: { "content-type": "text/event-stream" } });
+    },
+  });
+  const out = await new Promise<{ text: string; summary: Record<string, any> }>((resolve) => {
+    const worker = new Worker(new URL("./stream-worker.ts", import.meta.url).href);
+    worker.onmessage = (e) => (resolve(e.data), worker.terminate());
+    worker.postMessage({ catalog: {}, local: [`http://127.0.0.1:${server.port}/v1`] });
+  });
+  server.stop(true);
+  expect(out.text).toBe("pong");
+  expect(out.summary.router.local).toBe(true);
+});

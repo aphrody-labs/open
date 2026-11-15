@@ -31,6 +31,22 @@ pub fn serve(router: Router, addr: &str, on_ready: impl FnOnce(String)) -> Resul
                     let _ = req.as_reader().read_to_string(&mut text);
                     match serde_json::from_str::<Value>(&text) {
                         Err(e) => reply(req, 400, &json!({ "error": { "message": format!("invalid JSON: {e}"), "type": "invalid_request_error" } })),
+                        Ok(body) if body["stream"] == true => {
+                            // server-sent events: one `data:` line per chunk, the router summary as an SSE comment
+                            // (clients ignore comments), then `[DONE]`
+                            let (tx, rx) = std::sync::mpsc::channel::<Vec<u8>>();
+                            std::thread::spawn(move || {
+                                let summary = router.chat_stream(&body, &mut |c| {
+                                    let _ = tx.send(format!("data: {c}\n\n").into_bytes());
+                                });
+                                if summary.get("error").is_some() {
+                                    let _ = tx.send(format!("data: {summary}\n\n").into_bytes());
+                                }
+                                let _ = tx.send(format!(": router {}\n\ndata: [DONE]\n\n", summary["router"]).into_bytes());
+                            });
+                            let h = Header::from_bytes(&b"Content-Type"[..], &b"text/event-stream"[..]).expect("static header");
+                            let _ = req.respond(Response::new(200.into(), vec![h], ChannelReader { rx, buf: Vec::new(), pos: 0 }, None, None));
+                        }
                         Ok(body) => {
                             let answer = router.chat(&body);
                             let status = if answer.get("error").is_some() { 502 } else { 200 };
@@ -129,4 +145,26 @@ pub fn openai_to_anthropic(ans: &Value) -> Value {
         "usage": { "input_tokens": ans["usage"]["prompt_tokens"], "output_tokens": ans["usage"]["completion_tokens"] },
         "router": ans["router"]
     })
+}
+
+/// Bytes sent by another thread, read as a stream until that thread drops its sender.
+struct ChannelReader {
+    rx: std::sync::mpsc::Receiver<Vec<u8>>,
+    buf: Vec<u8>,
+    pos: usize,
+}
+
+impl std::io::Read for ChannelReader {
+    fn read(&mut self, out: &mut [u8]) -> std::io::Result<usize> {
+        while self.pos >= self.buf.len() {
+            match self.rx.recv() {
+                Ok(b) => (self.buf, self.pos) = (b, 0),
+                Err(_) => return Ok(0),
+            }
+        }
+        let n = (self.buf.len() - self.pos).min(out.len());
+        out[..n].copy_from_slice(&self.buf[self.pos..self.pos + n]);
+        self.pos += n;
+        Ok(n)
+    }
 }

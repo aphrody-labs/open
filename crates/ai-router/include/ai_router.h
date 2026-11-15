@@ -23,6 +23,11 @@ char *aphrody_router_last_error(void);
  * an offer id (<provider>/<model>). The answer carries "router": {"offer", "local", "zero_cost", "attempts"}. */
 char *aphrody_router_chat(const AiRouter *router, const char *request_json);
 
+/* Streams the answer: on_chunk receives each chat.completion.chunk (JSON valid during the call) on the calling thread;
+ * offers are tried until one starts streaming. Returns {"router": {...}} or an error document. */
+typedef void (*AiRouterChunk)(const char *chunk_json, void *user);
+char *aphrody_router_chat_stream(const AiRouter *router, const char *request_json, AiRouterChunk on_chunk, void *user);
+
 /* Usable offers for a policy or an offer id, in the order they are tried (JSON array). */
 char *aphrody_router_models(const AiRouter *router, const char *model);
 

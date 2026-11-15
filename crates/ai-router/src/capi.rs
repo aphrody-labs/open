@@ -85,3 +85,30 @@ pub unsafe extern "C" fn aphrody_router_close(router: *mut Router) {
         drop(unsafe { Box::from_raw(router) });
     }
 }
+
+/// Callback receiving one chat.completion.chunk (JSON, valid during the call only) and the caller's pointer.
+pub type ChunkCallback = extern "C" fn(chunk_json: *const c_char, user: *mut std::ffi::c_void);
+
+/// Streams a chat: `on_chunk` is called on this thread for each chunk; returns the router summary or an error
+/// document (JSON, free with `aphrody_free`).
+///
+/// # Safety
+/// `router` comes from `aphrody_router_open`; `request_json` is a NUL-terminated UTF-8 string; `on_chunk` is a valid
+/// function; `user` is passed back unchanged.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn aphrody_router_chat_stream(router: *const Router, request_json: *const c_char, on_chunk: ChunkCallback, user: *mut std::ffi::c_void) -> *mut c_char {
+    if router.is_null() || request_json.is_null() {
+        return json_err("null argument");
+    }
+    let router = unsafe { &*router };
+    let req: serde_json::Value = match serde_json::from_str(unsafe { c_str(request_json) }) {
+        Ok(r) => r,
+        Err(e) => return json_err(format!("invalid request: {e}")),
+    };
+    let summary = router.chat_stream(&req, &mut |chunk| {
+        if let Ok(s) = std::ffi::CString::new(chunk.to_string()) {
+            on_chunk(s.as_ptr(), user);
+        }
+    });
+    into_c_string(summary.to_string())
+}

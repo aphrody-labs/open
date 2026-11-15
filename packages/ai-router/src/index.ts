@@ -1,6 +1,6 @@
 // Bun binding of the ai-router C ABI (crates/ai-router, include/ai_router.h) through bun:ffi. The library is
 // AI_ROUTER_LIB, else the workspace build next to this package (target/release, then target/debug).
-import { CString, dlopen, FFIType, type Pointer } from "bun:ffi";
+import { CString, dlopen, FFIType, JSCallback, type Pointer } from "bun:ffi";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
@@ -18,6 +18,7 @@ const symbols = {
   aphrody_router_last_error: { args: [], returns: FFIType.ptr },
   aphrody_router_chat: { args: [FFIType.ptr, FFIType.cstring], returns: FFIType.ptr },
   aphrody_router_models: { args: [FFIType.ptr, FFIType.cstring], returns: FFIType.ptr },
+  aphrody_router_chat_stream: { args: [FFIType.ptr, FFIType.cstring, FFIType.function, FFIType.ptr], returns: FFIType.ptr },
   aphrody_router_close: { args: [FFIType.ptr], returns: FFIType.void },
 } as const;
 
@@ -80,6 +81,16 @@ export class Router implements Disposable {
   /** OpenAI chat-completions request in, chat.completion document out (with `router.offer` and `router.attempts`). */
   chat(request: { model?: string; messages: { role: string; content: unknown }[]; [k: string]: unknown }): Record<string, any> {
     return take(this.#lib, this.#lib.aphrody_router_chat(this.#handle, z(JSON.stringify(request)))) as Record<string, any>;
+  }
+
+  /** Streams the answer: `onChunk` receives each chat.completion.chunk as it arrives; returns the router summary. */
+  chatStream(request: { model?: string; messages: { role: string; content: unknown }[]; [k: string]: unknown }, onChunk: (chunk: Record<string, any>) => void): Record<string, any> {
+    const cb = new JSCallback((p: Pointer) => onChunk(JSON.parse(new CString(p).toString())), { args: [FFIType.ptr, FFIType.ptr], returns: FFIType.void });
+    try {
+      return take(this.#lib, this.#lib.aphrody_router_chat_stream(this.#handle, z(JSON.stringify(request)), cb, null)) as Record<string, any>;
+    } finally {
+      cb.close();
+    }
   }
 
   /** Usable offers for a policy (auto, auto:local, auto:free, auto:cheap) or an offer id, in trial order. */

@@ -60,14 +60,21 @@ fn main() {
                     1
                 }
                 Ok(r) => {
-                    let answer = r.chat(&json!({ "model": model, "messages": [{ "role": "user", "content": prompt }] }));
-                    if let Some(text) = answer["choices"][0]["message"]["content"].as_str() {
-                        println!("{text}");
-                        eprintln!("[{}]", answer["router"]["offer"].as_str().unwrap_or(""));
-                        0
-                    } else {
-                        eprintln!("{}", serde_json::to_string_pretty(&answer).unwrap_or_default());
+                    use std::io::Write;
+                    // tokens are printed as they arrive
+                    let summary = r.chat_stream(&json!({ "model": model, "messages": [{ "role": "user", "content": prompt }] }), &mut |c| {
+                        if let Some(t) = c["choices"][0]["delta"]["content"].as_str() {
+                            print!("{t}");
+                            let _ = std::io::stdout().flush();
+                        }
+                    });
+                    println!();
+                    if summary.get("error").is_some() {
+                        eprintln!("{}", serde_json::to_string_pretty(&summary).unwrap_or_default());
                         1
+                    } else {
+                        eprintln!("[{}]", summary["router"]["offer"].as_str().unwrap_or(""));
+                        0
                     }
                 }
             }

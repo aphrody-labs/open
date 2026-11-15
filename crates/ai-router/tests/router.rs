@@ -149,3 +149,31 @@ fn the_service_answers_openai_and_anthropic_clients() {
     assert_eq!(anthropic["stop_reason"], "end_turn");
     assert_eq!(anthropic["usage"]["output_tokens"], 1);
 }
+
+#[test]
+fn streams_chunks_through_the_library_and_the_service() {
+    // an OpenAI-compatible stand-in answering with server-sent events
+    let server = tiny_http::Server::http("127.0.0.1:0").unwrap();
+    let base = format!("http://{}", server.server_addr());
+    std::thread::spawn(move || {
+        for req in server.incoming_requests() {
+            let sse = ["Hel", "lo"].iter().map(|t| format!("data: {}\n\n", json!({ "object": "chat.completion.chunk", "choices": [{ "index": 0, "delta": { "content": t } }] }))).collect::<String>() + "data: [DONE]\n\n";
+            let _ = req.respond(tiny_http::Response::from_string(sse));
+        }
+    });
+    set("AIR_T6_S");
+    let config = Config { catalog: Some(catalog(&[("sse", "@ai-sdk/openai-compatible", &base, "AIR_T6_S", 0.0)])), local: Some(vec![]), ..Config::default() };
+    let router = Router::open(&config).unwrap();
+    let mut text = String::new();
+    let summary = router.chat_stream(&json!({ "messages": [{ "role": "user", "content": "hi" }] }), &mut |c| text.push_str(c["choices"][0]["delta"]["content"].as_str().unwrap_or("")));
+    assert_eq!(text, "Hello");
+    assert_eq!(summary["router"]["offer"], "sse/m");
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || ai_router::server::serve(router, "127.0.0.1:0", |a| tx.send(a).unwrap()).unwrap());
+    let svc = format!("http://{}", rx.recv().unwrap());
+    let body = ureq::post(format!("{svc}/v1/chat/completions")).send_json(json!({ "stream": true, "messages": [{ "role": "user", "content": "hi" }] })).unwrap().body_mut().read_to_string().unwrap();
+    let streamed: String = body.lines().filter_map(|l| l.strip_prefix("data: ")).filter(|d| *d != "[DONE]").filter_map(|d| serde_json::from_str::<Value>(d).ok()).filter_map(|c| c["choices"][0]["delta"]["content"].as_str().map(str::to_owned)).collect();
+    assert_eq!(streamed, "Hello");
+    assert!(body.contains(": router "));
+    assert!(body.trim_end().ends_with("data: [DONE]"));
+}

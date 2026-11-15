@@ -203,3 +203,50 @@ pub fn from_google(offer: &Offer, b: &Value) -> Value {
         "usage": { "prompt_tokens": b["usageMetadata"]["promptTokenCount"], "completion_tokens": b["usageMetadata"]["candidatesTokenCount"] }
     })
 }
+
+/// Streams an OpenAI-compatible chat: `on_chunk` receives each `chat.completion.chunk` document. Offers spoken in
+/// another protocol answer in one piece, delivered as a single chunk. Returns the status and, on failure before the
+/// first chunk, the error; `Ok(true)` once at least one chunk was delivered.
+pub fn stream(offer: &Offer, request: &Value, timeout: Duration, on_chunk: &mut dyn FnMut(&Value)) -> (u16, Result<bool, String>) {
+    if offer.protocol != Protocol::OpenAi {
+        let r = call(offer, request, timeout);
+        return match r.body {
+            Err(e) => (r.status, Err(e)),
+            Ok(b) => {
+                let msg = &b["choices"][0]["message"];
+                on_chunk(&json!({ "object": "chat.completion.chunk", "model": offer.model, "choices": [{ "index": 0, "delta": { "role": "assistant", "content": msg["content"], "tool_calls": msg["tool_calls"] }, "finish_reason": b["choices"][0]["finish_reason"] }] }));
+                (r.status, Ok(true))
+            }
+        };
+    }
+    let mut body = request.clone();
+    body["model"] = json!(offer.model);
+    body["stream"] = json!(true);
+    let mut req = agent(timeout).post(format!("{}/chat/completions", offer.base_url)).header("accept", "text/event-stream");
+    if let Some(k) = offer.credential() {
+        req = req.header("authorization", format!("Bearer {k}"));
+    }
+    let mut res = match req.send_json(&body) {
+        Err(e) => return (0, Err(e.to_string())),
+        Ok(r) => r,
+    };
+    let status = res.status().as_u16();
+    if !(200..300).contains(&status) {
+        let text = res.body_mut().read_to_string().unwrap_or_default();
+        return (status, Err(text.chars().take(2000).collect()));
+    }
+    use std::io::BufRead;
+    let mut delivered = false;
+    for line in std::io::BufReader::new(res.body_mut().as_reader()).lines() {
+        let Ok(line) = line else { break };
+        let Some(data) = line.strip_prefix("data:").map(str::trim) else { continue };
+        if data == "[DONE]" {
+            break;
+        }
+        if let Ok(chunk) = serde_json::from_str::<Value>(data) {
+            on_chunk(&chunk);
+            delivered = true;
+        }
+    }
+    if delivered { (status, Ok(true)) } else { (status, Err("the stream ended without a chunk".to_owned())) }
+}

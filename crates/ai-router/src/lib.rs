@@ -90,6 +90,36 @@ impl Router {
     }
 }
 
+impl Router {
+    /// Streams the answer: `on_chunk` receives chat.completion.chunk documents (their `model` is the offer id).
+    /// Offers are tried in order until one starts streaming; once chunks flowed there is no failover. Returns the
+    /// `router` summary (offer, attempts) or an error document.
+    pub fn chat_stream(&self, request: &Value, on_chunk: &mut dyn FnMut(&Value)) -> Value {
+        let model = request["model"].as_str().unwrap_or("auto");
+        let needs = needs_of(request);
+        let mut attempts = Vec::new();
+        for offer in policy::rank(&self.offers, model, &needs).into_iter().take(self.max_attempts) {
+            let t0 = Instant::now();
+            let id = offer.id();
+            let mut forward = |c: &Value| {
+                let mut c = c.clone();
+                c["model"] = json!(id);
+                on_chunk(&c);
+            };
+            let (status, outcome) = transport::stream(offer, request, self.timeout, &mut forward);
+            let ms = t0.elapsed().as_millis();
+            match outcome {
+                Ok(_) => {
+                    attempts.push(Attempt { offer: offer.id(), status, ms, error: None });
+                    return json!({ "router": { "offer": offer.id(), "local": offer.local, "zero_cost": offer.zero_cost(), "attempts": attempts } });
+                }
+                Err(e) => attempts.push(Attempt { offer: offer.id(), status, ms, error: Some(e) }),
+            }
+        }
+        json!({ "error": { "message": "every offer tried failed", "type": "router_exhausted" }, "router": { "attempts": attempts } })
+    }
+}
+
 fn needs_of(request: &Value) -> policy::Needs {
     let messages = request["messages"].as_array().cloned().unwrap_or_default();
     let images = messages.iter().any(|m| m["content"].as_array().is_some_and(|p| p.iter().any(|x| x["type"] == "image_url")));
