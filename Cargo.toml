@@ -1,64 +1,86 @@
-# Root Rust workspace of aphrody-labs/open: the leaf crates that sit in no other workspace.
-# Upstream workspaces keep their own [workspace] and build in place (listed in `exclude`);
-# profiles and linker come from .cargo/config.toml. Details: docs/workspaces.md.
+# open: one Rust workspace and one framework. First-party crates live in crates/; everything else is a dependency from
+# crates.io or a git pin (no vendored copies, no third_party/). Upstream pins are listed in docs/upstream.md.
 [workspace]
 resolver = "3"
-members = [
-  "crates/adblock-capi",
-  "crates/ai-router",
-  "crates/ai-router-tui",
-  "crates/c-abi",
-  "crates/hub",
-  "crates/clip",
-  "crates/hokum",
-  "crates/strobe",
-  "crates/terminal-control",
-  "packages/browser-control/crates/bc-studio",
-  "packages/sst/sdk/rust",
-]
-exclude = [
-  # nested upstream workspaces
-  "crates/deadbolt",
-  "crates/flicks",
-  "crates/hex",
-  "crates/isocast",
-  "crates/opentunnel",
-  "crates/rift",
-  "crates/rune",
-  "ecosystem/openai-codex/codex-rs",
-  "ecosystem/openai-codex/tools/argument-comment-lint",
-  "extra/net-tools",
-  "extra/niri",
-  "extra/transcribe.cpp",
-  "packages/grim/native",
-  "packages/nightmail/api/tear",
-  "packages/nightmail/gateway",
-  "packages/opentui/packages/rust",
-  # standalone leaf manifests that are not members (dev scripts, duplicate names, cloud examples)
-  # links = "ghostty-vt" itself, collides with libghostty-vt-sys pulled by terminal-control
-  "crates/opencode-pty",
-  # imports tree_sitter_language, absent from its tree-sitter ~0.20 pin (does not compile upstream)
-  "extra/tree-sitter-vue",
-  "crates/strobe/scripts/dev/background",
-  "crates/strobe/scripts/dev/bounce",
-  "crates/strobe/scripts/dev/tty-pairing",
-  "packages/ion/examples",
-  "packages/opencode/packages/process-daemon",
-  "packages/sst/examples",
-  "packages/v2/examples",
-  "packages/v2/packages/create-sst/bin/presets",
-]
+members = ["crates/*"]
 
-# Inherited by first-party crates moved from the Aphrody monorepo (crates/adblock-capi).
 [workspace.package]
-version = "0.4.0"
+version = "0.5.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/aphrody-labs/open"
 
 [workspace.dependencies]
-adblock = "0.13.5"
-serde = { version = "1.0.229", features = ["derive"] }
-serde_json = "1.0.154"
-# common C ABI primitives of the native libraries
+# first-party
+ai-router = { path = "crates/ai-router" }
+browse = { path = "crates/browse" }
+browser-engines = { path = "crates/browser-engines" }
 c-abi = { path = "crates/c-abi" }
+crawl = { path = "crates/crawl" }
+tui = { path = "crates/tui" }
+tunnel = { path = "crates/tunnel" }
+
+# crates.io
+adblock = "0.13.5"
+anyhow = "1"
+async-trait = "0.1"
+base64 = "0.22"
+blake3 = "1"
+clap = { version = "4", features = ["derive"] }
+futures-util = { version = "0.3", default-features = false, features = ["std", "sink"] }
+libc = "0.2"
+opentunnel = "0.6.2"
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "http2", "charset", "system-proxy", "gzip", "brotli", "deflate", "json"] }
+rusqlite = { version = "0.43", features = ["bundled"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+scraper = "0.29"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "io-std", "time", "sync", "process", "fs", "signal"] }
+tokio-tungstenite = { version = "0.30", default-features = false, features = ["connect", "handshake"] }
+tracing = "0.1"
+url = "2"
+which = "8"
+
+# anomalyco, pinned by revision (docs/upstream.md)
+browse-capture = { git = "https://github.com/anomalyco/browse", rev = "7a277ed8f961c2b8bd34a0baef296c7b5ff4dde1" }
+browse-core = { git = "https://github.com/anomalyco/browse", rev = "7a277ed8f961c2b8bd34a0baef296c7b5ff4dde1" }
+browse-page = { git = "https://github.com/anomalyco/browse", rev = "7a277ed8f961c2b8bd34a0baef296c7b5ff4dde1" }
+browse-relay = { git = "https://github.com/anomalyco/browse", rev = "7a277ed8f961c2b8bd34a0baef296c7b5ff4dde1" }
+browse-script = { git = "https://github.com/anomalyco/browse", rev = "7a277ed8f961c2b8bd34a0baef296c7b5ff4dde1" }
+# OpenTUI links its native library dynamically: scripts/opentui-native.ts fetches it (OPENTUI_LIB_DIR in .cargo/config.toml).
+opentui = { git = "https://github.com/anomalyco/opentui", rev = "e477ffa3abde407f06e0161bd1e2509bcdf68f0e", default-features = false }
+rune = { git = "https://github.com/anomalyco/rune", rev = "631e8a67cb3c40225efa3f6c4f57b80e7b18f190" }
+rune-kit = { git = "https://github.com/anomalyco/rune", rev = "631e8a67cb3c40225efa3f6c4f57b80e7b18f190" }
+rune-motion = { git = "https://github.com/anomalyco/rune", rev = "631e8a67cb3c40225efa3f6c4f57b80e7b18f190" }
+
+# Rune's own forks of winit, wgpu-hal, parley_engine and AccessKit (a dependent workspace patches them too); they are
+# packages of the Rune repository, so the same revision serves them.
+[patch.crates-io]
+winit = { git = "https://github.com/anomalyco/rune", rev = "631e8a67cb3c40225efa3f6c4f57b80e7b18f190" }
+wgpu-hal = { git = "https://github.com/anomalyco/rune", rev = "631e8a67cb3c40225efa3f6c4f57b80e7b18f190" }
+parley_engine = { git = "https://github.com/anomalyco/rune", rev = "631e8a67cb3c40225efa3f6c4f57b80e7b18f190" }
+accesskit_windows = { git = "https://github.com/anomalyco/rune", rev = "631e8a67cb3c40225efa3f6c4f57b80e7b18f190" }
+accesskit_macos = { git = "https://github.com/anomalyco/rune", rev = "631e8a67cb3c40225efa3f6c4f57b80e7b18f190" }
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+unused_must_use = "deny"
+
+[workspace.lints.clippy]
+dbg_macro = "deny"
+await_holding_lock = "deny"
+
+# Release: full LTO, one codegen unit, panic=abort off (the C ABI libraries unwind across nothing but stay safe on
+# the default), AOT = this profile with PGO later. `perf` keeps symbols for profilers.
+[profile.release]
+lto = "fat"
+codegen-units = 1
+opt-level = 3
+strip = "symbols"
+
+[profile.perf]
+inherits = "release"
+strip = "none"
+debug = "line-tables-only"

@@ -1,6 +1,5 @@
 [toolchain]
-# Same toolchain as aphrody src: rustc 1.100.0-nightly (1edd55dcf 2026-09-09) on Chromium 157's LLVM 24.
-# Nested upstream rust-toolchain.toml files (codex-rs pins 1.99.1) are overridden by RUSTUP_TOOLCHAIN in the justfile.
-channel = "chromium-157"
+# Newest nightly present on the build hosts (rustc 1.101 line); bump with `rustup toolchain install nightly-<date>`.
+channel = "nightly-2026-11-16"
 components = ["rustfmt", "clippy", "rust-src"]
 profile = "minimal"

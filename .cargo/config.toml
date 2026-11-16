@@ -1,12 +1,9 @@
-# Applies to every crate below this directory, nested upstream workspaces included
-# (their own .cargo/config.toml files merge with it; [profile] here wins over Cargo.toml).
-[profile.release]
-lto = "fat"
-codegen-units = 1
-opt-level = 3
-strip = "symbols"
-
-# lld through clang on Linux x86_64; rustc 1.100 nightly also ships rust-lld.
+# Applies to every crate of the workspace.
+# lld through clang on Linux x86_64.
 [target.x86_64-unknown-linux-gnu]
 linker = "clang"
 rustflags = ["-C", "link-arg=-fuse-ld=lld"]
+
+# OpenTUI's native library (libopentui.so + opentui.h): `bun scripts/opentui-native.ts` writes it here.
+[env]
+OPENTUI_LIB_DIR = { value = "target/opentui-native", relative = true }
