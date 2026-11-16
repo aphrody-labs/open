@@ -1,0 +1,23 @@
+{
+  "name": "@aphrody/open-extension",
+  "private": true,
+  "type": "module",
+  "description": "MV3 extension of open/browse: lets agents drive the user's browser through the browse relay",
+  "scripts": {
+    "build": "bun build.ts",
+    "dev": "bun build.ts --dev",
+    "test": "bun test ./test"
+  },
+  "dependencies": {
+    "@kobalte/core": "0.13.13",
+    "@opencode/ui": "2.2.5",
+    "@solidjs/meta": "^0.29.8",
+    "solid-js": "^1.9.18"
+  },
+  "devDependencies": {
+    "@types/chrome": "latest",
+    "@babel/core": "^7",
+    "@babel/preset-typescript": "^7",
+    "babel-preset-solid": "latest"
+  }
+}
