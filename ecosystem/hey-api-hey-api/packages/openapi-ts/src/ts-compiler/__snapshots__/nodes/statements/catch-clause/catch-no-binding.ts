@@ -1,5 +1,0 @@
-try {
-  risky;
-} catch {
-  handle;
-}

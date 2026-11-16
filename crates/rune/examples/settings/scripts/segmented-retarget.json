@@ -1,4 +1,0 @@
-{"events": [
-  {"t": 0.1, "type": "tap", "key": "Light", "hold": 0.03},
-  {"t": 0.22, "type": "tap", "key": "Dark", "hold": 0.03}
-]}

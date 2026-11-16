@@ -1,1 +1,0 @@
-- Web: the safe-area observer watches its probe's border box, so a change of insets alone reaches the app (#927 watched the always-empty content box).

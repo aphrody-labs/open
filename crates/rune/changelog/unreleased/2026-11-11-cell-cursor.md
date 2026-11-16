@@ -1,1 +1,0 @@
-- **`Cursor::Cell`: CSS's `cell`, the thick white plus over a spreadsheet's cells.** macOS shows the system's WebKit cell cursor, Linux and the web the theme's or browser's `cell`, and Windows, which has none, Chromium's own bitmap, scaled pixel for pixel.

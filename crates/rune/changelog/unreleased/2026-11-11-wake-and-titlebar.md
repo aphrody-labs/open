@@ -1,1 +1,0 @@
-- Showing a window during a live update wakes it once. Losing focus or replacing a playground stage cancels a pending titlebar click, so a later click or release won't zoom the window or open its menu.

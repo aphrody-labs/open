@@ -1,1 +1,0 @@
-"""Workspace layout example package."""

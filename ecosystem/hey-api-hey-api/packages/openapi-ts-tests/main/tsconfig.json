@@ -1,9 +1,0 @@
-{
-  "extends": "../tsconfig.base.json",
-  "compilerOptions": {
-    "allowImportingTsExtensions": true,
-    "resolveJsonModule": true
-  },
-  "exclude": ["test/custom/request.ts", "test/generated/**"],
-  "references": [{ "path": "../../openapi-ts" }]
-}

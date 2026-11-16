@@ -1,9 +1,0 @@
-{
- "events": [
-  {
-   "t": 0.5,
-   "type": "tap",
-   "key": "agent-share"
-  }
- ]
-}

@@ -1,1 +1,0 @@
-- **rune-kit Markdown: a Mermaid chart that can't be drawn shows only its code block.** The "Diagram not supported" caption under it is gone, along with its `hint` element.

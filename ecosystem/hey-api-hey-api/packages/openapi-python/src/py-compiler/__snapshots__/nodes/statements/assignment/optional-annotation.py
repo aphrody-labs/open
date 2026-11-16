@@ -1,1 +1,0 @@
-name: Optional[str] = None

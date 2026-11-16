@@ -1,1 +1,0 @@
-- **`--html` images keep their aspect ratio at every width.** An exported `<img>`'s `height` attribute no longer overrides its class's `aspect-ratio`, which squashed images at widths other than the one exported.

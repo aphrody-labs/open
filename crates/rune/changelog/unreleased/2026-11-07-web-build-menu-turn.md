@@ -1,1 +1,0 @@
-- **The web builds again.** A web app no longer fails to compile on the idle turn that native menus run on Windows, which exists only on desktop platforms.

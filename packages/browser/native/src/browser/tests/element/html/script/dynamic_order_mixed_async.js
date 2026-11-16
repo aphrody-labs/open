@@ -1,1 +1,0 @@
-mixedList += (mixedList ? ',' : '') + 'async';

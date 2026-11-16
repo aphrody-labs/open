@@ -1,1 +1,0 @@
-- **Rewind's `Scrub::open` over an open scrubber resumes the recorder it froze before.** It used to stay paused for good. The scrubber is closed or open over a clip holding the recorder it froze, so `close` always resumes exactly that one.

@@ -1,1 +1,0 @@
-- `RollingText` keeps new glyphs' entrance and roll direction when layout reads rerun the view in the same commit. Component builders can use `memo::snapshot` to compare each measurement pass with the same previous state.

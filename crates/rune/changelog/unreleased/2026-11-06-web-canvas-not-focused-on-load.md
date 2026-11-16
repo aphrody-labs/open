@@ -1,1 +1,0 @@
-- **A web page opens at its top.** The canvas is no longer focused by winit before it's styled, which scrolled a document-mode page to its foot on load.

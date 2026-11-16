@@ -1,1 +1,0 @@
-- A Rune window builds again for the web and macOS: the DirectComposition surface target, which wgpu has only on Windows, is named only on Windows (223a965f named it on every platform).

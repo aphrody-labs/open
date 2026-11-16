@@ -1,1 +1,0 @@
-- **A cached scope that a turn opened keeps that turn when its cache hits.** A layer drawn turned (`Instance::turned`) composites its kept texture with the same turned quad it filled the target with, so a rotated cached card no longer snaps back to its bounds for a frame between redraws.

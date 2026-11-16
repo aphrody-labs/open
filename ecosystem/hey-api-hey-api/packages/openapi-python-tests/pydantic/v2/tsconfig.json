@@ -1,5 +1,0 @@
-{
-  "extends": "../../tsconfig.base.json",
-  "include": ["test/**/*", "vitest.setup.ts"],
-  "references": [{ "path": "../../../openapi-python" }]
-}

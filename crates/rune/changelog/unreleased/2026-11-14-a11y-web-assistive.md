@@ -1,1 +1,0 @@
-- Web: `Tx::assistive_technology()` is true in a browser, where a page can't tell whether a screen reader reads it, so an app's announcements reach the page's live regions.

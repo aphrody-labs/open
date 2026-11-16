@@ -1,6 +1,0 @@
-.deps/
-.tools/
-.cache/
-.zig-cache/
-zig-out/
-*.tmp

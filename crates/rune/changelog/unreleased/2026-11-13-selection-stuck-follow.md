@@ -1,1 +1,0 @@
-- A selection drag held still below a list stuck to its bottom now selects the rows that arrive there: as the list follows its new bottom, the selection follows the pointer over the rows that came in, instead of staying on the old last row until the pointer moves.

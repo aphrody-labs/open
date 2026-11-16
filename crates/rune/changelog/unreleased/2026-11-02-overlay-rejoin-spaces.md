@@ -1,1 +1,0 @@
-- macOS: an overlay that joins every Space rejoins them each time it shows. After the app's activation policy changed (Dock icon shown or hidden), the window server could tie it to one Space, so it stopped appearing on the others until the app relaunched.

@@ -1,8 +1,0 @@
-node_modules/
-out/
-.cache/
-.scratch/
-*.mp4
-*.wav
-*.mp3
-*.webm

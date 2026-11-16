@@ -1,9 +1,0 @@
-/*
-  Content-Security-Policy: default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://support.bane.mx wss://support.bane.mx https://support.dev.bane.mx wss://support.dev.bane.mx; frame-src 'self' blob:; worker-src 'self' blob:; form-action 'self'
-  X-Frame-Options: DENY
-  X-Content-Type-Options: nosniff
-  Referrer-Policy: no-referrer
-  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
-  Strict-Transport-Security: max-age=31536000; includeSubDomains
-# No rule for /assets/* or /fonts/*: a path there with no file is answered with the dashboard shell, which must not be
-# kept. The build appends a cache rule for each file it has in those directories (asset-headers.ts).

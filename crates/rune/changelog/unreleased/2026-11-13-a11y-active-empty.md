@@ -1,1 +1,0 @@
-- `El::active_descendant("")` names no element and touches nothing, so a field whose highlight is often none pays nothing for it.

@@ -1,1 +1,0 @@
-- Web: the app's fonts become the page's own (`page_fonts`) one file at a time in the page's idle time, not all in the task after the first frame, where they held the first reads' answers back 34 ms.

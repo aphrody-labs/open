@@ -1,1 +1,0 @@
-- **A host node's later rows run script handlers.** `NodeArgs::press_later` keeps a prop's handler past the node's build as a `Press`, so rows the node builds later, such as a virtual tree's, run it on press with their own event fields.

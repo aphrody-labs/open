@@ -1,1 +1,0 @@
-- **Web: `rune::marks` and the renderer's warm-up read the page clock** (`rune::time::Instant`), so an app's launch trace builds and runs in a browser, where `std::time::Instant` panics. Native types are unchanged.

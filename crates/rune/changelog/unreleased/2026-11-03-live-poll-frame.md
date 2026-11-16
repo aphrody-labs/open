@@ -1,1 +1,0 @@
-- Live values set by `poll` draw in the frame that publishes them, including animations started by a scroll callback, without a skipped frame when the earlier live wake has already been consumed.

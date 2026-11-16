@@ -1,1 +1,0 @@
-- macOS apps load the precompiled Metal drawing shader again instead of compiling it when the renderer starts.

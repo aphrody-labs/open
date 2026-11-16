@@ -1,1 +1,0 @@
-- **`El::stuck_fade` fades only the header's first child.** A stuck header's title fades as the next one comes up, while its other children (a cover above it, a gradient under it, as Desktop's Home group headers draw) stay whole with its fill.

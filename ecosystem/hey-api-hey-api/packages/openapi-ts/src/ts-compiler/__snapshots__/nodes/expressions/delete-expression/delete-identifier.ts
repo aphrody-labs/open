@@ -1,1 +1,0 @@
-const d = delete obj;

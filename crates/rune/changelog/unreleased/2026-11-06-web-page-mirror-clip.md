@@ -1,1 +1,0 @@
-- **A web page's mirror no longer widens the page.** In document mode the mirror clips text that runs past a horizontal scroller's edge at the page's edge, so a phone no longer zooms out to fit a code block's hidden lines.

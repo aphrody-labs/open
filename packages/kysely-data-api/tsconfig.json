@@ -1,9 +1,0 @@
-{
-  "extends": "@tsconfig/node14",
-  "compilerOptions": {
-    "moduleResolution": "node",
-    "declaration": true,
-    "target": "ESNext"
-  },
-  "include": ["src"]
-}

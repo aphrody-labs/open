@@ -1,1 +1,0 @@
-loadedByAttribute3 += 1;

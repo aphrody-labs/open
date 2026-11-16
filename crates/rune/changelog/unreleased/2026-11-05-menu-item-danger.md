@@ -1,1 +1,0 @@
-- **`MenuItem::danger` paints a destructive item's label and icon in the danger ink**, such as a "Clear all…" at the bottom of a menu. A disabled danger item keeps the usual disabled ink, and items without it are unchanged.

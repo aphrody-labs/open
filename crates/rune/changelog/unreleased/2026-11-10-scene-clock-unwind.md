@@ -1,1 +1,0 @@
-- The scene clock now returns to its previous time even if a scene initializer panics and its caller recovers.

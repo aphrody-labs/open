@@ -1,1 +1,0 @@
-- A wipe the clipboard refuses now reports `SecretState::Failed` on the secret copy, rather than `Cleared`, and isn't tried again.

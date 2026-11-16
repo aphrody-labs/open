@@ -1,1 +1,0 @@
-const b = obj.prop;

@@ -1,1 +1,0 @@
-- Enlarging a window with a full-height virtual list no longer runs the view twice just to fill the new space.

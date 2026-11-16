@@ -1,1 +1,0 @@
-- A pinned scroll no longer swallows a real pixel step: its hold only reverses a step drawn at the pinned end, not a direction a gesture or glide left behind.

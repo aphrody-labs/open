@@ -1,3 +1,0 @@
-base 0.3.3
-+ @opentui/core: property CodeOptions.initialStyledText?: StyledText
-+ @opentui/core: property CodeRenderable.initialStyledText: StyledText | undefined

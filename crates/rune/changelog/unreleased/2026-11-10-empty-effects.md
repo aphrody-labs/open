@@ -1,1 +1,0 @@
-- `machine::Effects::is_empty` now reports an empty `Many` list the same way as `None`.

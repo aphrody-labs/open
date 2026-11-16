@@ -1,6 +1,0 @@
-/target
-/.lab-output
-node_modules
-dist
-.wrangler
-/site/src/receive/wasm

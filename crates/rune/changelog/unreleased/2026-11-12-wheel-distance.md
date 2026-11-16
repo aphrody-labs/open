@@ -1,1 +1,0 @@
-- Mouse wheels and touchpads on Linux scroll the same distance as Chromium, and Windows wheel scrolling follows the system line, character and page settings.

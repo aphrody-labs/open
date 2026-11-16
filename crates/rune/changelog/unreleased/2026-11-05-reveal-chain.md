@@ -1,1 +1,0 @@
-- **Streamed words fade in reading order across texts.** Words added to a later paragraph or list item wait behind the newest word still fading above them, so a chunk that spans several blocks fades them one after another and the fading edge is only ever on the newest text. Before, every text a chunk touched started fading at once.

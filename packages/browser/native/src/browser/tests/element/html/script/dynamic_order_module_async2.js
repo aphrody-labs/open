@@ -1,1 +1,0 @@
-moduleAsyncList += '2';

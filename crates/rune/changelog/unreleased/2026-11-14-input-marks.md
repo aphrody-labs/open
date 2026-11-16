@@ -1,1 +1,0 @@
-- **The launch trace marks the first key and the first press.** `input.key.arrived` and `input.press.arrived` mark when the window hears them. `input.key.handled` marks when a frame runs the key, and `input.press.handled` when the runtime has taken the press. A launch's `input.ready` says when the loop could take input; these say how long a real first input waited.

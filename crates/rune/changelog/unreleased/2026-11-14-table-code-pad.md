@@ -1,1 +1,0 @@
-- A Markdown table cell that ends in inline code counts the code's end padding in its column's width, as a page does.

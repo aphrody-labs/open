@@ -1,5 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /lab/
-
-Sitemap: https://opentui.com/sitemap-index.xml

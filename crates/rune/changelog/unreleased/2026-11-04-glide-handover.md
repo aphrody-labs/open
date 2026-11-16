@@ -1,1 +1,0 @@
-- A row that stops gliding (`El::fold_glide`) partway through opening past the window, as a streamed reply does when it finishes, carries on from where it is instead of landing the rest at once.
