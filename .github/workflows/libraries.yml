@@ -40,7 +40,7 @@ jobs:
           mkdir -p natives
           for os in Linux Windows macOS; do
             gh run download "${{ github.event.workflow_run.id }}" -n "ai-router-$os" -D "natives/$os"
-            for f in $(find "natives/$os/target/release" -maxdepth 1 -type f \( -name 'ai-router' -o -name 'ai-router.exe' -o -name 'ai-router-tui' -o -name 'ai-router-tui.exe' -o -name '*ai_router.so' -o -name '*ai_router.dylib' -o -name 'ai_router.dll' -o -name 'ai_router.dll.lib' \)); do
+            for f in $(find "natives/$os/target/release" -maxdepth 1 -type f \( -name 'ai-router' -o -name 'ai-router.exe' -o -name '*ai_router.so' -o -name '*ai_router.dylib' -o -name 'ai_router.dll' -o -name 'ai_router.dll.lib' \)); do
               b=$(basename "$f"); cp "$f" "dist/${os,,}-$b"
             done
           done

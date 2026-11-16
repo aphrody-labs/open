@@ -3,22 +3,32 @@ set shell := ["bash", "-cu"]
 default:
     @just --list
 
-# Install all workspace dependencies (writes bun.lock on first run).
+# Install the Bun workspaces (packages, apps, extension).
 install:
     bun install
 
-# Regenerate workspaces in package.json and docs/workspaces.md.
-workspaces:
-    bun scripts/workspaces.ts --write
+# cargo check over the whole workspace (run on a build host).
+check:
+    bun scripts/opentui-native.ts
+    cargo check --workspace --all-targets
 
-# Compile every workspace CLI: just aot [--only opencode] [--targets bun-linux-x64]
-aot *args:
-    bun scripts/aot.ts {{args}}
+# Release build of the `open` command: fat LTO, one codegen unit.
+release *features:
+    bun scripts/opentui-native.ts
+    cargo build --release -p open {{ if features == "" { "" } else { "--features " + features } }}
+
+# MV3 extension into extension/dist.
+extension:
+    bun --cwd extension build.ts
 
 # bun test per package (never root-wide): just test-ts [name-or-path ...]
 test-ts *pkgs:
     bun scripts/test-ts.ts {{pkgs}}
 
-# No private data of this machine in first-party files (terms read live; decision D24): just private [--fleet <file>]
+# Rewrite the pins table of docs/upstream.md (--check: compare with each upstream head).
+upstream *args:
+    bun scripts/upstream.ts {{args}}
+
+# No private data of this machine in first-party files (terms read live): just private [--fleet <file>]
 private *args:
     bun scripts/check/private.ts {{args}}

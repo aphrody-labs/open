@@ -4,7 +4,7 @@
 name: ai-router
 on:
   push:
-    paths: ["crates/ai-router/**", "crates/ai-router-tui/**", "crates/c-abi/**", "packages/ai-router/**", "Cargo.toml", "Cargo.lock", ".github/workflows/ai-router.yml"]
+    paths: ["crates/ai-router/**", "crates/c-abi/**", "packages/ai-router/**", "Cargo.toml", "Cargo.lock", ".github/workflows/ai-router.yml"]
   pull_request:
     paths: ["crates/ai-router/**", "packages/ai-router/**"]
   workflow_dispatch:
@@ -24,15 +24,13 @@ jobs:
           sparse-checkout: |
             crates
             packages/ai-router
-            packages/browser-control/crates
-            packages/sst/sdk/rust
             .cargo
           sparse-checkout-cone-mode: true
       - if: runner.os == 'Linux'
         run: sudo apt-get install -y lld
       - run: rustup toolchain install nightly --profile minimal
       - run: cargo test -p ai-router
-      - run: cargo build --release -p ai-router -p ai-router-tui
+      - run: cargo build --release -p ai-router
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: canary
@@ -67,8 +65,6 @@ jobs:
         with:
           sparse-checkout: |
             crates
-            packages/browser-control/crates
-            packages/sst/sdk/rust
             .cargo
           sparse-checkout-cone-mode: true
       - run: sudo apt-get install -y musl-tools

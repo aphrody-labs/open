@@ -1,0 +1,34 @@
+# The workspace on a hosted runner: cargo check and tests (rust-toolchain.toml names the nightly), then the extension
+# build and its unit tests. The real-world proofs (crawl, CDP session, tunnel, TUI, extension in Chrome for Testing)
+# run on the build host.
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: canary
+      - run: sudo apt-get install -y clang lld
+      - run: bun scripts/opentui-native.ts
+      - run: cargo check --workspace --all-targets
+      - run: cargo test --workspace
+  extension:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: canary
+      - run: bun install --cwd extension
+      - run: bun extension/build.ts
+      - run: bun test ./test
+        working-directory: extension

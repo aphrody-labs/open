@@ -2,8 +2,14 @@
 // Usage: bun scripts/test-ts.ts [path-or-name ...]   (default: every member that has test files)
 import { join } from "node:path";
 
-const ROOT = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
-const members: string[] = await Bun.file(join(ROOT, "scripts/workspaces.members.json")).json();
+const ROOT = join(import.meta.dir, "..");
+// Members are the workspace globs of the root package.json (packages/*, apps/*, extension).
+const globs: string[] = (await Bun.file(join(ROOT, "package.json")).json()).workspaces;
+const members: string[] = [];
+for (const g of globs) {
+  for await (const f of new Bun.Glob(`${g}/package.json`).scan({ cwd: ROOT, onlyFiles: true })) members.push(f.replace(/\\/g, "/").replace(/\/package\.json$/, ""));
+}
+members.sort();
 const want = process.argv.slice(2);
 const hasTests = async (dir: string) => {
   for await (const _ of new Bun.Glob("**/*.{test,spec}.{ts,tsx,js,jsx}").scan({ cwd: dir })) return true;
