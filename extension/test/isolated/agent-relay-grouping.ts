@@ -22,7 +22,8 @@ const { TabCleanup } = await import("../../src/background/tab-cleanup")
 const relay = createAgentRelay({ changed: () => {}, badgesChanged: () => {} })
 
 async function until(check: () => boolean | Promise<boolean>) {
-  for (let i = 0; i < 300 && !(await check()); i++) await settle()
+  // By the clock, not a count of settles: the group recount is a 100 ms timer, which a fast runner's 300 settles outrun.
+  for (const end = Date.now() + 5000; Date.now() < end && !(await check()); ) await settle()
   expect(await check()).toBe(true)
 }
 const event = (path: string) => path.split(".").reduce<any>((value, key) => value[key], stub.chrome) as StubEvent
