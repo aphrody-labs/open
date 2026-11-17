@@ -26,7 +26,7 @@ type Offer = { provider: string; model: string; local: boolean; cost_in: number;
         <mat-list-item>
           <mat-icon matListItemIcon>{{ o.local ? "computer" : o.cost_in + o.cost_out === 0 ? "money_off" : "paid" }}</mat-icon>
           <span matListItemTitle>{{ o.provider }}/{{ o.model }}</span>
-          <span matListItemLine>{{ o.local ? "local" : o.cost_in + o.cost_out === 0 ? "zero cost" : "$" + o.cost_in + " / $" + o.cost_out + " per million tokens" }}</span>
+          <span matListItemLine>{{ o.local ? "local" : o.cost_in + o.cost_out === 0 ? "zero cost" : usd.format(o.cost_in) + " / " + usd.format(o.cost_out) + " per million tokens" }}</span>
         </mat-list-item>
       }
     </mat-list>
@@ -35,6 +35,7 @@ type Offer = { provider: string; model: string; local: boolean; cost_in: number;
 })
 export class Offers {
   readonly data = inject<{ policy: string; offers: Offer[] }>(MAT_BOTTOM_SHEET_DATA);
+  readonly usd = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 6 });
 }
 
 @Component({
