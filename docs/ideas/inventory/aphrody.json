@@ -12328,7 +12328,7 @@
     },
     {
       "path": "docs/native/compat/MSYS-MONOREPO.md",
-      "title": "MSYS2 / MinGW-w64 distribution repo (C:\\msys)",
+      "title": "MSYS2 / MinGW-w64 distribution repo (msys)",
       "bytes": 1173
     },
     {

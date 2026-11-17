@@ -86,10 +86,18 @@ export function writeAgentBrowserConfig(
   return next;
 }
 
+/** CHROME_BIN or CHROME_PATH, else Chrome from the Windows program folders or the PATH of this host. */
 function defaultBinary(os: ProfileOs): string {
-  return os === "win"
-    ? "C:/Program Files/Google/Chrome/Application/chrome.exe"
-    : "/usr/bin/google-chrome";
+  const fromEnv = process.env.CHROME_BIN ?? process.env.CHROME_PATH;
+  if (fromEnv) return fromEnv;
+  if (os === "win") {
+    for (const base of [process.env.ProgramFiles, process.env["ProgramFiles(x86)"], process.env.LOCALAPPDATA]) {
+      const candidate = base && join(base, "Google", "Chrome", "Application", "chrome.exe");
+      if (candidate && existsSync(candidate)) return candidate;
+    }
+    return Bun.which("chrome") ?? "chrome.exe";
+  }
+  return Bun.which("google-chrome") ?? Bun.which("chromium") ?? "google-chrome";
 }
 
 function flag(argv: string[], name: string): string | undefined {

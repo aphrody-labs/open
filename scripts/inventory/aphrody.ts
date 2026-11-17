@@ -16,7 +16,9 @@ const src = resolve(srcArg);
 const fleetAt = argv.indexOf("--fleet");
 const { redact } = privateMatchers(join(import.meta.dir, "../.."), fleetAt >= 0 ? argv[fleetAt + 1] : undefined);
 // paths inside the checkout are shown relative to it
-const quote = (s: string | null) => (s == null ? null : redact(s.replaceAll(src, "").replaceAll(src.replaceAll("\\", "/"), "")));
+// an absolute path in quoted text (a drive-rooted one in a title) is reduced to its last segment
+const portable = (s: string) => s.replace(/(?<![A-Za-z0-9_])[A-Za-z]:[\\/][^\s)\]"']*/g, (p) => p.split(/[\\/]/).filter(Boolean).pop()!);
+const quote = (s: string | null) => (s == null ? null : redact(portable(s.replaceAll(src, "").replaceAll(src.replaceAll("\\", "/"), ""))));
 if (!existsSync(join(src, "src.lock.json"))) throw new Error(`${src}: not an aphrody src checkout (no src.lock.json)`);
 const open = join(import.meta.dir, "../..");
 const tracked = Bun.spawnSync(["git", "-C", src, "-c", "core.quotepath=false", "ls-files"]).stdout.toString().split("\n").filter(Boolean);

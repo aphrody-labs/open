@@ -16,14 +16,14 @@ test("robots: longest match wins, Allow wins ties, agent groups chosen over *", 
 test("shapes: item pages of one route collapse, navigation roots and route words stay", () => {
   const s = new Shapes();
   s.addNav(["/models", "/datasets"]);
-  for (const p of ["/a/x/tree/main", "/b/y/tree/main", "/c/z/blob/main/f"]) s.learn(p);
+  for (const p of ["/a/x/tree/main", "/b/y/tree/main", "/e/z/blob/main/f"]) s.learn(p);
   expect(s.of("/models")).toBe("/models");
   expect(s.of("/a/x/tree/main")).toBe(s.of("/b/y/tree/main"));
   expect(s.of("/a/x/tree/main")).toBe("/*/*/tree/main");
   // a namespace under several roots is not a route word
   for (const p of ["/models/acme/x", "/datasets/acme/y"]) s.learn(p);
   expect(s.of("/models/acme/x")).toBe("/models/*/*");
-  expect(s.of("/d/w")).toBe("/*/*");
+  expect(s.of("/f/w")).toBe("/*/*");
 });
 
 test("parity: weights, partial credit, skip and extras left out, layout share", () => {

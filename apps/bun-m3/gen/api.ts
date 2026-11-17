@@ -36,7 +36,8 @@ for (const m of modules) {
     for (const k of keys.sort()) out.push({ name: `${m}:${k}`, kind: typeof mod[k] });
     moduleCounts[m] = keys.length;
   } catch (e) {
-    moduleCounts[m] = `not importable here: ${String((e as Error).message).split("\n")[0]}`;
+    // the first line of the error, without the file it names (an absolute path of the machine that ran this)
+    moduleCounts[m] = `not importable here: ${String((e as Error).message).split("\n")[0]!.replace(/ imported from .*$/, "")}`;
   }
 }
 for (const g of ["HTMLRewriter", "Bun", "BuildMessage", "ResolveMessage"]) if (g in globalThis) out.push({ name: `global:${g}`, kind: typeof (globalThis as any)[g] });

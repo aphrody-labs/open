@@ -7,7 +7,7 @@
     "bun:ffi": 14,
     "bun:jsc": 37,
     "bun:test": 21,
-    "bun:bundle": "not importable here: Cannot find package 'bun:bundle' imported from C:\\src\\apps\\open\\apps\\bun-m3\\gen\\api.ts"
+    "bun:bundle": "not importable here: Cannot find package 'bun:bundle'"
   },
   "values": [
     {
