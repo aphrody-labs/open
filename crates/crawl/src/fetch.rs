@@ -3,8 +3,8 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use browser_engines::SsrfGuard;
-use browser_engines::ssrf::SsrfOptions;
+use open_browser_engines::SsrfGuard;
+use open_browser_engines::ssrf::SsrfOptions;
 use reqwest::Method;
 use url::Url;
 

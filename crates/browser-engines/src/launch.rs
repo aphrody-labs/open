@@ -102,7 +102,7 @@ pub async fn launch(options: LaunchOptions) -> Result<Launched, LaunchError> {
             command.arg("--disable-extensions");
         }
     }
-    if is_root() || std::env::var_os("BROWSER_ENGINES_NO_SANDBOX").is_some() {
+    if is_root() || std::env::var_os("OPEN_BROWSER_ENGINES_NO_SANDBOX").or_else(|| std::env::var_os("BROWSER_ENGINES_NO_SANDBOX")).is_some() {
         command.arg("--no-sandbox");
     }
     command.args(&options.extra_args).arg("about:blank");

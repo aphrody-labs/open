@@ -15,17 +15,17 @@
 #[cfg(feature = "router")]
 pub use ai_router as router;
 #[cfg(feature = "browse")]
-pub use browse;
+pub use open_browse as browse;
 #[cfg(feature = "engines")]
-pub use browser_engines as engines;
+pub use open_browser_engines as engines;
 #[cfg(feature = "c-abi")]
 pub use c_abi as abi;
 #[cfg(feature = "crawl")]
-pub use crawl;
+pub use open_crawl as crawl;
 #[cfg(feature = "tui")]
-pub use tui;
+pub use open_tui as tui;
 #[cfg(feature = "tunnel")]
-pub use tunnel;
+pub use open_tunnel as tunnel;
 
 /// Rune and its component kit and motion crates.
 #[cfg(feature = "ui")]

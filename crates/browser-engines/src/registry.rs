@@ -144,9 +144,9 @@ fn local_bin(bin: &str) -> Option<PathBuf> {
     path.exists().then_some(path)
 }
 
-/// Cache of downloaded browsers: `BROWSER_ENGINES_CACHE`, otherwise the user cache directory of the platform.
+/// Cache of downloaded browsers: `OPEN_BROWSER_ENGINES_CACHE` (alias `BROWSER_ENGINES_CACHE`), otherwise the user cache directory of the platform.
 pub fn browsers_cache() -> Option<PathBuf> {
-    if let Some(dir) = std::env::var_os("BROWSER_ENGINES_CACHE") {
+    if let Some(dir) = std::env::var_os("OPEN_BROWSER_ENGINES_CACHE").or_else(|| std::env::var_os("BROWSER_ENGINES_CACHE")) {
         return Some(PathBuf::from(dir));
     }
     let base = if cfg!(windows) {

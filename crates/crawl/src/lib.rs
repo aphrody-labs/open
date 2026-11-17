@@ -29,9 +29,9 @@ pub enum Error {
     #[error("url: {0}")]
     Url(#[from] url::ParseError),
     #[error("{0}")]
-    Ssrf(#[from] browser_engines::SsrfError),
+    Ssrf(#[from] open_browser_engines::SsrfError),
     #[error("cdp: {0}")]
-    Cdp(#[from] browser_engines::CdpError),
+    Cdp(#[from] open_browser_engines::CdpError),
     #[error("browser: {0}")]
     Browser(String),
     #[error("blocked by content shields: {0}")]

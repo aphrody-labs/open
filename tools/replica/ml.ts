@@ -74,9 +74,9 @@ export async function ensureEnv(log: (s: string) => void): Promise<{ python: str
   return { python: python(), gpu: card };
 }
 
-/** Runs `python -m replica <args>`, streaming its progress lines; returns the JSON document it prints last. */
+/** Runs `python -m open_replica <args>`, streaming its progress lines; returns the JSON document it prints last. */
 export async function py<T = unknown>(args: string[], log: (s: string) => void): Promise<T> {
-  const p = Bun.spawn([python(), "-m", "replica", ...args], { cwd: PY_DIR, stdin: "ignore", stdout: "pipe", stderr: "pipe", env: { ...process.env, PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" } });
+  const p = Bun.spawn([python(), "-m", "open_replica", ...args], { cwd: PY_DIR, stdin: "ignore", stdout: "pipe", stderr: "pipe", env: { ...process.env, PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" } });
   // stderr drained while stdout is read: libraries that log a lot would otherwise fill its pipe and block
   const errText = new Response(p.stderr).text();
   let last = "";
@@ -95,6 +95,6 @@ export async function py<T = unknown>(args: string[], log: (s: string) => void):
   }
   if (buf.trim()) last = /^[[{]/.test(buf.trim()) ? buf.trim() : last;
   const err = await errText;
-  if ((await p.exited) !== 0) throw new Error(`replica-py ${args[0]}: ${err.trim().split("\n").slice(-5).join(" | ")}`);
+  if ((await p.exited) !== 0) throw new Error(`open-replica ${args[0]}: ${err.trim().split("\n").slice(-5).join(" | ")}`);
   return JSON.parse(last) as T;
 }

@@ -698,24 +698,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "browse"
-version = "0.5.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "browse-capture",
- "browse-core",
- "browse-page",
- "browse-relay",
- "browse-script",
- "browser-engines",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
-]
-
-[[package]]
 name = "browse-capture"
 version = "0.0.17"
 source = "git+https://github.com/anomalyco/browse?rev=7a277ed8f961c2b8bd34a0baef296c7b5ff4dde1#7a277ed8f961c2b8bd34a0baef296c7b5ff4dde1"
@@ -807,22 +789,6 @@ dependencies = [
  "rquickjs",
  "serde_json",
  "tokio",
-]
-
-[[package]]
-name = "browser-engines"
-version = "0.5.0"
-dependencies = [
- "base64 0.22.1",
- "futures-util",
- "libc",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
- "tokio",
- "tokio-tungstenite 0.30.0",
- "url",
- "which",
 ]
 
 [[package]]
@@ -1176,26 +1142,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5ca28b0ae3115b884660db4118d803791fd6756b6e88f39c0f3f7859060d7566"
 dependencies = [
  "libc",
-]
-
-[[package]]
-name = "crawl"
-version = "0.5.0"
-dependencies = [
- "base64 0.22.1",
- "blake3",
- "browser-engines",
- "futures-util",
- "reqwest",
- "rusqlite",
- "rustls",
- "scraper",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
- "tokio",
- "tracing",
- "url",
 ]
 
 [[package]]
@@ -3233,18 +3179,91 @@ version = "0.5.0"
 dependencies = [
  "ai-router",
  "anyhow",
- "browse",
- "browser-engines",
  "c-abi",
  "clap",
- "crawl",
+ "open-browse",
+ "open-browser-engines",
+ "open-crawl",
+ "open-tui",
+ "open-tunnel",
  "rune",
  "rune-kit",
  "rune-motion",
  "serde_json",
  "tokio",
- "tui",
- "tunnel",
+ "url",
+]
+
+[[package]]
+name = "open-browse"
+version = "0.5.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "browse-capture",
+ "browse-core",
+ "browse-page",
+ "browse-relay",
+ "browse-script",
+ "open-browser-engines",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "open-browser-engines"
+version = "0.5.0"
+dependencies = [
+ "base64 0.22.1",
+ "futures-util",
+ "libc",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+ "tokio-tungstenite 0.30.0",
+ "url",
+ "which",
+]
+
+[[package]]
+name = "open-crawl"
+version = "0.5.0"
+dependencies = [
+ "base64 0.22.1",
+ "blake3",
+ "futures-util",
+ "open-browser-engines",
+ "reqwest",
+ "rusqlite",
+ "rustls",
+ "scraper",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+ "url",
+]
+
+[[package]]
+name = "open-tui"
+version = "0.5.0"
+dependencies = [
+ "ai-router",
+ "opentui",
+ "serde_json",
+]
+
+[[package]]
+name = "open-tunnel"
+version = "0.5.0"
+dependencies = [
+ "opentunnel",
+ "rustls",
+ "tokio",
  "url",
 ]
 
@@ -5429,15 +5448,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
-name = "tui"
-version = "0.5.0"
-dependencies = [
- "ai-router",
- "opentui",
- "serde_json",
-]
-
-[[package]]
 name = "tungstenite"
 version = "0.27.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5470,16 +5480,6 @@ dependencies = [
  "rustls-pki-types",
  "sha1 0.11.0",
  "thiserror 2.0.21",
-]
-
-[[package]]
-name = "tunnel"
-version = "0.5.0"
-dependencies = [
- "opentunnel",
- "rustls",
- "tokio",
- "url",
 ]
 
 [[package]]

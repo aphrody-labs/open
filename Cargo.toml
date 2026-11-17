@@ -13,12 +13,12 @@ repository = "https://github.com/aphrody-labs/open"
 [workspace.dependencies]
 # first-party
 ai-router = { path = "crates/ai-router" }
-browse = { path = "crates/browse" }
-browser-engines = { path = "crates/browser-engines" }
+open-browse = { path = "crates/browse" }
+open-browser-engines = { path = "crates/browser-engines" }
 c-abi = { path = "crates/c-abi" }
-crawl = { path = "crates/crawl" }
-tui = { path = "crates/tui" }
-tunnel = { path = "crates/tunnel" }
+open-crawl = { path = "crates/crawl" }
+open-tui = { path = "crates/tui" }
+open-tunnel = { path = "crates/tunnel" }
 
 # crates.io
 adblock = "0.13.5"

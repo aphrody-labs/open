@@ -50,6 +50,6 @@ bun run upstream         # pins table of docs/upstream.md
 | JS or Python | Here |
 | :-- | :-- |
 | Crawlee, Apify SDK | `crawl::Crawler` (queue, robots, politeness, render), `crawl::Shard` (dataset, searchable) |
-| Playwright, Puppeteer | `browser_engines::cdp` + `browse` page tools |
+| Playwright, Puppeteer | `open_browser_engines::cdp` + `browse` page tools |
 | curl, wget | `crawl::fetch`, `crawl::mirror` |
 | Apify client | `reqwest` |

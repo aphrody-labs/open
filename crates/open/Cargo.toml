@@ -17,28 +17,28 @@ path = "src/main.rs"
 
 [features]
 default = ["engines", "crawl", "browse", "tunnel", "router"]
-engines = ["dep:browser-engines"]
-crawl = ["engines", "dep:crawl"]
-browse = ["engines", "dep:browse"]
-tunnel = ["dep:tunnel"]
+engines = ["dep:open-browser-engines"]
+crawl = ["engines", "dep:open-crawl"]
+browse = ["engines", "dep:open-browse"]
+tunnel = ["dep:open-tunnel"]
 router = ["dep:ai-router"]
 # OpenTUI's native library must be present (scripts/opentui-native.ts).
-tui = ["router", "dep:tui"]
+tui = ["router", "dep:open-tui"]
 # Rune: the native GPU UI framework of anomalyco, pinned by git revision.
 ui = ["dep:rune", "dep:rune-kit", "dep:rune-motion"]
 c-abi = ["dep:c-abi"]
 
 [dependencies]
 ai-router = { workspace = true, optional = true }
-browse = { workspace = true, optional = true }
-browser-engines = { workspace = true, optional = true }
+open-browse = { workspace = true, optional = true }
+open-browser-engines = { workspace = true, optional = true }
 c-abi = { workspace = true, optional = true }
-crawl = { workspace = true, optional = true }
+open-crawl = { workspace = true, optional = true }
 rune = { workspace = true, optional = true }
 rune-kit = { workspace = true, optional = true }
 rune-motion = { workspace = true, optional = true }
-tui = { workspace = true, optional = true }
-tunnel = { workspace = true, optional = true }
+open-tui = { workspace = true, optional = true }
+open-tunnel = { workspace = true, optional = true }
 
 anyhow.workspace = true
 clap.workspace = true

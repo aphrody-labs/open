@@ -1,0 +1,7 @@
+# Names of this repository. The scheme it is checked against: https://github.com/aphrody-labs/.github/blob/main/naming/NAMING.md
+id = "open"
+kind = "app"
+org = "aphrody-labs"
+
+# Nothing is published from this repository: the crate and PyPI names that exist on the registries (open, tui, tunnel, browse, crawl,
+# replica) belong to other owners, and every npm package is private. No legacy names to keep.

@@ -1,4 +1,4 @@
-"""replica-py <command> <replica dir> ...: the Python steps of tools/replica, each printing one JSON document last."""
+"""open-replica <command> <replica dir> ...: the Python steps of tools/replica, each printing one JSON document last."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ def devices() -> dict:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(prog="replica-py")
+    ap = argparse.ArgumentParser(prog="open-replica")
     sub = ap.add_subparsers(dest="cmd", required=True)
     c = sub.add_parser("crawl", help="deep crawl with crawl4ai")
     c.add_argument("dir")

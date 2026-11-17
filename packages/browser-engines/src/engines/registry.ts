@@ -55,8 +55,9 @@ export interface Engine {
 
 export const binDir = (): string => join(homedir(), ".local", "bin");
 
-/** Cache of downloaded browsers: BROWSER_ENGINES_CACHE, otherwise the user cache directory of the platform. */
+/** Cache of downloaded browsers: OPEN_BROWSER_ENGINES_CACHE (alias BROWSER_ENGINES_CACHE), otherwise the user cache directory of the platform. */
 export const browsersCache = (): string =>
+  Bun.env.OPEN_BROWSER_ENGINES_CACHE ||
   Bun.env.BROWSER_ENGINES_CACHE ||
   (process.platform === "win32"
     ? join(
