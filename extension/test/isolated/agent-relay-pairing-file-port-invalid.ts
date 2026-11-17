@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { installChrome, settle } from "../chrome-stub"
+import { installChrome, until } from "../chrome-stub"
 
 // A pairing file that names a port browse never uses (19989 is Browser Control's) is ignored like any other bad
 // value: the extension still dials 19988 and doesn't move. Run by ../isolated.test.ts in its own process.
@@ -44,10 +44,6 @@ globalThis.fetch = (async (input: string | URL) => {
 const { createAgentRelay } = await import("../../src/background/agent-relay")
 const relay = createAgentRelay({ changed: () => {}, badgesChanged: () => {} })
 const stored = async (key: string): Promise<unknown> => (await stub.chrome.storage.local.get(key))[key]
-async function until(check: () => boolean) {
-  for (let i = 0; i < 400 && !check(); i++) await settle()
-  expect(check()).toBe(true)
-}
 
 test("a port outside the browse range in the pairing file is ignored", async () => {
   await until(() => FakeWebSocket.made.length > 0)

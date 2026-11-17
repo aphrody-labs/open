@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { installChrome, settle } from "../chrome-stub"
+import { installChrome, until } from "../chrome-stub"
 
 // A pairing file's code belongs to the port the file names: a port only a scan found must not capture it. The file's
 // hint wins over a scanned port, and the code is tried there. Run by ../isolated.test.ts in its own process.
@@ -49,10 +49,6 @@ await stub.chrome.storage.local.set({
 const { createAgentRelay } = await import("../../src/background/agent-relay")
 const relay = createAgentRelay({ changed: () => {}, badgesChanged: () => {} })
 const stored = async (key: string): Promise<unknown> => (await stub.chrome.storage.local.get(key))[key]
-async function until(check: () => boolean) {
-  for (let i = 0; i < 400 && !check(); i++) await settle()
-  expect(check()).toBe(true)
-}
 
 test("an unspent pairing file's port replaces a scanned one, and its code goes there", async () => {
   await until(() => FakeWebSocket.made.length > 0)

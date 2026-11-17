@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
 import { pairingProof, randomNonce } from "../../src/background/pairing"
-import { installChrome, settle } from "../chrome-stub"
+import { installChrome, until } from "../chrome-stub"
 
 // A spoofer on 19988 (the default) and the real relay on 19990: the scan must leave the port that just failed its
 // proof and reach 19990. Run by ../isolated.test.ts.
@@ -72,10 +72,6 @@ await stub.chrome.storage.local.set({
 const { createAgentRelay } = await import("../../src/background/agent-relay")
 const relay = createAgentRelay({ changed: () => {}, badgesChanged: () => {} })
 const stored = async (key: string): Promise<unknown> => (await stub.chrome.storage.local.get(key))[key]
-async function until(check: () => boolean) {
-  for (let i = 0; i < 400 && !check(); i++) await settle()
-  expect(check()).toBe(true)
-}
 
 test("a spoofed 19988 is left for the real relay on 19990", async () => {
   await until(() => relay.state().status === "connected")

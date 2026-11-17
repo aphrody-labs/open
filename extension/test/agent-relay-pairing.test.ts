@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
 import type { AgentRelayState } from "../src/shared/protocol"
-import { installChrome, settle, type StubEvent } from "./chrome-stub"
+import { installChrome, until, settle, type StubEvent } from "./chrome-stub"
 
 // The bundled pairing file (relay-pairing.json, the one-time code `install` writes into an unpacked build) is looked
 // for again while the extension is unpaired, and re-read on Reconnect and when the entered code changes. No relay: WebSocket is
@@ -49,10 +49,6 @@ await stub.chrome.storage.local.set({ agentRelayPort: 19925 })
 const { createAgentRelay } = await import("../src/background/agent-relay")
 const states: AgentRelayState[] = []
 const relay = createAgentRelay({ changed: (state) => states.push(state), badgesChanged: () => {} })
-const until = async (check: () => boolean) => {
-  for (let i = 0; i < 100 && !check(); i++) await settle()
-  expect(check()).toBe(true)
-}
 const alarm = () => (chrome.alarms.onAlarm as unknown as StubEvent).emit({ name: "opencode-browser-relay" })
 
 test("without a pairing file, the extension sends only anonymous protocol presence", async () => {

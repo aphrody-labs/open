@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test"
-import { installChrome, settle, type StubEvent } from "../chrome-stub"
+import { installChrome, until, settle, type StubEvent } from "../chrome-stub"
 import { installFakeRelaySocket } from "../relay-stub"
 
 // Where agent tabs open (tabs.create, tabs.group) and popup adoption (agent-relay.ts adoptOpened): a tab an agent's
@@ -19,10 +19,6 @@ const { createAgentRelay } = await import("../../src/background/agent-relay")
 const { TabCleanup } = await import("../../src/background/tab-cleanup")
 const relay = createAgentRelay({ changed: () => {}, badgesChanged: () => {} })
 
-async function until(check: () => boolean) {
-  for (let i = 0; i < 200 && !check(); i++) await settle()
-  expect(check()).toBe(true)
-}
 const event = (path: string) => path.split(".").reduce<any>((value, key) => value[key], stub.chrome) as StubEvent
 let nextCommand = 1
 async function command(method: string, params: Record<string, unknown>) {

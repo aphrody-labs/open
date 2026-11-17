@@ -350,3 +350,9 @@ export function installChrome(): Stub {
 
 /** Lets pending promise callbacks run. */
 export const settle = () => new Promise((resolve) => setTimeout(resolve, 0))
+
+/** Waits for a condition by the clock, not by a count of settles: timers the code under test sets (debounces, backoffs) fire on a fast runner too. */
+export async function until(check: () => boolean | Promise<boolean>, ms = 5000) {
+  for (const end = Date.now() + ms; Date.now() < end && !(await check()); ) await settle()
+  if (!(await check())) throw new Error(`condition not met within ${ms} ms: ${check}`)
+}

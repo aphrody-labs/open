@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { installChrome, settle } from "../chrome-stub"
+import { installChrome, until } from "../chrome-stub"
 
 // A port only a scan found can answer /version like browse and then fail the handshake. That reply is not proof: the
 // close must stay eligible for a scan, and the scan prefers 19988 or a port this browser holds a token for, so a fake
@@ -77,10 +77,6 @@ const { createAgentRelay } = await import("../../src/background/agent-relay")
 const relay = createAgentRelay({ changed: () => {}, badgesChanged: () => {} })
 const stored = async (key: string): Promise<unknown> => (await stub.chrome.storage.local.get(key))[key]
 const made = () => FakeWebSocket.made.map((socket) => socket.url)
-async function until(check: () => boolean) {
-  for (let i = 0; i < 400 && !check(); i++) await settle()
-  expect(check()).toBe(true)
-}
 
 test("a bogus challenge on a scanned port is not proof, so the next scan moves to 19988", async () => {
   await until(() => FakeWebSocket.made.some((socket) => socket.url.includes(`:${SCANNED_PORT}/`) && socket.received.some((message) => message.method === "hello")))

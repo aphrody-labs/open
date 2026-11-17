@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { installChrome, settle } from "../chrome-stub"
+import { installChrome, until } from "../chrome-stub"
 
 // A saved loopback address pins a port outside the browse range (OPENCODE_BROWSER_PORT=9222). A welcome link without
 // a browse-range port must keep that pin, and its code must go to 9222. Run by ../isolated.test.ts.
@@ -48,10 +48,6 @@ const { createAgentRelay } = await import("../../src/background/agent-relay")
 const relay = createAgentRelay({ changed: () => {}, badgesChanged: () => {} })
 const stored = async (key: string): Promise<unknown> => (await stub.chrome.storage.local.get(key))[key]
 const atPinned = () => FakeWebSocket.made.filter((socket) => socket.url === `ws://${ADDRESS}/extension`)
-async function until(check: () => boolean) {
-  for (let i = 0; i < 400 && !check(); i++) await settle()
-  expect(check()).toBe(true)
-}
 
 test("a link without a browse-range port keeps a saved out-of-range loopback address", async () => {
   await until(() => atPinned().length === 1 && atPinned()[0]!.received.length > 0)

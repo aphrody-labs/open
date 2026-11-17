@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { installChrome, settle } from "../chrome-stub"
+import { installChrome, until } from "../chrome-stub"
 
 // A pairing file without a port says nothing about where the relay is: it must not pull a discovered or proven port
 // back to 19988. Run by ../isolated.test.ts.
@@ -45,10 +45,6 @@ await stub.chrome.storage.local.set({
 const { createAgentRelay } = await import("../../src/background/agent-relay")
 const relay = createAgentRelay({ changed: () => {}, badgesChanged: () => {} })
 const stored = async (key: string): Promise<unknown> => (await stub.chrome.storage.local.get(key))[key]
-async function until(check: () => boolean) {
-  for (let i = 0; i < 400 && !check(); i++) await settle()
-  expect(check()).toBe(true)
-}
 
 test("a pairing file without a port does not override a discovered or proven port", async () => {
   await until(() => FakeWebSocket.made.length > 0)

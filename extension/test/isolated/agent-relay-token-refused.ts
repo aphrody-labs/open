@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
 import { pairingProof, randomNonce } from "../../src/background/pairing"
-import { installChrome, settle } from "../chrome-stub"
+import { installChrome, until } from "../chrome-stub"
 
 // The fallback token is a guess: the relay on the new port may be someone else's. Its refusal must not touch the
 // entry the guess came from (the relay on the old port still trusts it). Run by ../isolated.test.ts.
@@ -57,10 +57,6 @@ await stub.chrome.storage.local.set({
 const { createAgentRelay } = await import("../../src/background/agent-relay")
 const relay = createAgentRelay({ changed: () => {}, badgesChanged: () => {} })
 const stored = async (key: string): Promise<unknown> => (await stub.chrome.storage.local.get(key))[key]
-async function until(check: () => boolean) {
-  for (let i = 0; i < 400 && !check(); i++) await settle()
-  expect(check()).toBe(true)
-}
 
 test("a refused fallback token leaves the entry it came from alone", async () => {
   await until(() => relay.state().status === "untrusted")

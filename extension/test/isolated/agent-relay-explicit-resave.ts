@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { installChrome, settle } from "../chrome-stub"
+import { installChrome, until } from "../chrome-stub"
 
 // An explicit relay address is explicit even when it happens to be the port already in use: re-saving the form must not
 // silently turn it back into the automatic address (which a fallback relay may move). The pairing code stays bound to
@@ -45,10 +45,6 @@ await stub.chrome.storage.local.set({ agentRelayAddress: `127.0.0.1:${EXPLICIT_P
 const { createAgentRelay } = await import("../../src/background/agent-relay")
 const relay = createAgentRelay({ changed: () => {}, badgesChanged: () => {} })
 const stored = async (key: string): Promise<unknown> => (await stub.chrome.storage.local.get(key))[key]
-async function until(check: () => boolean) {
-  for (let i = 0; i < 400 && !check(); i++) await settle()
-  expect(check()).toBe(true)
-}
 
 test("re-saving an explicit localhost port keeps it explicit, and the code for that port", async () => {
   const url = `ws://127.0.0.1:${EXPLICIT_PORT}/extension`

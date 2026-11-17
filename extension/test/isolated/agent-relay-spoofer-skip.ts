@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
 import { pairingProof, randomNonce } from "../../src/background/pairing"
-import { installChrome, settle } from "../chrome-stub"
+import { installChrome, until } from "../chrome-stub"
 
 // Two listeners answer /version like browse: the spoofer cannot complete the HMAC proof, the real relay can. The scan
 // must skip the port that just failed its proof and move to the real one. Run by ../isolated.test.ts.
@@ -74,10 +74,6 @@ await stub.chrome.storage.local.set({
 const { createAgentRelay } = await import("../../src/background/agent-relay")
 const relay = createAgentRelay({ changed: () => {}, badgesChanged: () => {} })
 const stored = async (key: string): Promise<unknown> => (await stub.chrome.storage.local.get(key))[key]
-async function until(check: () => boolean) {
-  for (let i = 0; i < 400 && !check(); i++) await settle()
-  expect(check()).toBe(true)
-}
 
 test("a spoofed port that fails the proof is skipped for the real relay", async () => {
   await until(() => relay.state().status === "connected")

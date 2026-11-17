@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
 import type { AgentRelayState } from "../../src/shared/protocol"
-import { installChrome, settle } from "../chrome-stub"
+import { installChrome, until } from "../chrome-stub"
 import { installFakeRelaySocket } from "../relay-stub"
 
 // The update notice: the relay's update check reaches the status page through the extension link (update.notice),
@@ -19,10 +19,6 @@ const { createAgentRelay } = await import("../../src/background/agent-relay")
 const states: AgentRelayState[] = []
 const relay = createAgentRelay({ changed: (state) => states.push(state), badgesChanged: () => {} })
 
-async function until(check: () => boolean) {
-  for (let i = 0; i < 200 && !check(); i++) await settle()
-  expect(check()).toBe(true)
-}
 let nextCommand = 1
 async function command(method: string, params?: Record<string, unknown>) {
   const id = nextCommand++

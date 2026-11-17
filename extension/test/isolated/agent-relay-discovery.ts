@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { installChrome, settle } from "../chrome-stub"
+import { installChrome, until, settle } from "../chrome-stub"
 
 // An unlocked (and unpaired) extension with no pairing hint: 19988 is held by something that isn't browse (Playwriter
 // does the same), so the connection fails before any browse protocol. The worker scans the candidate ports' /version,
@@ -62,10 +62,6 @@ const { createAgentRelay } = await import("../../src/background/agent-relay")
 const relay = createAgentRelay({ changed: () => {}, badgesChanged: () => {} })
 const stored = async (key: string): Promise<unknown> => (await stub.chrome.storage.local.get(key))[key]
 const made = () => FakeWebSocket.made.map((socket) => socket.url)
-async function until(check: () => boolean) {
-  for (let i = 0; i < 400 && !check(); i++) await settle()
-  expect(check()).toBe(true)
-}
 
 test("an automatic connection scans a failed port and moves to the browse relay it finds", async () => {
   await until(() => relay.state().relay.address === "localhost:19988" && made().some((url) => url.includes(":19990/")))

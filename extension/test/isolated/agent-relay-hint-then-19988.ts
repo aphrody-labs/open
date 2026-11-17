@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { installChrome, settle } from "../chrome-stub"
+import { installChrome, until } from "../chrome-stub"
 
 // A relay address typed as localhost:<fallback port> with a code is a hint, not a pin: the address stays automatic, the
 // code goes to that port, and when that port later fails a scan can move back to 19988. Run by ../isolated.test.ts.
@@ -56,10 +56,6 @@ const { createAgentRelay } = await import("../../src/background/agent-relay")
 const relay = createAgentRelay({ changed: () => {}, badgesChanged: () => {} })
 const stored = async (key: string): Promise<unknown> => (await stub.chrome.storage.local.get(key))[key]
 const at = (port: number) => FakeWebSocket.made.filter((socket) => socket.url.includes(`:${port}/`))
-async function until(check: () => boolean) {
-  for (let i = 0; i < 400 && !check(); i++) await settle()
-  expect(check()).toBe(true)
-}
 
 test("localhost:19990 with a code is a hint; a later failure scans back to 19988", async () => {
   await until(() => at(DEFAULT_PORT).some((socket) => socket.received.length > 0))

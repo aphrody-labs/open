@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { installChrome, settle } from "../chrome-stub"
+import { installChrome, until, settle } from "../chrome-stub"
 
 // An explicit relay address (here the PORT_KEY dev pin) is dialled exactly as given and never scanned: a user who set
 // an address means that one, and a scan could find someone else's relay. Run by ../isolated.test.ts in its own process.
@@ -42,10 +42,6 @@ globalThis.fetch = (async (input: string | URL) => {
 await stub.chrome.storage.local.set({ agentRelayPort: PORT_KEY_PORT })
 const { createAgentRelay } = await import("../../src/background/agent-relay")
 const relay = createAgentRelay({ changed: () => {}, badgesChanged: () => {} })
-async function until(check: () => boolean) {
-  for (let i = 0; i < 100 && !check(); i++) await settle()
-  expect(check()).toBe(true)
-}
 
 test("an explicit address never scans for a relay on a fallback port", async () => {
   await until(() => FakeWebSocket.made.length > 0)

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { installChrome, settle } from "../chrome-stub"
+import { installChrome, until, settle } from "../chrome-stub"
 
 // A pending pairing code is only sent to the port it was given for (19988 without a hint). When 19988 belongs to
 // another program and the relay is found on a fallback port by scanning, the code stays put: a wrong relay would
@@ -61,10 +61,6 @@ await stub.chrome.storage.local.set({ agentRelayPairingCode: CODE })
 const { createAgentRelay } = await import("../../src/background/agent-relay")
 const relay = createAgentRelay({ changed: () => {}, badgesChanged: () => {} })
 const socketsAt = (port: number) => FakeWebSocket.made.filter((socket) => socket.url === `ws://127.0.0.1:${port}/extension`)
-async function until(check: () => boolean) {
-  for (let i = 0; i < 400 && !check(); i++) await settle()
-  expect(check()).toBe(true)
-}
 
 test("a code is never sent to a port only a scan found", async () => {
   await until(() => relay.state().relay.address === "localhost:19988" && socketsAt(BROWSER_PORT).length > 0)

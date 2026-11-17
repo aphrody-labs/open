@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { installChrome, settle } from "../chrome-stub"
+import { installChrome, until } from "../chrome-stub"
 
 // A pairing code typed without a port must never be carried to a port only a scan found: someone else can answer
 // /version like browse there. It goes to 19988 instead, and the scanned port is forgotten so the next attempt starts
@@ -61,10 +61,6 @@ const { createAgentRelay } = await import("../../src/background/agent-relay")
 const relay = createAgentRelay({ changed: () => {}, badgesChanged: () => {} })
 const stored = async (key: string): Promise<unknown> => (await stub.chrome.storage.local.get(key))[key]
 const at = (port: number) => FakeWebSocket.made.filter((socket) => socket.url.includes(`:${port}/`))
-async function until(check: () => boolean) {
-  for (let i = 0; i < 400 && !check(); i++) await settle()
-  expect(check()).toBe(true)
-}
 
 test("a code entered while the discovered port is scan-only goes to 19988, not the scanned port", async () => {
   await until(() => at(SCANNED_PORT).some((socket) => socket.received.length > 0))

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test"
-import { installChrome, settle, type StubEvent } from "../chrome-stub"
+import { installChrome, until, type StubEvent } from "../chrome-stub"
 import { installFakeRelaySocket } from "../relay-stub"
 
 // The status page's Grouping setting (agent-relay.ts group, agent-groups.ts): one shared "Agents · N" group for every
@@ -21,11 +21,6 @@ const { createAgentRelay } = await import("../../src/background/agent-relay")
 const { TabCleanup } = await import("../../src/background/tab-cleanup")
 const relay = createAgentRelay({ changed: () => {}, badgesChanged: () => {} })
 
-async function until(check: () => boolean | Promise<boolean>) {
-  // By the clock, not a count of settles: the group recount is a 100 ms timer, which a fast runner's 300 settles outrun.
-  for (const end = Date.now() + 5000; Date.now() < end && !(await check()); ) await settle()
-  expect(await check()).toBe(true)
-}
 const event = (path: string) => path.split(".").reduce<any>((value, key) => value[key], stub.chrome) as StubEvent
 let nextCommand = 1
 async function command(method: string, params: Record<string, unknown>) {
