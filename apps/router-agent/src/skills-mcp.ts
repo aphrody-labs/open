@@ -1,7 +1,7 @@
 // MCP server (stdio) over a directory of Agent Skills (folders holding a SKILL.md with name and description in its
 // YAML front matter): list_skills gives every name and description, read_skill gives one skill's instructions or a
 // file inside its folder. The agent reads a skill only when its task needs it.
-// bun src/skills-mcp.ts [--dir <skills directory>]   (default: the Hugging Face skills absorbed in ecosystem/)
+// bun src/skills-mcp.ts --dir <skills directory>   (or SKILLS_DIR; for example the skills/ folder of a checkout of huggingface/skills)
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, normalize, sep } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -9,9 +9,10 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 
 const argv = Bun.argv.slice(2);
-const dir = argv.includes("--dir") ? argv[argv.indexOf("--dir") + 1]! : (Bun.env.SKILLS_DIR ?? join(import.meta.dir, "../../../ecosystem/huggingface-skills/skills"));
+const dir = argv.includes("--dir") ? argv[argv.indexOf("--dir") + 1]! : Bun.env.SKILLS_DIR;
 
 export function listSkills(root = dir) {
+  if (!root) throw new Error("no skills directory: pass --dir <path> or set SKILLS_DIR");
   return readdirSync(root, { withFileTypes: true })
     .filter((d) => d.isDirectory() && existsSync(join(root, d.name, "SKILL.md")))
     .map((d) => {

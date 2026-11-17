@@ -1,17 +1,19 @@
 // End to end: network probe timings against a browser's own timings for the same targets. Needs a browser reachable
 // over CDP (CRAWL_CDP_URL, for example a Chrome started with --remote-debugging-port) and the probe library
-// (CRAWL_NET_PROBE_LIB); skipped otherwise.
+// (CRAWL_NET_PROBE_LIB). A proof run on demand, not part of `bun test` (its name has no `.test`):
+//   CRAWL_CDP_URL=http://127.0.0.1:9222 bun test ./test/net-probe.e2e.ts
 import { describe, expect, test } from "bun:test";
 import { probe } from "../src/net-probe.ts";
 import { CdpClient, networkTimingFromResponse } from "@aphrody/browser-engines";
 import targets from "./targets.json";
 
 const CDP = process.env.CRAWL_CDP_URL;
+if (!CDP) throw new Error("CRAWL_CDP_URL: the CDP endpoint of a browser to measure against");
 const T = targets.gemini;
 
-describe.skipIf(!CDP)("e2e:auth gemini", () => {
+describe("e2e:auth gemini", () => {
   test("authenticated load, prompt, streamed model response, h2/h3 + TLS 1.3", async () => {
-    const cdp = await CdpClient.connect({ endpoint: CDP! });
+    const cdp = await CdpClient.connect({ endpoint: CDP });
     const events: { method: string; params: Record<string, any> }[] = [];
     const targetId = await cdp.createTarget("about:blank");
     try {

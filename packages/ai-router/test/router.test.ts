@@ -1,10 +1,15 @@
-// Runs against the built library (AI_ROUTER_LIB or the workspace target/); skipped when it is not built here.
-import { expect, test } from "bun:test";
+// Runs against the built library: AI_ROUTER_LIB, else the workspace target/ (built here with cargo when absent).
+import { beforeAll, expect, test } from "bun:test";
+import { join } from "node:path";
 import { load, Router } from "../src/index.ts";
 
-const built = load() !== null;
+beforeAll(() => {
+  if (load() !== null) return;
+  const built = Bun.spawnSync(["cargo", "build", "-p", "ai-router"], { cwd: join(import.meta.dir, "..", "..", ".."), stdout: "inherit", stderr: "inherit" });
+  if (built.exitCode !== 0 || load() === null) throw new Error("ai-router library not built: set AI_ROUTER_LIB or run cargo build -p ai-router");
+}, 900_000);
 
-test.skipIf(!built)("routes to a local OpenAI-compatible server first and reports the attempt", async () => {
+test("routes to a local OpenAI-compatible server first and reports the attempt", async () => {
   const server = Bun.serve({
     port: 0,
     hostname: "127.0.0.1",
@@ -27,13 +32,13 @@ test.skipIf(!built)("routes to a local OpenAI-compatible server first and report
   expect(answer.router.attempts.length).toBe(1);
 });
 
-test.skipIf(!built)("an empty catalog and no local server give a clear error, not a crash", () => {
+test("an empty catalog and no local server give a clear error, not a crash", () => {
   using r = new Router({ catalog: {}, local: [] });
   expect(r.models()).toEqual([]);
   expect(r.chat({ messages: [{ role: "user", content: "hi" }] }).error.type).toBe("router_exhausted");
 });
 
-test.skipIf(!built)("streams chunks through the C ABI callback", async () => {
+test("streams chunks through the C ABI callback", async () => {
   const server = Bun.serve({
     port: 0,
     hostname: "127.0.0.1",
