@@ -1,22 +1,5 @@
 # open
 
-<!-- catalog:begin unit -->
-| Type | Path |
-| :-- | :-- |
-| App | `apps/open` |
-
-**Commands**
-
-```sh
-bun run --cwd apps/open test-ts
-bun run --cwd apps/open private
-bun run --cwd apps/open opentui-native
-bun run --cwd apps/open upstream
-```
-
-Part of Aphrody: [aphrody-labs/aphrody](../../README.md), [Catalog](../../docs/reference/catalog/app.md).
-<!-- catalog:end -->
-
 One Rust workspace and one framework: agents browse, crawl, tunnel, route and render from the same crates. No vendored
 upstream, no `third_party/`: every dependency is a crates.io version or a git revision pinned in the root
 `Cargo.toml` ([docs/upstream.md](docs/upstream.md)).
@@ -50,6 +33,17 @@ cargo build --release -p open --features tui,ui
 
 `open --help` lists the commands: `crawl`, `fetch`, `mirror`, `search`, `browse` (`mcp`, `relay`, `demo`, `tools`),
 `tunnel up`, `engines`, `tui`.
+
+## Scripts
+
+The root `package.json`:
+
+```sh
+bun run test-ts          # bun test in each workspace package (never at the root)
+bun run private          # no private data of this machine in tracked files
+bun run opentui-native   # OpenTUI native library for this platform
+bun run upstream         # pins table of docs/upstream.md
+```
 
 ## Crawl ecosystem to Rust
 

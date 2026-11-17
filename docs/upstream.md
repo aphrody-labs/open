@@ -1,7 +1,7 @@
 # Upstream
 
 Generated from the workspace manifest (pins) and from `open.lock.json` as it stood before the restructure (ledger).
-Nothing below is vendored: pins resolve through cargo from crates.io or git, and the removed copies are one `git show` away.
+Nothing below is vendored: pins resolve through cargo from crates.io or git. The removed copies and their lock (`open.lock.json`) are in the history before commit `470c0eff1d` (`git show 470c0eff1d^:open.lock.json`).
 
 ## Pins (live: `bun scripts/upstream.ts`)
 

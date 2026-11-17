@@ -6,9 +6,8 @@
 // ssh aliases, node names, a host name) are findings only where they name a host, in their own case: ssh/scp/rsync
 // targets, user@host, host-valued keys and flags, quoted literals, "on/to/from/via/at <host>", "(<host>)".
 // A weak term that is a command on PATH or a part of the repository's own name is public, not private.
-// Upstream sources listed in open.lock.json are their authors' content and are not scanned.
 // bun scripts/check/private.ts [--fleet <file>] [--paths a,b] [--json]
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { privateMatchers } from "./private-terms.ts";
@@ -18,12 +17,9 @@ const root = join(import.meta.dir, "../..");
 const sh = (cmd: string[]) => Bun.spawnSync(cmd, { cwd: root, stdout: "pipe", stderr: "ignore" }).stdout.toString().trim();
 const { terms, strongRe, weakRe, kindOf } = privateMatchers(root, a.fleet);
 
-// files: every tracked file except the upstream sources the lock lists
-const lockPath = join(root, "open.lock.json");
-const lock = existsSync(lockPath) ? JSON.parse(readFileSync(lockPath, "utf8")) : [];
-const upstream: string[] = (Array.isArray(lock) ? lock : Object.values(lock.entries ?? {})).flatMap((e: { path?: unknown }) => (typeof e?.path === "string" ? [e.path] : []));
+// files: every tracked file
 const tracked = (a.paths ? sh(["git", "ls-files", "--", ...a.paths.split(",")]) : sh(["git", "ls-files"])).split("\n");
-const files = tracked.filter((f) => f && !upstream.some((u) => f === u || f.startsWith(`${u}/`)));
+const files = tracked.filter(Boolean);
 
 const hits: { file: string; line: number; kind: string }[] = [];
 for (const f of files) {

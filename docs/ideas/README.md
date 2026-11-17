@@ -4,8 +4,7 @@ What building `open` taught: verified facts (source cited), tested ideas, failur
 
 | File | Topic |
 |---|---|
-| [monorepo.md](monorepo.md) | What `open` contains, how it is built, what is missing |
-| [ecosystem/](ecosystem/) | Classification of the "open" ecosystem (186 projects, 9 domains) |
+| [monorepo.md](monorepo.md) | What the `open` workspace contains, how it is built, what is missing |
 | [inventory/](inventory/) | Generated inventories: ecosystem frameworks (842 projects), the Aphrody monorepo, tools per host |
 | [ai-router.md](ai-router.md) | Free, multi-provider AI router with a C ABI: research, prototypes, results |
 | [economics.md](economics.md) | Prices read from providers (Cloudflare, Vercel, OpenRouter, opencode, OpenAI) and levers |
@@ -15,6 +14,5 @@ What building `open` taught: verified facts (source cited), tested ideas, failur
 | [compilers.md](compilers.md) | scriptc and Bun AOT, cross TypeScript toolchain (oxc, bun check, TypeScript 7) |
 | [lessons.md](lessons.md) | What failed and the rules that follow |
 | [translation.md](translation.md) | Google's translation and language-ID backends (Cloud Translation, Chrome built-in AI, ML Kit, TranslateGemma), from a crawl of their docs |
-| [src-handoff.md](src-handoff.md), [handoff-src.md](handoff-src.md) | What src holds in open's scope (UI, mobile, engines, AI) and where to pick it up |
 
 Facts: every figure comes from a command, a manifest or a page read while working. Prices, versions and repository states move; re-check them before any decision.

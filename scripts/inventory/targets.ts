@@ -5,6 +5,7 @@
 //   UI frameworks          docs/ideas/inventory/frameworks.json (registries + GitHub)
 // Output: docs/ideas/inventory/targets.{json,md}. A tool that is not installed is reported, not guessed.
 // bun scripts/inventory/targets.ts
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 const root = join(import.meta.dir, "../..");
@@ -28,7 +29,9 @@ const go = sh(["go", "tool", "dist", "list"])?.split("\n").filter(Boolean) ?? nu
 const zigJson = sh(["zig", "targets"]);
 // zig targets prints ZON (`.libc = .{ "aarch64-linux-gnu", ... }`), not JSON
 const zig = zigJson ? [...(zigJson.match(/\.libc\s*=\s*\.\{([\s\S]*?)\}/)?.[1] ?? "").matchAll(/"([^"]+)"/g)].map((m) => m[1]!) : null;
+// bun-types of the Bun fork, from the sparse checkout that apps/bun-m3/gen/sources.ts makes in .cache/bun-fork
 const typesDir = join(root, ".cache/bun-fork/packages/bun-types");
+if (!existsSync(typesDir)) throw new Error(`${typesDir}: missing; run bun apps/bun-m3/gen/sources.ts first`);
 const bunTypes = (await Promise.all([...new Bun.Glob("*.d.ts").scanSync({ cwd: typesDir })].map((f) => Bun.file(join(typesDir, f)).text()))).join("\n");
 // CompileTarget is a union of template literals over Architecture, SIMD and Libc: expand it
 const union = (name: string) => [...(bunTypes.match(new RegExp(`type ${name} = ([^;]+);`))?.[1] ?? "").matchAll(/"([^"]+)"/g)].map((m) => m[1]!);

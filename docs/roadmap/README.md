@@ -15,4 +15,3 @@ Working draft: the decisions marked "open" are not taken yet.
 
 Raw material: [`../ideas/`](../ideas/).
 
-GUI handoff: the Electron to Tauri v3 / GPUI migration lives in `src/electron-migrate` (`ay electron`, skill `electron-migrate`, MCP tools `electron__*`); src no longer extends it, the rest belongs to `open`.

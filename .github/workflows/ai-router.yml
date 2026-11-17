@@ -1,6 +1,6 @@
 # ai-router on every desktop platform: the crate's tests, a release build of the library and CLI, and the Bun
-# binding's tests against that build. RUSTUP_TOOLCHAIN overrides rust-toolchain.toml, whose channel is a toolchain
-# linked on the project's own build hosts.
+# binding's tests against that build. RUSTUP_TOOLCHAIN (nightly, or stable for the static image) overrides the dated
+# nightly that rust-toolchain.toml pins for the workspace.
 name: ai-router
 on:
   push:
