@@ -1,5 +1,5 @@
 {
-  "name": "ai-router-app",
+  "name": "@aphrody/open-ai-router",
   "private": true,
   "type": "module",
   "description": "Chat app over ai-router: Angular Material client, Bun server streaming through the C ABI; one executable for desktop, installable web app on mobile",

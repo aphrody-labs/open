@@ -1,5 +1,5 @@
 [package]
-name = "open-tui"
+name = "ay-open-tui"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -12,7 +12,7 @@ name = "open-tui"
 path = "src/main.rs"
 
 [dependencies]
-ai-router.workspace = true
+ay-open-ai-router.workspace = true
 opentui.workspace = true
 serde_json.workspace = true
 

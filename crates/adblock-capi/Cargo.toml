@@ -1,6 +1,6 @@
 [package]
 repository.workspace = true
-name = "aphrody-adblock-capi"
+name = "ay-open-adblock-capi"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,11 +8,11 @@ description = "Adblock engine glue over Brave's adblock crate and its C ABI (aph
 publish = false
 
 [lib]
-name = "aphrody_adblock"
+name = "ay_open_adblock"
 crate-type = ["cdylib"]
 
 [dependencies]
-c-abi.workspace = true
+ay-open-c-abi.workspace = true
 adblock.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true

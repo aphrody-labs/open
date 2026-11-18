@@ -1,14 +1,35 @@
 // Bun binding of the ai-router C ABI (crates/ai-router, include/ai_router.h) through bun:ffi. The library is
 // AI_ROUTER_LIB, else the workspace build next to this package (target/release, then target/debug).
 import { CString, dlopen, FFIType, JSCallback, type Pointer } from "bun:ffi";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { isAbsolute, join, resolve } from "node:path";
 
 const file = process.platform === "win32" ? "ai_router.dll" : process.platform === "darwin" ? "libai_router.dylib" : "libai_router.so";
 
+function configuredTargetDirs(root: string): string[] {
+  const dirs: string[] = [];
+  if (process.env.CARGO_TARGET_DIR) dirs.push(process.env.CARGO_TARGET_DIR);
+  for (const rel of [".cargo/local.toml", ".cargo/config.toml"]) {
+    const cfgPath = join(root, rel);
+    if (!existsSync(cfgPath)) continue;
+    try {
+      const parsed = Bun.TOML.parse(readFileSync(cfgPath, "utf8")) as { build?: { "target-dir"?: string } };
+      const td = parsed.build?.["target-dir"];
+      if (td) dirs.push(isAbsolute(td) ? td : resolve(root, td));
+    } catch {}
+  }
+  dirs.push(join(root, "target"));
+  return [...new Set(dirs)];
+}
+
 export function libraryCandidates(): string[] {
-  const target = join(import.meta.dir, "..", "..", "..", "target");
-  return [process.env.AI_ROUTER_LIB, join(target, "release", file), join(target, "debug", file)].filter((p): p is string => !!p);
+  const root = join(import.meta.dir, "..", "..", "..");
+  const out: string[] = [];
+  if (process.env.AI_ROUTER_LIB) out.push(process.env.AI_ROUTER_LIB);
+  for (const target of configuredTargetDirs(root)) {
+    out.push(join(target, "release", file), join(target, "debug", file));
+  }
+  return out;
 }
 
 const symbols = {

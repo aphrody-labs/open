@@ -27,8 +27,8 @@ GPU UI is [Rune](https://github.com/anomalyco/rune) behind the `ui` feature of `
 ```sh
 cargo check --workspace                 # builds on a build host, not on a workstation
 bun scripts/opentui-native.ts           # OpenTUI's native library, once per platform
-cargo build --release -p open           # fat LTO, one codegen unit (profile.release)
-cargo build --release -p open --features tui,ui
+cargo build --release -p ay-open        # thin LTO, one codegen unit (profile.release)
+cargo build --release -p ay-open --features tui,ui
 ```
 
 `open --help` lists the commands: `crawl`, `fetch`, `mirror`, `search`, `browse` (`mcp`, `relay`, `demo`, `tools`),

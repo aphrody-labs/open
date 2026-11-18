@@ -1,4 +1,6 @@
 # Applies to every crate of the workspace.
+include = [{ path = "local.toml", optional = true }]
+
 # lld through clang on Linux x86_64.
 [target.x86_64-unknown-linux-gnu]
 linker = "clang"

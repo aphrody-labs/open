@@ -141,17 +141,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ai-router"
-version = "0.5.0"
-dependencies = [
- "c-abi",
- "serde",
- "serde_json",
- "tiny_http",
- "ureq",
-]
-
-[[package]]
 name = "alloc-no-stdlib"
 version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -261,16 +250,6 @@ name = "anyhow"
 version = "1.0.104"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
-
-[[package]]
-name = "aphrody-adblock-capi"
-version = "0.5.0"
-dependencies = [
- "adblock",
- "c-abi",
- "serde",
- "serde_json",
-]
 
 [[package]]
 name = "arboard"
@@ -558,6 +537,141 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 
 [[package]]
+name = "ay-open"
+version = "0.5.0"
+dependencies = [
+ "anyhow",
+ "ay-open-ai-router",
+ "ay-open-browse",
+ "ay-open-browser-engines",
+ "ay-open-c-abi",
+ "ay-open-crawl",
+ "ay-open-tui",
+ "ay-open-tunnel",
+ "clap",
+ "rune",
+ "rune-kit",
+ "rune-motion",
+ "serde_json",
+ "tokio",
+ "url",
+]
+
+[[package]]
+name = "ay-open-adblock-capi"
+version = "0.5.0"
+dependencies = [
+ "adblock",
+ "ay-open-c-abi",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "ay-open-ai-router"
+version = "0.5.0"
+dependencies = [
+ "ay-open-c-abi",
+ "serde",
+ "serde_json",
+ "tiny_http",
+ "ureq",
+]
+
+[[package]]
+name = "ay-open-browse"
+version = "0.5.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "ay-open-browser-engines",
+ "browse-capture",
+ "browse-core",
+ "browse-page",
+ "browse-relay",
+ "browse-script",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "ay-open-browser-engines"
+version = "0.5.0"
+dependencies = [
+ "base64 0.22.1",
+ "futures-util",
+ "libc",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+ "tokio-tungstenite 0.30.0",
+ "url",
+ "which",
+]
+
+[[package]]
+name = "ay-open-c-abi"
+version = "0.5.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "ay-open-crawl"
+version = "0.5.0"
+dependencies = [
+ "ay-open-browser-engines",
+ "base64 0.22.1",
+ "blake3",
+ "futures-util",
+ "reqwest",
+ "rusqlite",
+ "rustls",
+ "scraper",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+ "url",
+]
+
+[[package]]
+name = "ay-open-hub"
+version = "0.5.0"
+dependencies = [
+ "base64 0.22.1",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tiny_http",
+ "ureq",
+]
+
+[[package]]
+name = "ay-open-tui"
+version = "0.5.0"
+dependencies = [
+ "ay-open-ai-router",
+ "opentui",
+ "serde_json",
+]
+
+[[package]]
+name = "ay-open-tunnel"
+version = "0.5.0"
+dependencies = [
+ "opentunnel",
+ "rustls",
+ "tokio",
+ "url",
+]
+
+[[package]]
 name = "base16ct"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -828,14 +942,6 @@ name = "bytes"
 version = "1.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
-
-[[package]]
-name = "c-abi"
-version = "0.5.0"
-dependencies = [
- "serde",
- "serde_json",
-]
 
 [[package]]
 name = "calloop"
@@ -2032,18 +2138,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
 
 [[package]]
-name = "hub"
-version = "0.5.0"
-dependencies = [
- "base64 0.22.1",
- "serde",
- "serde_json",
- "sha2",
- "tiny_http",
- "ureq",
-]
-
-[[package]]
 name = "humantime"
 version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3172,100 +3266,6 @@ name = "once_cell_polyfill"
 version = "1.70.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
-
-[[package]]
-name = "open"
-version = "0.5.0"
-dependencies = [
- "ai-router",
- "anyhow",
- "c-abi",
- "clap",
- "open-browse",
- "open-browser-engines",
- "open-crawl",
- "open-tui",
- "open-tunnel",
- "rune",
- "rune-kit",
- "rune-motion",
- "serde_json",
- "tokio",
- "url",
-]
-
-[[package]]
-name = "open-browse"
-version = "0.5.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "browse-capture",
- "browse-core",
- "browse-page",
- "browse-relay",
- "browse-script",
- "open-browser-engines",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "open-browser-engines"
-version = "0.5.0"
-dependencies = [
- "base64 0.22.1",
- "futures-util",
- "libc",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
- "tokio",
- "tokio-tungstenite 0.30.0",
- "url",
- "which",
-]
-
-[[package]]
-name = "open-crawl"
-version = "0.5.0"
-dependencies = [
- "base64 0.22.1",
- "blake3",
- "futures-util",
- "open-browser-engines",
- "reqwest",
- "rusqlite",
- "rustls",
- "scraper",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
- "tokio",
- "tracing",
- "url",
-]
-
-[[package]]
-name = "open-tui"
-version = "0.5.0"
-dependencies = [
- "ai-router",
- "opentui",
- "serde_json",
-]
-
-[[package]]
-name = "open-tunnel"
-version = "0.5.0"
-dependencies = [
- "opentunnel",
- "rustls",
- "tokio",
- "url",
-]
 
 [[package]]
 name = "openssl-probe"

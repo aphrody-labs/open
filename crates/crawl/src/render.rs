@@ -4,9 +4,9 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use open_browser_engines::cdp::Client;
-use open_browser_engines::launch::{LaunchOptions, Launched, launch};
-use open_browser_engines::SsrfGuard;
+use ay_open_browser_engines::cdp::Client;
+use ay_open_browser_engines::launch::{LaunchOptions, Launched, launch};
+use ay_open_browser_engines::SsrfGuard;
 use serde_json::json;
 use url::Url;
 
@@ -41,7 +41,7 @@ impl BrowserPool {
         outcome
     }
 
-    async fn render_in(&self, session: &open_browser_engines::Session, url: &Url, timeout: Duration) -> Result<String> {
+    async fn render_in(&self, session: &ay_open_browser_engines::Session, url: &Url, timeout: Duration) -> Result<String> {
         session.send("Fetch.enable", json!({ "patterns": [{ "urlPattern": "*" }] })).await?;
         let blocked: Arc<std::sync::Mutex<Vec<String>>> = Arc::default();
         let interceptor = {

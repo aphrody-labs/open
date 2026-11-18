@@ -9,8 +9,8 @@ use std::time::Duration;
 use anyhow::{Context, anyhow, bail};
 use async_trait::async_trait;
 use browse_core::{Browser, Cdp, CdpError, CdpEvent, HandoffResult, TabId, TabInfo, TabOptions, TabState, Tool, ToolContext, ToolOutput, ToolSpec};
-use open_browser_engines::cdp::{Client, Event, Session};
-use open_browser_engines::launch::{LaunchOptions, Launched, launch};
+use ay_open_browser_engines::cdp::{Client, Event, Session};
+use ay_open_browser_engines::launch::{LaunchOptions, Launched, launch};
 use serde_json::{Value, json};
 use tokio::sync::broadcast;
 
@@ -70,9 +70,9 @@ impl TabCdp {
 impl Cdp for TabCdp {
     async fn send(&self, method: &str, params: Value, session_id: Option<&str>) -> Result<Value, CdpError> {
         self.client.send(method, params, Some(session_id.unwrap_or(&self.session))).await.map_err(|error| match error {
-            open_browser_engines::CdpError::Closed => CdpError::Disconnected,
-            open_browser_engines::CdpError::Timeout(ms) => CdpError::Timeout(ms),
-            open_browser_engines::CdpError::Protocol(message) if message.contains("No target") || message.contains("closed") => CdpError::TargetClosed,
+            ay_open_browser_engines::CdpError::Closed => CdpError::Disconnected,
+            ay_open_browser_engines::CdpError::Timeout(ms) => CdpError::Timeout(ms),
+            ay_open_browser_engines::CdpError::Protocol(message) if message.contains("No target") || message.contains("closed") => CdpError::TargetClosed,
             other => CdpError::Protocol(other.to_string()),
         })
     }
@@ -108,7 +108,7 @@ impl DirectBrowser {
         Ok(Arc::new(Self { client, tabs: Default::default(), next: AtomicI64::new(1), _launched: None }))
     }
 
-    /// Launches a headless Chromium-family browser (see `open_browser_engines::registry`) and connects to it.
+    /// Launches a headless Chromium-family browser (see `ay_open_browser_engines::registry`) and connects to it.
     pub async fn launch(options: LaunchOptions) -> anyhow::Result<Arc<Self>> {
         let launched = launch(options).await?;
         let client = Client::connect(&launched.ws_endpoint).await?;

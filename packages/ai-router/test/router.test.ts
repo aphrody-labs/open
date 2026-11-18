@@ -5,8 +5,8 @@ import { load, Router } from "../src/index.ts";
 
 beforeAll(() => {
   if (load() !== null) return;
-  const built = Bun.spawnSync(["cargo", "build", "-p", "ai-router"], { cwd: join(import.meta.dir, "..", "..", ".."), stdout: "inherit", stderr: "inherit" });
-  if (built.exitCode !== 0 || load() === null) throw new Error("ai-router library not built: set AI_ROUTER_LIB or run cargo build -p ai-router");
+  const built = Bun.spawnSync(["cargo", "build", "-p", "ay-open-ai-router"], { cwd: join(import.meta.dir, "..", "..", ".."), stdout: "inherit", stderr: "inherit" });
+  if (built.exitCode !== 0 || load() === null) throw new Error("ai-router library not built: set AI_ROUTER_LIB or run cargo build -p ay-open-ai-router");
 }, 900_000);
 
 test("routes to a local OpenAI-compatible server first and reports the attempt", async () => {

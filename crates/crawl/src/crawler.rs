@@ -5,8 +5,8 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use open_browser_engines::ssrf::SsrfOptions;
-use open_browser_engines::SsrfGuard;
+use ay_open_browser_engines::ssrf::SsrfOptions;
+use ay_open_browser_engines::SsrfGuard;
 use tokio::sync::Mutex;
 use tokio::task::JoinSet;
 use url::Url;

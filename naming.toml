@@ -3,5 +3,9 @@ id = "open"
 kind = "app"
 org = "aphrody-labs"
 
+[names]
+npm_scope = "@aphrody"
+crate_prefix = "ay-open-"
+
 # Nothing is published from this repository: the crate and PyPI names that exist on the registries (open, tui, tunnel, browse, crawl,
 # replica) belong to other owners, and every npm package is private. No legacy names to keep.

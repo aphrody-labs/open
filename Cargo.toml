@@ -12,13 +12,13 @@ repository = "https://github.com/aphrody-labs/open"
 
 [workspace.dependencies]
 # first-party
-ai-router = { path = "crates/ai-router" }
-open-browse = { path = "crates/browse" }
-open-browser-engines = { path = "crates/browser-engines" }
-c-abi = { path = "crates/c-abi" }
-open-crawl = { path = "crates/crawl" }
-open-tui = { path = "crates/tui" }
-open-tunnel = { path = "crates/tunnel" }
+ay-open-ai-router = { path = "crates/ai-router" }
+ay-open-browse = { path = "crates/browse" }
+ay-open-browser-engines = { path = "crates/browser-engines" }
+ay-open-c-abi = { path = "crates/c-abi" }
+ay-open-crawl = { path = "crates/crawl" }
+ay-open-tui = { path = "crates/tui" }
+ay-open-tunnel = { path = "crates/tunnel" }
 
 # crates.io
 adblock = "0.13.5"
@@ -75,12 +75,24 @@ await_holding_lock = "deny"
 # Release: full LTO, one codegen unit, panic=abort off (the C ABI libraries unwind across nothing but stay safe on
 # the default), AOT = this profile with PGO later. `perf` keeps symbols for profilers.
 [profile.release]
-lto = "fat"
+lto = "thin"
 codegen-units = 1
 opt-level = 3
 strip = "symbols"
+debug = "limited"
 
 [profile.perf]
 inherits = "release"
 strip = "none"
 debug = "line-tables-only"
+
+[profile.dev]
+split-debuginfo = "unpacked"
+incremental = true
+codegen-units = 16
+debug = "limited"
+
+[profile.dev.build-override]
+codegen-units = 16
+split-debuginfo = "unpacked"
+debug = "limited"

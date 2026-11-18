@@ -1,8 +1,60 @@
-node_modules
-target
-dist
-.turbo
-*.log
+# Local Cargo override
+/.cargo/local.toml
+
+# Rust (github/gitignore Rust)
+target/
+**/target/
+**/*.rs.bk
+rustc-ice-*.txt
+*.pdb
+
+# Bun / Node / TypeScript / Cloudflare
+node_modules/
+dist/
+coverage/
+.turbo/
 .cache/
+.wrangler/
+**/wrangler-dry-*/
+*.tsbuildinfo
+*.log
 /libraries.json
+
+# Python
+.venv/
 __pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Secrets and local state (STANDARD.md section 2)
+.private/
+.local/
+.env
+.env.*
+!.env.example
+!.env.*.example
+.dev.vars
+*.pem
+*.key
+*.p12
+*.pfx
+id_ed25519*
+id_rsa*
+.claude/settings.local.json
+.claude/worktrees/
+
+# Editors and OS (github/gitignore Global)
+.DS_Store
+Thumbs.db
+[Dd]esktop.ini
+*.swp
+*~
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+!*.code-workspace

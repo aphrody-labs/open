@@ -29,8 +29,8 @@ jobs:
       - if: runner.os == 'Linux'
         run: sudo apt-get install -y lld
       - run: rustup toolchain install nightly --profile minimal
-      - run: cargo test -p ai-router
-      - run: cargo build --release -p ai-router
+      - run: cargo test -p ay-open-ai-router
+      - run: cargo build --release -p ay-open-ai-router
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: canary
@@ -69,7 +69,7 @@ jobs:
           sparse-checkout-cone-mode: true
       - run: sudo apt-get install -y musl-tools
       - run: rustup toolchain install stable --profile minimal --target x86_64-unknown-linux-musl
-      - run: cargo build --release -p ai-router --target x86_64-unknown-linux-musl
+      - run: cargo build --release -p ay-open-ai-router --target x86_64-unknown-linux-musl
       - run: cp target/x86_64-unknown-linux-musl/release/ai-router crates/ai-router/deploy/
       - name: Build, check and push
         env:

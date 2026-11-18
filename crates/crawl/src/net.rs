@@ -5,7 +5,7 @@ use std::error::Error as StdError;
 use std::sync::Arc;
 use std::time::Duration;
 
-use open_browser_engines::SsrfGuard;
+use ay_open_browser_engines::SsrfGuard;
 use reqwest::dns::{Addrs, Name, Resolve, Resolving};
 use reqwest::redirect::Policy;
 

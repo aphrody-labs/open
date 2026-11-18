@@ -15,8 +15,8 @@
 //! is the empty string. All filtering is done by Brave's `adblock` crate through
 //! `engine::AdblockEngine` (glue over Brave's `adblock` crate); the rest of this crate only marshals.
 
-pub use c_abi::{aphrody_abi_version, aphrody_free};
-use c_abi::{
+pub use ay_open_c_abi::{aphrody_abi_version, aphrody_free};
+use ay_open_c_abi::{
     ABI_STATUS_ERR, ABI_STATUS_OK, free_framed, pack_framed, utf8_slice,
 };
 pub mod engine;
@@ -139,7 +139,7 @@ pub unsafe extern "C" fn aphrody_adblock_buf_free(ptr: *mut u8) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use c_abi::FRAMED_HEADER_LEN;
+    use ay_open_c_abi::FRAMED_HEADER_LEN;
 
     fn take(ptr: *mut u8) -> (u8, serde_json::Value) {
         assert!(!ptr.is_null());

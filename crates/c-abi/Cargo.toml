@@ -1,5 +1,5 @@
 [package]
-name = "c-abi"
+name = "ay-open-c-abi"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,7 +8,7 @@ description = "Common C ABI primitives of the native libraries: owned JSON strin
 publish = false
 
 [lib]
-name = "c_abi"
+name = "ay_open_c_abi"
 
 [dependencies]
 serde.workspace = true

@@ -17,7 +17,7 @@ fn main() {
             std::process::exit(1);
         }
     };
-    if let Err(error) = open_tui::chat::run(router) {
+    if let Err(error) = ay_open_tui::chat::run(router) {
         eprintln!("{error}");
         std::process::exit(1);
     }

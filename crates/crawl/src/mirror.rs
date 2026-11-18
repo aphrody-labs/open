@@ -11,8 +11,8 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use base64::Engine as _;
-use open_browser_engines::cdp::{Client, Session};
-use open_browser_engines::launch::{LaunchOptions, launch};
+use ay_open_browser_engines::cdp::{Client, Session};
+use ay_open_browser_engines::launch::{LaunchOptions, launch};
 use serde_json::{Value, json};
 use tokio::sync::Mutex;
 use url::Url;
