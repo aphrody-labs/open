@@ -13,7 +13,7 @@ const out = join(app, "skills");
 
 /** Agent Skills `name`: lowercase letters, digits and hyphens, at most 64 characters. */
 const skillName = (rel: string) =>
-  `bun-${rel.replace(/\.mdx?$/, "").replace(/(^|\/)index$/, "")}`
+  `bun-${rel.replace(/\.mdx?$/, "").replace(/(^|\/)index$/, "") || "docs-index"}`
     .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 64).replace(/-$/, "");
 
 function frontmatter(src: string): { fm: Record<string, string>; body: string } {

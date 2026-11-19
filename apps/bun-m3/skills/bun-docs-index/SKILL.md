@@ -1,5 +1,5 @@
 ---
-name: bun
+name: bun-docs-index
 description: "Bun is an all-in-one toolkit for developing modern JavaScript/TypeScript applications. Use when working with Bun: Welcome to Bun (bun docs index.mdx)."
 ---
 

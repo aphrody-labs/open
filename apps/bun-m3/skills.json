@@ -4832,7 +4832,7 @@
       "components": []
     },
     {
-      "name": "bun",
+      "name": "bun-docs-index",
       "source": "index.mdx",
       "section": "index.mdx",
       "title": "Welcome to Bun",
