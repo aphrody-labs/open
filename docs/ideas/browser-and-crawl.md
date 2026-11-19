@@ -17,9 +17,9 @@ Sitemaps: m3.material.io publishes one (375 URLs); so does design.google. robots
 | agent-browser | same | same | own Rust client (`tokio-tungstenite`), no Playwright | Chrome for Testing; Lightpanda and Obscura modules |
 | Obscura | V8 through `deno_core` | own engine (html5ever, taffy, tiny-skia), embedded fonts | own CDP server | none |
 | Lightpanda | V8 (zig-v8 fork); network curl + BoringSSL + nghttp2 | none: PNG capture is a text rendering; CSS domain limited to 2 methods | CDP server (port 9222) | none |
-| Crawlee (JS) | — | — | — | `playwright` as a peer dependency; remote browser through `remoteBrowser` |
-| Crawlee (Python) | — | — | — | `playwright` extra, fingerprints `browserforge`, HTTP `impit` / `curl-cffi` |
-| anomalyco/browse | — | — | — | drives tabs with Playwright; MCP server + Chromium extension |
+| Crawlee (JS) | - | - | - | `playwright` as a peer dependency; remote browser through `remoteBrowser` |
+| Crawlee (Python) | - | - | - | `playwright` extra, fingerprints `browserforge`, HTTP `impit` / `curl-cffi` |
+| anomalyco/browse | - | - | - | drives tabs with Playwright; MCP server + Chromium extension |
 
 Playwright docs: `connectOverCDP` works only with Chromium and is "significantly lower fidelity" than Playwright's own protocol.
 
